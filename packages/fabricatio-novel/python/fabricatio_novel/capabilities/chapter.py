@@ -47,6 +47,7 @@ class ChapterCompose(StoryCompose, ABC):
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
                 "language": ctx.language,
+                "characters": ctx.dump_charactors(),
             },
         )
         return await self.aask_validate(
@@ -63,6 +64,7 @@ class ChapterCompose(StoryCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         logger.debug(f"Generating chapter '{ctx.title}'")
+        await self.interpolate_charactors(ctx, send_to, **kwargs)
         if not ctx.story_context:
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
@@ -77,8 +79,8 @@ class ChapterCompose(StoryCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_story_plan(story_plan)
+                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
-            logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
         for story_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:

@@ -15,4 +15,9 @@ Title: {{ title }}
 Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
 
+{{#if characters}}
+## Characters
+{{ characters }}
+{{/if}}
+
 Respond entirely in "{{ language }}".

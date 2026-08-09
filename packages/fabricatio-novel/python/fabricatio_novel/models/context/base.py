@@ -5,6 +5,7 @@ from pydantic import Field
 
 from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
+from fabricatio_character.utils import dump_card
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
 
@@ -72,6 +73,14 @@ class ContextBase(WordCount, PersistentAble, ABC):
     def set_content(self, content: str) -> Self:
         self.content = content
         return self
+
+    def set_charactor_traces(self, traces: list[CharactorTrace]) -> Self:
+        self.charactor_trace = traces
+        return self
+
+    def dump_charactors(self) -> str:
+        """Render every character's state chain for prompts, in trace order."""
+        return "\n\n".join(dump_card(*trace.iter_charactor_cards()) for trace in self.charactor_trace)
 
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.

@@ -200,6 +200,95 @@ class TestCaptureScene:
         assert capture_scene("### S1\n\nHe left.") is None
 
 
+class TestCharactorTraces:
+    """Test suite for hierarchical character state chains."""
+
+    async def test_create_charactor_traces_skips_without_roster(self) -> None:
+        """Assert trace creation is skipped without a bible roster."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero.", language="English")
+        await role.create_charactor_traces(ctx)
+        assert ctx.charactor_trace == []
+
+    async def test_create_charactor_traces_from_bible(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the bible roster seeds one trace per character."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero.", language="English")
+        ctx.set_series_bible(SeriesBible(characters="Hero — brave.\nVillain — cruel."))
+        hero = card()
+        villain = card(name="Villain", look="dark")
+
+        async def fake_compose(requirements: list[str], **kwargs: object) -> list[CharacterCard | None]:
+            return [hero, villain]
+
+        monkeypatch.setattr(NovelRole, "compose_characters", staticmethod(fake_compose))
+        await role.create_charactor_traces(ctx)
+        assert [t.start.name for t in ctx.charactor_trace] == ["Hero", "Villain"]
+        assert all(t.start == t.end for t in ctx.charactor_trace)
+
+    async def test_compose_novel_builds_hierarchical_chains(self) -> None:
+        """Assert each level extends its copy of the parent chain, without mutating it."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        bible = SeriesBible(characters="Hero — brave protagonist.")
+        ctx.set_series_bible(bible)
+        meta = NovelPlan(
+            title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible
+        )
+        hero = card()
+        d_novel = CharacterCardDiff(look="wounded")
+        d_chapter = CharacterCardDiff(act="cautious")
+        d_story = CharacterCardDiff(flaw="distrustful")
+        d_scene = CharacterCardDiff(want="find his father")
+        chapter_plans_json = [{"title": "Ch1", "description": "The start.", "weight": 1.0}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                Value(hero, "model"),
+                Value([d_novel.model_dump()], "json"),
+                Value(chapter_plans_json, "json"),
+                Value([d_chapter.model_dump()], "json"),
+                Value(story_plans_json, "json"),
+                Value([d_story.model_dump()], "json"),
+                Value(scene_plans_json, "json"),
+                Value([d_scene.model_dump()], "json"),
+                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+            )
+        ):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        novel_trace = ctx.charactor_trace[0]
+        chapter_trace = ctx.chapter_context[0].charactor_trace[0]
+        story_trace = ctx.chapter_context[0].story_context[0].charactor_trace[0]
+        scene_trace = ctx.chapter_context[0].story_context[0].scene_context[0].charactor_trace[0]
+        assert novel_trace.interpolates == [d_novel]
+        assert chapter_trace.interpolates == [d_novel, d_chapter]
+        assert story_trace.interpolates == [d_novel, d_chapter, d_story]
+        assert scene_trace.interpolates == [d_novel, d_chapter, d_story, d_scene]
+        # extending a child must not mutate the parent's chain
+        assert novel_trace.interpolates == [d_novel]
+        assert novel_trace.end.look == "wounded"
+        assert scene_trace.end.want == "find his father"
+
+    async def test_scene_requirement_shows_character_chain(self) -> None:
+        """Assert every state of the arc appears in the scene prompt's Characters section."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        hero = card()
+        ctx.charactor_trace = [
+            CharactorTrace(
+                start=hero,
+                end=hero.apply(CharacterCardDiff(look="scarred")),
+                interpolates=[CharacterCardDiff(look="scarred")],
+            )
+        ]
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert requirement.count("Hero") >= 2
+
+
 class TestNovelCompose:
     """Test suite for the generation chain with mock LLM."""
 
@@ -221,8 +310,8 @@ class TestNovelCompose:
         expected_diff = CharacterCardDiff(look="scarred")
         with install_router_usage(
             *return_mixed_router_usage(
+                Value([expected_diff.model_dump()], "json"),
                 raw_value("### Battle\n\n> The hero fights.\n\nHe fought."),
-                Value(expected_diff, "model"),
             )
         ):
             scene = await role.compose_scene(ctx)

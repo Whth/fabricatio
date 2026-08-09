@@ -1,15 +1,23 @@
-# Character Evolution Analysis
+# Character Evolution Interpolation
 
-## Scene Content
-{{ scene_content }}
+## Element
+Title: {{ title }}
+Description: {{ description }}
+{{#if outline}}
+## Outline
+{{ outline }}
+{{/if}}
 
 ## Goal
-Given the character's current card and the scene content above, determine how the character changes in this scene.
+Extend the character's state chain with the states that occur within this element.
 
 ## Requirements
-- Output a CharacterCardDiff JSON object. Only include fields that actually changed.
-- If nothing changed, output an empty object `{}`.
-- Every change must be justified by the scene content; do not invent evolution.
+- Output a JSON array of CharacterCardDiff objects in story order.
+- Only include fields that actually change; leave unchanged fields out.
+- Output `[]` when the character does not change within this element.
+- Stay consistent with the arc so far; do not contradict earlier states.
 
-## Current Character Card
-{{ character }}
+Respond entirely in "{{ language }}".
+
+## Character Arc
+{{ chain }}

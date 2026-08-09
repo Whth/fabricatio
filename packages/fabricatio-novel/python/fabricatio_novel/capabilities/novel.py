@@ -6,6 +6,7 @@ from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.base import CharactorTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
@@ -46,6 +47,7 @@ class NovelCompose(ChapterCompose, ABC):
                 "language": ctx.language,
                 "title": ctx.title,
                 "description": ctx.description,
+                "characters": ctx.dump_charactors(),
             },
         )
         return await self.aask_validate(
@@ -54,6 +56,19 @@ class NovelCompose(ChapterCompose, ABC):
             send_to=send_to,
             **kwargs,
         )
+
+    async def create_charactor_traces(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> None:
+        """Create the initial character traces from the setting bible roster."""
+        bible = ctx.series_bible
+        if bible is None or not bible.characters:
+            return
+        requirements = [line.strip() for line in bible.characters.splitlines() if line.strip()]
+        if not requirements:
+            return
+        cards = await self.compose_characters(requirements, **kwargs)
+        if not cards:
+            return
+        ctx.set_charactor_traces([CharactorTrace(start=card, end=card) for card in cards if card is not None])
 
     async def generate_novel(
         self,
@@ -71,6 +86,9 @@ class NovelCompose(ChapterCompose, ABC):
             return None
         ctx.set_novel_plan(plan).update_from(plan)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
+        if not ctx.charactor_trace:
+            await self.create_charactor_traces(ctx, **kwargs)
+        await self.interpolate_charactors(ctx, send_to, **kwargs)
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
@@ -85,6 +103,7 @@ class NovelCompose(ChapterCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_chapter_plan(chapter_plan)
+                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()

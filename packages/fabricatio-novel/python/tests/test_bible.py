@@ -248,7 +248,7 @@ class TestBibleThreading:
     async def test_compose_novel_threads_bible_to_all_contexts(self) -> None:
         """Assert the bible reaches chapter, story, and scene contexts."""
         role = BibleRole(name="bible_role")
-        bible = SeriesBible(characters="Hero.", background_settings=["Qi is vital."])
+        bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
@@ -277,7 +277,7 @@ class TestBibleThreading:
     async def test_compose_novel_keeps_preset_bible_when_plan_is_empty(self) -> None:
         """Assert a pre-set bible survives generation when the plan proposes an empty one."""
         role = BibleRole(name="bible_role")
-        bible = SeriesBible(characters="Hero.", background_settings=["Qi is vital."])
+        bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
@@ -305,7 +305,7 @@ class TestBibleThreading:
     async def test_compose_novel_rethreads_bible_to_prefilled_contexts(self) -> None:
         """Assert prefilled contexts adopt the novel's bible even when they carried a stale one."""
         role = BibleRole(name="bible_role")
-        bible = SeriesBible(characters="Hero.", background_settings=["Qi is vital."])
+        bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
         # prefilled tree: child contexts keep their default (empty) bible instances

@@ -9,7 +9,9 @@ from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, TextCapturer, detect_language
 
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
+from fabricatio_novel.models.plan import plan_list_question, plan_list_validator
 from fabricatio_novel.models.scene import Scene
 
 
@@ -59,7 +61,7 @@ class SceneCompose(CharacterCompose, ABC):
         Overriding capabilities (bible context, RAG) reuse these vars and add
         their own blocks before rendering.
         """
-        characters = dump_card(*[trace.end for trace in ctx.charactor_trace])
+        characters = ctx.dump_charactors()
         return {
             "title": ctx.title,
             "description": ctx.description,
@@ -86,38 +88,55 @@ class SceneCompose(CharacterCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
         logger.debug(f"Generating scene '{ctx.title}'")
+        await self.interpolate_charactors(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         scene = await self.aask_validate(requirement, capture_scene, send_to=send_to, **kwargs)
         if scene is None:
             return None
         scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
-        await self.interpolate_charactors(ctx, send_to, **kwargs)
         logger.info(f"Scene '{scene.title}' generated")
         return scene
 
     async def interpolate_charactors(
         self,
-        ctx: SceneContext,
+        ctx: ContextBase,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
+        """Extend every trace with the character states occurring in this element.
+
+        Runs before the element is planned or written, so the pre-scheduled
+        chain can guide both plan and content generation.
+        """
         if not ctx.charactor_trace:
             return
-        logger.debug(f"Interpolating {len(ctx.charactor_trace)} character(s) for scene '{ctx.title}'")
+        logger.debug(f"Interpolating {len(ctx.charactor_trace)} character(s) for '{ctx.title}'")
         prompts = [
             TEMPLATE_MANAGER.render_template(
                 novel_config.charactor_diff_template,
-                {"character": dump_card(trace.end), "scene_content": ctx.content},
+                {
+                    "title": ctx.title,
+                    "description": ctx.description,
+                    "outline": getattr(ctx, "outline", ""),
+                    "chain": "\n\n".join(dump_card(card) for card in trace.iter_charactor_cards()),
+                    "language": ctx.language,
+                },
             )
             for trace in ctx.charactor_trace
         ]
-        diffs = await self.propose(CharacterCardDiff, prompts, send_to, **kwargs)
-        for trace, diff in zip(ctx.charactor_trace, diffs or [], strict=False):
-            if diff is None:
+        chains = await self.aask_validate(
+            [plan_list_question(prompt, CharacterCardDiff) for prompt in prompts],
+            plan_list_validator(CharacterCardDiff),
+            send_to=send_to,
+            **kwargs,
+        )
+        for trace, chain in zip(ctx.charactor_trace, chains or [], strict=False):
+            if not chain:
                 continue
-            trace.intepl([*trace.interpolates, diff])
-            trace.end = trace.end.apply(diff)
+            for diff in chain:
+                trace.end = trace.end.apply(diff)
+            trace.intepl([*trace.interpolates, *chain])
 
     async def compose_scene(
         self,

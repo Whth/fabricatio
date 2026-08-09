@@ -47,6 +47,7 @@ class StoryCompose(SceneCompose, ABC):
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
                 "language": ctx.language,
+                "characters": ctx.dump_charactors(),
             },
         )
         return await self.aask_validate(
@@ -63,6 +64,7 @@ class StoryCompose(SceneCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
         logger.debug(f"Generating story '{ctx.title}'")
+        await self.interpolate_charactors(ctx, send_to, **kwargs)
         if not ctx.scene_context:
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
             if scene_plans is None:
@@ -77,6 +79,7 @@ class StoryCompose(SceneCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_scene_plan(scene_plan)
+                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         ctx.broadcast_settings_bible()
