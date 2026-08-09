@@ -1,12 +1,11 @@
 """Module containing configuration classes for fabricatio-novel.
 
 The config carries ONLY the template entries the overhaul pipeline needs:
-the outline stage (draft/characters/scripts), the summary derivation, the
-bible pipeline (creation/export/sync), and the event pipeline (prompt,
-splitter, format block, bible context excerpts). Everything belonging to the
-deleted chapter pipeline, the deferred capabilities (state/mental/RAG/
-illustration/enrich), and their templates is gone — it returns with the
-capability when it is integrated back.
+the novel metadata extraction, the scene writing, and the character
+evolution analysis. Everything belonging to the deleted chapter pipeline,
+the deferred capabilities (state/mental/RAG/illustration/enrich), and their
+templates is gone — it returns with the capability when it is integrated
+back.
 """
 
 from dataclasses import dataclass
@@ -18,7 +17,32 @@ from fabricatio_core import CONFIG
 class NovelConfig:
     """Configuration for fabricatio-novel."""
 
-    ...
+    novel_metadata_requirement_template: str = "built-in/novel_metadata_requirement"
+    """template used to extract the novel metadata (title, synopsis, word count) from the outline."""
+
+    novel_plan_template: str = "built-in/novel_plan"
+    """template used to plan the novel structure (chapters, stories, scenes) from the outline."""
+
+    scene_requirement_template: str = "built-in/scene_requirement"
+    """template used to write a single scene in full prose."""
+
+    render_chapter_xhtml_template: str = "built-in/render_chapter_xhtml"
+    """template used to render a chapter as a full XHTML document."""
+
+    charactor_diff_template: str = "built-in/charactor_diff"
+    """template used to analyze how a character evolves inside a scene."""
+
+    writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
+    """template used to render writing style documents as prompts."""
+
+    enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
+    """template used to render enriched reference documents as prompts."""
+
+    writing_styles_table_name: str = "writing_styles"
+    """LanceDB table name for writing style reference documents."""
+
+    enriched_table_name: str = "enriched_chunks"
+    """LanceDB table name for LLM-enriched reference documents."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)
