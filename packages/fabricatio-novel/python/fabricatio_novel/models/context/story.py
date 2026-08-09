@@ -21,6 +21,11 @@ class StoryContext(Titled, Described, ContextBase):
             if scene_ctx.content:
                 yield scene_ctx.content
 
+    @final
+    def iter_child_contexts(self) -> Generator[SceneContext, None, None]:
+        """Yield this story's scene contexts, in composition order."""
+        yield from self.scene_context
+
     def set_story_plan(self, plan: StoryPlan) -> Self:
         self.story_plan = plan
         return self

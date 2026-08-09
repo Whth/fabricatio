@@ -20,6 +20,11 @@ class ChapterContext(Titled, Described, ContextBase):
         for story_ctx in self.story_context:
             yield from story_ctx.iter_scene_content()
 
+    @final
+    def iter_child_contexts(self) -> Generator[StoryContext, None, None]:
+        """Yield this chapter's story contexts, in composition order."""
+        yield from self.story_context
+
     def set_chapter_plan(self, plan: ChapterPlan) -> Self:
         self.chapter_plan = plan
         return self

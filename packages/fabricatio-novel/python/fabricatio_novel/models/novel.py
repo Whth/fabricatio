@@ -6,6 +6,7 @@ from fabricatio_capabilities.models.generic import PersistentAble
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.plan import NovelPlan
+from fabricatio_novel.models.series_book import SeriesBible
 from fabricatio_novel.rust import NovelBuilder
 
 
@@ -18,7 +19,7 @@ class Novel(PersistentAble, NovelPlan):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            series_bible=ctx.series_bible,
+            series_bible=ctx.series_bible or SeriesBible(),
             chapter=[Chapter.from_context(cc) for cc in ctx.chapter_context],
         )
 

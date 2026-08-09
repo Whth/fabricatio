@@ -26,6 +26,11 @@ class NovelContext(ContextBase):
         for chapter_ctx in self.chapter_context:
             yield from chapter_ctx.iter_story_content()
 
+    @final
+    def iter_child_contexts(self) -> Generator[ChapterContext, None, None]:
+        """Yield this novel's chapter contexts, in composition order."""
+        yield from self.chapter_context
+
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         self.novel_plan = plan
         return self

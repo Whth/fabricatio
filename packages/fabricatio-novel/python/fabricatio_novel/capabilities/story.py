@@ -78,8 +78,7 @@ class StoryCompose(SceneCompose, ABC):
                     .set_scene_plan(scene_plan)
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
-        for scene_ctx in ctx.scene_context:
-            scene_ctx.set_series_bible(ctx.series_bible)
+        ctx.broadcast_settings_bible()
         for scene_ctx in ctx.scene_context:
             scene_ctx.set_prefixed_content(
                 "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_scene_content()) if p)

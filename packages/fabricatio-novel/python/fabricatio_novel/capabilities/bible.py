@@ -154,7 +154,7 @@ class BibleCompose(SceneCompose, ABC):
         so it is injected right after the static head — before previous_content —
         keeping it inside the shared prompt prefix.
         """
-        bible = ctx.series_bible
-        if bible.is_empty():
+        if ctx.series_bible is None or ctx.series_bible.is_empty():
             return ""
+        bible = ctx.access_settings_bible()
         return TEMPLATE_MANAGER.render_template(novel_config.setting_bible_context_template, bible.model_dump()).strip()

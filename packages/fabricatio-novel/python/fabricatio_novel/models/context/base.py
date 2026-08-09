@@ -6,6 +6,7 @@ from pydantic import Field
 from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.utils import ok
 
 from fabricatio_novel.models.series_book import SeriesBible
 
@@ -42,8 +43,8 @@ class ContextBase(WordCount, PersistentAble, ABC):
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
 
-    series_bible: SeriesBible = Field(default_factory=SeriesBible)
-    """The novel's setting bible; threaded down from the novel context."""
+    series_bible: SeriesBible | None = None
+    """The novel's setting bible; uninitialized until set or broadcast down from the novel context."""
 
     prefixed_content: str = ""
     """Everything composed before this element in the novel; injected by the parent before composition."""
@@ -52,8 +53,26 @@ class ContextBase(WordCount, PersistentAble, ABC):
         self.language = language
         return self
 
-    def set_series_bible(self, series_bible: SeriesBible) -> Self:
+    def set_series_bible(self, series_bible: SeriesBible | None) -> Self:
         self.series_bible = series_bible
+        return self
+
+    def access_settings_bible(self) -> SeriesBible:
+        """Return the initialized settings bible.
+
+        Raises:
+            ValueError: if the settings bible was never initialized on this context.
+        """
+        return ok(self.series_bible, f"Settings bible is not initialized on {self.__class__.__name__}")
+
+    def iter_child_contexts(self) -> Generator["ContextBase", None, None]:
+        """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
+        yield from ()
+
+    def broadcast_settings_bible(self) -> Self:
+        """Push this context's settings bible onto every child context."""
+        for child in self.iter_child_contexts():
+            child.set_series_bible(self.series_bible)
         return self
 
     def set_prefixed_content(self, prefixed_content: str) -> Self:
