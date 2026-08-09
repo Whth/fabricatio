@@ -41,7 +41,7 @@ class TestNovelContext:
         assert ctx.outline == "少年踏上旅途。"
         assert ctx.title == ""
         assert ctx.description == ""
-        assert isinstance(ctx.series_bible, SeriesBible)
+        assert ctx.series_bible is None
         assert ctx.chapter_context == []
 
     def test_create_with_explicit_language(self) -> None:
@@ -125,6 +125,8 @@ class TestFromContext:
         ctx.title = "The Search"
         ctx.description = "A hero searching."
         ctx.expected_word_count = 200
+        bible = SeriesBible(characters="Hero — brave protagonist.")
+        ctx.set_series_bible(bible)
 
         chapter_ctx = ChapterContext(title="Ch1", description="The start.")
         story_ctx = StoryContext(title="St1", description="The departure.")

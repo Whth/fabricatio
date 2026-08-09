@@ -56,6 +56,55 @@ class TestSeriesBibleModel:
         assert restored == bible
 
 
+class TestContextBibleAccess:
+    """Test suite for bible access and broadcast on contexts."""
+
+    def test_access_settings_bible_raises_when_uninitialized(self) -> None:
+        """Assert the accessor raises on an uninitialized bible."""
+        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        with pytest.raises(ValueError, match="not initialized"):
+            ctx.access_settings_bible()
+
+    def test_access_settings_bible_returns_initialized_bible(self) -> None:
+        """Assert the accessor returns the initialized bible instance."""
+        bible = SeriesBible(characters="Hero.")
+        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        ctx.set_series_bible(bible)
+        assert ctx.access_settings_bible() is bible
+
+    def test_broadcast_settings_bible_reaches_all_descendants(self) -> None:
+        """Assert broadcasting pushes the bible down the whole context chain."""
+        bible = SeriesBible(characters="Hero.")
+        novel = NovelContext.create("The hero.", language="English")
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        story = StoryContext(title="St1", description="The departure.")
+        scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        story.add_scene_context(scene)
+        chapter.add_story_context(story)
+        novel.add_chapter_context(chapter)
+        novel.set_series_bible(bible)
+
+        novel.broadcast_settings_bible()
+        chapter.broadcast_settings_bible()
+        story.broadcast_settings_bible()
+
+        assert chapter.series_bible is bible
+        assert story.series_bible is bible
+        assert scene.series_bible is bible
+
+    def test_broadcast_settings_bible_with_uninitialized_parent_clears_children(self) -> None:
+        """Assert an uninitialized parent broadcasts None, overriding stale children."""
+        novel = NovelContext.create("The hero.", language="English")
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        chapter.set_series_bible(SeriesBible(characters="Stale."))
+        novel.add_chapter_context(chapter)
+
+        novel.broadcast_settings_bible()
+
+        assert novel.series_bible is None
+        assert chapter.series_bible is None
+
+
 class BibleRole(LLMTestRole, NovelCompose, BibleCompose):
     """Test role combining mock LLM with bible and novel composition."""
 
