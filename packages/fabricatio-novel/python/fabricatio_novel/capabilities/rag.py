@@ -1,10 +1,11 @@
-"""RAG-extended scene composition: retrieve writing style references for scene prompts."""
+"""RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
 from abc import ABC
-from typing import List, Unpack
+from typing import List, Unpack, cast
 
-from fabricatio_core import logger
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
+from fabricatio_core.rust import detect_language
 from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
@@ -12,6 +13,7 @@ cfg(["lancedb"])
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbRAG
 
 from fabricatio_novel.capabilities.scene import SceneCompose
+from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 
@@ -33,8 +35,31 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         requirement = await super().prepare_scene_requirement(ctx, **kwargs)
         docs = await self._fetch_style_docs(ctx, **kwargs)
         if docs:
-            requirement += "\n\n## Writing Style References\n" + "\n".join(doc.as_prompt() for doc in docs)
+            digest = await self._digest_style_docs(docs, ctx, **kwargs)
+            if digest:
+                requirement += "\n\n## Writing Style Guideline\n" + digest
         return requirement
+
+    async def _digest_style_docs(
+        self,
+        docs: List[WritingStyleDocument],
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> str | None:
+        """Condense the raw reference documents into a writing style guideline string."""
+        prompt = TEMPLATE_MANAGER.render_template(
+            novel_config.writing_style_digest_template,
+            {
+                "sources": "\n\n".join(doc.as_prompt() for doc in docs),
+                "scene_title": ctx.title,
+                "scene_description": ctx.description,
+                "language": ctx.language or detect_language(ctx.description),
+            },
+        )
+        return cast(
+            "str | None",
+            await self.ageneric_string(prompt, **kwargs),
+        )
 
     async def _fetch_style_docs(
         self,
