@@ -1,0 +1,18 @@
+# Scene Planning
+
+## Goal
+Plan the scenes of the story from its plan.
+
+## Requirements
+- 2-5 scenes per story.
+- Scene word counts: 300-800 each, summing to the story's expected word count.
+- Scene titles must be concise and evocative.
+- Scene descriptions must be 1-2 sentences covering what happens.
+- Output JSON with a `scenes` array. Each scene has `title`, `description`, and `expected_word_count`.
+
+## Story
+Title: {{ title }}
+Description: {{ description }}
+- Expected word count: {{ expected_word_count }}
+
+Respond entirely in "{{ language }}".

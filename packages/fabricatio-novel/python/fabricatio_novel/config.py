@@ -20,8 +20,14 @@ class NovelConfig:
     novel_metadata_requirement_template: str = "built-in/novel_metadata_requirement"
     """template used to extract the novel metadata (title, synopsis, word count) from the outline."""
 
-    novel_plan_template: str = "built-in/novel_plan"
-    """template used to plan the novel structure (chapters, stories, scenes) from the outline."""
+    chapter_plan_template: str = "built-in/chapter_plan"
+    """template used to plan the chapters of the novel from the outline and metadata."""
+
+    story_plan_template: str = "built-in/story_plan"
+    """template used to plan the stories (剧情段) of a chapter."""
+
+    scene_plan_template: str = "built-in/scene_plan"
+    """template used to plan the scenes of a story."""
 
     scene_requirement_template: str = "built-in/scene_requirement"
     """template used to write a single scene in full prose."""

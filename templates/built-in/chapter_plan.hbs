@@ -1,0 +1,20 @@
+# Chapter Planning
+
+## Goal
+Plan the chapters of the novel from its outline and metadata.
+
+## Requirements
+- 3-8 chapters for a standard novel; scale with the outline's scope.
+- Chapter titles must be concise and evocative.
+- Chapter descriptions must be 1-2 sentences covering what happens.
+- Chapter word counts must sum to the novel's expected word count.
+- Output JSON with a `chapters` array. Each chapter has `title`, `description`, and `expected_word_count`.
+
+## Novel
+Title: {{ title }}
+Description: {{ description }}
+- Expected word count: {{ expected_word_count }}
+
+{{block outline "Novel Outline"}}
+
+Respond entirely in "{{ language }}".
