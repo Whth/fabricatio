@@ -72,6 +72,12 @@ impl NovelBuilder {
 
         Ok(slf)
     }
+    /// Sets the EPUB language (BCP-47 code).
+    fn set_language(mut slf: PyRefMut<Self>, language: String) -> PyResult<PyRefMut<Self>> {
+        slf.ensure_initialized_mut()?.add_language(language);
+        Ok(slf)
+    }
+
     /// Adds an author to the novel metadata.
     fn add_author(mut slf: PyRefMut<Self>, author: String) -> PyResult<PyRefMut<Self>> {
         slf.ensure_initialized_mut()?.add_author(author);
