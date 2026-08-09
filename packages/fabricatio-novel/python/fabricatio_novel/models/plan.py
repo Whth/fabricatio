@@ -3,33 +3,31 @@
 import json
 from typing import Callable, TypeVar
 
+from pydantic import BaseModel, Field, TypeAdapter, PositiveFloat
+
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import CONFIG, TEMPLATE_MANAGER
 from fabricatio_core.models.generic import Described, SketchedAble, Titled
-from pydantic import BaseModel, Field, TypeAdapter
-
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class ScenePlan(SketchedAble, Titled, Described):
-    """Plan of a single scene: title, description, and word-count weight."""
+class WeightedPlan(SketchedAble, Titled, Described):
+    """Plan of a single novel element: title, description, and word-count weight."""
 
-    weight: float = 1.0
-    """Relative importance for allocating the story's expected word count."""
-
-
-class StoryPlan(SketchedAble, Titled, Described):
-    """Plan of a single story: title, description, and word-count weight."""
-
-    weight: float = 1.0
-    """Relative importance for allocating the chapter's expected word count."""
+    weight: PositiveFloat = 1.0
+    """Relative importance for allocating the parent's expected word count."""
 
 
-class ChapterPlan(SketchedAble, Titled, Described):
-    """Plan of a single chapter: title, description, and word-count weight."""
+class ScenePlan(WeightedPlan):
+    """Plan of a single scene; its weight allocates the story's expected word count."""
 
-    weight: float = 1.0
-    """Relative importance for allocating the novel's expected word count."""
+
+class StoryPlan(WeightedPlan):
+    """Plan of a single story; its weight allocates the chapter's expected word count."""
+
+
+class ChapterPlan(WeightedPlan):
+    """Plan of a single chapter; its weight allocates the novel's expected word count."""
 
 
 class NovelPlan(SketchedAble, Titled, Described, WordCount):
