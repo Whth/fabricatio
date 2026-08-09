@@ -33,22 +33,30 @@ class SceneCompose(CharacterCompose, ABC):
     async def post_process_scene(self, ctx: SceneContext, scene: Scene, **kwargs: Unpack[LLMKwargs]) -> Scene:
         return scene
 
+    def _scene_requirement_vars(self, ctx: SceneContext) -> dict[str, object]:
+        """Build the scene_requirement template variables for a scene context.
+
+        Overriding capabilities (bible context, RAG) reuse these vars and add
+        their own blocks before rendering.
+        """
+        characters = dump_card(*[trace.end for trace in ctx.charactor_trace])
+        return {
+            "title": ctx.title,
+            "description": ctx.description,
+            "expected_word_count": ctx.expected_word_count,
+            "characters": characters,
+            "language": ctx.language or detect_language(ctx.description),
+            "previous_content": ctx.previous_content,
+        }
+
     async def prepare_scene_requirement(
         self,
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
-        characters = dump_card(*[trace.end for trace in ctx.charactor_trace])
         return TEMPLATE_MANAGER.render_template(
             novel_config.scene_requirement_template,
-            {
-                "title": ctx.title,
-                "description": ctx.description,
-                "expected_word_count": ctx.expected_word_count,
-                "characters": characters,
-                "language": ctx.language or detect_language(ctx.description),
-                "previous_content": ctx.previous_content,
-            },
+            self._scene_requirement_vars(ctx),
         )
 
     async def generate_scene(
