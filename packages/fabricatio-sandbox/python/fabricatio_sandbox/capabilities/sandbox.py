@@ -81,5 +81,5 @@ class Sandbox(UseLLM, ABC):
         )
 
         if result is None:
-            logger.warning("Sandbox operation produced no valid result.")
+            logger.warn("Sandbox operation produced no valid result.")
         return result
