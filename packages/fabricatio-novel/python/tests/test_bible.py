@@ -2,12 +2,14 @@
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
+from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage, return_model_json_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.bible import BibleCompose, parse_sections
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
+from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.models.series_book import SeriesBible
@@ -247,3 +249,30 @@ class TestBibleThreading:
         assert novel.series_bible is bible
         assert ctx.chapter_context[0].series_bible is bible
         assert ctx.chapter_context[0].story_context[0].scene_context[0].series_bible is bible
+
+    async def test_compose_novel_rethreads_bible_to_prefilled_contexts(self) -> None:
+        """Assert prefilled contexts adopt the novel's bible even when they carried a stale one."""
+        role = BibleRole(name="bible_role")
+        bible = SeriesBible(characters="Hero.", background_settings=["Qi is vital."])
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx.set_series_bible(bible)
+        # prefilled tree: child contexts keep their default (empty) bible instances
+        scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=40)
+        story_ctx = StoryContext(title="St1", description="The departure.")
+        story_ctx.add_scene_context(scene_ctx)
+        chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
+        chapter_ctx.add_story_context(story_ctx)
+        ctx.add_chapter_context(chapter_ctx)
+
+        meta = NovelPlan(
+            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible()
+        )
+        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=40, content="He left.")
+        with install_router_usage(*return_model_json_router_usage(meta, expected_scene)):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        assert ctx.chapter_context[0].series_bible is bible
+        assert ctx.chapter_context[0].story_context[0].series_bible is bible
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].series_bible is bible
+        assert novel.series_bible is bible
