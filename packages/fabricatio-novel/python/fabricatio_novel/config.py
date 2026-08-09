@@ -24,7 +24,7 @@ class NovelConfig:
     """template used to plan the chapters of the novel from the outline and metadata."""
 
     story_plan_template: str = "built-in/story_plan"
-    """template used to plan the stories (剧情段) of a chapter."""
+    """template used to plan the stories of a chapter."""
 
     scene_plan_template: str = "built-in/scene_plan"
     """template used to plan the scenes of a story."""

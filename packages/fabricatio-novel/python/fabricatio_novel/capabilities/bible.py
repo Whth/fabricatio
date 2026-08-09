@@ -1,4 +1,4 @@
-"""Setting bible (设定集) capabilities: creation, update, and scene-prompt consumption.
+"""Setting bible capabilities: creation, update, and scene-prompt consumption.
 
 Design authority: docs/superpowers/specs/2026-08-08-novel-gen-overhaul-design.md §3,
 simplified per user directive: characters are proposed as one string,
@@ -34,7 +34,7 @@ def parse_sections(sections: str | Iterable[str] | None) -> Optional[set[str]]:
 
 
 class BibleCompose(SceneCompose, ABC):
-    """Setting bible (设定集) creation and scene-prompt consumption."""
+    """Setting bible creation and scene-prompt consumption."""
 
     # --- creation / update (design §3.3) ---
 

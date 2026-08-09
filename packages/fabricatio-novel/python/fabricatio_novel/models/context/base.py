@@ -43,7 +43,7 @@ class ContextBase(WordCount, PersistentAble, ABC):
     """Written language; run-wide constant, set progressively during context creation."""
 
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
-    """The novel's setting bible (设定集); threaded down from the novel context."""
+    """The novel's setting bible; threaded down from the novel context."""
 
     prefixed_content: str = ""
     """Everything composed before this element in the novel; injected by the parent before composition."""

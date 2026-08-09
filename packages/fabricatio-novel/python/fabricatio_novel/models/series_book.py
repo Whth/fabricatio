@@ -1,4 +1,4 @@
-"""Setting bible (设定集) models: the novel's settings facts.
+"""Setting bible models: the novel's settings facts.
 
 Design authority: docs/superpowers/specs/2026-08-08-novel-gen-overhaul-design.md §3,
 simplified per user directive (2026-08-09): plain strings, no structured entries.
@@ -13,7 +13,7 @@ from pydantic import Field
 
 
 class SeriesBible(FinalizedDumpAble, PersistentAble):
-    """The setting bible (设定集): the novel's settings facts.
+    """The setting bible: the novel's settings facts.
 
     Created skeleton-first from the outline (``fanvl bible create``), persists as
     BLAKE3-hashed JSON checkpoints (:class:`PersistentAble`) and exports to

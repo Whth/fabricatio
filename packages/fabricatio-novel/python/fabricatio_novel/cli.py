@@ -4,7 +4,7 @@ Simple typer app wrapping the novel composition chain:
 
 - ``w``           — generate a novel from an outline
 - ``wr``          — generate a novel with writing style RAG (lancedb)
-- ``bible``       — create / update / show the setting bible (设定集)
+- ``bible``       — create / update / show the setting bible
 - ``store-refs``  — ingest text files as writing style references (lancedb)
 - ``enrich-refs`` — chunk, enrich into QA pairs, and store references (lancedb)
 """
@@ -133,7 +133,7 @@ def create_bible(
     ),
     send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
-    """Create a setting bible (设定集) from an outline."""
+    """Create a setting bible from an outline."""
     from fabricatio_novel.capabilities.bible import parse_sections
 
     class BibleRole(Role, BibleCompose):

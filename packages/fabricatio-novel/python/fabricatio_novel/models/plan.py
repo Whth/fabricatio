@@ -16,7 +16,7 @@ class ScenePlan(SketchedAble, Titled, Described, WordCount):
 
 
 class StoryPlan(SketchedAble, Titled, Described, WordCount):
-    """Plan of a single story (剧情段): title, description, expected word count."""
+    """Plan of a single story: title, description, expected word count."""
 
 
 class ChapterPlan(SketchedAble, Titled, Described, WordCount):

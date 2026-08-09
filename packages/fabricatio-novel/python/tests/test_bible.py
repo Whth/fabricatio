@@ -1,4 +1,4 @@
-"""Test module for the setting bible (设定集): models, creation, update, and consumption."""
+"""Test module for the setting bible: models, creation, update, and consumption."""
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
