@@ -6,7 +6,12 @@ from typing import List
 import pytest
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_json_router_usage, return_model_json_router_usage
+from fabricatio_mock.models.mock_router import (
+    Value,
+    return_json_router_usage,
+    return_mixed_router_usage,
+    return_model_json_router_usage,
+)
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
@@ -16,15 +21,7 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.models.plan import (
-    ChapterPlan,
-    ChapterPlans,
-    NovelPlan,
-    ScenePlan,
-    ScenePlans,
-    StoryPlan,
-    StoryPlans,
-)
+from fabricatio_novel.models.plan import ChapterPlan, NovelPlan, ScenePlan, StoryPlan
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.models.series_book import SeriesBible
@@ -62,10 +59,13 @@ class TestNovelContext:
         )
         story = StoryContext().set_title("St1").set_description("The departure.").set_expected_word_count(100)
         story.add_scene_context(scene)
+        story.set_scene_plan([ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
         chapter = ChapterContext().set_title("Ch1").set_description("The start.").set_expected_word_count(100)
         chapter.add_story_context(story)
+        chapter.set_story_plan([StoryPlan(title="St1", description="The departure.", expected_word_count=100)])
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
+        novel.set_chapter_plan([ChapterPlan(title="Ch1", description="The start.", expected_word_count=100)])
 
         assert scene.title == "S1"
         assert scene.content == "He left."
@@ -74,6 +74,9 @@ class TestNovelContext:
         assert story.scene_context == [scene]
         assert chapter.story_context == [story]
         assert novel.chapter_context == [chapter]
+        assert novel.chapter_plan[0].title == "Ch1"
+        assert chapter.story_plan[0].title == "St1"
+        assert story.scene_plan[0].title == "S1"
 
 
 class TestCharactorTrace:
@@ -239,17 +242,18 @@ class TestNovelPlan:
             expected_word_count=100,
             series_bible=SeriesBible(),
         )
-        chapter_plans = ChapterPlans(
-            chapters=[ChapterPlan(title="Ch1", description="The hero sets out.", expected_word_count=100)]
-        )
-        story_plans = StoryPlans(
-            stories=[StoryPlan(title="St1", description="The departure.", expected_word_count=100)]
-        )
-        scene_plans = ScenePlans(scenes=[ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "expected_word_count": 100}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
         expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
-        with install_router_usage(
-            *return_model_json_router_usage(meta, chapter_plans, story_plans, scene_plans, expected_scene)
-        ):
+        responses = return_mixed_router_usage(
+            Value(meta, "model"),
+            Value(chapter_plans_json, "json"),
+            Value(story_plans_json, "json"),
+            Value(scene_plans_json, "json"),
+            Value(expected_scene, "model"),
+        )
+        with install_router_usage(*responses):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -257,6 +261,7 @@ class TestNovelPlan:
         assert len(novel.chapter) == 1
         assert novel.chapter[0].title == "Ch1"
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
+        assert ctx.chapter_plan[0].title == "Ch1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
@@ -280,19 +285,25 @@ class TestNovelPlan:
             expected_word_count=100,
             series_bible=SeriesBible(),
         )
-        story_plans = StoryPlans(
-            stories=[StoryPlan(title="St1", description="The departure.", expected_word_count=100)]
-        )
-        scene_plans = ScenePlans(scenes=[ScenePlan(title="S1", description="Leaving home.", expected_word_count=100)])
+        story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
         expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
 
-        with install_router_usage(*return_model_json_router_usage(meta, story_plans, scene_plans, expected_scene)):
+        responses = return_mixed_router_usage(
+            Value(meta, "model"),
+            Value(story_plans_json, "json"),
+            Value(scene_plans_json, "json"),
+            Value(expected_scene, "model"),
+        )
+        with install_router_usage(*responses):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
         assert len(ctx.chapter_context) == 1
         assert len(ctx.chapter_context[0].story_context) == 1
+        assert ctx.chapter_context[0].story_plan[0].title == "St1"
+        assert ctx.chapter_context[0].story_context[0].scene_plan[0].title == "S1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
 
