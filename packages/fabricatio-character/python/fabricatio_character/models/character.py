@@ -38,13 +38,14 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
         return self.model_dump()
 
     def apply(self, diff: "CharacterCardDiff") -> Self:
-        return self.model_copy(update=diff.model_dump(exclude_none=True))
+        return self.model_copy(update=diff.model_dump(exclude_none=True, exclude={"reason"}))
 
 
 class CharacterCardDiff(CharacterCard):
     """A partial character card used to express incremental updates to an existing character.
 
-    Every field is optional; only the fields that are set will be applied.
+    Every field except ``reason`` is optional; only the fields that are
+    set will be applied.
     """
 
     name: str | None = None
@@ -64,3 +65,6 @@ class CharacterCardDiff(CharacterCard):
 
     flaw: str | None = None
     """Critical weakness, moral failing, or psychological vulnerability that creates conflict."""
+
+    reason: str
+    """Reason why the change happen"""
