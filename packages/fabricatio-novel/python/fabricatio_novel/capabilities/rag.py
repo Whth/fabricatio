@@ -48,5 +48,5 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         try:
             return await self.afetch_document(queries, config)
         except OSError:
-            logger.warning("Writing style fetch failed (table missing?), skipping RAG injection")
+            logger.warn("Writing style fetch failed (table missing?), skipping RAG injection")
             return []
