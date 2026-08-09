@@ -69,12 +69,7 @@ class NovelCompose(ChapterCompose, ABC):
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
             return None
-        ctx.set_novel_plan(plan)
-        ctx.title = plan.title
-        ctx.description = plan.description
-        ctx.expected_word_count = plan.expected_word_count
-        if not plan.series_bible.is_empty():
-            ctx.series_bible = plan.series_bible
+        ctx.set_novel_plan(plan).update_from(plan)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)

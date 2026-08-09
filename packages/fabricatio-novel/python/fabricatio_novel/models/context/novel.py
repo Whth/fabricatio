@@ -1,5 +1,6 @@
 from typing import Generator, Self, final
 
+from fabricatio_capabilities.models.generic import UpdateFrom
 from fabricatio_core.rust import detect_language
 from pydantic import Field
 
@@ -8,7 +9,7 @@ from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import NovelPlan
 
 
-class NovelContext(ContextBase):
+class NovelContext(UpdateFrom, ContextBase):
     outline: str
     language: str
 
@@ -19,6 +20,21 @@ class NovelContext(ContextBase):
     """The novel's own plan; proposed before the chapter contexts are created."""
 
     chapter_context: list[ChapterContext] = Field(default_factory=list)
+
+    def update_pre_check(self, other: NovelPlan | Self) -> Self:
+        """Accept a novel plan (or another novel context) as the update source."""
+        if not isinstance(other, (NovelPlan, NovelContext)):
+            raise TypeError(f"Cannot update {self.__class__.__name__} from a {other.__class__.__name__} instance.")
+        return self
+
+    def update_from_inner(self, other: NovelPlan | Self) -> Self:
+        """Adopt the plan's fields; the settings bible is adopted only when it carries content."""
+        self.title = other.title
+        self.description = other.description
+        self.expected_word_count = other.expected_word_count
+        if other.series_bible is not None and not other.series_bible.is_empty():
+            self.series_bible = other.series_bible
+        return self
 
     @final
     def iter_chapter_content(self) -> Generator[str, None, None]:
