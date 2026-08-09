@@ -4,6 +4,7 @@ Simple typer app wrapping the novel composition chain:
 
 - ``w``           — generate a novel from an outline
 - ``wr``          — generate a novel with writing style RAG (lancedb)
+- ``bible``       — create / update / show the setting bible (设定集)
 - ``store-refs``  — ingest text files as writing style references (lancedb)
 - ``enrich-refs`` — chunk, enrich into QA pairs, and store references (lancedb)
 """
@@ -13,16 +14,21 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from fabricatio_core import Role
+from fabricatio_core import Role, TEMPLATE_MANAGER
 
+from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.series_book import SeriesBible
 
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
+bible_app = typer.Typer(help="Create, update, and show the setting bible (设定集).")
+app.add_typer(bible_app, name="bible")
 
 
-class WriterRole(Role, NovelCompose):
+class WriterRole(Role, NovelCompose, BibleCompose):
     """Writer role for base novel generation."""
 
 
@@ -83,8 +89,117 @@ def _persist(
     return epub_path
 
 
+def _load_bible(path: Path) -> SeriesBible:
+    """Load a SeriesBible from its JSON file."""
+    if not path.is_file():
+        typer.secho(f"❌ Bible file '{path}' does not exist.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    return SeriesBible.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def _render_bible_md(bible: SeriesBible) -> str:
+    """Render the bible as a human-readable markdown document."""
+    return TEMPLATE_MANAGER.render_template(novel_config.setting_bible_export_template, bible.model_dump())
+
+
+def _save_bible(bible: SeriesBible, out: Path) -> None:
+    """Write the bible JSON, a BLAKE3-hashed checkpoint, and the markdown export."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(bible.model_dump_json(indent=1, by_alias=True), encoding="utf-8")
+    bible.persist(out.parent)
+    md_path = out.with_name(f"{out.stem}.md")
+    md_path.write_text(_render_bible_md(bible), encoding="utf-8")
+    typer.secho(
+        f"✅ Setting bible saved:\n   JSON:       {out}\n   Markdown:   {md_path}\n   Checkpoint: {out.parent}",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
+
+
+@bible_app.command(name="create")
+def create_bible(
+    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+    outline_file: Optional[Path] = typer.Option(
+        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+    ),
+    language: Optional[str] = typer.Option(
+        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+    ),
+    sections: str = typer.Option(
+        "", "--sections", "-s", help="Comma-separated sections to create: characters, background (default: all)."
+    ),
+    out: Path = typer.Option(
+        Path("settings/bible.json"), "--out", "-o", help="Output bible JSON path (default: settings/bible.json)."
+    ),
+    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
+) -> None:
+    """Create a setting bible (设定集) from an outline."""
+    from fabricatio_novel.capabilities.bible import parse_sections
+
+    class BibleRole(Role, BibleCompose):
+        """Role for creating and updating setting bibles."""
+
+    try:
+        names = parse_sections(sections)
+    except ValueError as e:
+        typer.secho(f"❌ {e}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1) from None
+    role = BibleRole(name="bible_creator")
+    bible = asyncio.run(role.create_setting_bible(_resolve_outline(outline, outline_file), language, send_to, names))
+    if bible is None:
+        typer.secho("❌ Failed to create setting bible.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    _save_bible(bible, out)
+
+
+@bible_app.command(name="update")
+def update_bible(
+    bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
+    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+    outline_file: Optional[Path] = typer.Option(
+        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+    ),
+    language: Optional[str] = typer.Option(
+        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+    ),
+    sections: str = typer.Option(
+        "", "--sections", "-s", help="Comma-separated sections to re-propose: characters, background (default: all)."
+    ),
+    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
+    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
+) -> None:
+    """Re-propose sections of an existing setting bible from the outline."""
+    from fabricatio_novel.capabilities.bible import parse_sections
+
+    class BibleRole(Role, BibleCompose):
+        """Role for creating and updating setting bibles."""
+
+    bible = _load_bible(bible_path)
+    try:
+        names = parse_sections(sections)
+    except ValueError as e:
+        typer.secho(f"❌ {e}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1) from None
+    role = BibleRole(name="bible_updater")
+    updated = asyncio.run(
+        role.update_setting_bible(bible, _resolve_outline(outline, outline_file), language, send_to, names)
+    )
+    if updated is None:
+        typer.secho("❌ Failed to update setting bible.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    _save_bible(updated, out or bible_path)
+
+
+@bible_app.command(name="show")
+def show_bible(
+    bible_path: Path = typer.Argument(..., help="Path to the bible JSON to display."),
+) -> None:
+    """Print the setting bible as rendered markdown."""
+    typer.echo(_render_bible_md(_load_bible(bible_path)))
+
+
 @app.command(name="w")
-def write_novel(
+def write_novel(  # noqa: PLR0913 - flat signature required by typer option derivation
     *,
     outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
     outline_file: Optional[Path] = typer.Option(
@@ -104,9 +219,14 @@ def write_novel(
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to --persist-dir)."
     ),
+    bible: Optional[Path] = typer.Option(
+        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
+    ),
 ) -> None:
     """Generate a novel from an outline."""
     ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
+    if bible is not None:
+        ctx.set_series_bible(_load_bible(bible))
     role = WriterRole(name="writer")
     novel = _compose(ctx, role, send_to)
     if novel is None:
@@ -145,14 +265,19 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to --persist-dir)."
     ),
+    bible: Optional[Path] = typer.Option(
+        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
+    ),
 ) -> None:
     """Generate a novel with writing style RAG from an outline."""
     from fabricatio_novel.capabilities.rag import RAGCompose
 
-    class WriterRAGRole(Role, NovelCompose, RAGCompose):
+    class WriterRAGRole(Role, NovelCompose, RAGCompose, BibleCompose):
         """Writer role with writing style retrieval."""
 
     ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
+    if bible is not None:
+        ctx.set_series_bible(_load_bible(bible))
     role = WriterRAGRole(name="writer", rag_query=rag_query or "", rag_limit=retrieve_limit)
     novel = _compose(ctx, role, send_to)
     if novel is None:
