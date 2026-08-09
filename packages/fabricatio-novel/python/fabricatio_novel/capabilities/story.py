@@ -1,12 +1,15 @@
 from abc import ABC
 from typing import Unpack
 
-from fabricatio_core import logger
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
 
 from fabricatio_novel.capabilities.scene import SceneCompose
+from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
+from fabricatio_novel.models.plan import ScenePlans
 from fabricatio_novel.models.story import Story
 
 
@@ -30,6 +33,24 @@ class StoryCompose(SceneCompose, ABC):
     async def post_process_story(self, ctx: StoryContext, story: Story, **kwargs: Unpack[LLMKwargs]) -> Story:
         return story
 
+    async def plan_scenes(
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> ScenePlans | None:
+        logger.debug(f"Planning scenes for story '{ctx.title}'")
+        requirement = TEMPLATE_MANAGER.render_template(
+            novel_config.scene_plan_template,
+            {
+                "title": ctx.title,
+                "description": ctx.description,
+                "expected_word_count": ctx.expected_word_count,
+                "language": ctx.language,
+            },
+        )
+        return await self.propose(ScenePlans, requirement, send_to, **kwargs)
+
     async def generate_story(
         self,
         ctx: StoryContext,
@@ -37,9 +58,22 @@ class StoryCompose(SceneCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
         logger.debug(f"Generating story '{ctx.title}'")
+        if not ctx.scene_context:
+            plans = await self.plan_scenes(ctx, send_to, **kwargs)
+            if plans is None:
+                return None
+            for scene_plan in plans.scenes:
+                ctx.add_scene_context(
+                    SceneContext()
+                    .set_title(scene_plan.title)
+                    .set_description(scene_plan.description)
+                    .set_expected_word_count(scene_plan.expected_word_count)
+                    .set_language(ctx.language)
+                )
+            logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         accumulated = ""
         for scene_ctx in ctx.scene_context:
-            scene_ctx.previous_content = accumulated
+            scene_ctx.set_previous_content(accumulated)
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 return None
             if scene_ctx.content:

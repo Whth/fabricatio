@@ -7,9 +7,10 @@ from fabricatio_core.rust import TASK
 
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.novel import Novel, NovelMetadata
-from fabricatio_novel.models.plan import NovelPlan
+from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.plan import ChapterPlans, NovelPlan
 
 
 class NovelCompose(ChapterCompose, ABC):
@@ -32,18 +33,23 @@ class NovelCompose(ChapterCompose, ABC):
     async def post_process_novel(self, ctx: NovelContext, novel: Novel, **kwargs: Unpack[LLMKwargs]) -> Novel:
         return novel
 
-    async def plan_novel(
+    async def plan_chapters(
         self,
         ctx: NovelContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> NovelPlan | None:
-        logger.debug("Planning novel structure from outline")
+    ) -> ChapterPlans | None:
+        logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
-            novel_config.novel_plan_template,
-            {"outline": ctx.outline, "language": ctx.language},
+            novel_config.chapter_plan_template,
+            {
+                "outline": ctx.outline,
+                "language": ctx.language,
+                "title": ctx.title,
+                "description": ctx.description,
+            },
         )
-        return await self.propose(NovelPlan, requirement, send_to, **kwargs)
+        return await self.propose(ChapterPlans, requirement, send_to, **kwargs)
 
     async def generate_novel(
         self,
@@ -56,19 +62,25 @@ class NovelCompose(ChapterCompose, ABC):
             novel_config.novel_metadata_requirement_template,
             {"outline": ctx.outline, "language": ctx.language},
         )
-        meta = await self.propose(NovelMetadata, requirement, send_to, **kwargs)
-        if meta is None:
+        plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
+        if plan is None:
             return None
-        ctx.title = meta.title
-        ctx.description = meta.description
-        ctx.expected_word_count = meta.expected_word_count
-        ctx.series_bible = meta.series_bible
-        logger.info(f"Novel metadata proposed: '{meta.title}' ({meta.expected_word_count} words)")
+        ctx.set_title(plan.title).set_description(plan.description).set_expected_word_count(
+            plan.expected_word_count
+        ).set_series_bible(plan.series_bible)
+        logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.chapter_context:
-            plan = await self.plan_novel(ctx, send_to, **kwargs)
-            if plan is None:
+            plans = await self.plan_chapters(ctx, send_to, **kwargs)
+            if plans is None:
                 return None
-            ctx.chapter_context = plan.build_chapter_contexts(ctx.language)
+            for chapter_plan in plans.chapters:
+                ctx.add_chapter_context(
+                    ChapterContext()
+                    .set_title(chapter_plan.title)
+                    .set_description(chapter_plan.description)
+                    .set_expected_word_count(chapter_plan.expected_word_count)
+                    .set_language(ctx.language)
+                )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         for chapter_ctx in ctx.chapter_context:
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
