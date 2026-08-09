@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import List, Self
 
-from fabricatio_capabilities.models.generic import PersistentAble, WordCount
-from fabricatio_core.models.generic import Described, SketchedAble, Titled
+from fabricatio_capabilities.models.generic import PersistentAble
 
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.series_book import SeriesBible
+from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.rust import NovelBuilder
 
 
@@ -56,11 +55,7 @@ def _inject_language(epub_path: Path, language: str) -> None:
     tmp.replace(epub_path)
 
 
-class NovelMetadata(SketchedAble, Titled, Described, WordCount):
-    series_bible: SeriesBible
-
-
-class Novel(PersistentAble, NovelMetadata):
+class Novel(PersistentAble, NovelPlan):
     chapter: List[Chapter]
 
     @classmethod

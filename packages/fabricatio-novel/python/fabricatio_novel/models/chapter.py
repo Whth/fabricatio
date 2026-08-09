@@ -1,16 +1,15 @@
 from typing import List, Self
 
-from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.models.generic import Described, Titled
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.plan import ChapterPlan
 from fabricatio_novel.models.story import Story
 from fabricatio_novel.rust import text_to_xhtml_paragraphs
 
 
-class Chapter(Titled, Described, WordCount):
+class Chapter(ChapterPlan):
     story: List[Story]
 
     @classmethod

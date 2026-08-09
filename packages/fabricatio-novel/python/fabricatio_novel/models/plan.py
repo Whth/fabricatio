@@ -4,48 +4,40 @@ from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, SketchedAble, Titled
 from pydantic import Field
 
-from fabricatio_novel.models.context.chapter import ChapterContext
-from fabricatio_novel.models.context.scene import SceneContext
-from fabricatio_novel.models.context.story import StoryContext
+from fabricatio_novel.models.series_book import SeriesBible
 
 
-class ScenePlan(Titled, Described, WordCount): ...
+class ScenePlan(SketchedAble, Titled, Described, WordCount):
+    """Plan of a single scene: title, description, expected word count."""
 
 
-class StoryPlan(Titled, Described, WordCount):
-    scenes: List[ScenePlan] = Field(default_factory=list)
+class StoryPlan(SketchedAble, Titled, Described, WordCount):
+    """Plan of a single story (剧情段): title, description, expected word count."""
 
 
-class ChapterPlan(Titled, Described, WordCount):
+class ChapterPlan(SketchedAble, Titled, Described, WordCount):
+    """Plan of a single chapter: title, description, expected word count."""
+
+
+class NovelPlan(SketchedAble, Titled, Described, WordCount):
+    """Plan of the novel itself: metadata only, chapters are planned separately."""
+
+    series_bible: SeriesBible = Field(default_factory=SeriesBible)
+
+
+class ChapterPlans(SketchedAble):
+    """LLM response container for a novel's chapter plans."""
+
+    chapters: List[ChapterPlan] = Field(default_factory=list)
+
+
+class StoryPlans(SketchedAble):
+    """LLM response container for a chapter's story plans."""
+
     stories: List[StoryPlan] = Field(default_factory=list)
 
 
-class NovelPlan(SketchedAble):
-    chapters: List[ChapterPlan] = Field(default_factory=list)
+class ScenePlans(SketchedAble):
+    """LLM response container for a story's scene plans."""
 
-    def build_chapter_contexts(self, language: str = "") -> List[ChapterContext]:
-        return [
-            ChapterContext(
-                title=chapter.title,
-                description=chapter.description,
-                expected_word_count=chapter.expected_word_count,
-                story_context=[
-                    StoryContext(
-                        title=story.title,
-                        description=story.description,
-                        expected_word_count=story.expected_word_count,
-                        scene_context=[
-                            SceneContext(
-                                title=scene.title,
-                                description=scene.description,
-                                expected_word_count=scene.expected_word_count,
-                                language=language,
-                            )
-                            for scene in story.scenes
-                        ],
-                    )
-                    for story in chapter.stories
-                ],
-            )
-            for chapter in self.chapters
-        ]
+    scenes: List[ScenePlan] = Field(default_factory=list)
