@@ -1,4 +1,3 @@
-from dataclasses import field
 from typing import ClassVar, Type
 
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig
@@ -17,14 +16,11 @@ class WritingStyleDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]
 class WritingStyleAddConfig(LancedbAddRAGConfig):
     """Add configuration for writing style documents."""
 
-    table_name: str = field(default_factory=lambda: novel_config.writing_styles_table_name)
-
 
 class WritingStyleFetchConfig(LancedbFetchRAGConfig[WritingStyleDocument]):
     """Fetch configuration for writing style documents."""
 
     document_model: Type[WritingStyleDocument] = WritingStyleDocument
-    table_name: str = field(default_factory=lambda: novel_config.writing_styles_table_name)
 
 
 class EnrichedDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]):
@@ -36,11 +32,8 @@ class EnrichedDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]):
 class EnrichedAddConfig(LancedbAddRAGConfig):
     """Add configuration for enriched documents."""
 
-    table_name: str = field(default_factory=lambda: novel_config.enriched_table_name)
-
 
 class EnrichedFetchConfig(LancedbFetchRAGConfig[EnrichedDocument]):
     """Fetch configuration for enriched documents."""
 
     document_model: Type[EnrichedDocument] = EnrichedDocument
-    table_name: str = field(default_factory=lambda: novel_config.enriched_table_name)

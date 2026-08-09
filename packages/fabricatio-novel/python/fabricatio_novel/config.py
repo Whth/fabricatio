@@ -38,12 +38,6 @@ class NovelConfig:
     enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
     """template used to render enriched reference documents as prompts."""
 
-    writing_styles_table_name: str = "writing_styles"
-    """LanceDB table name for writing style reference documents."""
-
-    enriched_table_name: str = "enriched_chunks"
-    """LanceDB table name for LLM-enriched reference documents."""
-
 
 novel_config = CONFIG.load("novel", NovelConfig)
 
