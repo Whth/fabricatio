@@ -38,11 +38,12 @@ Refined:
 ```
 
 # Response
+Make sure provide multiple language(like both english and chinese) version of the query, which can greatly improve retrieval results
+Output ONLY the refined queries as a JSON array without explanations.
+
 Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{/if}}:
 
 {{#each question}}
 - "{{this}}"
 {{/each}}
-Make sure provide multiple language(like both english and chinese) version of the query, which can greatly improve retrieval results
-Output ONLY the refined queries as a JSON array without explanations.
 {{/if}}
