@@ -90,7 +90,7 @@ class SceneCompose(CharacterCompose, ABC):
         scene = await self.aask_validate(requirement, capture_scene, send_to=send_to, **kwargs)
         if scene is None:
             return None
-        scene = scene.model_copy(update={"expected_word_count": ctx.expected_word_count})
+        scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
         await self.interpolate_charactors(ctx, send_to, **kwargs)
         logger.info(f"Scene '{scene.title}' generated")

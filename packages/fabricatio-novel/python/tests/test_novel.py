@@ -210,6 +210,7 @@ class TestNovelCompose:
             scene = await role.compose_scene(ctx)
         assert scene is not None
         assert scene.content == "He walked out."
+        assert scene.expected_word_count == 50
         assert ctx.content == "He walked out."
 
     async def test_compose_scene_evolves_charactor_trace(self) -> None:
