@@ -87,10 +87,7 @@ class NovelCompose(ChapterCompose, ABC):
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()
-        for chapter_ctx in ctx.chapter_context:
-            chapter_ctx.set_prefixed_content(
-                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_chapter_content()) if p)
-            )
+        for chapter_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 return None
         logger.info(f"Composed {len(ctx.chapter_context)} chapter(s)")

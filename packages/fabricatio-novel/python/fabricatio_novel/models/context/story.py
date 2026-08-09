@@ -26,6 +26,19 @@ class StoryContext(Titled, Described, ContextBase):
         """Yield this story's scene contexts, in composition order."""
         yield from self.scene_context
 
+    @final
+    def iter_prefixed_contexts(self) -> Generator[SceneContext, None, None]:
+        """Set each scene's running prefixed content in place and yield it.
+
+        Composed content is read live at each step, so in-place updates made
+        while iterating are reflected in the following scenes' prefixes.
+        """
+        prefix = self.prefixed_content
+        for scene_ctx in self.scene_context:
+            scene_ctx.set_prefixed_content(prefix)
+            yield scene_ctx
+            prefix = "\n\n".join(p for p in (prefix, scene_ctx.content) if p)
+
     def set_story_plan(self, plan: StoryPlan) -> Self:
         self.story_plan = plan
         return self

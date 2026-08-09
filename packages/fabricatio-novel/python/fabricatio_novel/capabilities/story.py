@@ -79,10 +79,7 @@ class StoryCompose(SceneCompose, ABC):
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         ctx.broadcast_settings_bible()
-        for scene_ctx in ctx.scene_context:
-            scene_ctx.set_prefixed_content(
-                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_scene_content()) if p)
-            )
+        for scene_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 return None
         return Story.from_context(ctx)

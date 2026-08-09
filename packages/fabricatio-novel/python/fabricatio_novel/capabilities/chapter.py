@@ -79,10 +79,7 @@ class ChapterCompose(StoryCompose, ABC):
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
-        for story_ctx in ctx.story_context:
-            story_ctx.set_prefixed_content(
-                "\n\n".join(p for p in (ctx.prefixed_content, *ctx.iter_story_content()) if p)
-            )
+        for story_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 return None
         return Chapter.from_context(ctx)
