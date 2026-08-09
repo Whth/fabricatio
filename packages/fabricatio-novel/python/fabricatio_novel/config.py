@@ -38,6 +38,9 @@ class NovelConfig:
     charactor_diff_template: str = "built-in/charactor_diff"
     """template used to analyze how a character evolves inside a scene."""
 
+    charactor_slice_template: str = "built-in/charactor_slice"
+    """template used to allocate a character's states to the sub elements."""
+
     setting_bible_characters_template: str = "built-in/setting_bible_characters"
     """template used to propose the bible's character roster as a single string."""
 

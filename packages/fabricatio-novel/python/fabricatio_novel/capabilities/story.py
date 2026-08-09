@@ -79,10 +79,10 @@ class StoryCompose(SceneCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_scene_plan(scene_plan)
-                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         ctx.broadcast_settings_bible()
+        await self.split_charactor_slices(ctx, ctx.scene_context, send_to, **kwargs)
         for scene_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 return None

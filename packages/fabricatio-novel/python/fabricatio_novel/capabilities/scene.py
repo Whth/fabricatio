@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Unpack
+from typing import Sequence, Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCardDiff
@@ -7,15 +7,17 @@ from fabricatio_character.utils import dump_card
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, TextCapturer, detect_language
+from pydantic import TypeAdapter
 
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.base import CharactorTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
-from fabricatio_novel.models.plan import plan_list_question, plan_list_validator
+from fabricatio_novel.models.plan import json_list_question, plan_list_question, plan_list_validator, strip_code_fence
 from fabricatio_novel.models.scene import Scene
 
 
 _SCENE_CAPTURE = TextCapturer.with_pattern(r"###\s*(.+?)\s*\n\s*>\s*(.+?)\s*\n\n([\s\S]+)")
+_SLICE_ADAPTER = TypeAdapter(list[list[CharacterCardDiff]])
 
 
 def capture_scene(response: str) -> Scene | None:
@@ -33,6 +35,11 @@ def capture_scene(response: str) -> Scene | None:
     if not (title and description and content):
         return None
     return Scene(title=title, description=description, expected_word_count=0, content=content)
+
+
+def _capture_slices(string: str) -> list[list[CharacterCardDiff]] | None:
+    """Parse a JSON array of per-child diff slices."""
+    return _SLICE_ADAPTER.validate_json(strip_code_fence(string))
 
 
 class SceneCompose(CharacterCompose, ABC):
@@ -137,6 +144,50 @@ class SceneCompose(CharacterCompose, ABC):
             for diff in chain:
                 trace.end = trace.end.apply(diff)
             trace.intepl([*trace.interpolates, *chain])
+
+    async def split_charactor_slices(
+        self,
+        ctx: ContextBase,
+        children: Sequence[ContextBase],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Split each trace's chain into per-child slices and assign them to the children.
+
+        Runs after the children are planned; every child receives one trace
+        per character, holding its allocated slice (possibly empty), so the
+        child extends only its own states.
+        """
+        if not ctx.charactor_trace or not children:
+            return
+        logger.debug(f"Splitting {len(ctx.charactor_trace)} character chain(s) into {len(children)} slice(s)")
+        prompts = [
+            TEMPLATE_MANAGER.render_template(
+                novel_config.charactor_slice_template,
+                {
+                    "title": ctx.title,
+                    "description": ctx.description,
+                    "children": [{"title": child.title, "description": child.description} for child in children],
+                    "chain": "\n\n".join(dump_card(card) for card in trace.iter_charactor_cards()),
+                    "language": ctx.language,
+                },
+            )
+            for trace in ctx.charactor_trace
+        ]
+        slices = await self.aask_validate(
+            [json_list_question(prompt, _SLICE_ADAPTER) for prompt in prompts],
+            _capture_slices,
+            send_to=send_to,
+            **kwargs,
+        )
+        for trace, per_child in zip(ctx.charactor_trace, slices or [], strict=False):
+            if per_child is None:
+                continue
+            for child, slice_ in zip(children, per_child, strict=False):
+                end = trace.start
+                for diff in slice_:
+                    end = end.apply(diff)
+                child.add_charactor_trace(CharactorTrace(start=trace.start, end=end, interpolates=slice_))
 
     async def compose_scene(
         self,

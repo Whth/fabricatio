@@ -78,6 +78,10 @@ class ContextBase(WordCount, PersistentAble, ABC):
         self.charactor_trace = traces
         return self
 
+    def add_charactor_trace(self, trace: CharactorTrace) -> Self:
+        self.charactor_trace.append(trace)
+        return self
+
     def dump_charactors(self) -> str:
         """Render every character's state chain for prompts, in trace order."""
         return "\n\n".join(dump_card(*trace.iter_charactor_cards()) for trace in self.charactor_trace)

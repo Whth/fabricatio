@@ -79,9 +79,10 @@ class ChapterCompose(StoryCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_story_plan(story_plan)
-                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
+            logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
+        await self.split_charactor_slices(ctx, ctx.story_context, send_to, **kwargs)
         for story_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 return None

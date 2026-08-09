@@ -103,10 +103,10 @@ class NovelCompose(ChapterCompose, ABC):
                     )
                     .set_language(ctx.language)
                     .set_chapter_plan(chapter_plan)
-                    .set_charactor_traces([t.model_copy() for t in ctx.charactor_trace])
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()
+        await self.split_charactor_slices(ctx, ctx.chapter_context, send_to, **kwargs)
         for chapter_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 return None

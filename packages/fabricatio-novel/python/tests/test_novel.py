@@ -227,7 +227,7 @@ class TestCharactorTraces:
         assert all(t.start == t.end for t in ctx.charactor_trace)
 
     async def test_compose_novel_builds_hierarchical_chains(self) -> None:
-        """Assert each level extends its copy of the parent chain, without mutating it."""
+        """Assert each level extends its allocated slice of the parent chain, without mutating it."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         bible = SeriesBible(characters="Hero — brave protagonist.")
@@ -249,10 +249,13 @@ class TestCharactorTraces:
                 Value(hero, "model"),
                 Value([d_novel.model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
+                Value([[d_novel.model_dump()]], "json"),
                 Value([d_chapter.model_dump()], "json"),
                 Value(story_plans_json, "json"),
+                Value([[d_novel.model_dump(), d_chapter.model_dump()]], "json"),
                 Value([d_story.model_dump()], "json"),
                 Value(scene_plans_json, "json"),
+                Value([[d_novel.model_dump(), d_chapter.model_dump(), d_story.model_dump()]], "json"),
                 Value([d_scene.model_dump()], "json"),
                 raw_value("### S1\n\n> Leaving home.\n\nHe left."),
             )
@@ -272,6 +275,31 @@ class TestCharactorTraces:
         assert novel_trace.interpolates == [d_novel]
         assert novel_trace.end.look == "wounded"
         assert scene_trace.end.want == "find his father"
+
+    async def test_split_charactor_slices_assigns_per_child(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the chain splits into aligned per-child slices with recomputed ends."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero.", language="English")
+        hero = card()
+        d1 = CharacterCardDiff(look="wounded")
+        d2 = CharacterCardDiff(look="scarred")
+        ctx.set_charactor_traces([CharactorTrace(start=hero, end=hero.apply(d1).apply(d2), interpolates=[d1, d2])])
+        child_a = ChapterContext(title="Ch1", description="The start.")
+        child_b = ChapterContext(title="Ch2", description="The road.")
+
+        async def fake_ask(
+            question: object, validator: object, **kwargs: object
+        ) -> list[list[list[CharacterCardDiff]]]:
+            return [[[d1], [d2]]]
+
+        monkeypatch.setattr(NovelRole, "aask_validate", staticmethod(fake_ask))
+        await role.split_charactor_slices(ctx, [child_a, child_b])
+
+        assert child_a.charactor_trace[0].interpolates == [d1]
+        assert child_b.charactor_trace[0].interpolates == [d2]
+        assert child_a.charactor_trace[0].start == hero
+        assert child_a.charactor_trace[0].end.look == "wounded"
+        assert child_b.charactor_trace[0].end.look == "scarred"
 
     async def test_scene_requirement_shows_character_chain(self) -> None:
         """Assert every state of the arc appears in the scene prompt's Characters section."""

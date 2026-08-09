@@ -1,7 +1,7 @@
 """Flat per-element plan models and LLM list-parsing helpers."""
 
 import json
-from typing import Callable, TypeVar
+from typing import Any, Callable, TypeVar
 
 from pydantic import BaseModel, Field, TypeAdapter, PositiveFloat
 
@@ -39,16 +39,30 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
 _P = TypeVar("_P", bound=BaseModel)
 
 
-def plan_list_question(requirement: str, plan_type: type[_P]) -> str:
-    """Build the create-JSON prompt for a bare array of plans (mirrors create_json_prompt)."""
-    schema = TypeAdapter(list[plan_type]).json_schema()
+def json_list_question(requirement: str, adapter: TypeAdapter[Any]) -> str:
+    """Build the create-JSON prompt for a bare JSON array described by the adapter."""
     return TEMPLATE_MANAGER.render_template(
         CONFIG.templates.create_json_obj_template,
         {
             "requirement": requirement,
-            "json_schema": json.dumps(schema, indent=2),
+            "json_schema": json.dumps(adapter.json_schema(), indent=2),
         },
     )
+
+
+def plan_list_question(requirement: str, plan_type: type[_P]) -> str:
+    """Build the create-JSON prompt for a bare array of plans (mirrors create_json_prompt)."""
+    return json_list_question(requirement, TypeAdapter(list[plan_type]))
+
+
+def strip_code_fence(string: str) -> str:
+    """Remove an optional wrapping code fence from a model response."""
+    lines = string.strip().splitlines()
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines)
 
 
 def plan_list_validator(plan_type: type[_P]) -> Callable[[str], list[_P] | None]:
@@ -56,11 +70,6 @@ def plan_list_validator(plan_type: type[_P]) -> Callable[[str], list[_P] | None]
     adapter = TypeAdapter(list[plan_type])
 
     def _validate(string: str) -> list[_P] | None:
-        lines = string.strip().splitlines()
-        if lines and lines[0].startswith("```"):
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        return adapter.validate_json("\n".join(lines))
+        return adapter.validate_json(strip_code_fence(string))
 
     return _validate
