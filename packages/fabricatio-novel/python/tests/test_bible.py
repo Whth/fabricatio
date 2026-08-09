@@ -2,7 +2,7 @@
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage, return_model_json_router_usage
+from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.bible import BibleCompose, parse_sections
 from fabricatio_novel.capabilities.novel import NovelCompose
@@ -11,8 +11,12 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import NovelPlan
-from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.models.series_book import SeriesBible
+
+
+def raw_value(text: str) -> Value[str]:
+    """Wrap a plain scene response for mixed router usage."""
+    return Value(text, "raw", convertor=lambda s: s)
 
 
 class TestParseSections:
@@ -253,14 +257,13 @@ class TestBibleThreading:
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "expected_word_count": 40}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 40}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 40}]
-        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=40, content="He left.")
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
-                Value(expected_scene, "model"),
+                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
             )
         ):
             novel = await role.compose_novel(ctx)
@@ -283,14 +286,13 @@ class TestBibleThreading:
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "expected_word_count": 40}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 40}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 40}]
-        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=40, content="He left.")
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
-                Value(expected_scene, "model"),
+                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
             )
         ):
             novel = await role.compose_novel(ctx)
@@ -317,8 +319,12 @@ class TestBibleThreading:
         meta = NovelPlan(
             title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible()
         )
-        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=40, content="He left.")
-        with install_router_usage(*return_model_json_router_usage(meta, expected_scene)):
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+            )
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None

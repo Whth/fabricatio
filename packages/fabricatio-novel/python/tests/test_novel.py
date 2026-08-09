@@ -16,6 +16,7 @@ from fabricatio_mock.models.mock_router import (
 from fabricatio_mock.utils import code_block, generic_block, install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
+from fabricatio_novel.capabilities.scene import capture_scene
 from fabricatio_novel.models.context.base import CharactorTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
@@ -30,6 +31,11 @@ from fabricatio_novel.models.series_book import SeriesBible
 
 def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
     return CharacterCard(name=name, role="protagonist", look=look, act="brave", want="seek truth", flaw="stubborn")
+
+
+def raw_value(text: str) -> Value[str]:
+    """Wrap a plain scene response for mixed router usage."""
+    return Value(text, "raw", convertor=lambda s: s)
 
 
 class TestNovelContext:
@@ -178,16 +184,29 @@ class NovelRole(LLMTestRole, NovelCompose):
     """Test role combining mock LLM with the novel composition chain."""
 
 
+class TestCaptureScene:
+    """Test suite for the plain-text scene response capture."""
+
+    def test_captures_heading_quote_and_prose(self) -> None:
+        scene = capture_scene("### S1\n\n> Leaving home.\n\nHe left.\n\nHe walked on.")
+        assert scene is not None
+        assert scene.title == "S1"
+        assert scene.description == "Leaving home."
+        assert scene.content == "He left.\n\nHe walked on."
+
+    def test_rejects_missing_structure(self) -> None:
+        assert capture_scene("Just prose.") is None
+        assert capture_scene("## S1\n\n> Leaving home.\n\nHe left.") is None
+        assert capture_scene("### S1\n\nHe left.") is None
+
+
 class TestNovelCompose:
     """Test suite for the generation chain with mock LLM."""
 
     async def test_compose_scene_writes_content_back_to_context(self) -> None:
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="Departure", description="The hero leaves home.", expected_word_count=50)
-        expected = Scene(
-            title="Departure", description="The hero leaves home.", expected_word_count=50, content="He walked out."
-        )
-        with install_router_usage(*return_model_json_router_usage(expected)):
+        with install_router_usage(*return_router_usage("### Departure\n\n> The hero leaves home.\n\nHe walked out.")):
             scene = await role.compose_scene(ctx)
         assert scene is not None
         assert scene.content == "He walked out."
@@ -198,11 +217,13 @@ class TestNovelCompose:
         trace = CharactorTrace(start=card(), end=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         ctx.charactor_trace.append(trace)
-        expected_scene = Scene(
-            title="Battle", description="The hero fights.", expected_word_count=50, content="He fought."
-        )
         expected_diff = CharacterCardDiff(look="scarred")
-        with install_router_usage(*return_model_json_router_usage(expected_scene, expected_diff)):
+        with install_router_usage(
+            *return_mixed_router_usage(
+                raw_value("### Battle\n\n> The hero fights.\n\nHe fought."),
+                Value(expected_diff, "model"),
+            )
+        ):
             scene = await role.compose_scene(ctx)
         assert scene is not None
         assert trace.interpolates == [expected_diff]
@@ -225,12 +246,14 @@ class TestNovelCompose:
             expected_word_count=40,
             series_bible=SeriesBible(),
         )
-        expected_scene_1 = Scene(title="S1", description="Leaving home.", expected_word_count=20, content="He left.")
-        expected_scene_2 = Scene(
-            title="S2", description="A stranger appears.", expected_word_count=20, content="A stranger appeared."
-        )
 
-        with install_router_usage(*return_model_json_router_usage(meta, expected_scene_1, expected_scene_2)):
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+                raw_value("### S2\n\n> A stranger appears.\n\nA stranger appeared."),
+            )
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -281,11 +304,12 @@ class TestPrefixAccumulation:
         scene_1 = self._scene_ctx("S1", "Leaving home.")
         scene_2 = self._scene_ctx("S2", "A stranger appears.")
         story.add_scene_context(scene_1).add_scene_context(scene_2)
-        expected_1 = Scene(title="S1", description="Leaving home.", expected_word_count=20, content="He left.")
-        expected_2 = Scene(
-            title="S2", description="A stranger appears.", expected_word_count=20, content="A stranger appeared."
-        )
-        with install_router_usage(*return_model_json_router_usage(expected_1, expected_2)):
+        with install_router_usage(
+            *return_router_usage(
+                "### S1\n\n> Leaving home.\n\nHe left.",
+                "### S2\n\n> A stranger appears.\n\nA stranger appeared.",
+            )
+        ):
             result = await role.compose_story(story)
         assert result is not None
         assert scene_1.prefixed_content == ""
@@ -299,9 +323,12 @@ class TestPrefixAccumulation:
         story_b = StoryContext(title="StB", description="B.")
         story_b.add_scene_context(self._scene_ctx("S2", "A stranger appears."))
         chapter.add_story_context(story_a).add_story_context(story_b)
-        expected_1 = Scene(title="S1", description="Leaving home.", expected_word_count=20, content="Alpha.")
-        expected_2 = Scene(title="S2", description="A stranger appears.", expected_word_count=20, content="Beta.")
-        with install_router_usage(*return_model_json_router_usage(expected_1, expected_2)):
+        with install_router_usage(
+            *return_router_usage(
+                "### S1\n\n> Leaving home.\n\nAlpha.",
+                "### S2\n\n> A stranger appears.\n\nBeta.",
+            )
+        ):
             result = await role.compose_chapter(chapter)
         assert result is not None
         story_a_block = "## StA\n\n> A.\n\n### S1\n\n> Leaving home.\n\nAlpha."
@@ -332,13 +359,15 @@ class TestPrefixAccumulation:
         meta = NovelPlan(
             title="The Search", description="A hero searching.", expected_word_count=80, series_bible=SeriesBible()
         )
-        scenes = [
-            Scene(title="S1", description="Leaving home.", expected_word_count=20, content="A."),
-            Scene(title="S2", description="A stranger appears.", expected_word_count=20, content="B."),
-            Scene(title="S3", description="The journey.", expected_word_count=20, content="C."),
-            Scene(title="S4", description="The arrival.", expected_word_count=20, content="D."),
-        ]
-        with install_router_usage(*return_model_json_router_usage(meta, *scenes)):
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                raw_value("### S1\n\n> Leaving home.\n\nA."),
+                raw_value("### S2\n\n> A stranger appears.\n\nB."),
+                raw_value("### S3\n\n> The journey.\n\nC."),
+                raw_value("### S4\n\n> The arrival.\n\nD."),
+            )
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -374,13 +403,12 @@ class TestNovelPlan:
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "expected_word_count": 100}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
-        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
         responses = return_mixed_router_usage(
             Value(meta, "model"),
             Value(chapter_plans_json, "json"),
             Value(story_plans_json, "json"),
             Value(scene_plans_json, "json"),
-            Value(expected_scene, "model"),
+            raw_value("### S1\n\n> Leaving home.\n\nHe left."),
         )
         with install_router_usage(*responses):
             novel = await role.compose_novel(ctx)
@@ -423,13 +451,12 @@ class TestNovelPlan:
         )
         story_plans_json = [{"title": "St1", "description": "The departure.", "expected_word_count": 100}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "expected_word_count": 100}]
-        expected_scene = Scene(title="S1", description="Leaving home.", expected_word_count=100, content="He left.")
 
         responses = return_mixed_router_usage(
             Value(meta, "model"),
             Value(story_plans_json, "json"),
             Value(scene_plans_json, "json"),
-            Value(expected_scene, "model"),
+            raw_value("### S1\n\n> Leaving home.\n\nHe left."),
         )
         with install_router_usage(*responses):
             novel = await role.compose_novel(ctx)
