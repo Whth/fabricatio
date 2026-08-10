@@ -88,7 +88,7 @@ class NovelCompose(ChapterCompose, ABC):
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.charactor_trace:
             await self.create_charactor_traces(ctx, **kwargs)
-        await self.interpolate_charactors(ctx, send_to, **kwargs)
+        await self.interpolate_charactors(ctx, send_to, outline=ctx.outline, **kwargs)
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:

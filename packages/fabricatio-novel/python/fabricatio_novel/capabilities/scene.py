@@ -108,12 +108,16 @@ class SceneCompose(CharacterCompose, ABC):
         self,
         ctx: ContextBase,
         send_to: str | None = TASK,
+        outline: str = "",
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Extend every trace with the character states occurring in this element.
 
         Runs before the element is planned or written, so the pre-scheduled
         chain can guide both plan and content generation.
+
+        ``outline`` is the novel-level story outline; only the novel root passes
+        it. Lower levels leave it empty and the prompt section is dropped.
         """
         if not ctx.charactor_trace:
             return
@@ -124,7 +128,7 @@ class SceneCompose(CharacterCompose, ABC):
                 {
                     "title": ctx.title,
                     "description": ctx.description,
-                    "outline": getattr(ctx, "outline", ""),
+                    "outline": outline,
                     "chain": trace.dump_to_prompt(),
                     "language": ctx.language,
                 },
