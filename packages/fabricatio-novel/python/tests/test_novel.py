@@ -850,3 +850,34 @@ class TestRAGCompose:
         assert result is not None
         assert story.scene_context[0].rag_query == "guide"
         assert story.scene_context[0].rag_limit == 7
+
+    async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert docs whose prompt renders blank never reach the reranker."""
+        role = RAGRole(name="rag_role")
+        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
+        blank = WritingStyleDocument.with_text_chunk("   ")
+        reranked_queries: List[str] = []
+
+        async def fake_refine(question: str, **kwargs: object) -> List[str]:
+            return ["q"]
+
+        async def fake_fetch(
+            query: object, config: WritingStyleFetchConfig | None = None
+        ) -> List[WritingStyleDocument]:
+            return [blank, doc, blank]
+
+        async def fake_rank(
+            query: str, documents: List[WritingStyleDocument], **kwargs: object
+        ) -> List[WritingStyleDocument]:
+            reranked_queries.append(query)
+            return documents
+
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
+
+        docs = await role._fetch_style_docs(ctx)
+
+        assert docs == [doc]
+        assert reranked_queries == ["The hero fights."]

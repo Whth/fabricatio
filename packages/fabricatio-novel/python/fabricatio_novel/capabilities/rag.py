@@ -75,5 +75,7 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         limit = ctx.rag_limit or WritingStyleFetchConfig.default().limit
         config = WritingStyleFetchConfig(limit=self.fetch_scale * limit)
         docs = await self.afetch_document(queries, config)
-        docs = await self.arank_documents(question, docs, **kwargs)
+        docs = [doc for doc in docs if doc.as_prompt().strip()]
+        if docs:
+            docs = await self.arank_documents(question, docs, **kwargs)
         return docs[:limit]
