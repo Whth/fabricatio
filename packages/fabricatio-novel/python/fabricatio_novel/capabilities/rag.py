@@ -19,13 +19,12 @@ from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchC
 
 
 class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig], ABC):
-    """Scene composition extended with writing style retrieval."""
+    """Scene composition extended with writing style retrieval.
 
-    rag_query: str = ""
-    """Custom query guideline for style retrieval; the scene description is used when empty."""
-
-    rag_limit: int = 0
-    """Reference documents retrieved per refined query; 0 uses the default configuration (15)."""
+    Retrieval settings (query guideline, limit) are caller-owned on the
+    context channel (:class:`~fabricatio_novel.models.context.rag.RAGChannel`)
+    and propagated down to the scene contexts.
+    """
 
     async def prepare_scene_requirement(
         self,
@@ -66,12 +65,16 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
-        queries = await self.arefined_query(self.rag_query or ctx.description, **kwargs)
+        question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
+        queries = await self.arefined_query(question, **kwargs)
         if not queries:
             return []
-        config = WritingStyleFetchConfig(limit=self.rag_limit) if self.rag_limit else WritingStyleFetchConfig.default()
+        config = WritingStyleFetchConfig(limit=ctx.rag_limit) if ctx.rag_limit else WritingStyleFetchConfig.default()
         try:
-            return await self.afetch_document(queries, config)
+            docs = await self.afetch_document(queries, config)
         except OSError:
             logger.warn("Writing style fetch failed (table missing?), skipping RAG injection")
             return []
+        if docs:
+            docs = await self.arank_documents(question, docs, **kwargs)
+        return docs

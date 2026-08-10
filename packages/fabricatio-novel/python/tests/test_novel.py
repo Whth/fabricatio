@@ -705,7 +705,13 @@ class TestRAGCompose:
         async def fake_fetch(query: str, config: object | None = None) -> List[WritingStyleDocument]:
             return [doc]
 
+        async def fake_rank(
+            query: str, documents: List[WritingStyleDocument], **kwargs: object
+        ) -> List[WritingStyleDocument]:
+            return documents
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
         with install_router_usage(
             *return_router_usage(
                 code_block('["hero fights dragon"]'),
@@ -728,10 +734,16 @@ class TestRAGCompose:
         async def fake_fetch(query: str, config: object | None = None) -> List[WritingStyleDocument]:
             return [doc]
 
+        async def fake_rank(
+            query: str, documents: List[WritingStyleDocument], **kwargs: object
+        ) -> List[WritingStyleDocument]:
+            return documents
+
         async def fake_digest(prompt: str, **kwargs: object) -> str | None:
             return None
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
         monkeypatch.setattr(RAGRole, "ageneric_string", staticmethod(fake_digest))
         with install_router_usage(*return_json_router_usage('["hero fights dragon"]')):
             requirement = await role.prepare_scene_requirement(ctx)
@@ -753,11 +765,16 @@ class TestRAGCompose:
         assert "## Writing Style Guideline" not in requirement
         assert "The hero fights." in requirement
 
-    async def test_fetch_style_docs_uses_custom_query_and_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        role = RAGRole(name="rag_role", rag_query="中文查询指南", rag_limit=7)
+    async def test_fetch_style_docs_combines_query_uses_limit_and_reranks(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        ctx.set_rag_query("中文查询指南").set_rag_limit(7)
+        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: List[str] = []
         captured_configs: List[WritingStyleFetchConfig] = []
+        ranked_queries: List[str] = []
 
         async def fake_refine(question: str, **kwargs: object) -> List[str]:
             captured_queries.append(question)
@@ -768,17 +785,25 @@ class TestRAGCompose:
         ) -> List[WritingStyleDocument]:
             if config is not None:
                 captured_configs.append(config)
-            return []
+            return [doc]
+
+        async def fake_rank(
+            query: str, documents: List[WritingStyleDocument], **kwargs: object
+        ) -> List[WritingStyleDocument]:
+            ranked_queries.append(query)
+            return documents
 
         monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
 
         docs = await role._fetch_style_docs(ctx)
 
-        assert docs == []
-        assert captured_queries == ["中文查询指南"]
+        assert docs == [doc]
+        assert captured_queries == ["The hero fights.\n中文查询指南"]
         assert captured_configs
         assert captured_configs[0].limit == 7
+        assert ranked_queries == ["The hero fights.\n中文查询指南"]
 
     async def test_fetch_style_docs_defaults_to_scene_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
         role = RAGRole(name="rag_role")
@@ -800,3 +825,28 @@ class TestRAGCompose:
         await role._fetch_style_docs(ctx)
 
         assert captured_queries == ["The hero fights."]
+
+    async def test_rag_settings_propagate_to_scene_contexts(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert retrieval settings set on a parent flow down to the composed scenes."""
+        role = RAGRole(name="rag_role")
+        story = StoryContext(title="St1", description="The departure.")
+        story.set_rag_query("guide").set_rag_limit(7)
+
+        async def fake_refine(question: str, **kwargs: object) -> List[str]:
+            return []
+
+        async def fake_fetch(
+            query: object, config: WritingStyleFetchConfig | None = None
+        ) -> List[WritingStyleDocument]:
+            return []
+
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        with install_router_usage(
+            *return_router_usage('[{"title": "S1", "description": "Leaving home.", "weight": 1.0}]', "He left.")
+        ):
+            result = await role.compose_story(story)
+
+        assert result is not None
+        assert story.scene_context[0].rag_query == "guide"
+        assert story.scene_context[0].rag_limit == 7

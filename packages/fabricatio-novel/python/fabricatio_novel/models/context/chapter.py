@@ -4,11 +4,12 @@ from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
 
-class ChapterContext(Titled, Described, ContextBase):
+class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     heading_level: ClassVar[str] = "#"
 
     chapter_plan: ChapterPlan | None = None

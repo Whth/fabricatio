@@ -6,10 +6,11 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import NovelPlan
 
 
-class NovelContext(UpdateFrom, ContextBase):
+class NovelContext(UpdateFrom, RAGChannel, ContextBase):
     outline: str
     language: str
 

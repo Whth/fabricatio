@@ -102,6 +102,8 @@ class NovelCompose(ChapterCompose, ABC):
                         expected_word_count=count,
                     )
                     .set_language(ctx.language)
+                    .set_rag_query(ctx.rag_query)
+                    .set_rag_limit(ctx.rag_limit)
                     .set_chapter_plan(chapter_plan)
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")

@@ -4,11 +4,12 @@ from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
 
 
-class StoryContext(Titled, Described, ContextBase):
+class StoryContext(RAGChannel, Titled, Described, ContextBase):
     heading_level: ClassVar[str] = "##"
 
     story_plan: StoryPlan | None = None

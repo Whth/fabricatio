@@ -78,6 +78,8 @@ class StoryCompose(SceneCompose, ABC):
                         expected_word_count=count,
                     )
                     .set_language(ctx.language)
+                    .set_rag_query(ctx.rag_query)
+                    .set_rag_limit(ctx.rag_limit)
                     .set_scene_plan(scene_plan)
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")

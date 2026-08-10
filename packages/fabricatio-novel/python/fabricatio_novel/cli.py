@@ -277,7 +277,8 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
     if bible is not None:
         ctx.set_series_bible(_load_bible(bible))
-    role = WriterRAGRole(name="writer", rag_query=rag_query or "", rag_limit=retrieve_limit)
+    ctx.set_rag_query(rag_query or "").set_rag_limit(retrieve_limit)
+    role = WriterRAGRole(name="writer")
     novel = _compose(ctx, role, send_to)
     if novel is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)

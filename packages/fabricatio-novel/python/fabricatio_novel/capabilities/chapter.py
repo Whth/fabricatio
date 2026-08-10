@@ -78,6 +78,8 @@ class ChapterCompose(StoryCompose, ABC):
                         expected_word_count=count,
                     )
                     .set_language(ctx.language)
+                    .set_rag_query(ctx.rag_query)
+                    .set_rag_limit(ctx.rag_limit)
                     .set_story_plan(story_plan)
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
