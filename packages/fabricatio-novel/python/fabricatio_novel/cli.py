@@ -255,7 +255,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         help="Custom query guideline for writing style retrieval; defaults to per-scene descriptions.",
     ),
     retrieve_limit: int = typer.Option(
-        0, "--retrieve-limit", "-rl", help="Reference documents retrieved per refined query (0 = default 15)."
+        0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15)."
     ),
     font: Optional[Path] = typer.Option(
         None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."

@@ -1,9 +1,9 @@
 """RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
 from abc import ABC
-from typing import List, Unpack, cast
+from typing import ClassVar, List, Unpack, cast
 
-from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import detect_language
 from fabricatio_core.utils import cfg
@@ -25,6 +25,9 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     context channel (:class:`~fabricatio_novel.models.context.rag.RAGChannel`)
     and propagated down to the scene contexts.
     """
+
+    fetch_scale: ClassVar[int] = 2
+    """How many times the final rerank limit is retrieved per refined query."""
 
     async def prepare_scene_requirement(
         self,
@@ -69,12 +72,8 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         queries = await self.arefined_query(question, **kwargs)
         if not queries:
             return []
-        config = WritingStyleFetchConfig(limit=ctx.rag_limit) if ctx.rag_limit else WritingStyleFetchConfig.default()
-        try:
-            docs = await self.afetch_document(queries, config)
-        except OSError:
-            logger.warn("Writing style fetch failed (table missing?), skipping RAG injection")
-            return []
-        if docs:
-            docs = await self.arank_documents(question, docs, **kwargs)
-        return docs
+        limit = ctx.rag_limit or WritingStyleFetchConfig.default().limit
+        config = WritingStyleFetchConfig(limit=self.fetch_scale * limit)
+        docs = await self.afetch_document(queries, config)
+        docs = await self.arank_documents(question, docs, **kwargs)
+        return docs[:limit]

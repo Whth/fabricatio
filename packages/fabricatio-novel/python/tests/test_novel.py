@@ -785,7 +785,7 @@ class TestRAGCompose:
         ) -> List[WritingStyleDocument]:
             if config is not None:
                 captured_configs.append(config)
-            return [doc]
+            return [doc] * 8
 
         async def fake_rank(
             query: str, documents: List[WritingStyleDocument], **kwargs: object
@@ -799,10 +799,10 @@ class TestRAGCompose:
 
         docs = await role._fetch_style_docs(ctx)
 
-        assert docs == [doc]
+        assert docs == [doc] * 7
         assert captured_queries == ["The hero fights.\n中文查询指南"]
         assert captured_configs
-        assert captured_configs[0].limit == 7
+        assert captured_configs[0].limit == 14
         assert ranked_queries == ["The hero fights.\n中文查询指南"]
 
     async def test_fetch_style_docs_defaults_to_scene_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
