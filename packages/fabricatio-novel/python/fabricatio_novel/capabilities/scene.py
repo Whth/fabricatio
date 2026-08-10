@@ -5,7 +5,7 @@ from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCardDiff
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK, TextCapturer, detect_language
+from fabricatio_core.rust import TASK, detect_language
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharactorTrace, ContextBase
@@ -14,24 +14,15 @@ from fabricatio_novel.models.plan import JSONList, json_list_question, plan_list
 from fabricatio_novel.models.scene import Scene
 
 
-_SCENE_CAPTURE = TextCapturer.with_pattern(r"###\s*(.+?)\s*\n\s*>\s*(.+?)\s*\n\n([\s\S]+)")
+def capture_scene_prose(response: str) -> str | None:
+    """Accept the model's response verbatim as the scene prose.
 
-
-def capture_scene(response: str) -> Scene | None:
-    """Capture the title, description, and content from a plain-text scene response.
-
-    The scene is written as a ``###`` heading, a ``>`` blockquote
-    description, and the prose after a blank line; no JSON is involved,
-    so paragraphs keep their line breaks verbatim. Returns None when the
-    structure is missing, which makes ``aask_validate`` retry.
+    The scene's title and description are already planned; the response is
+    only the prose, so nothing needs capturing. Returns None for blank
+    responses, which makes ``aask_validate`` retry.
     """
-    captured = _SCENE_CAPTURE.cap3(response)
-    if captured is None:
-        return None
-    title, description, content = (part.strip() for part in captured)
-    if not (title and description and content):
-        return None
-    return Scene(title=title, description=description, expected_word_count=0, content=content)
+    content = response.strip()
+    return content if content else None
 
 
 def _capture_slices(string: str) -> list[list[CharacterCardDiff]] | None:
@@ -95,9 +86,10 @@ class SceneCompose(CharacterCompose, ABC):
         logger.debug(f"Generating scene '{ctx.title}'")
         await self.interpolate_charactors(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
-        scene = await self.aask_validate(requirement, capture_scene, send_to=send_to, **kwargs)
-        if scene is None:
+        content = await self.aask_validate(requirement, capture_scene_prose, send_to=send_to, **kwargs)
+        if content is None:
             return None
+        scene = Scene(title=ctx.title, description=ctx.description, expected_word_count=0, content=content)
         scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
         logger.info(f"Scene '{scene.title}' generated")

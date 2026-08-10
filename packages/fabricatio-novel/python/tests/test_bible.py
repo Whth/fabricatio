@@ -263,7 +263,7 @@ class TestBibleThreading:
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
-                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+                raw_value("He left."),
             )
         ):
             novel = await role.compose_novel(ctx)
@@ -292,7 +292,7 @@ class TestBibleThreading:
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
-                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+                raw_value("He left."),
             )
         ):
             novel = await role.compose_novel(ctx)
@@ -322,7 +322,7 @@ class TestBibleThreading:
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
-                raw_value("### S1\n\n> Leaving home.\n\nHe left."),
+                raw_value("He left."),
             )
         ):
             novel = await role.compose_novel(ctx)
