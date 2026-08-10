@@ -1,18 +1,20 @@
 {{#if question}}# Context
-You are a query refinement specialist optimizing search queries for vector database retrieval. Your goal is to improve how questions are framed to maximize relevant document retrieval.
+You are a query decomposition specialist optimizing search queries for vector database retrieval. Your goal is to split a given question into multiple relevant sub-queries, each targeting a distinct aspect of the original question to maximize relevant document retrieval.
 
 # Format
-For each query:
-- Make it more specific and focused
+For each input question:
+- Identify every distinct aspect, sub-topic, and constraint it contains
+- Produce ONE focused sub-query per aspect
+- Make each sub-query specific and self-contained so it retrieves relevant documents on its own
 - Add domain-specific terminology
 - Remove ambiguous language
-- Split complex questions into multiple simpler queries when appropriate
 - Each refined query should be 1-3 sentences
 
 # Aspects to Consider
+- Decomposition: Split multi-part questions into separate queries, each covering exactly one aspect
+- Completeness: Every aspect of the original question must be covered by at least one sub-query
 - Specificity: Replace vague terms with precise alternatives
 - Terminology: Include technical vocabulary relevant to the domain
-- Decomposition: Break down multi-part questions into separate queries
 - Context Enrichment: Add implied but unstated contextual elements
 - Information Density: Ensure key concepts are emphasized
 # Examples
@@ -21,24 +23,23 @@ Refined:
 ```json
 [
 "What are best practices for implementing user authentication in web applications?",
-"实现用户认证的最佳实践？",
-"How to securely store authentication credentials in a database?",
-"如何实现网站用户的身份验证？"
+"How to securely store and hash user authentication credentials in a database?",
+"How to implement OAuth2 and OpenID Connect login flows for a web application?"
 ]
 ```
-
 
 Original: "Explain vector databases"
 Refined:
 ```json
 [
-"Explain the architecture and similarity search mechanisms of vector databases for efficient storage of embedding vectors.",
-"解释向量数据库的架构和相似性搜索机制，以实现向量嵌入向量存储的效率。"
+"Explain the architecture of vector databases for efficient storage of embedding vectors.",
+"How do vector databases perform similarity search and approximate nearest neighbor retrieval?",
+"What are common use cases and trade-offs of vector databases compared to traditional relational databases?"
 ]
 ```
 
 # Response
-Make sure provide multiple language(like both english and chinese) version of the query, which can greatly improve retrieval results
+Split each input question into multiple relevant sub-queries — one per distinct aspect, so no aspect is left uncovered. Each sub-query must be self-contained and target a single aspect.
 Output ONLY the refined queries as a JSON array without explanations.
 
 Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{/if}}:

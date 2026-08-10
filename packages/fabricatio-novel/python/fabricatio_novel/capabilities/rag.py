@@ -1,9 +1,9 @@
 """RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
 from abc import ABC
-from typing import ClassVar, List, Unpack, cast
+from typing import List, Unpack, cast, ClassVar
 
-from fabricatio_core import TEMPLATE_MANAGER
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import detect_language
 from fabricatio_core.utils import cfg
@@ -26,13 +26,13 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     and propagated down to the scene contexts.
     """
 
-    fetch_scale: ClassVar[int] = 2
-    """How many times the final rerank limit is retrieved per refined query."""
+    fetch_head: ClassVar[int] = 6
+    """Number of search head for each question."""
 
     async def prepare_scene_requirement(
-        self,
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> str:
         requirement = await super().prepare_scene_requirement(ctx, **kwargs)
         docs = await self._fetch_style_docs(ctx, **kwargs)
@@ -43,10 +43,10 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         return requirement
 
     async def _digest_style_docs(
-        self,
-        docs: List[WritingStyleDocument],
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            docs: List[WritingStyleDocument],
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> str | None:
         """Condense the raw reference documents into a writing style guideline string."""
         prompt = TEMPLATE_MANAGER.render_template(
@@ -64,18 +64,20 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         )
 
     async def _fetch_style_docs(
-        self,
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
         question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
-        queries = await self.arefined_query(question, **kwargs)
+        queries = await self.arefined_query(question, **kwargs, k=self.fetch_head)
+        logger.debug(f"fetch for\n{queries} ")
         if not queries:
             return []
-        limit = ctx.rag_limit or WritingStyleFetchConfig.default().limit
-        config = WritingStyleFetchConfig(limit=self.fetch_scale * limit)
+
+        config = WritingStyleFetchConfig(limit=ctx.rag_limit)
         docs = await self.afetch_document(queries, config)
         docs = [doc for doc in docs if doc.as_prompt().strip()]
+        logger.debug(f"fet {len(docs)} docs")
         if docs:
             docs = await self.arank_documents(question, docs, **kwargs)
-        return docs[:limit]
+        return docs[:config.limit]
