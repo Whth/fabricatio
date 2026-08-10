@@ -1,7 +1,7 @@
 """Flat per-element plan models and LLM list-parsing helpers."""
 
 import json
-from typing import Any, Callable, Generic, Self, TypeVar
+from typing import Any, Callable, Self
 
 from pydantic import BaseModel, Field, PositiveFloat, RootModel
 
@@ -37,12 +37,10 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
 
 
-_T = TypeVar("_T")
-
 _CODE_BLOCK = TextCapturer.capture_code_block()
 
 
-class JSONList(SketchedAble, RootModel[list[_T]], Generic[_T]):  # pyright: ignore[reportGeneralTypeIssues]
+class JSONList[T](SketchedAble, RootModel[list[T]]):
     """A bare JSON array of models as the LLM returns it, optionally wrapped in a code fence.
 
     The SketchedAble machinery supplies the create-JSON prompt and display
@@ -59,9 +57,6 @@ class JSONList(SketchedAble, RootModel[list[_T]], Generic[_T]):  # pyright: igno
         return cls.model_validate_json(inner if inner is not None else string)
 
 
-_P = TypeVar("_P", bound=BaseModel)
-
-
 def json_list_question(requirement: str, list_type: type[JSONList[Any]]) -> str:
     """Build the create-JSON prompt for a bare JSON array described by the list type."""
     return TEMPLATE_MANAGER.render_template(
@@ -73,15 +68,15 @@ def json_list_question(requirement: str, list_type: type[JSONList[Any]]) -> str:
     )
 
 
-def plan_list_question(requirement: str, plan_type: type[_P]) -> str:
+def plan_list_question[P: BaseModel](requirement: str, plan_type: type[P]) -> str:
     """Build the create-JSON prompt for a bare array of plans (mirrors create_json_prompt)."""
     return json_list_question(requirement, JSONList[plan_type])
 
 
-def plan_list_validator(plan_type: type[_P]) -> Callable[[str], list[_P] | None]:
+def plan_list_validator[P: BaseModel](plan_type: type[P]) -> Callable[[str], list[P] | None]:
     """Build a validator that parses a bare JSON array into a list of plans."""
 
-    def _validate(string: str) -> list[_P] | None:
+    def _validate(string: str) -> list[P] | None:
         parsed = JSONList[plan_type].instantiate_from_string(string)
         return parsed.root if parsed is not None else None
 
