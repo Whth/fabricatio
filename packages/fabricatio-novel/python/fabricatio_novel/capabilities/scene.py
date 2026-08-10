@@ -6,17 +6,15 @@ from fabricatio_character.models.character import CharacterCardDiff
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, TextCapturer, detect_language
-from pydantic import TypeAdapter
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharactorTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
-from fabricatio_novel.models.plan import json_list_question, plan_list_question, plan_list_validator, strip_code_fence
+from fabricatio_novel.models.plan import JSONList, json_list_question, plan_list_question, plan_list_validator
 from fabricatio_novel.models.scene import Scene
 
 
 _SCENE_CAPTURE = TextCapturer.with_pattern(r"###\s*(.+?)\s*\n\s*>\s*(.+?)\s*\n\n([\s\S]+)")
-_SLICE_ADAPTER = TypeAdapter(list[list[CharacterCardDiff]])
 
 
 def capture_scene(response: str) -> Scene | None:
@@ -38,7 +36,8 @@ def capture_scene(response: str) -> Scene | None:
 
 def _capture_slices(string: str) -> list[list[CharacterCardDiff]] | None:
     """Parse a JSON array of per-child diff slices."""
-    return _SLICE_ADAPTER.validate_json(strip_code_fence(string))
+    parsed = JSONList[list[CharacterCardDiff]].instantiate_from_string(string)
+    return parsed.root if parsed is not None else None
 
 
 class SceneCompose(CharacterCompose, ABC):
@@ -178,7 +177,7 @@ class SceneCompose(CharacterCompose, ABC):
             for trace in ctx.charactor_trace
         ]
         slices = await self.aask_validate(
-            [json_list_question(prompt, _SLICE_ADAPTER) for prompt in prompts],
+            [json_list_question(prompt, JSONList[list[CharacterCardDiff]]) for prompt in prompts],
             _capture_slices,
             send_to=send_to,
             **kwargs,
