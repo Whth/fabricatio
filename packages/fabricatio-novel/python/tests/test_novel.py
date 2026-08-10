@@ -16,7 +16,6 @@ from fabricatio_mock.models.mock_router import (
 from fabricatio_mock.utils import code_block, generic_block, install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
-from fabricatio_novel.capabilities.scene import capture_scene_prose
 from fabricatio_novel.models.context.base import CharactorTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
@@ -216,20 +215,6 @@ class TestFromContext:
 
 class NovelRole(LLMTestRole, NovelCompose):
     """Test role combining mock LLM with the novel composition chain."""
-
-
-class TestCaptureScene:
-    """Test suite for the plain-text scene response capture."""
-
-    def test_captures_prose_verbatim(self) -> None:
-        assert capture_scene_prose("He left.\n\nHe walked on.") == "He left.\n\nHe walked on."
-
-    def test_strips_surrounding_whitespace(self) -> None:
-        assert capture_scene_prose("  He left.  \n") == "He left."
-
-    def test_rejects_blank_prose(self) -> None:
-        assert capture_scene_prose("") is None
-        assert capture_scene_prose("   \n\t  ") is None
 
 
 class TestCharactorTraces:

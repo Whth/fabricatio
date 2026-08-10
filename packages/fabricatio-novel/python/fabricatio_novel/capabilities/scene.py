@@ -14,17 +14,6 @@ from fabricatio_novel.models.plan import JSONList, json_list_question, plan_list
 from fabricatio_novel.models.scene import Scene
 
 
-def capture_scene_prose(response: str) -> str | None:
-    """Accept the model's response verbatim as the scene prose.
-
-    The scene's title and description are already planned; the response is
-    only the prose, so nothing needs capturing. Returns None for blank
-    responses, which makes ``aask_validate`` retry.
-    """
-    content = response.strip()
-    return content if content else None
-
-
 def _capture_slices(string: str) -> list[list[CharacterCardDiff]] | None:
     """Parse a JSON array of per-child diff slices."""
     parsed = JSONList[list[CharacterCardDiff]].instantiate_from_string(string)
@@ -86,10 +75,12 @@ class SceneCompose(CharacterCompose, ABC):
         logger.debug(f"Generating scene '{ctx.title}'")
         await self.interpolate_charactors(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
-        content = await self.aask_validate(requirement, capture_scene_prose, send_to=send_to, **kwargs)
-        if content is None:
-            return None
-        scene = Scene(title=ctx.title, description=ctx.description, expected_word_count=0, content=content)
+        scene = Scene(
+            title=ctx.title,
+            description=ctx.description,
+            expected_word_count=0,
+            content=(await self.aask(requirement, send_to=send_to, **kwargs)).strip(),
+        )
         scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
         logger.info(f"Scene '{scene.title}' generated")
