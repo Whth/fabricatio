@@ -64,6 +64,9 @@ class ContextBase(WordCount, PersistentAble, ABC):
     description: str = ""
     """A short description of this element's intent and content."""
 
+    outline: str = ""
+    """Story outline; only the novel root carries it."""
+
     content: str = ""
     """The composed content of this element; containers keep it empty and render children instead."""
 

@@ -124,7 +124,7 @@ class SceneCompose(CharacterCompose, ABC):
                 {
                     "title": ctx.title,
                     "description": ctx.description,
-                    "outline": getattr(ctx, "outline", ""),
+                    "outline": ctx.outline,
                     "chain": trace.dump_to_prompt(),
                     "language": ctx.language,
                 },
