@@ -1,7 +1,7 @@
 from typing import List, Self
 
+from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
-
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import ChapterPlan
@@ -9,7 +9,7 @@ from fabricatio_novel.models.story import Story
 from fabricatio_novel.rust import text_to_xhtml_paragraphs
 
 
-class Chapter(ChapterPlan):
+class Chapter(ChapterPlan, WordCount):
     story: List[Story]
 
     @classmethod
@@ -22,13 +22,17 @@ class Chapter(ChapterPlan):
         )
 
     def to_xhtml(self) -> str:
-        sections = [f"<h1>{self.title}</h1>"]
+        """Render the chapter body as a full XHTML document.
+
+        The chapter title is deliberately omitted: ``dump_epub`` already
+        registers it once on the EPUB side via ``add_chapter(title, ...)``,
+        so embedding it here would duplicate it in every chapter document.
+        """
+        sections = []
         for story in self.story:
-            sections.append(f"<h2>{story.title}</h2>")
             for scene in story.scenes:
-                sections.append(f"<h3>{scene.title}</h3>")
                 sections.append(text_to_xhtml_paragraphs(scene.content))
         return TEMPLATE_MANAGER.render_template(
             novel_config.render_chapter_xhtml_template,
-            {"title": self.title, "content": "\n".join(sections)},
+            {"content": "\n".join(sections), "title": self.title},
         )

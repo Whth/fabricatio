@@ -1,11 +1,12 @@
 from typing import List, Self
 
+from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import StoryPlan
 from fabricatio_novel.models.scene import Scene
 
 
-class Story(StoryPlan):
+class Story(StoryPlan, WordCount):
     scenes: List[Scene]
 
     @classmethod
