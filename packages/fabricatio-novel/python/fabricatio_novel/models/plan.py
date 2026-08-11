@@ -1,14 +1,9 @@
-"""Flat per-element plan models and LLM list-parsing helpers."""
-
-import json
-from typing import Any, Callable, Self
-
-from pydantic import BaseModel, Field, PositiveFloat, RootModel
+"""Flat per-element plan models and their bare-JSON-array list classes."""
 
 from fabricatio_capabilities.models.generic import WordCount
-from fabricatio_core import CONFIG, TEMPLATE_MANAGER
-from fabricatio_core.models.generic import Described, SketchedAble, Titled
-from fabricatio_core.rust import TextCapturer
+from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
+from pydantic import Field, PositiveFloat
+
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -37,47 +32,13 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
 
 
-_CODE_BLOCK = TextCapturer.capture_code_block()
+class ScenePlans(JSONList[ScenePlan]):
+    """A bare JSON array of scene plans as the LLM returns it."""
 
 
-class JSONList[T](SketchedAble, RootModel[list[T]]):
-    """A bare JSON array of models as the LLM returns it, optionally wrapped in a code fence.
-
-    The SketchedAble machinery supplies the create-JSON prompt and display
-    sides; :meth:`instantiate_from_string` unwraps an optional code fence via
-    the core capturer before validating, so raw model responses parse without
-    any manual cleanup. The element type may itself be a list (per-child
-    slices).
-    """
-
-    @classmethod
-    def instantiate_from_string(cls, string: str) -> Self | None:
-        """Instantiate the list from a raw model response, unwrapping an optional code fence."""
-        inner = _CODE_BLOCK.cap1(string)
-        return cls.model_validate_json(inner if inner is not None else string)
+class StoryPlans(JSONList[StoryPlan]):
+    """A bare JSON array of story plans as the LLM returns it."""
 
 
-def json_list_question(requirement: str, list_type: type[JSONList[Any]]) -> str:
-    """Build the create-JSON prompt for a bare JSON array described by the list type."""
-    return TEMPLATE_MANAGER.render_template(
-        CONFIG.templates.create_json_obj_template,
-        {
-            "requirement": requirement,
-            "json_schema": json.dumps(list_type.model_json_schema(), indent=2),
-        },
-    )
-
-
-def plan_list_question[P: BaseModel](requirement: str, plan_type: type[P]) -> str:
-    """Build the create-JSON prompt for a bare array of plans (mirrors create_json_prompt)."""
-    return json_list_question(requirement, JSONList[plan_type])
-
-
-def plan_list_validator[P: BaseModel](plan_type: type[P]) -> Callable[[str], list[P] | None]:
-    """Build a validator that parses a bare JSON array into a list of plans."""
-
-    def _validate(string: str) -> list[P] | None:
-        parsed = JSONList[plan_type].instantiate_from_string(string)
-        return parsed.root if parsed is not None else None
-
-    return _validate
+class ChapterPlans(JSONList[ChapterPlan]):
+    """A bare JSON array of chapter plans as the LLM returns it."""

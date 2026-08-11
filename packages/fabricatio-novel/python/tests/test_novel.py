@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 import pytest
-from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
+from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterCardSlices
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
@@ -304,10 +304,8 @@ class TestCharactorTraces:
         child_a = ChapterContext(title="Ch1", description="The start.")
         child_b = ChapterContext(title="Ch2", description="The road.")
 
-        async def fake_ask(
-            question: object, validator: object, **kwargs: object
-        ) -> list[list[list[CharacterCardDiff]]]:
-            return [[[d1], [d2]]]
+        async def fake_ask(question: object, validator: object, **kwargs: object) -> list[CharacterCardSlices]:
+            return [CharacterCardSlices(root=[[d1], [d2]])]
 
         monkeypatch.setattr(NovelRole, "aask_validate", staticmethod(fake_ask))
         await role.split_charactor_slices(ctx, [child_a, child_b])

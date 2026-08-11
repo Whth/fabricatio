@@ -10,7 +10,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.plan import StoryPlan, plan_list_question, plan_list_validator
+from fabricatio_novel.models.plan import StoryPlan, StoryPlans
 
 
 class ChapterCompose(StoryCompose, ABC):
@@ -50,12 +50,8 @@ class ChapterCompose(StoryCompose, ABC):
                 "characters": ctx.dump_charactors(),
             },
         )
-        return await self.aask_validate(
-            plan_list_question(requirement, StoryPlan),
-            plan_list_validator(StoryPlan),
-            send_to=send_to,
-            **kwargs,
-        )
+        plans = await self.propose(StoryPlans, requirement, send_to=send_to, **kwargs)
+        return plans.root if plans is not None else None
 
     async def generate_chapter(
         self,

@@ -9,7 +9,7 @@ from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.plan import ScenePlan, plan_list_question, plan_list_validator
+from fabricatio_novel.models.plan import ScenePlan, ScenePlans
 from fabricatio_novel.models.story import Story
 
 
@@ -50,12 +50,8 @@ class StoryCompose(SceneCompose, ABC):
                 "characters": ctx.dump_charactors(),
             },
         )
-        return await self.aask_validate(
-            plan_list_question(requirement, ScenePlan),
-            plan_list_validator(ScenePlan),
-            send_to=send_to,
-            **kwargs,
-        )
+        plans = await self.propose(ScenePlans, requirement, send_to=send_to, **kwargs)
+        return plans.root if plans is not None else None
 
     async def generate_story(
         self,

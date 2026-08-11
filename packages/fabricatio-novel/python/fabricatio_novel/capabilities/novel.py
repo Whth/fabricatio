@@ -4,13 +4,14 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharactorTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.models.plan import ChapterPlan, NovelPlan, plan_list_question, plan_list_validator
+from fabricatio_novel.models.plan import ChapterPlan, ChapterPlans, NovelPlan
 
 
 class NovelCompose(ChapterCompose, ABC):
@@ -50,12 +51,8 @@ class NovelCompose(ChapterCompose, ABC):
                 "characters": ctx.dump_charactors(),
             },
         )
-        return await self.aask_validate(
-            plan_list_question(requirement, ChapterPlan),
-            plan_list_validator(ChapterPlan),
-            send_to=send_to,
-            **kwargs,
-        )
+        plans = await self.propose(ChapterPlans, requirement, send_to=send_to, **kwargs)
+        return plans.root if plans is not None else None
 
     async def create_charactor_traces(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> None:
         """Create the initial character traces from the setting bible roster."""
