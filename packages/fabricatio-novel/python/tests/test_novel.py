@@ -146,12 +146,13 @@ class TestCharactorTrace:
         start = card()
         trace = CharactorTrace(
             start=start,
-            end=start.apply(CharacterCardDiff(look="wounded", reason="fell in battle")).apply(
-                CharacterCardDiff(act="cautious", reason="learned from defeat")
-            ),
+            end=start.apply(CharacterCardDiff(look="wounded", reason="fell in battle"))
+            .apply(CharacterCardDiff(act="cautious", reason="learned from defeat"))
+            .apply(CharacterCardDiff(reason="reflected")),
             interpolates=[
                 CharacterCardDiff(look="wounded", reason="fell in battle"),
                 CharacterCardDiff(act="cautious", reason="learned from defeat"),
+                CharacterCardDiff(reason="reflected"),
             ],
         )
         prompt = trace.dump_to_prompt()
@@ -159,10 +160,10 @@ class TestCharactorTrace:
         assert lines[0].startswith("Hero — protagonist.")
         assert "look: tall" in lines[0]
         assert "flaw: stubborn" in lines[0]
-        assert "look: tall → wounded" in lines[1]
-        assert "fell in battle" in lines[1]
-        assert "act: brave → cautious" in lines[2]
-        assert "learned from defeat" in lines[2]
+        assert "look: tall → wounded; reason: fell in battle" in lines[1]
+        assert "act: brave → cautious; reason: learned from defeat" in lines[2]
+        # a diff that changes nothing renders only its labeled reason
+        assert lines[3] == "3. reason: reflected"
         # unchanged fields are not repeated per step
         assert prompt.count("flaw: stubborn") == 1
         assert prompt.count("want: seek truth") == 1

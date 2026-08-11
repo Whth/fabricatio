@@ -41,8 +41,9 @@ class CharactorTrace(SketchedAble):
         """Render the trace as a natural-language description of the evolution.
 
         The starting card is rendered once; each interpolated diff then
-        describes only its changed fields (before → after) with its
-        reason, skipping redundant repeats of unchanged fields to save
+        describes only its changed fields (before → after), with the cause
+        stated explicitly as a labeled `reason:` clause instead of a bare
+        separator, skipping redundant repeats of unchanged fields to save
         tokens.
         """
         card = self.start
@@ -52,7 +53,7 @@ class CharactorTrace(SketchedAble):
         for index, diff in enumerate(self.interpolates, start=1):
             changes = diff.model_dump(exclude_none=True, exclude={"reason"})
             steps = "; ".join(f"{field}: {getattr(card, field)} → {value}" for field, value in changes.items())
-            lines.append(f"{index}. {steps} — {diff.reason}" if steps else f"{index}. {diff.reason}")
+            lines.append(f"{index}. {steps}; reason: {diff.reason}" if steps else f"{index}. reason: {diff.reason}")
             card = card.apply(diff)
         return "\n".join(lines)
 
