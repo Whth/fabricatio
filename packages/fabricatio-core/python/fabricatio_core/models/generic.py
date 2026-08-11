@@ -13,6 +13,7 @@ from pydantic import (
     NonNegativeFloat,
     PositiveFloat,
     PositiveInt,
+    RootModel,
 )
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 
@@ -25,7 +26,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, TextCapturer, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
 
@@ -643,3 +644,23 @@ class SketchedAble(ProposedAble, Display, ABC):
 
     This class combines the functionality to propose a JSON object, instantiate it from a string, and display it.
     """
+
+
+_CODE_BLOCK = TextCapturer.capture_code_block()
+
+
+class JSONList[T](SketchedAble, RootModel[list[T]]):
+    """A bare JSON array of models as the LLM returns it, optionally wrapped in a code fence.
+
+    The SketchedAble machinery supplies the create-JSON prompt and display
+    sides; :meth:`instantiate_from_string` unwraps an optional code fence via
+    the core capturer before validating, so raw model responses parse without
+    any manual cleanup. The element type may itself be a list (per-child
+    slices).
+    """
+
+    @classmethod
+    def instantiate_from_string(cls, string: str) -> Self | None:
+        """Instantiate the list from a raw model response, unwrapping an optional code fence."""
+        inner = _CODE_BLOCK.cap1(string)
+        return cls.model_validate_json(inner if inner is not None else string)
