@@ -3,8 +3,9 @@
 from typing import ClassVar, Dict, Self
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
+from fabricatio_core.models.generic import JSONList, Named, SketchedAble
+
 from fabricatio_character.config import character_config
-from fabricatio_core.models.generic import Named, SketchedAble
 
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
@@ -68,3 +69,11 @@ class CharacterCardDiff(CharacterCard):
 
     reason: str
     """Reason why the change happen"""
+
+
+class CharacterCardDiffs(JSONList[CharacterCardDiff]):
+    """A bare JSON array of character-card diffs as the LLM returns it."""
+
+
+class CharacterCardSlices(JSONList[list[CharacterCardDiff]]):
+    """A bare JSON array of per-child diff slices as the LLM returns it."""
