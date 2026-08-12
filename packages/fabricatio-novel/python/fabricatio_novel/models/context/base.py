@@ -116,14 +116,25 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
         yield from ()
 
+    def render_prefixed_header(self) -> str:
+        """Render this element's own heading block, seeded into every child's prefix.
+
+        Only the chapter renders its own title and description here; the novel's,
+        story's and scene's own titles are not part of the running text.
+        """
+        return ""
+
     @final
     def iter_prefixed_contexts(self) -> Generator[C, None, None]:
         """Set each child's running prefixed content in place and yield it.
 
-        Composed content is read live at each step, so in-place updates made
-        while iterating are reflected in the following children's prefixes.
+        The running prefix seeds with this element's incoming prefixed content
+        plus its own heading block, so each child sees the exact text that will
+        precede its content in the final manuscript. Composed content is read
+        live at each step, so in-place updates made while iterating are
+        reflected in the following children's prefixes.
         """
-        prefix = self.prefixed_content
+        prefix = "\n\n".join(p for p in (self.prefixed_content, self.render_prefixed_header()) if p)
         for child in self.iter_child_contexts():
             child.set_prefixed_content(prefix)
             yield child

@@ -410,8 +410,9 @@ class TestNovelCompose:
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == "He left."
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == ""
+        chapter_header = "# Ch1\n\n> The hero sets out."
+        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == f"{chapter_header}\n\nHe left."
+        assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == chapter_header
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         role = NovelRole(name="novel_role")
@@ -493,9 +494,10 @@ class TestPrefixAccumulation:
             result = await role.compose_chapter(chapter)
         assert result is not None
         story_a_block = "Alpha."
-        assert story_a.prefixed_content == ""
-        assert story_b.prefixed_content == story_a_block
-        assert story_b.scene_context[0].prefixed_content == story_a_block
+        chapter_header = "# Ch1\n\n> The start."
+        assert story_a.prefixed_content == chapter_header
+        assert story_b.prefixed_content == f"{chapter_header}\n\n{story_a_block}"
+        assert story_b.scene_context[0].prefixed_content == f"{chapter_header}\n\n{story_a_block}"
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         role = NovelRole(name="novel_role")
@@ -533,14 +535,16 @@ class TestPrefixAccumulation:
 
         assert novel is not None
         chapter_1_block = "# Ch1\n\n> The start.\n\nA.\n\nB."
+        chapter_1_header = "# Ch1\n\n> The start."
+        chapter_2_header = "# Ch2\n\n> The road."
         story_c_block = "C."
         assert chapter_1.prefixed_content == ""
         assert chapter_2.prefixed_content == chapter_1_block
-        assert chapter_1.story_context[1].prefixed_content == "A."
-        assert chapter_2.story_context[0].prefixed_content == chapter_1_block
-        assert chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{story_c_block}"
-        assert chapter_2.story_context[0].scene_context[0].prefixed_content == chapter_1_block
-        assert chapter_2.story_context[1].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{story_c_block}"
+        assert chapter_1.story_context[1].prefixed_content == f"{chapter_1_header}\n\nA."
+        assert chapter_2.story_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
+        assert chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
+        assert chapter_2.story_context[0].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
+        assert chapter_2.story_context[1].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
 
 
 class TestNovelPlan:

@@ -42,9 +42,14 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
         yield from self.story_context
 
     @final
+    def render_prefixed_header(self) -> str:
+        """Render the chapter's heading block, seeded into each story's prefix."""
+        return f"{self.heading_level} {self.title}\n\n> {self.description}"
+
+    @final
     def render_prefixed_block(self) -> str:
-        """Render the chapter's title, description, and story blocks."""
-        parts: list[str] = [f"{self.heading_level} {self.title}", f"> {self.description}"]
+        """Render the chapter's heading block followed by its story blocks."""
+        parts: list[str] = [self.render_prefixed_header()]
         parts.extend(child.render_prefixed_block() for child in self.iter_child_contexts())
         return "\n\n".join(parts)
 
