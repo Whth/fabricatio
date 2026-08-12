@@ -1,22 +1,22 @@
 # Scene Writing
 
 ## Goal
-Write a single scene of the novel in full prose.
+Write a single scene of the novel in full prose, as a seamless continuation of the story so far.
 
 ## Requirements
-- Follow the scene's title and description exactly.
-- Keep the characters' established traits, speech patterns, and motivations consistent with their character cards.
-- Only include events and details that belong to this scene; do not advance other plotlines.
-- Output ONLY the scene prose in paragraphs — no heading, no blockquote, no JSON, no commentary.
+- Write exactly the scene defined by its Title and Description below; stay inside this scene and do not advance other plotlines or skip ahead in time.
+- Keep every character consistent with their established traits, speech patterns, and motivations, and honor their state transitions.
+- When there is previous content, match its narrative voice, tense, and point of view, and never repeat or contradict anything already written.
+- Output ONLY the scene prose as plain paragraphs — no headings, no blockquotes, no JSON, no commentary, no summary.
 
 Respond entirely in "{{ language }}".
 
 {{#if prefixed_content}}
 # Previous Content
 
-The story so far. Continue seamlessly from where it ends; do not repeat or contradict it.
+The story written so far follows. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
 
-{{ prefixed_content }}
+{{ block prefixed_content "Story so far" }}
 
 ---
 {{/if}}
@@ -30,5 +30,7 @@ Title: {{ title }}
 Description: {{ description }}
 - Write approximately {{ expected_word_count }} words.
 
-## Characters
+{{#if characters}}
+## Characters' state transitions
 {{ characters }}
+{{/if}}
