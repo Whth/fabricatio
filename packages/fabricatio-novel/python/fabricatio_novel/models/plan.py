@@ -28,7 +28,7 @@ class ScenePlan(WeightedPlan):
     stageable details — not a theme or a summary."""
 
     writing_style: str = ""
-    """3-6 sentences stating the writing technique for this scene's prose: narrative voice and
+    """1-2 sentences stating the writing technique for this scene's prose: narrative voice and
     point of view, sentence rhythm, tone and atmosphere, dialogue handling, and description
     density. The model writes the prose directly from this, so name concrete, applicable
     techniques — not a genre label or a theme."""
@@ -43,7 +43,7 @@ class StoryPlan(WeightedPlan):
     scenes, so name the concrete events to stage rather than restating the chapter."""
 
     writing_style: str = ""
-    """3-7 sentences stating the writing style its scenes should share: a consistent voice, tone,
+    """1-3 sentences stating the writing style its scenes should share: a consistent voice, tone,
     and technique across the story's scenes. Empty when the chapter's style already suffices."""
 
 
@@ -56,7 +56,7 @@ class ChapterPlan(WeightedPlan):
     arc — it is shown when planning the chapter's stories, so name the events that stage it."""
 
     writing_style: str = ""
-    """4-8 sentences stating the writing style its stories should follow: the chapter's narrative
+    """2-3 sentences stating the writing style its stories should follow: the chapter's narrative
     voice, tone, and pacing. Empty when the novel's style already suffices."""
 
 
@@ -69,7 +69,7 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     seeds every chapter's planning prompt, so be specific and evocative, never a tagline."""
 
     writing_style: str = ""
-    """6-10 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
+    """4-5 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
     and recurring techniques. It seeds the style guidance of every chapter, story, and scene;
     empty when the outline implies no particular style."""
 
