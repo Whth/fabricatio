@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 
 import pytest
+
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterCardSlices
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
@@ -16,7 +17,7 @@ from fabricatio_mock.models.mock_router import (
 from fabricatio_mock.utils import code_block, generic_block, install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
-from fabricatio_novel.models.context.base import CharactorTrace
+from fabricatio_novel.models.context.base import CharacterTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -124,19 +125,19 @@ class TestCharactorTrace:
 
     def test_iter_charactor_cards_applies_diffs_in_order(self) -> None:
         start = card()
-        trace = CharactorTrace(
+        trace = CharacterTrace(
             start=start,
             end=start.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
             interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
         )
-        cards: List[CharacterCard] = list(trace.iter_charactor_cards())
+        cards: List[CharacterCard] = list(trace.iter_character_cards())
         assert cards[0] is start
         assert [c.look for c in cards] == ["tall", "scarred", "scarred"]
         assert cards[-1] is trace.end
 
     def test_intepl_replaces_interpolates_and_returns_self(self) -> None:
         start = card()
-        trace = CharactorTrace(start=start, end=start)
+        trace = CharacterTrace(start=start, end=start)
         diff = CharacterCardDiff(look="wounded", reason="fell in battle")
         assert trace.intepl([diff]) is trace
         assert trace.interpolates == [diff]
@@ -144,7 +145,7 @@ class TestCharactorTrace:
     def test_dump_to_prompt_shows_start_and_only_changed_fields(self) -> None:
         """Assert the prompt renders the identity once and each change with its reason."""
         start = card()
-        trace = CharactorTrace(
+        trace = CharacterTrace(
             start=start,
             end=start.apply(CharacterCardDiff(look="wounded", reason="fell in battle"))
             .apply(CharacterCardDiff(act="cautious", reason="learned from defeat"))
@@ -171,7 +172,7 @@ class TestCharactorTrace:
     def test_dump_to_prompt_without_changes_is_just_identity(self) -> None:
         """Assert a fresh trace renders only its starting card line."""
         start = card()
-        trace = CharactorTrace(start=start, end=start)
+        trace = CharacterTrace(start=start, end=start)
         assert trace.dump_to_prompt() == (
             "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
         )
@@ -226,7 +227,7 @@ class TestCharactorTraces:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
         await role.create_charactor_traces(ctx)
-        assert ctx.charactor_trace == []
+        assert ctx.character_trace == []
 
     async def test_create_charactor_traces_from_bible(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the bible roster seeds one trace per character."""
@@ -241,8 +242,8 @@ class TestCharactorTraces:
 
         monkeypatch.setattr(NovelRole, "compose_characters", staticmethod(fake_compose))
         await role.create_charactor_traces(ctx)
-        assert [t.start.name for t in ctx.charactor_trace] == ["Hero", "Villain"]
-        assert all(t.start == t.end for t in ctx.charactor_trace)
+        assert [t.start.name for t in ctx.character_trace] == ["Hero", "Villain"]
+        assert all(t.start == t.end for t in ctx.character_trace)
 
     async def test_compose_novel_builds_hierarchical_chains(self) -> None:
         """Assert each level extends its allocated slice of the parent chain, without mutating it."""
@@ -281,10 +282,10 @@ class TestCharactorTraces:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        novel_trace = ctx.charactor_trace[0]
-        chapter_trace = ctx.chapter_context[0].charactor_trace[0]
-        story_trace = ctx.chapter_context[0].story_context[0].charactor_trace[0]
-        scene_trace = ctx.chapter_context[0].story_context[0].scene_context[0].charactor_trace[0]
+        novel_trace = ctx.character_trace[0]
+        chapter_trace = ctx.chapter_context[0].character_trace[0]
+        story_trace = ctx.chapter_context[0].story_context[0].character_trace[0]
+        scene_trace = ctx.chapter_context[0].story_context[0].scene_context[0].character_trace[0]
         assert novel_trace.interpolates == [d_novel]
         assert chapter_trace.interpolates == [d_novel, d_chapter]
         assert story_trace.interpolates == [d_novel, d_chapter, d_story]
@@ -301,7 +302,7 @@ class TestCharactorTraces:
         hero = card()
         d1 = CharacterCardDiff(look="wounded", reason="fell in battle")
         d2 = CharacterCardDiff(look="scarred", reason="took a blade")
-        ctx.set_charactor_traces([CharactorTrace(start=hero, end=hero.apply(d1).apply(d2), interpolates=[d1, d2])])
+        ctx.set_charactor_traces([CharacterTrace(start=hero, end=hero.apply(d1).apply(d2), interpolates=[d1, d2])])
         child_a = ChapterContext(title="Ch1", description="The start.")
         child_b = ChapterContext(title="Ch2", description="The road.")
 
@@ -309,21 +310,21 @@ class TestCharactorTraces:
             return [CharacterCardSlices(root=[[d1], [d2]])]
 
         monkeypatch.setattr(NovelRole, "aask_validate", staticmethod(fake_ask))
-        await role.split_charactor_slices(ctx, [child_a, child_b])
+        await role.split_character_slices(ctx, [child_a, child_b])
 
-        assert child_a.charactor_trace[0].interpolates == [d1]
-        assert child_b.charactor_trace[0].interpolates == [d2]
-        assert child_a.charactor_trace[0].start == hero
-        assert child_a.charactor_trace[0].end.look == "wounded"
-        assert child_b.charactor_trace[0].end.look == "scarred"
+        assert child_a.character_trace[0].interpolates == [d1]
+        assert child_b.character_trace[0].interpolates == [d2]
+        assert child_a.character_trace[0].start == hero
+        assert child_a.character_trace[0].end.look == "wounded"
+        assert child_b.character_trace[0].end.look == "scarred"
 
     async def test_scene_requirement_shows_character_chain(self) -> None:
         """Assert every state of the arc appears in the scene prompt's Characters section."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         hero = card()
-        ctx.charactor_trace = [
-            CharactorTrace(
+        ctx.character_trace = [
+            CharacterTrace(
                 start=hero,
                 end=hero.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
                 interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
@@ -350,9 +351,9 @@ class TestNovelCompose:
 
     async def test_compose_scene_evolves_charactor_trace(self) -> None:
         role = NovelRole(name="novel_role")
-        trace = CharactorTrace(start=card(), end=card())
+        trace = CharacterTrace(start=card(), end=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
-        ctx.charactor_trace.append(trace)
+        ctx.character_trace.append(trace)
         expected_diff = CharacterCardDiff(look="scarred", reason="took a blade")
         with install_router_usage(
             *return_mixed_router_usage(
@@ -400,9 +401,7 @@ class TestNovelCompose:
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == (
-            "### S1\n\n> Leaving home.\n\nHe left."
-        )
+        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == "He left."
         assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == ""
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
@@ -449,7 +448,7 @@ class TestPrefixAccumulation:
             result = await role.compose_story(story)
         assert result is not None
         assert scene_1.prefixed_content == ""
-        assert scene_2.prefixed_content == "### S1\n\n> Leaving home.\n\nHe left."
+        assert scene_2.prefixed_content == "He left."
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         role = NovelRole(name="novel_role")
@@ -467,7 +466,7 @@ class TestPrefixAccumulation:
         ):
             result = await role.compose_chapter(chapter)
         assert result is not None
-        story_a_block = "## StA\n\n> A.\n\n### S1\n\n> Leaving home.\n\nAlpha."
+        story_a_block = "Alpha."
         assert story_a.prefixed_content == ""
         assert story_b.prefixed_content == story_a_block
         assert story_b.scene_context[0].prefixed_content == story_a_block
@@ -507,17 +506,11 @@ class TestPrefixAccumulation:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        chapter_1_block = (
-            "# Ch1\n\n> The start.\n\n"
-            "## StA\n\n> Leaving home.\n\n### S1\n\n> Leaving home.\n\nA.\n\n"
-            "## StB\n\n> A stranger appears.\n\n### S2\n\n> A stranger appears.\n\nB."
-        )
-        story_c_block = "## StC\n\n> The journey.\n\n### S3\n\n> The journey.\n\nC."
+        chapter_1_block = "# Ch1\n\n> The start.\n\nA.\n\nB."
+        story_c_block = "C."
         assert chapter_1.prefixed_content == ""
         assert chapter_2.prefixed_content == chapter_1_block
-        assert chapter_1.story_context[1].prefixed_content == (
-            "## StA\n\n> Leaving home.\n\n### S1\n\n> Leaving home.\n\nA."
-        )
+        assert chapter_1.story_context[1].prefixed_content == "A."
         assert chapter_2.story_context[0].prefixed_content == chapter_1_block
         assert chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{story_c_block}"
         assert chapter_2.story_context[0].scene_context[0].prefixed_content == chapter_1_block

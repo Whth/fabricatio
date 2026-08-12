@@ -1,4 +1,4 @@
-from typing import ClassVar, Generator, Self, final
+from typing import Generator, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
@@ -10,8 +10,6 @@ from fabricatio_novel.models.plan import StoryPlan
 
 
 class StoryContext(RAGChannel, Titled, Described, ContextBase):
-    heading_level: ClassVar[str] = "##"
-
     story_plan: StoryPlan | None = None
     """The story's own plan; proposed before the scene contexts are created."""
 
@@ -28,6 +26,11 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
     def iter_child_contexts(self) -> Generator[SceneContext, None, None]:
         """Yield this story's scene contexts, in composition order."""
         yield from self.scene_context
+
+    @final
+    def render_prefixed_block(self) -> str:
+        """Render the scene blocks; the story's own title and description are not injected."""
+        return "\n\n".join(child.render_prefixed_block() for child in self.iter_child_contexts())
 
     def set_story_plan(self, plan: StoryPlan) -> Self:
         self.story_plan = plan

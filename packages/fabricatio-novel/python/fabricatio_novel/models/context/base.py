@@ -1,5 +1,5 @@
-from abc import ABC
-from typing import ClassVar, Generator, Self, final
+from abc import ABC, abstractmethod
+from typing import Generator, Self, final
 
 from pydantic import Field
 
@@ -7,18 +7,17 @@ from fabricatio_capabilities.models.generic import WordCount, PersistentAble
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
-
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class CharactorTrace(SketchedAble):
+class CharacterTrace(SketchedAble):
     start: CharacterCard
     end: CharacterCard
 
     interpolates: list[CharacterCardDiff] = Field(default_factory=list)
 
     @final
-    def iter_charactor_cards(self) -> Generator[CharacterCard, None, None]:
+    def iter_character_cards(self) -> Generator[CharacterCard, None, None]:
         """Iterate over the character cards along this trace, in evolution order.
 
         Yields the `start` card, then one card per interpolated diff applied
@@ -58,17 +57,14 @@ class CharactorTrace(SketchedAble):
         return "\n".join(lines)
 
 
-class ContextBase(WordCount, PersistentAble, ABC):
+class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     title: str = ""
     """The title of this element; the novel root keeps it empty until planned."""
 
     description: str = ""
-    """A short description of this element's intent and content."""
+    """A detailed description of this element's intent and content."""
 
-    content: str = ""
-    """The composed content of this element; containers keep it empty and render children instead."""
-
-    charactor_trace: list[CharactorTrace] = Field(default_factory=list)
+    character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
@@ -79,9 +75,6 @@ class ContextBase(WordCount, PersistentAble, ABC):
     prefixed_content: str = ""
     """Everything composed before this element in the novel; injected by the parent before composition."""
 
-    heading_level: ClassVar[str] = ""
-    """Markdown heading marker used when this element's block is rendered into a prefixed content."""
-
     def set_language(self, language: str) -> Self:
         self.language = language
         return self
@@ -90,21 +83,17 @@ class ContextBase(WordCount, PersistentAble, ABC):
         self.series_bible = series_bible
         return self
 
-    def set_content(self, content: str) -> Self:
-        self.content = content
+    def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:
+        self.character_trace = traces
         return self
 
-    def set_charactor_traces(self, traces: list[CharactorTrace]) -> Self:
-        self.charactor_trace = traces
-        return self
-
-    def add_charactor_trace(self, trace: CharactorTrace) -> Self:
-        self.charactor_trace.append(trace)
+    def add_charactor_trace(self, trace: CharacterTrace) -> Self:
+        self.character_trace.append(trace)
         return self
 
     def dump_charactors(self) -> str:
         """Render every character's evolution for prompts, in trace order."""
-        return "\n\n".join(trace.dump_to_prompt() for trace in self.charactor_trace)
+        return "\n\n".join(trace.dump_to_prompt() for trace in self.character_trace)
 
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.
@@ -114,12 +103,12 @@ class ContextBase(WordCount, PersistentAble, ABC):
         """
         return ok(self.series_bible, f"Settings bible is not initialized on {self.__class__.__name__}")
 
-    def iter_child_contexts(self) -> Generator["ContextBase", None, None]:
+    def iter_child_contexts(self) -> Generator[C, None, None]:
         """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
         yield from ()
 
     @final
-    def iter_prefixed_contexts(self) -> Generator["ContextBase", None, None]:
+    def iter_prefixed_contexts(self) -> Generator[C, None, None]:
         """Set each child's running prefixed content in place and yield it.
 
         Composed content is read live at each step, so in-place updates made
@@ -131,25 +120,14 @@ class ContextBase(WordCount, PersistentAble, ABC):
             yield child
             prefix = "\n\n".join(p for p in (prefix, child.render_prefixed_block()) if p)
 
-    @final
+    @abstractmethod
     def render_prefixed_block(self) -> str:
-        """Render this element's title, description, and composed content as a markdown block.
+        """Render this element's block, appended to the prefixed content of every following sibling.
 
-        Container elements render their children's blocks recursively; leaf
-        elements render their own composed content. The rendered block is
-        appended to the prefixed content of every following sibling.
+        Only the chapter renders its own title and description; stories render
+        their children's blocks and scenes render their composed content.
         """
-        parts: list[str] = []
-        if self.title:
-            parts.append(f"{self.heading_level} {self.title}")
-        if self.description:
-            parts.append(f"> {self.description}")
-        children = list(self.iter_child_contexts())
-        if children:
-            parts.extend(child.render_prefixed_block() for child in children)
-        elif self.content:
-            parts.append(self.content)
-        return "\n\n".join(parts)
+        ...
 
     def broadcast_settings_bible(self) -> Self:
         """Push this context's settings bible onto every child context."""

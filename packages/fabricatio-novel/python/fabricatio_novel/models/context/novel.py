@@ -1,16 +1,16 @@
 from typing import Generator, Self, final
 
-from fabricatio_capabilities.models.generic import UpdateFrom
-from fabricatio_core.rust import detect_language
 from pydantic import Field
 
+from fabricatio_capabilities.models.generic import UpdateFrom
+from fabricatio_core.rust import detect_language
 from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import NovelPlan
 
 
-class NovelContext(UpdateFrom, RAGChannel, ContextBase):
+class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
     outline: str
     language: str
 
@@ -47,6 +47,11 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase):
     def iter_child_contexts(self) -> Generator[ChapterContext, None, None]:
         """Yield this novel's chapter contexts, in composition order."""
         yield from self.chapter_context
+
+    @final
+    def render_prefixed_block(self) -> str:
+        """Render the chapter blocks; the novel's own title is not injected."""
+        return "\n\n".join(child.render_prefixed_block() for child in self.iter_child_contexts())
 
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         self.novel_plan = plan

@@ -4,10 +4,9 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import CharactorTrace
+from fabricatio_novel.models.context.base import CharacterTrace
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
@@ -18,16 +17,16 @@ class NovelCompose(ChapterCompose, ABC):
     """This class contains the capabilities for the novel."""
 
     async def before_compose_novel(
-        self,
-        ctx: NovelContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: NovelContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         return ctx
 
     async def after_compose_novel(
-        self,
-        ctx: NovelContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: NovelContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         return ctx
 
@@ -35,10 +34,10 @@ class NovelCompose(ChapterCompose, ABC):
         return novel
 
     async def plan_chapters(
-        self,
-        ctx: NovelContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: NovelContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> list[ChapterPlan] | None:
         logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -65,13 +64,13 @@ class NovelCompose(ChapterCompose, ABC):
         cards = await self.compose_characters(requirements, **kwargs)
         if not cards:
             return
-        ctx.set_charactor_traces([CharactorTrace(start=card, end=card) for card in cards if card is not None])
+        ctx.set_charactor_traces([CharacterTrace(start=card, end=card) for card in cards if card is not None])
 
     async def generate_novel(
-        self,
-        ctx: NovelContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: NovelContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -83,9 +82,9 @@ class NovelCompose(ChapterCompose, ABC):
             return None
         ctx.set_novel_plan(plan).update_from(plan)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
-        if not ctx.charactor_trace:
+        if not ctx.character_trace:
             await self.create_charactor_traces(ctx, **kwargs)
-        await self.interpolate_charactors(ctx, send_to, outline=ctx.outline, **kwargs)
+        await self.interpolate_characters(ctx, send_to, outline=ctx.outline, **kwargs)
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
@@ -105,7 +104,7 @@ class NovelCompose(ChapterCompose, ABC):
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()
-        await self.split_charactor_slices(ctx, ctx.chapter_context, send_to, **kwargs)
+        await self.split_character_slices(ctx, ctx.chapter_context, send_to, **kwargs)
         for chapter_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 return None
@@ -113,10 +112,10 @@ class NovelCompose(ChapterCompose, ABC):
         return Novel.from_context(ctx)
 
     async def compose_novel(
-        self,
-        ctx: NovelContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: NovelContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         ctx = await self.before_compose_novel(ctx, **kwargs)
         novel = await self.generate_novel(ctx, send_to, **kwargs)

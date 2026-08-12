@@ -4,7 +4,6 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
@@ -17,16 +16,16 @@ class ChapterCompose(StoryCompose, ABC):
     """This class contains the capabilities for the chapter."""
 
     async def before_compose_chapter(
-        self,
-        ctx: ChapterContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         return ctx
 
     async def after_compose_chapter(
-        self,
-        ctx: ChapterContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         return ctx
 
@@ -34,10 +33,10 @@ class ChapterCompose(StoryCompose, ABC):
         return chapter
 
     async def plan_stories(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
         logger.debug(f"Planning stories for chapter '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -54,13 +53,13 @@ class ChapterCompose(StoryCompose, ABC):
         return plans.root if plans is not None else None
 
     async def generate_chapter(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         logger.debug(f"Generating chapter '{ctx.title}'")
-        await self.interpolate_charactors(ctx, send_to, **kwargs)
+        await self.interpolate_characters(ctx, send_to, **kwargs)
         if not ctx.story_context:
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
@@ -80,17 +79,17 @@ class ChapterCompose(StoryCompose, ABC):
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
-        await self.split_charactor_slices(ctx, ctx.story_context, send_to, **kwargs)
+        await self.split_character_slices(ctx, ctx.story_context, send_to, **kwargs)
         for story_ctx in ctx.iter_prefixed_contexts():
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 return None
         return Chapter.from_context(ctx)
 
     async def compose_chapter(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         ctx = await self.before_compose_chapter(ctx, **kwargs)
         chapter = await self.generate_chapter(ctx, send_to, **kwargs)

@@ -1,8 +1,8 @@
 from typing import ClassVar, Generator, Self, final
 
-from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
+from fabricatio_core.models.generic import Described, Titled
 from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.story import StoryContext
@@ -27,6 +27,13 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     def iter_child_contexts(self) -> Generator[StoryContext, None, None]:
         """Yield this chapter's story contexts, in composition order."""
         yield from self.story_context
+
+    @final
+    def render_prefixed_block(self) -> str:
+        """Render the chapter's title, description, and story blocks."""
+        parts: list[str] = [f"{self.heading_level} {self.title}", f"> {self.description}"]
+        parts.extend(child.render_prefixed_block() for child in self.iter_child_contexts())
+        return "\n\n".join(parts)
 
     def set_chapter_plan(self, plan: ChapterPlan) -> Self:
         self.chapter_plan = plan
