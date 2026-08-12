@@ -30,9 +30,9 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     """Number of search head for each question."""
 
     async def prepare_scene_requirement(
-            self,
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str:
         requirement = await super().prepare_scene_requirement(ctx, **kwargs)
         docs = await self._fetch_style_docs(ctx, **kwargs)
@@ -43,10 +43,10 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         return requirement
 
     async def _digest_style_docs(
-            self,
-            docs: List[WritingStyleDocument],
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        docs: List[WritingStyleDocument],
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str | None:
         """Condense the raw reference documents into a writing style guideline string."""
         prompt = TEMPLATE_MANAGER.render_template(
@@ -56,6 +56,7 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
                 "scene_title": ctx.title,
                 "scene_description": ctx.description,
                 "language": ctx.language or detect_language(ctx.description),
+                "writing_style": ctx.writing_style,
             },
         )
         return cast(
@@ -64,9 +65,9 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         )
 
     async def _fetch_style_docs(
-            self,
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
         question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
         queries = await self.arefined_query(question, **kwargs, k=self.fetch_head)
@@ -80,4 +81,4 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         logger.debug(f"fet {len(docs)} docs")
         if docs:
             docs = await self.arank_documents(question, docs, **kwargs)
-        return docs[:config.limit]
+        return docs[: config.limit]

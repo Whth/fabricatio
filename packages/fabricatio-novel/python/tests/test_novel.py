@@ -190,6 +190,15 @@ class TestFromContext:
         assert scene.content == "He walked out."
         assert scene.expected_word_count == 50
 
+    def test_from_plan_copies_plan_fields(self) -> None:
+        plan = ScenePlan(title="S1", description="The descent.", weight=1.0, writing_style="Gothic, lyrical prose.")
+        ctx = SceneContext.from_plan(plan, expected_word_count=300)
+        assert ctx.title == "S1"
+        assert ctx.description == "The descent."
+        assert ctx.expected_word_count == 300
+        assert ctx.writing_style == "Gothic, lyrical prose."
+        assert ctx.scene_plan is plan
+
     def test_novel_from_context_assembles_full_tree(self) -> None:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.title = "The Search"
@@ -425,6 +434,23 @@ class TestNovelCompose:
         assert requirement.index("A stranger appears.") > requirement.index("## Scene")
         # the per-scene word count must not sit inside the static Requirements block
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
+
+    async def test_prepare_scene_requirement_renders_writing_style(self) -> None:
+        """Assert the scene's planned writing style guides the prose requirement."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        ctx.writing_style = "Terse action lines, present tense, close third person."
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Writing Style" in requirement
+        assert "Terse action lines, present tense, close third person." in requirement
+        assert requirement.index("## Writing Style") > requirement.index("## Scene")
+
+    async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
+        """Assert an unset writing style renders no style section."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Writing Style" not in requirement
 
 
 class TestPrefixAccumulation:

@@ -17,6 +17,19 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
 
     story_context: list[StoryContext] = Field(default_factory=list)
 
+    @classmethod
+    def from_plan(cls, plan: ChapterPlan, expected_word_count: int) -> Self:
+        """Build the chapter context from its proposed plan."""
+        return (
+            cls(
+                title=plan.title,
+                description=plan.description,
+                expected_word_count=expected_word_count,
+            )
+            .set_chapter_plan(plan)
+            .set_writing_style(plan.writing_style)
+        )
+
     @final
     def iter_story_content(self) -> Generator[str, None, None]:
         """Yield each story's composed content, in chapter order."""

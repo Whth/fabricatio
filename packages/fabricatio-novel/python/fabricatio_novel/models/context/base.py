@@ -64,6 +64,10 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     description: str = ""
     """A detailed description of this element's intent and content."""
 
+    writing_style: str = ""
+    """Writing technique guidance for this element's prose: voice, tone, rhythm, dialogue
+    handling; proposed with the plan and carried down to the scene that is written."""
+
     character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     language: str = ""
@@ -81,6 +85,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
 
     def set_series_bible(self, series_bible: SeriesBible | None) -> Self:
         self.series_bible = series_bible
+        return self
+
+    def set_writing_style(self, writing_style: str) -> Self:
+        """Set the writing technique guidance carried down to the written scenes."""
+        self.writing_style = writing_style
         return self
 
     def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:

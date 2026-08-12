@@ -16,16 +16,16 @@ class ChapterCompose(StoryCompose, ABC):
     """This class contains the capabilities for the chapter."""
 
     async def before_compose_chapter(
-            self,
-            ctx: ChapterContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         return ctx
 
     async def after_compose_chapter(
-            self,
-            ctx: ChapterContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         return ctx
 
@@ -33,10 +33,10 @@ class ChapterCompose(StoryCompose, ABC):
         return chapter
 
     async def plan_stories(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
         logger.debug(f"Planning stories for chapter '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -53,10 +53,10 @@ class ChapterCompose(StoryCompose, ABC):
         return plans.root if plans is not None else None
 
     async def generate_chapter(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         logger.debug(f"Generating chapter '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
@@ -67,15 +67,10 @@ class ChapterCompose(StoryCompose, ABC):
             counts = ctx.allocate([s.weight for s in story_plans]) if story_plans else []
             for story_plan, count in zip(story_plans, counts, strict=True):
                 ctx.add_story_context(
-                    StoryContext(
-                        title=story_plan.title,
-                        description=story_plan.description,
-                        expected_word_count=count,
-                    )
+                    StoryContext.from_plan(story_plan, expected_word_count=count)
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
-                    .set_story_plan(story_plan)
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
@@ -86,10 +81,10 @@ class ChapterCompose(StoryCompose, ABC):
         return Chapter.from_context(ctx)
 
     async def compose_chapter(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         ctx = await self.before_compose_chapter(ctx, **kwargs)
         chapter = await self.generate_chapter(ctx, send_to, **kwargs)

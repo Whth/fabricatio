@@ -17,16 +17,16 @@ class NovelCompose(ChapterCompose, ABC):
     """This class contains the capabilities for the novel."""
 
     async def before_compose_novel(
-            self,
-            ctx: NovelContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         return ctx
 
     async def after_compose_novel(
-            self,
-            ctx: NovelContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         return ctx
 
@@ -34,10 +34,10 @@ class NovelCompose(ChapterCompose, ABC):
         return novel
 
     async def plan_chapters(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[ChapterPlan] | None:
         logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -67,10 +67,10 @@ class NovelCompose(ChapterCompose, ABC):
         ctx.set_charactor_traces([CharacterTrace(start=card, end=card) for card in cards if card is not None])
 
     async def generate_novel(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
@@ -92,15 +92,10 @@ class NovelCompose(ChapterCompose, ABC):
             counts = ctx.allocate([p.weight for p in chapter_plans]) if chapter_plans else []
             for chapter_plan, count in zip(chapter_plans, counts, strict=True):
                 ctx.add_chapter_context(
-                    ChapterContext(
-                        title=chapter_plan.title,
-                        description=chapter_plan.description,
-                        expected_word_count=count,
-                    )
+                    ChapterContext.from_plan(chapter_plan, expected_word_count=count)
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
-                    .set_chapter_plan(chapter_plan)
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()
@@ -112,10 +107,10 @@ class NovelCompose(ChapterCompose, ABC):
         return Novel.from_context(ctx)
 
     async def compose_novel(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         ctx = await self.before_compose_novel(ctx, **kwargs)
         novel = await self.generate_novel(ctx, send_to, **kwargs)

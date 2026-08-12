@@ -15,6 +15,19 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
 
     scene_context: list[SceneContext] = Field(default_factory=list)
 
+    @classmethod
+    def from_plan(cls, plan: StoryPlan, expected_word_count: int) -> Self:
+        """Build the story context from its proposed plan."""
+        return (
+            cls(
+                title=plan.title,
+                description=plan.description,
+                expected_word_count=expected_word_count,
+            )
+            .set_story_plan(plan)
+            .set_writing_style(plan.writing_style)
+        )
+
     @final
     def iter_scene_content(self) -> Generator[str, None, None]:
         """Yield each scene's composed content, in story order."""

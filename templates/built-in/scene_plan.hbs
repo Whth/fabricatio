@@ -3,20 +3,16 @@
 ## Goal
 Plan the scenes of the story from its plan.
 
-## Requirements
-- 2-5 scenes per story.
-- Assign each scene a relative `weight` by narrative importance; typical scenes allocate 300-800 words of the story's budget.
-- Scene titles must be concise and evocative.
-- Scene descriptions must be 1-2 sentences covering what happens.
-- Output a JSON array of scenes. Each scene has `title`, `description`, and `weight`.
-
 ## Story
 Title: {{ title }}
 Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
+{{#if writing_style}}
+- Writing style: {{ writing_style }}
+{{/if}}
 
 {{#if characters}}
-## Characters
+## Characters' state transitions
 {{ characters }}
 {{/if}}
 

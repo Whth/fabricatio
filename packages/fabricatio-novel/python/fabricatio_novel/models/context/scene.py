@@ -18,6 +18,19 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
         self.scene_plan = plan
         return self
 
+    @classmethod
+    def from_plan(cls, plan: ScenePlan, expected_word_count: int) -> Self:
+        """Build the scene context from its proposed plan."""
+        return (
+            cls(
+                title=plan.title,
+                description=plan.description,
+                expected_word_count=expected_word_count,
+            )
+            .set_scene_plan(plan)
+            .set_writing_style(plan.writing_style)
+        )
+
     def set_content(self, content: str) -> Self:
         self.content = content
         return self

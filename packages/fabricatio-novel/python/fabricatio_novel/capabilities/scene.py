@@ -16,16 +16,16 @@ class SceneCompose(CharacterCompose, ABC):
     """This class contains the capabilities for the scene."""
 
     async def before_compose_scene(
-            self,
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> SceneContext:
         return ctx
 
     async def after_compose_scene(
-            self,
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> SceneContext:
         return ctx
 
@@ -43,15 +43,16 @@ class SceneCompose(CharacterCompose, ABC):
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,
+            "writing_style": ctx.writing_style,
             "characters": characters,
             "language": ctx.language or detect_language(ctx.description),
             "prefixed_content": ctx.prefixed_content,
         }
 
     async def prepare_scene_requirement(
-            self,
-            ctx: SceneContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str:
         return TEMPLATE_MANAGER.render_template(
             novel_config.scene_requirement_template,
@@ -59,10 +60,10 @@ class SceneCompose(CharacterCompose, ABC):
         )
 
     async def generate_scene(
-            self,
-            ctx: SceneContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
         logger.debug(f"Generating scene '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
@@ -79,11 +80,11 @@ class SceneCompose(CharacterCompose, ABC):
         return scene
 
     async def interpolate_characters(
-            self,
-            ctx: ContextBase,
-            send_to: str | None = TASK,
-            outline: str = "",
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ContextBase,
+        send_to: str | None = TASK,
+        outline: str = "",
+        **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Extend every trace with the character states occurring in this element.
 
@@ -123,11 +124,11 @@ class SceneCompose(CharacterCompose, ABC):
             trace.intepl([*trace.interpolates, *chain.root])
 
     async def split_character_slices(
-            self,
-            ctx: ContextBase,
-            children: Sequence[ContextBase],
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ContextBase,
+        children: Sequence[ContextBase],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Split each trace's chain into per-child slices and assign them to the children.
 
@@ -167,10 +168,10 @@ class SceneCompose(CharacterCompose, ABC):
                 child.add_charactor_trace(CharacterTrace(start=trace.start, end=end, interpolates=slice_))
 
     async def compose_scene(
-            self,
-            ctx: SceneContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: SceneContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
         ctx = await self.before_compose_scene(ctx, **kwargs)
         scene = await self.generate_scene(ctx, send_to, **kwargs)
