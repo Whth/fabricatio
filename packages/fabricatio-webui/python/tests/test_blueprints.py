@@ -1,13 +1,7 @@
 """Tests for the package-defined blueprint builder."""
 
-from pathlib import Path
-from typing import Any
-
-import pytest
-
 from fabricatio_webui.blueprints import (
     _collect_workflows,
-    _graph_from_workflow,
     _output_key,
     _slugify,
     build_blueprints,
@@ -19,15 +13,18 @@ class TestSlugify:
     """_slugify turns a workflow name into a lowercase dashed id suffix."""
 
     @staticmethod
-    def test_basic():
+    def test_basic() -> None:
+        """Lowercases and dashes a normal workflow name."""
         assert _slugify("Write Novel") == "write-novel"
 
     @staticmethod
-    def test_preserves_alphanumeric():
+    def test_preserves_alphanumeric() -> None:
+        """Keeps alphanumeric words while replacing spaces with dashes."""
         assert _slugify("Generate a Novel Draft") == "generate-a-novel-draft"
 
     @staticmethod
-    def test_strips_empty_parts():
+    def test_strips_empty_parts() -> None:
+        """A name with only separators collapses to an empty string."""
         assert _slugify("---") == ""
 
 
@@ -35,13 +32,15 @@ class TestOutputKey:
     """_output_key mirrors the registry's output port naming."""
 
     @staticmethod
-    def test_explicit_output_key():
+    def test_explicit_output_key() -> None:
+        """Uses the class's explicit output_key for the port name."""
         from fabricatio_novel.actions.novel import GenerateNovelDraft
 
         assert _output_key(GenerateNovelDraft) == "novel_draft"
 
     @staticmethod
-    def test_falls_back_to_class_lower():
+    def test_falls_back_to_class_lower() -> None:
+        """Falls back to the lowercased class name when no output_key is set."""
         from fabricatio_actions.actions.output import PersistentAll
 
         assert _output_key(PersistentAll) == "persistent_count"
@@ -51,20 +50,23 @@ class TestCollectWorkflows:
     """_collect_workflows finds WorkFlow objects in the configured packages."""
 
     @staticmethod
-    def test_yields_pairs():
+    def test_yields_pairs() -> None:
+        """Yields a (category, workflow) pair for every discovered workflow."""
         pairs = list(_collect_workflows())
         assert all(isinstance(cat, str) and hasattr(wf, "name") for cat, wf in pairs)
 
     @staticmethod
-    def test_categories_are_novel_or_typst():
+    def test_categories_are_novel_or_typst() -> None:
+        """Every discovered workflow category is either novel or typst."""
         pairs = list(_collect_workflows())
         cats = {cat for cat, _ in pairs}
         assert cats <= {"novel", "typst"}
 
     @staticmethod
-    def test_novel_workflows_present():
+    def test_novel_workflows_present() -> None:
+        """The headline Write Novel workflow is among the discovered novel workflows."""
         pairs = list(_collect_workflows())
-        novel_names = {wf.name for cat, wf in pairs if cat == "novel"}
+        {wf.name for cat, wf in pairs if cat == "novel"}
         # The "Write Novel Workflow" must be present (it's a headline workflow in the package).
         assert any("writenovel" in wf.name.lower() for _, wf in pairs if wf.name)
 
@@ -73,19 +75,22 @@ class TestBuildBlueprints:
     """build_blueprints produces a well-formed catalog."""
 
     @staticmethod
-    def test_returns_expected_top_level_keys():
+    def test_returns_expected_top_level_keys() -> None:
+        """The catalog exposes version, blueprints_version, and blueprints keys."""
         result = build_blueprints()
         assert "version" in result
         assert "blueprints_version" in result
         assert "blueprints" in result
 
     @staticmethod
-    def test_blueprints_list_is_non_empty():
+    def test_blueprints_list_is_non_empty() -> None:
+        """The catalog contains at least one blueprint."""
         result = build_blueprints()
         assert len(result["blueprints"]) > 0
 
     @staticmethod
-    def test_each_blueprint_has_required_fields():
+    def test_each_blueprint_has_required_fields() -> None:
+        """Every blueprint carries all required top-level fields."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             assert "id" in bp
@@ -96,13 +101,15 @@ class TestBuildBlueprints:
             assert "workflow" in bp
 
     @staticmethod
-    def test_blueprint_ids_are_unique():
+    def test_blueprint_ids_are_unique() -> None:
+        """Blueprint ids are unique across the catalog."""
         result = build_blueprints()
         ids = [bp["id"] for bp in result["blueprints"]]
         assert len(ids) == len(set(ids)), "Blueprint ids must be unique"
 
     @staticmethod
-    def test_blueprint_workflow_json_dumps():
+    def test_blueprint_workflow_json_dumps() -> None:
+        """Every workflow doc serializes with plain json.dumps."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             import json
@@ -111,21 +118,24 @@ class TestBuildBlueprints:
             json.dumps(bp["workflow"])
 
     @staticmethod
-    def test_node_ids_unique_per_workflow():
+    def test_node_ids_unique_per_workflow() -> None:
+        """Node ids are unique within each workflow."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             node_ids = [n["id"] for n in bp["workflow"]["nodes"]]
             assert len(node_ids) == len(set(node_ids)), f"Duplicate node ids in {bp['id']}"
 
     @staticmethod
-    def test_edge_ids_unique_per_workflow():
+    def test_edge_ids_unique_per_workflow() -> None:
+        """Edge ids are unique within each workflow."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             edge_ids = [e["id"] for e in bp["workflow"]["edges"]]
             assert len(edge_ids) == len(set(edge_ids)), f"Duplicate edge ids in {bp['id']}"
 
     @staticmethod
-    def test_edge_targets_reference_existing_nodes():
+    def test_edge_targets_reference_existing_nodes() -> None:
+        """Every edge source and target references a node in the same workflow."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             node_ids = {n["id"] for n in bp["workflow"]["nodes"]}
@@ -134,7 +144,8 @@ class TestBuildBlueprints:
                 assert edge["target"] in node_ids, f"Bad target in {bp['id']}: {edge}"
 
     @staticmethod
-    def test_node_types_are_strings():
+    def test_node_types_are_strings() -> None:
+        """Node type and id fields are strings."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             for node in bp["workflow"]["nodes"]:
@@ -142,7 +153,8 @@ class TestBuildBlueprints:
                 assert isinstance(node["id"], str)
 
     @staticmethod
-    def test_node_positions_are_numeric_pairs():
+    def test_node_positions_are_numeric_pairs() -> None:
+        """Every node position is a pair of numbers."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             for node in bp["workflow"]["nodes"]:
@@ -156,7 +168,8 @@ class TestWriteNovelWorkflowStructure:
     """Spot-check the WriteNovelWorkflow blueprint (the headline one-step pipeline)."""
 
     @staticmethod
-    def test_has_three_nodes():
+    def test_has_three_nodes() -> None:
+        """The WriteNovelWorkflow blueprint declares exactly three nodes."""
         result = build_blueprints()
         bp = next(
             (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
@@ -167,7 +180,8 @@ class TestWriteNovelWorkflowStructure:
         assert len(bp["workflow"]["nodes"]) == 3
 
     @staticmethod
-    def test_has_chained_edges():
+    def test_has_chained_edges() -> None:
+        """The three nodes are chained by two dataflow edges."""
         result = build_blueprints()
         bp = next(
             (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
@@ -183,7 +197,8 @@ class TestWriteNovelWorkflowStructure:
         assert edges[1]["target_handle"] == "context"
 
     @staticmethod
-    def test_first_node_is_generate_novel():
+    def test_first_node_is_generate_novel() -> None:
+        """The pipeline starts with a GenerateNovel node."""
         result = build_blueprints()
         bp = next(
             (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
@@ -194,13 +209,16 @@ class TestWriteNovelWorkflowStructure:
 
 
 class TestBlueprintGraphConnectivity:
-    """Blueprint graphs must be fully renderable: every node type must exist
-    in the node registry and every edge handle must match a port on the
-    source/target node. A broken handle silently drops the edge in VueFlow —
-    the "no connections" symptom."""
+    """Blueprint graphs must be fully renderable.
+
+    Every node type must exist in the node registry and every edge handle
+    must match a port on the source/target node. A broken handle silently
+    drops the edge in VueFlow — the "no connections" symptom.
+    """
 
     @staticmethod
-    def test_every_blueprint_node_type_is_registered():
+    def test_every_blueprint_node_type_is_registered() -> None:
+        """Every blueprint node type exists in the node registry."""
         from fabricatio_webui.registry import build_node_registry
 
         registry_types = {t["type"] for t in build_node_registry()["node_types"]}
@@ -212,7 +230,8 @@ class TestBlueprintGraphConnectivity:
                 )
 
     @staticmethod
-    def test_every_edge_handle_matches_a_port():
+    def test_every_edge_handle_matches_a_port() -> None:
+        """Each edge handle matches an output/input port on its node types."""
         from fabricatio_webui.registry import build_node_registry
 
         by_type = {t["type"]: t for t in build_node_registry()["node_types"]}
@@ -234,7 +253,8 @@ class TestBlueprintGraphConnectivity:
                 )
 
     @staticmethod
-    def test_multi_node_blueprints_are_fully_chained():
+    def test_multi_node_blueprints_are_fully_chained() -> None:
+        """Multi-node blueprints wire every consecutive step with exactly one edge."""
         result = build_blueprints()
         for bp in result["blueprints"]:
             nodes = bp["workflow"]["nodes"]
@@ -245,7 +265,8 @@ class TestBlueprintGraphConnectivity:
                 assert len(edges) == len(nodes) - 1, f"{bp['id']}: expected {len(nodes) - 1} edges, got {len(edges)}"
 
     @staticmethod
-    def test_typst_outline_has_param_wired_edges():
+    def test_typst_outline_has_param_wired_edges() -> None:
+        """The Typst outline blueprint wires runtime parameter edges."""
         result = build_blueprints()
         bp = next(
             (b for b in result["blueprints"] if b["id"] == "typst-generate-article-outline"),
@@ -272,7 +293,8 @@ class TestBlueprintsCompileToExecutablePlans:
     """
 
     @staticmethod
-    def test_all_blueprints_compile():
+    def test_all_blueprints_compile() -> None:
+        """Every blueprint workflow compiles to an executable plan without errors."""
         result = build_blueprints()
         reg_ver = _registry_version()
         errors: list[str] = []
@@ -285,4 +307,4 @@ class TestBlueprintsCompileToExecutablePlans:
             except Exception as exc:  # noqa: BLE001
                 errors.append(f"{bp['id']}: {exc}")
 
-        assert not errors, f"Blueprint plan compilation failures:\n" + "\n".join(errors)
+        assert not errors, "Blueprint plan compilation failures:\n" + "\n".join(errors)

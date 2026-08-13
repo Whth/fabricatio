@@ -1,3 +1,5 @@
+"""RAG document and configuration models for writing style and enriched reference retrieval."""
+
 from typing import ClassVar, Type
 
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig

@@ -21,12 +21,12 @@ from fabricatio_core.emitter import EMITTER
 from fabricatio_core.journal import logger
 from fabricatio_core.models.task import Task
 
+import fabricatio_webui.executor as _executor
 from fabricatio_webui.executor import (
     _ERRORS_KEY,
     _EXECUTION_ID_KEY,
     RoleRegistry,
 )
-import fabricatio_webui.executor as _executor
 
 
 def _state_tag(state: str) -> str:
@@ -172,7 +172,7 @@ class WorkflowWorker:
                 self._current_task = None
                 self._emit_status()
 
-    async def _execute_one(self, item: Dict[str, Any]) -> None:  # noqa: C901
+    async def _execute_one(self, item: Dict[str, Any]) -> None:
         """Publish the submitted task and await its output."""
         execution_id = item["execution_id"]
         try:

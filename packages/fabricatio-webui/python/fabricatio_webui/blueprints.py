@@ -7,9 +7,9 @@ import json
 import pkgutil
 from typing import Any, Dict, Iterator, List, Tuple, Type
 
+from fabricatio_core.models.action import Action, WorkFlow
 from pydantic.fields import FieldInfo
 
-from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_webui.registry import (
     CONTEXT_PORT_NAME,
     _consumes_context,
@@ -154,6 +154,7 @@ def _workflow_doc(wf: WorkFlow) -> Dict[str, Any]:
 
 
 def build_blueprints() -> Dict[str, Any]:
+    """Collect all workflows into blueprint dicts and return the versioned payload with a content fingerprint."""
     blueprints: List[Dict[str, Any]] = []
     for category, wf in _collect_workflows():
         name = wf.name or type(wf).__name__

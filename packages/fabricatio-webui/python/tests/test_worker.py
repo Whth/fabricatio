@@ -3,10 +3,10 @@
 import asyncio
 import json
 import time
+from pathlib import Path
 from typing import Any, Dict, List
 
 import pytest
-
 from fabricatio_core.models.action import Action
 from fabricatio_webui.worker import WorkflowWorker
 
@@ -85,7 +85,7 @@ def _board_json(role_name: str, workflows: List[Dict[str, Any]]) -> Dict[str, An
     }
 
 
-def _write_boards(tmp_path, boards: Dict[str, Dict[str, Any]]) -> None:
+def _write_boards(tmp_path: Path, boards: Dict[str, Dict[str, Any]]) -> None:
     (tmp_path / "workflows.json").write_text(json.dumps(boards), encoding="utf-8")
 
 

@@ -2,7 +2,7 @@ use crate::hbs_helpers::*;
 use error_mapping::*;
 use fabricatio_constants::*;
 use fabricatio_logger::*;
-use handlebars::{no_escape, Handlebars};
+use handlebars::{Handlebars, no_escape};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyList, PyString};
@@ -12,7 +12,7 @@ use pythonize::depythonize;
 
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use serde_json::{to_string, Value};
+use serde_json::{Value, to_string};
 use std::path::PathBuf;
 use walkdir::WalkDir;
 

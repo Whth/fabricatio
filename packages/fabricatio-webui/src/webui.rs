@@ -38,8 +38,14 @@ fn create_router(
     Router::new()
         .route("/api/nodes", get(api::get_nodes))
         .route("/api/blueprints", get(api::get_blueprints))
-        .route("/api/workflows", get(api::get_workflows).post(api::save_workflow))
-        .route("/api/workflows/{id}", get(api::get_workflow).delete(api::delete_workflow))
+        .route(
+            "/api/workflows",
+            get(api::get_workflows).post(api::save_workflow),
+        )
+        .route(
+            "/api/workflows/{id}",
+            get(api::get_workflow).delete(api::delete_workflow),
+        )
         .route("/api/execute", post(api::submit_execution))
         .route("/api/interrupt", post(api::interrupt_execution))
         .route("/api/queue", get(api::get_queue))

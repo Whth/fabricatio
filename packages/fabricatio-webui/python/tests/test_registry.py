@@ -84,8 +84,10 @@ def test_widget_hint_table() -> None:
 
 
 def test_widget_hint_pep604_unions() -> None:
-    """PEP 604 unions (X | None) unwrap like typing.Optional instead of
-    falling through to the JSON textarea catch-all."""
+    """PEP 604 unions (X | None) unwrap like typing.Optional.
+
+    Without the unwrap they fall through to the JSON textarea catch-all.
+    """
     assert _widget_hint(str | None, True, None)["widget"] == "text"
     assert _widget_hint(float | None, True, 0.5)["widget"] == "number"
     assert _widget_hint(Optional[str | Path], True, None)["widget"] == "text"

@@ -1,11 +1,10 @@
 """Tests for the role/workflow/task execution machinery."""
 
 import asyncio
+from collections.abc import Generator
 from typing import Any
 
 import pytest
-from pydantic import Field
-
 from fabricatio_core.models.action import Action, WorkFlow
 from fabricatio_core.models.task import Task
 from fabricatio_webui.executor import (
@@ -16,7 +15,7 @@ from fabricatio_webui.executor import (
     _workflow_plan_key,
     build_roles_from_boards,
 )
-
+from pydantic import Field
 
 # ── Test action helpers ────────────────────────────────────────────────────────
 
@@ -104,7 +103,7 @@ class RequiredStep(Action):
 
 
 @pytest.fixture(autouse=True)
-def _clear_plan_cache():
+def _clear_plan_cache() -> Generator[None, None, None]:
     """Isolate each test with a fresh plan cache."""
     _compile_workflow_plan.cache_clear()
     yield
@@ -155,7 +154,7 @@ async def _run(wf: dict[str, Any], task: Task | None = None) -> tuple[Any, Task]
 # ── Plan-cache tests ──────────────────────────────────────────────────────────
 
 
-def test_same_workflow_reuses_cached_plan():
+def test_same_workflow_reuses_cached_plan() -> None:
     """Identical workflows compile to the same cached plan object."""
     wf = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
     plan1 = _compile_workflow_plan("v", _workflow_plan_key(wf))
@@ -163,7 +162,7 @@ def test_same_workflow_reuses_cached_plan():
     assert plan1 is plan2  # same plan object — cache hit
 
 
-def test_different_config_yields_different_plan():
+def test_different_config_yields_different_plan() -> None:
     """Different node configs produce different cached plans."""
     wf_a = _wf([_node("n1", "EchoStep", {"value": "a"})], [])
     wf_b = _wf([_node("n1", "EchoStep", {"value": "b"})], [])
@@ -172,7 +171,7 @@ def test_different_config_yields_different_plan():
     assert plan_a is not plan_b
 
 
-def test_different_class_universe_yields_different_plan():
+def test_different_class_universe_yields_different_plan() -> None:
     """A different registry version invalidates the cache."""
     wf = _wf([_node("n1", "EchoStep")], [])
     plan_v = _compile_workflow_plan("v", _workflow_plan_key(wf))
@@ -180,7 +179,7 @@ def test_different_class_universe_yields_different_plan():
     assert plan_v is not plan_w
 
 
-def test_init_context_is_part_of_plan_key():
+def test_init_context_is_part_of_plan_key() -> None:
     """init_context is baked into workflow construction, so it keys the plan."""
     wf_a = _wf([_node("n1", "EchoStep")], [], init_context={"a": 1})
     wf_b = _wf([_node("n1", "EchoStep")], [], init_context={"a": 2})
@@ -311,8 +310,10 @@ async def test_field_source_edge_is_rejected(capfd: pytest.CaptureFixture[str]) 
 
 @pytest.mark.asyncio
 async def test_wired_required_field_without_default_is_kept() -> None:
-    """A required field with no default supplied by an edge instantiates leniently
-    and receives the wire value at runtime."""
+    """A required field with no default supplied by an edge instantiates leniently.
+
+    The wired value is received at runtime instead of skipping the node.
+    """
     wf = _wf(
         [
             _node("a", "EchoStep", {"value": "X"}),
@@ -476,12 +477,14 @@ async def test_cyclic_workflow_raises_valueerror() -> None:
 # ── Subscription pattern tests ────────────────────────────────────────────────
 
 
-def test_subscription_pattern_derived_from_namespace():
+def test_subscription_pattern_derived_from_namespace() -> None:
+    """A namespace derives a pattern with the wildcard task and Pending stage."""
     assert _subscription_pattern("write::book") == "write::book::*::Pending"
     assert _subscription_pattern("write") == "write::*::Pending"
 
 
-def test_subscription_pattern_empty_namespace():
+def test_subscription_pattern_empty_namespace() -> None:
+    """Empty or blank namespaces produce an empty pattern."""
     assert _subscription_pattern("") == ""
     assert _subscription_pattern("  :: ") == ""
 
@@ -563,17 +566,20 @@ async def test_unmatched_namespace_leaves_task_unserved() -> None:
 # ── Topological-order unit tests ───────────────────────────────────────────────
 
 
-def test_topo_single_node():
+def test_topo_single_node() -> None:
+    """A single node with no edges orders as just that node."""
     order = _topological_order({"n1"}, [])
     assert order == ["n1"]
 
 
-def test_topo_two_independent_nodes():
+def test_topo_two_independent_nodes() -> None:
+    """Independent nodes are both present in the resulting order."""
     order = _topological_order({"a", "b"}, [])
     assert set(order) == {"a", "b"}
 
 
-def test_topo_linear_chain():
+def test_topo_linear_chain() -> None:
+    """A linear chain orders each node before its successor."""
     edges = [
         {"source": "a", "target": "b"},
         {"source": "b", "target": "c"},
@@ -582,7 +588,8 @@ def test_topo_linear_chain():
     assert order.index("a") < order.index("b") < order.index("c")
 
 
-def test_topo_diamond():
+def test_topo_diamond() -> None:
+    """A diamond keeps every source before its downstream targets."""
     edges = [
         {"source": "a", "target": "b"},
         {"source": "a", "target": "c"},
@@ -606,7 +613,8 @@ def test_topo_skips_edges_to_unknown_nodes() -> None:
     assert set(order) == {"a", "b"}
 
 
-def test_topo_cycle_raises():
+def test_topo_cycle_raises() -> None:
+    """A cyclic graph raises ValueError mentioning the cycle."""
     edges = [
         {"source": "a", "target": "b"},
         {"source": "b", "target": "a"},

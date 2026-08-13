@@ -1,9 +1,12 @@
+"""Novel composition capabilities: planning chapters and composing novels."""
+
 from abc import ABC
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterTrace
@@ -21,6 +24,7 @@ class NovelCompose(ChapterCompose, ABC):
         ctx: NovelContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
+        """Identity hook invoked before composing a novel; may mutate the context."""
         return ctx
 
     async def after_compose_novel(
@@ -28,9 +32,11 @@ class NovelCompose(ChapterCompose, ABC):
         ctx: NovelContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
+        """Identity hook invoked after generating a novel; may mutate the context."""
         return ctx
 
     async def post_process_novel(self, ctx: NovelContext, novel: Novel, **kwargs: Unpack[LLMKwargs]) -> Novel:
+        """Identity hook invoked on the composed novel; may transform and return the novel."""
         return novel
 
     async def plan_chapters(
@@ -39,6 +45,12 @@ class NovelCompose(ChapterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[ChapterPlan] | None:
+        """Propose chapter plans for the novel via the LLM.
+
+        Renders the chapter plan template from the novel outline and context
+        and proposes a ChapterPlans batch, returning the root list of plans
+        or None on failure.
+        """
         logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.chapter_plan_template,
@@ -72,6 +84,16 @@ class NovelCompose(ChapterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
+        """Generate the novel by composing its chapters.
+
+        Proposes novel metadata from the outline, creates the initial
+        character traces, interpolates character states, plans chapters (with
+        word counts allocated by weight) when none are scheduled, broadcasts
+        the settings bible, splits character slices per chapter, and composes
+        each chapter in prefix order. Returns the materialized novel or None
+        when metadata proposal, chapter planning, or any chapter composition
+        fails.
+        """
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
@@ -112,12 +134,11 @@ class NovelCompose(ChapterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
+        """Compose a novel end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_novel(ctx, **kwargs)
         novel = await self.generate_novel(ctx, send_to, **kwargs)
         ctx = await self.after_compose_novel(ctx, **kwargs)
 
         if novel is None:
             return None
-        ok_novel = await self.post_process_novel(ctx, novel, **kwargs)
-
-        return ok_novel
+        return await self.post_process_novel(ctx, novel, **kwargs)

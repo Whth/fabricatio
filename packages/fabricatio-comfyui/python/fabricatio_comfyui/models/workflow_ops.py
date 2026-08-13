@@ -261,8 +261,9 @@ class ResolutionOps(WorkflowAccess, ABC):
 # ------------------------------------------------------------------
 
 if TYPE_CHECKING:
-    from fabricatio_comfyui.models.workflow import Workflow
     from fabricatio_novel.models.illustration import IllustrationConstrain
+
+    from fabricatio_comfyui.models.workflow import Workflow
 
 
 def apply_constrain_to_workflow(wf: "Workflow", constrain: "IllustrationConstrain") -> None:

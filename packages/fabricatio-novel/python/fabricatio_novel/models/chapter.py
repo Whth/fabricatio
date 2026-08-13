@@ -1,7 +1,10 @@
+"""Output model for a composed chapter: the chapter plan plus its materialized stories."""
+
 from typing import List, Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
+
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import ChapterPlan
@@ -10,10 +13,13 @@ from fabricatio_novel.rust import text_to_xhtml_paragraphs
 
 
 class Chapter(ChapterPlan, WordCount):
+    """A composed chapter: its plan fields and the stories it contains."""
+
     story: List[Story]
 
     @classmethod
     def from_context(cls, ctx: ChapterContext) -> Self:
+        """Materialize a chapter from its chapter context, materializing each story recursively."""
         return cls(
             title=ctx.title,
             description=ctx.description,

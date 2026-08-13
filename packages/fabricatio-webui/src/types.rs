@@ -205,7 +205,10 @@ impl BoardJson {
         let Some(mut obj) = value.as_object().cloned() else {
             return value;
         };
-        let fv = obj.get("format_version").and_then(|v| v.as_u64()).unwrap_or(0);
+        let fv = obj
+            .get("format_version")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
         if obj.contains_key("roles") || fv >= 2 {
             return serde_json::Value::Object(obj);
         }
@@ -215,13 +218,26 @@ impl BoardJson {
         let meta = obj.get("meta").cloned();
 
         let mut wf = serde_json::Map::new();
-        wf.insert("name".into(), name.clone().unwrap_or(serde_json::Value::Null));
-        wf.insert("namespace".into(), name.clone().unwrap_or(serde_json::Value::Null));
-        wf.insert("nodes".into(), obj.remove("nodes").unwrap_or_else(|| serde_json::json!([])));
-        wf.insert("edges".into(), obj.remove("edges").unwrap_or_else(|| serde_json::json!([])));
+        wf.insert(
+            "name".into(),
+            name.clone().unwrap_or(serde_json::Value::Null),
+        );
+        wf.insert(
+            "namespace".into(),
+            name.clone().unwrap_or(serde_json::Value::Null),
+        );
+        wf.insert(
+            "nodes".into(),
+            obj.remove("nodes").unwrap_or_else(|| serde_json::json!([])),
+        );
+        wf.insert(
+            "edges".into(),
+            obj.remove("edges").unwrap_or_else(|| serde_json::json!([])),
+        );
         wf.insert(
             "init_context".into(),
-            obj.remove("init_context").unwrap_or_else(|| serde_json::json!({})),
+            obj.remove("init_context")
+                .unwrap_or_else(|| serde_json::json!({})),
         );
 
         let mut role = serde_json::Map::new();
@@ -233,8 +249,14 @@ impl BoardJson {
                     .unwrap_or_else(|| "Role".into()),
             ),
         );
-        role.insert("description".into(), description.unwrap_or_else(|| serde_json::json!("")));
-        role.insert("workflows".into(), serde_json::json!([serde_json::Value::Object(wf)]));
+        role.insert(
+            "description".into(),
+            description.unwrap_or_else(|| serde_json::json!("")),
+        );
+        role.insert(
+            "workflows".into(),
+            serde_json::json!([serde_json::Value::Object(wf)]),
+        );
 
         let mut board = serde_json::Map::new();
         board.insert("version".into(), serde_json::json!("1.0"));
@@ -243,7 +265,10 @@ impl BoardJson {
             "name".into(),
             name.unwrap_or_else(|| serde_json::json!("Untitled Board")),
         );
-        board.insert("roles".into(), serde_json::json!([serde_json::Value::Object(role)]));
+        board.insert(
+            "roles".into(),
+            serde_json::json!([serde_json::Value::Object(role)]),
+        );
         board.insert("actions".into(), serde_json::json!([]));
         if let Some(m) = meta {
             board.insert("meta".into(), m);
@@ -433,15 +458,17 @@ mod tests {
         assert_eq!(board.roles.len(), 1);
         assert_eq!(board.roles[0].name, "legacy");
         assert_eq!(board.roles[0].workflows.len(), 1);
-        assert_eq!(board.roles[0].workflows[0].namespace.as_deref(), Some("legacy"));
+        assert_eq!(
+            board.roles[0].workflows[0].namespace.as_deref(),
+            Some("legacy")
+        );
         assert!(board.roles[0].workflows[0].nodes.is_empty());
         assert!(board.actions.is_empty());
     }
 
     #[test]
     fn board_passes_through_migration_unchanged() {
-        let raw =
-            r#"{"version":"1.0","format_version":2,"name":"b","roles":[{"name":"r","workflows":[]}],"actions":[]}"#;
+        let raw = r#"{"version":"1.0","format_version":2,"name":"b","roles":[{"name":"r","workflows":[]}],"actions":[]}"#;
         let value: serde_json::Value = serde_json::from_str(raw).unwrap();
         let migrated = BoardJson::migrate_legacy(value);
         assert!(migrated.get("roles").is_some());
@@ -486,7 +513,10 @@ mod tests {
         assert_eq!(p.group.as_deref(), Some("LLMScopedConfig"));
         // serialising back includes the field
         let s = serde_json::to_string(&p).unwrap();
-        assert!(s.contains(r#""group":"LLMScopedConfig""#), "serialised: {s}");
+        assert!(
+            s.contains(r#""group":"LLMScopedConfig""#),
+            "serialised: {s}"
+        );
     }
 
     #[test]
@@ -509,8 +539,7 @@ mod tests {
 
     #[test]
     fn execution_done_cancelled_true_round_trips() {
-        let raw =
-            r#"{"type":"execution_done","execution_id":"e1","cancelled":true}"#;
+        let raw = r#"{"type":"execution_done","execution_id":"e1","cancelled":true}"#;
         let m: WsMessage = serde_json::from_str(raw).unwrap();
         match m {
             WsMessage::ExecutionDone { cancelled, .. } => assert!(cancelled),

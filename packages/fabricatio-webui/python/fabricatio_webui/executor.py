@@ -396,7 +396,7 @@ def _make_instrumented(
 
             try:
                 result = await asyncio.get_running_loop().run_in_executor(_NODE_BODY_EXECUTOR, run_body)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.error(f"Node {node_id} ({class_name}) failed: {exc!r}")
                 if isinstance(task, Task):
                     task.extra_init_context.setdefault(_ERRORS_KEY, []).append(str(exc))

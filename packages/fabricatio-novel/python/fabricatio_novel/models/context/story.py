@@ -1,3 +1,5 @@
+"""Pipeline channel model for a story: its plan and the scene contexts it writes."""
+
 from typing import Generator, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
@@ -10,6 +12,8 @@ from fabricatio_novel.models.plan import StoryPlan
 
 
 class StoryContext(RAGChannel, Titled, Described, ContextBase):
+    """A story's composition channel: its plan and the scene contexts it writes."""
+
     story_plan: StoryPlan | None = None
     """The story's own plan; proposed before the scene contexts are created."""
 
@@ -46,13 +50,16 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
         return "\n\n".join(child.render_prefixed_block() for child in self.iter_child_contexts())
 
     def set_story_plan(self, plan: StoryPlan) -> Self:
+        """Set the story's plan and return self."""
         self.story_plan = plan
         return self
 
     def set_scene_contexts(self, scenes: list[SceneContext]) -> Self:
+        """Replace the story's scene contexts and return self."""
         self.scene_context = scenes
         return self
 
     def add_scene_context(self, scene: SceneContext) -> Self:
+        """Append a scene context to the story and return self."""
         self.scene_context.append(scene)
         return self

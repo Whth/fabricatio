@@ -162,9 +162,8 @@ pub async fn interrupt_execution(State(state): State<Arc<AppState>>) -> Json<ser
 
 /// GET /api/queue — current queue status (owned by the Python worker).
 pub async fn get_queue(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let snap = call_json(&state.queue_snapshot_fn).unwrap_or_else(|| {
-        serde_json::json!({ "queue": [], "active": [] })
-    });
+    let snap = call_json(&state.queue_snapshot_fn)
+        .unwrap_or_else(|| serde_json::json!({ "queue": [], "active": [] }));
     Json(snap)
 }
 

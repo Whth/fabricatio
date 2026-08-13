@@ -39,6 +39,12 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
         return self.model_dump()
 
     def apply(self, diff: "CharacterCardDiff") -> Self:
+        """Apply a character card diff to this card.
+
+        Returns:
+            Self: A new card updated with the diff fields, excluding unset (``None``)
+            values and the diff's ``reason`` field.
+        """
         return self.model_copy(update=diff.model_dump(exclude_none=True, exclude={"reason"}))
 
 

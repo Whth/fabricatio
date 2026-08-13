@@ -1,16 +1,20 @@
+"""Base context machinery: character traces and shared channel element behavior."""
+
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
 
-from pydantic import Field
-
-from fabricatio_capabilities.models.generic import WordCount, PersistentAble
+from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
+from pydantic import Field
+
 from fabricatio_novel.models.series_book import SeriesBible
 
 
 class CharacterTrace(SketchedAble):
+    """A character's evolution across the novel: start card, end card and interpolated diffs."""
+
     start: CharacterCard
     end: CharacterCard
 
@@ -32,6 +36,7 @@ class CharacterTrace(SketchedAble):
 
     @final
     def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
+        """Store the interpolate diffs describing the trace's evolution and return self."""
         self.interpolates = diffs
         return self
 
@@ -58,6 +63,8 @@ class CharacterTrace(SketchedAble):
 
 
 class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
+    """Base class of every pipeline channel element, carrying writing state and child contexts."""
+
     title: str = ""
     """The title of this element; the novel root keeps it empty until planned."""
 
@@ -80,10 +87,12 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     """Everything composed before this element in the novel; injected by the parent before composition."""
 
     def set_language(self, language: str) -> Self:
+        """Set the written language of this element and return self."""
         self.language = language
         return self
 
     def set_series_bible(self, series_bible: SeriesBible | None) -> Self:
+        """Set the novel's setting bible on this element and return self."""
         self.series_bible = series_bible
         return self
 
@@ -93,10 +102,12 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         return self
 
     def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:
+        """Replace this element's character traces and return self."""
         self.character_trace = traces
         return self
 
     def add_charactor_trace(self, trace: CharacterTrace) -> Self:
+        """Append one character trace to this element and return self."""
         self.character_trace.append(trace)
         return self
 
@@ -156,5 +167,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         return self
 
     def set_prefixed_content(self, prefixed_content: str) -> Self:
+        """Set the composed text preceding this element in the novel and return self."""
         self.prefixed_content = prefixed_content
         return self

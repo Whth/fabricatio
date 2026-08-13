@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List
 
 import pytest
-
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterCardSlices
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
@@ -30,6 +29,7 @@ from fabricatio_novel.models.series_book import SeriesBible
 
 
 def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
+    """Build a default protagonist CharacterCard for tests."""
     return CharacterCard(name=name, role="protagonist", look=look, act="brave", want="seek truth", flaw="stubborn")
 
 
@@ -42,6 +42,7 @@ class TestNovelContext:
     """Test suite for NovelContext."""
 
     def test_create_detects_language(self) -> None:
+        """Assert create detects the outline language and initializes empty context fields."""
         ctx = NovelContext.create("少年踏上旅途。")
         assert ctx.language == "简体中文"
         assert ctx.outline == "少年踏上旅途。"
@@ -51,10 +52,12 @@ class TestNovelContext:
         assert ctx.chapter_context == []
 
     def test_create_with_explicit_language(self) -> None:
+        """Assert an explicitly passed language overrides automatic detection."""
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         assert ctx.language == "English"
 
     def test_update_from_adopts_plan_fields(self) -> None:
+        """Assert update_from copies the plan fields into the context and returns self."""
         ctx = NovelContext.create("The hero.", language="English")
         plan = NovelPlan(
             title="The Search",
@@ -70,6 +73,7 @@ class TestNovelContext:
         assert ctx.series_bible == plan.series_bible
 
     def test_update_from_keeps_preset_bible_when_plan_bible_empty(self) -> None:
+        """Assert a preset series bible survives update_from with an empty-plan bible."""
         ctx = NovelContext.create("The hero.", language="English")
         bible = SeriesBible(characters="Hero — brave protagonist.")
         ctx.set_series_bible(bible)
@@ -79,11 +83,13 @@ class TestNovelContext:
         assert ctx.series_bible is bible
 
     def test_update_from_rejects_non_plan(self) -> None:
+        """Assert update_from raises TypeError when given a non-plan value."""
         ctx = NovelContext.create("The hero.", language="English")
         with pytest.raises(TypeError):
             ctx.update_from("not a plan")  # type: ignore[arg-type]
 
     def test_contexts_are_chainable(self) -> None:
+        """Assert chained setters attach plans and children across every context level."""
         scene = (
             SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
             .set_language("English")
@@ -124,6 +130,7 @@ class TestCharactorTrace:
     """Test suite for CharactorTrace."""
 
     def test_iter_charactor_cards_applies_diffs_in_order(self) -> None:
+        """Assert iter_character_cards yields start, each interpolated diff, and end in order."""
         start = card()
         trace = CharacterTrace(
             start=start,
@@ -136,6 +143,7 @@ class TestCharactorTrace:
         assert cards[-1] is trace.end
 
     def test_intepl_replaces_interpolates_and_returns_self(self) -> None:
+        """Assert intepl replaces the interpolates list and returns the trace itself."""
         start = card()
         trace = CharacterTrace(start=start, end=start)
         diff = CharacterCardDiff(look="wounded", reason="fell in battle")
@@ -182,6 +190,7 @@ class TestFromContext:
     """Test suite for the from_context assembly methods."""
 
     def test_scene_from_context(self) -> None:
+        """Assert Scene.from_context materializes the scene fields from its context."""
         ctx = SceneContext(title="Departure", description="The hero leaves.", expected_word_count=50)
         ctx.content = "He walked out."
         scene = Scene.from_context(ctx)
@@ -191,6 +200,7 @@ class TestFromContext:
         assert scene.expected_word_count == 50
 
     def test_from_plan_copies_plan_fields(self) -> None:
+        """Assert SceneContext.from_plan copies plan fields and keeps the plan reference."""
         plan = ScenePlan(title="S1", description="The descent.", weight=1.0, writing_style="Gothic, lyrical prose.")
         ctx = SceneContext.from_plan(plan, expected_word_count=300)
         assert ctx.title == "S1"
@@ -200,6 +210,7 @@ class TestFromContext:
         assert ctx.scene_plan is plan
 
     def test_novel_from_context_assembles_full_tree(self) -> None:
+        """Assert Novel.from_context assembles the full chapter, story, and scene tree."""
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.title = "The Search"
         ctx.description = "A hero searching."
@@ -349,6 +360,7 @@ class TestNovelCompose:
     """Test suite for the generation chain with mock LLM."""
 
     async def test_compose_scene_writes_content_back_to_context(self) -> None:
+        """Assert compose_scene writes the generated scene content back to the context."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="Departure", description="The hero leaves home.", expected_word_count=50)
         with install_router_usage(*return_router_usage("He walked out.")):
@@ -359,6 +371,7 @@ class TestNovelCompose:
         assert ctx.content == "He walked out."
 
     async def test_compose_scene_evolves_charactor_trace(self) -> None:
+        """Assert compose_scene applies the proposed diff to the scene's character trace."""
         role = NovelRole(name="novel_role")
         trace = CharacterTrace(start=card(), end=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
@@ -376,6 +389,7 @@ class TestNovelCompose:
         assert trace.end.look == "scarred"
 
     async def test_compose_novel_end_to_end(self) -> None:
+        """Assert a full composition fills content and prefixes across a prefilled tree."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
@@ -417,6 +431,7 @@ class TestNovelCompose:
         assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == chapter_header
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
+        """Assert compose_novel returns None when metadata generation fails."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
         with install_router_usage("not valid json", "", ""):
@@ -424,6 +439,7 @@ class TestNovelCompose:
         assert novel is None
 
     async def test_prepare_scene_requirement_renders_prefixed_content_after_static_head(self) -> None:
+        """Assert the static head leads and prefixed content renders after the Previous Content marker."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.prefixed_content = "He walked into the dark."
@@ -463,6 +479,7 @@ class TestPrefixAccumulation:
         return SceneContext(title=title, description=description, expected_word_count=20)
 
     async def test_compose_story_injects_prefix_across_scenes(self) -> None:
+        """Assert later scenes accumulate earlier scene content into prefixed_content."""
         role = NovelRole(name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
         scene_1 = self._scene_ctx("S1", "Leaving home.")
@@ -480,6 +497,7 @@ class TestPrefixAccumulation:
         assert scene_2.prefixed_content == "He left."
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
+        """Assert stories inherit the chapter header plus prior story blocks as prefixed_content."""
         role = NovelRole(name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         story_a = StoryContext(title="StA", description="A.")
@@ -502,6 +520,7 @@ class TestPrefixAccumulation:
         assert story_b.scene_context[0].prefixed_content == f"{chapter_header}\n\n{story_a_block}"
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
+        """Assert chapter and story prefixed_content chain across the whole composed novel."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.title = "The Search"
@@ -560,6 +579,7 @@ class TestNovelPlan:
     """Test suite for progressive planning of an empty context tree."""
 
     async def test_compose_novel_plans_empty_tree(self) -> None:
+        """Assert compose_novel plans an empty context tree down to scenes and writes content."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         meta = NovelPlan(
@@ -597,6 +617,7 @@ class TestNovelPlan:
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
+        """Assert compose_novel returns None when chapter plan generation fails."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
         meta = NovelPlan(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
@@ -607,6 +628,7 @@ class TestNovelPlan:
         assert novel is None
 
     async def test_compose_novel_expands_stories_for_prefilled_chapter(self) -> None:
+        """Assert compose_novel plans stories and scenes under a prefilled chapter context."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.add_chapter_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
@@ -683,6 +705,7 @@ class TestNovelEpub:
     """Test suite for Novel.dump_epub."""
 
     def test_dump_epub_builds_valid_structure(self, tmp_path: Path) -> None:
+        """Assert dump_epub produces a valid EPUB with mimetype first, chapter, font, and cover."""
         import zipfile
 
         ctx = NovelContext.create("The hero seeks his father.", language="English")
@@ -729,6 +752,7 @@ class TestRAGCompose:
     """Test suite for writing style RAG scene prompts."""
 
     async def test_prepare_scene_requirement_injects_style_digest(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the RAG digest renders as a Writing Style Guideline with no raw reference section."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")
@@ -760,6 +784,7 @@ class TestRAGCompose:
     async def test_prepare_scene_requirement_skips_digest_when_digest_fails(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Assert a failed style digest leaves the scene requirement unchanged."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")
@@ -785,6 +810,7 @@ class TestRAGCompose:
         assert "The hero fights the dragon." in requirement
 
     async def test_prepare_scene_requirement_without_docs_keeps_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert empty fetched docs leave the base scene requirement unchanged."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
 
@@ -801,6 +827,7 @@ class TestRAGCompose:
     async def test_fetch_style_docs_combines_query_uses_limit_and_reranks(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """Assert _fetch_style_docs joins description and rag_query, applies the per-head limit, and reranks."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         ctx.set_rag_query("中文查询指南").set_rag_limit(7)
@@ -839,6 +866,7 @@ class TestRAGCompose:
         assert ranked_queries == ["The hero fights.\n中文查询指南"]
 
     async def test_fetch_style_docs_defaults_to_scene_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert _fetch_style_docs falls back to the scene description as the refine question."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         captured_queries: List[str] = []

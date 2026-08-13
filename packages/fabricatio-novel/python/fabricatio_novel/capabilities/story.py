@@ -1,9 +1,12 @@
+"""Story composition capabilities: planning scenes and composing stories."""
+
 from abc import ABC
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
@@ -20,6 +23,7 @@ class StoryCompose(SceneCompose, ABC):
         ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> StoryContext:
+        """Identity hook invoked before composing a story; may mutate the context."""
         return ctx
 
     async def after_compose_story(
@@ -27,9 +31,11 @@ class StoryCompose(SceneCompose, ABC):
         ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> StoryContext:
+        """Identity hook invoked after generating a story; may mutate the context."""
         return ctx
 
     async def post_process_story(self, ctx: StoryContext, story: Story, **kwargs: Unpack[LLMKwargs]) -> Story:
+        """Identity hook invoked on the composed story; may transform and return the story."""
         return story
 
     async def plan_scenes(
@@ -38,6 +44,11 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[ScenePlan] | None:
+        """Propose scene plans for the story via the LLM.
+
+        Renders the scene plan template from the story context and proposes
+        a ScenePlans batch, returning the root list of plans or None on failure.
+        """
         logger.debug(f"Planning scenes for story '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.scene_plan_template,
@@ -58,6 +69,14 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
+        """Generate the story by composing its scenes.
+
+        Interpolates character states, plans scenes (with word counts
+        allocated by weight) when none are scheduled, broadcasts the settings
+        bible, splits character slices per scene, and composes each scene in
+        prefix order. Returns the materialized story or None when planning
+        or any scene composition fails.
+        """
         logger.debug(f"Generating story '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
         if not ctx.scene_context:
@@ -86,12 +105,11 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
+        """Compose a story end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_story(ctx, **kwargs)
         story = await self.generate_story(ctx, send_to, **kwargs)
         ctx = await self.after_compose_story(ctx, **kwargs)
 
         if story is None:
             return None
-        ok_story = await self.post_process_story(ctx, story, **kwargs)
-
-        return ok_story
+        return await self.post_process_story(ctx, story, **kwargs)

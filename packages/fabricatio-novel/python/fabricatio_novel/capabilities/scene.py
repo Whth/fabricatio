@@ -1,3 +1,5 @@
+"""Scene composition capabilities: rendering requirements and generating scene content."""
+
 from abc import ABC
 from typing import Sequence, Unpack
 
@@ -6,6 +8,7 @@ from fabricatio_character.models.character import CharacterCardDiffs, CharacterC
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, detect_language
+
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
@@ -20,6 +23,7 @@ class SceneCompose(CharacterCompose, ABC):
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> SceneContext:
+        """Identity hook invoked before composing a scene; may mutate the context."""
         return ctx
 
     async def after_compose_scene(
@@ -27,9 +31,11 @@ class SceneCompose(CharacterCompose, ABC):
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> SceneContext:
+        """Identity hook invoked after generating a scene; may mutate the context."""
         return ctx
 
     async def post_process_scene(self, ctx: SceneContext, scene: Scene, **kwargs: Unpack[LLMKwargs]) -> Scene:
+        """Identity hook invoked on the composed scene; may transform and return the scene."""
         return scene
 
     def _scene_requirement_vars(self, ctx: SceneContext) -> dict[str, object]:
@@ -54,6 +60,11 @@ class SceneCompose(CharacterCompose, ABC):
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
+        """Render the scene requirement prompt from the scene context.
+
+        Overriding capabilities may extend the rendered requirement, for
+        example by appending writing style references.
+        """
         return TEMPLATE_MANAGER.render_template(
             novel_config.scene_requirement_template,
             self._scene_requirement_vars(ctx),
@@ -65,6 +76,12 @@ class SceneCompose(CharacterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
+        """Generate the scene content via the LLM.
+
+        Interpolates character states, renders the scene requirement, asks
+        the LLM for the scene text, sets the expected word count, and stores
+        the content on the context. Returns the generated scene.
+        """
         logger.debug(f"Generating scene '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
@@ -173,12 +190,11 @@ class SceneCompose(CharacterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
+        """Compose a scene end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_scene(ctx, **kwargs)
         scene = await self.generate_scene(ctx, send_to, **kwargs)
         ctx = await self.after_compose_scene(ctx, **kwargs)
 
         if scene is None:
             return None
-        ok_scene = await self.post_process_scene(ctx, scene, **kwargs)
-
-        return ok_scene
+        return await self.post_process_scene(ctx, scene, **kwargs)

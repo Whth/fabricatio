@@ -1,3 +1,5 @@
+"""Pipeline channel model for a scene: its plan and the composed prose it writes."""
+
 from typing import Self, final
 
 from fabricatio_core.models.generic import Described, Titled
@@ -8,6 +10,8 @@ from fabricatio_novel.models.plan import ScenePlan
 
 
 class SceneContext(RAGChannel, Titled, Described, ContextBase):
+    """A scene's composition channel: its plan and the composed prose it owns."""
+
     content: str = ""
     """The composed prose of this scene; the only context level that owns composed content."""
 
@@ -15,6 +19,7 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
     """The scene's own plan."""
 
     def set_scene_plan(self, plan: ScenePlan) -> Self:
+        """Set the scene's plan and return self."""
         self.scene_plan = plan
         return self
 
@@ -32,6 +37,7 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
         )
 
     def set_content(self, content: str) -> Self:
+        """Set the scene's composed prose and return self."""
         self.content = content
         return self
 

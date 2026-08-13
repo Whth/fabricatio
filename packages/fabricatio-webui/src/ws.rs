@@ -45,7 +45,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                         let wf_json = match serde_json::to_string(&submit.workflow) {
                             Ok(s) => s,
                             Err(e) => {
-                                fabricatio_logger::warn!("WS {sid}: cannot serialize workflow: {e}");
+                                fabricatio_logger::warn!(
+                                    "WS {sid}: cannot serialize workflow: {e}"
+                                );
                                 continue;
                             }
                         };
@@ -60,7 +62,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                             if let Err(e) = res {
                                 fabricatio_logger::warn!("WS {sid}: submit rejected: {e}");
                             } else {
-                                fabricatio_logger::info!("WS {sid} queued execution {execution_id}");
+                                fabricatio_logger::info!(
+                                    "WS {sid} queued execution {execution_id}"
+                                );
                             }
                         }
                     }

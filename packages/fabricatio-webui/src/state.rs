@@ -81,8 +81,8 @@ impl AppState {
         let path = Self::workflows_file(data_dir);
         match std::fs::read_to_string(&path) {
             Ok(content) => {
-                let raw: HashMap<String, serde_json::Value> =
-                    serde_json::from_str(&content).unwrap_or_else(|e| {
+                let raw: HashMap<String, serde_json::Value> = serde_json::from_str(&content)
+                    .unwrap_or_else(|e| {
                         warn!("Failed to parse {}: {e}", path.display());
                         HashMap::new()
                     });
@@ -170,4 +170,3 @@ impl AppState {
     // Queue/history/active-state live in Python; the Rust side only forwards
     // submissions and snapshots through the callables set in `start_service`.
 }
-

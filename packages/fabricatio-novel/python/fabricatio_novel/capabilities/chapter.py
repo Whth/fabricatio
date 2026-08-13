@@ -1,9 +1,12 @@
+"""Chapter composition capabilities: planning stories and composing chapters."""
+
 from abc import ABC
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
@@ -20,6 +23,7 @@ class ChapterCompose(StoryCompose, ABC):
         ctx: ChapterContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
+        """Identity hook invoked before composing a chapter; may mutate the context."""
         return ctx
 
     async def after_compose_chapter(
@@ -27,9 +31,11 @@ class ChapterCompose(StoryCompose, ABC):
         ctx: ChapterContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
+        """Identity hook invoked after generating a chapter; may mutate the context."""
         return ctx
 
     async def post_process_chapter(self, ctx: ChapterContext, chapter: Chapter, **kwargs: Unpack[LLMKwargs]) -> Chapter:
+        """Identity hook invoked on the composed chapter; may transform and return the chapter."""
         return chapter
 
     async def plan_stories(
@@ -38,6 +44,11 @@ class ChapterCompose(StoryCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
+        """Propose story plans for the chapter via the LLM.
+
+        Renders the story plan template from the chapter context and proposes
+        a StoryPlans batch, returning the root list of plans or None on failure.
+        """
         logger.debug(f"Planning stories for chapter '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.story_plan_template,
@@ -58,6 +69,14 @@ class ChapterCompose(StoryCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
+        """Generate the chapter by composing its stories.
+
+        Interpolates character states, plans stories (with word counts
+        allocated by weight) when none are scheduled, broadcasts the settings
+        bible, splits character slices per story, and composes each story in
+        prefix order. Returns the materialized chapter or None when planning
+        or any story composition fails.
+        """
         logger.debug(f"Generating chapter '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
         if not ctx.story_context:
@@ -86,12 +105,11 @@ class ChapterCompose(StoryCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
+        """Compose a chapter end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_chapter(ctx, **kwargs)
         chapter = await self.generate_chapter(ctx, send_to, **kwargs)
         ctx = await self.after_compose_chapter(ctx, **kwargs)
 
         if chapter is None:
             return None
-        ok_chapter = await self.post_process_chapter(ctx, chapter, **kwargs)
-
-        return ok_chapter
+        return await self.post_process_chapter(ctx, chapter, **kwargs)

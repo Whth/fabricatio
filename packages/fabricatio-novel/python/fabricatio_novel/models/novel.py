@@ -1,3 +1,5 @@
+"""Output model for a composed novel: plan fields, materialized chapters and EPUB export."""
+
 from pathlib import Path
 from typing import List, Self
 
@@ -11,10 +13,13 @@ from fabricatio_novel.rust import NovelBuilder
 
 
 class Novel(PersistentAble, NovelPlan):
+    """A composed novel: its plan fields and the chapters it contains."""
+
     chapter: List[Chapter]
 
     @classmethod
     def from_context(cls, ctx: NovelContext) -> Self:
+        """Materialize a novel from its novel context, materializing each chapter recursively."""
         return cls(
             title=ctx.title,
             description=ctx.description,
@@ -31,6 +36,10 @@ class Novel(PersistentAble, NovelPlan):
         font_family: str | None = None,
         cover: str | Path | None = None,
     ) -> Path:
+        """Export the novel to an EPUB file at the given path.
+
+        Optionally embeds a font and cover, then returns the written path.
+        """
         builder = (
             NovelBuilder()
             .new_novel()

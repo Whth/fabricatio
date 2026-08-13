@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from fabricatio_core import Role, TEMPLATE_MANAGER
+from fabricatio_core import TEMPLATE_MANAGER, Role
 
 from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.novel import NovelCompose
