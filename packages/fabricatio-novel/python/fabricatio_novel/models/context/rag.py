@@ -9,10 +9,10 @@ class RAGChannel:
     rag_query: str = ""
     """Additional query guideline for style retrieval; combined with the scene description."""
 
-    rag_limit: int = 0
-    """Final reference documents kept after reranking; 0 uses the default configuration (15).
+    rag_limit: int = 15
+    """Final reference documents kept after reranking.
 
-    Fetching retrieves ``fetch_scale`` times this limit per refined query.
+    Fetching retrieves this limit of documents for each refined query (head).
     """
 
     def set_rag_query(self, query: str) -> Self:
@@ -21,6 +21,6 @@ class RAGChannel:
         return self
 
     def set_rag_limit(self, limit: int) -> Self:
-        """Set the per-refined-query retrieval limit (0 = default configuration)."""
+        """Set the final reference documents kept after reranking."""
         self.rag_limit = limit
         return self

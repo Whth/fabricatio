@@ -1,7 +1,7 @@
 """RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
 from abc import ABC
-from typing import List, Unpack, cast, ClassVar
+from typing import ClassVar, List, Unpack, cast
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
@@ -27,13 +27,14 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     """
 
     fetch_head: ClassVar[int] = 6
-    """Number of search head for each question."""
+    """Number of search heads (sub-queries) requested for each question."""
 
     async def prepare_scene_requirement(
-        self,
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> str:
+        """Render the scene requirement and append a writing style guideline from retrieved references."""
         requirement = await super().prepare_scene_requirement(ctx, **kwargs)
         docs = await self._fetch_style_docs(ctx, **kwargs)
         if docs:
@@ -43,10 +44,10 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         return requirement
 
     async def _digest_style_docs(
-        self,
-        docs: List[WritingStyleDocument],
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            docs: List[WritingStyleDocument],
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> str | None:
         """Condense the raw reference documents into a writing style guideline string."""
         prompt = TEMPLATE_MANAGER.render_template(
@@ -65,9 +66,9 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         )
 
     async def _fetch_style_docs(
-        self,
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: SceneContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
         question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
         queries = await self.arefined_query(question, **kwargs, k=self.fetch_head)
@@ -81,4 +82,4 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         logger.debug(f"fet {len(docs)} docs")
         if docs:
             docs = await self.arank_documents(question, docs, **kwargs)
-        return docs[: config.limit]
+        return docs[:config.limit]

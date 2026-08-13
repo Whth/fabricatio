@@ -411,7 +411,9 @@ class TestNovelCompose:
         assert ctx.title == "The Search"
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
         chapter_header = "# Ch1\n\n> The hero sets out."
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == f"{chapter_header}\n\nHe left."
+        assert (
+            ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == f"{chapter_header}\n\nHe left."
+        )
         assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == chapter_header
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
@@ -542,9 +544,16 @@ class TestPrefixAccumulation:
         assert chapter_2.prefixed_content == chapter_1_block
         assert chapter_1.story_context[1].prefixed_content == f"{chapter_1_header}\n\nA."
         assert chapter_2.story_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
-        assert chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
-        assert chapter_2.story_context[0].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
-        assert chapter_2.story_context[1].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
+        assert (
+            chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
+        )
+        assert (
+            chapter_2.story_context[0].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
+        )
+        assert (
+            chapter_2.story_context[1].scene_context[0].prefixed_content
+            == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
+        )
 
 
 class TestNovelPlan:
@@ -736,7 +745,9 @@ class TestRAGCompose:
         monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
         with install_router_usage(
             *return_router_usage(
-                code_block('["hero fights dragon"]'),
+                code_block(
+                    '["hero fights dragon", "dragon weaknesses", "battle choreography", "dark gothic prose", "terse action lines", "victory conditions"]'
+                ),
                 generic_block("Use dark gothic prose with terse action lines.", "String"),
             )
         ):
@@ -824,7 +835,7 @@ class TestRAGCompose:
         assert docs == [doc] * 7
         assert captured_queries == ["The hero fights.\n中文查询指南"]
         assert captured_configs
-        assert captured_configs[0].limit == 14
+        assert captured_configs[0].limit == 7
         assert ranked_queries == ["The hero fights.\n中文查询指南"]
 
     async def test_fetch_style_docs_defaults_to_scene_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
