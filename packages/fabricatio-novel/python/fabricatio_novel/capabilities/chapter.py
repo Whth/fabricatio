@@ -6,7 +6,6 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
@@ -19,17 +18,17 @@ class ChapterCompose(StoryCompose, ABC):
     """This class contains the capabilities for the chapter."""
 
     async def before_compose_chapter(
-        self,
-        ctx: ChapterContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         """Identity hook invoked before composing a chapter; may mutate the context."""
         return ctx
 
     async def after_compose_chapter(
-        self,
-        ctx: ChapterContext,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         """Identity hook invoked after generating a chapter; may mutate the context."""
         return ctx
@@ -39,10 +38,10 @@ class ChapterCompose(StoryCompose, ABC):
         return chapter
 
     async def plan_stories(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
         """Propose story plans for the chapter via the LLM.
 
@@ -64,10 +63,10 @@ class ChapterCompose(StoryCompose, ABC):
         return plans.root if plans is not None else None
 
     async def generate_chapter(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Generate the chapter by composing its stories.
 
@@ -82,6 +81,7 @@ class ChapterCompose(StoryCompose, ABC):
         if not ctx.story_context:
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
+                logger.error(f"Story planning failed for chapter '{ctx.title}'; aborting chapter generation")
                 return None
             counts = ctx.allocate([s.weight for s in story_plans]) if story_plans else []
             for story_plan, count in zip(story_plans, counts, strict=True):
@@ -94,16 +94,23 @@ class ChapterCompose(StoryCompose, ABC):
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
         await self.split_character_slices(ctx, ctx.story_context, send_to, **kwargs)
-        for story_ctx in ctx.iter_prefixed_contexts():
+        total = len(ctx.story_context)
+        for i, story_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
+            logger.info(f"Composing story {i}/{total} '{story_ctx.title}'")
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
+                logger.error(f"Story '{story_ctx.title}' failed; aborting chapter '{ctx.title}'")
                 return None
-        return Chapter.from_context(ctx)
+        chapter = Chapter.from_context(ctx)
+        logger.info(
+            f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}"
+        )
+        return chapter
 
     async def compose_chapter(
-        self,
-        ctx: ChapterContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
+            self,
+            ctx: ChapterContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Compose a chapter end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_chapter(ctx, **kwargs)

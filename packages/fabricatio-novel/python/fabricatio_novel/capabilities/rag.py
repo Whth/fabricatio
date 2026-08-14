@@ -6,7 +6,7 @@ from typing import ClassVar, List, Unpack, cast
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import detect_language
-from fabricatio_core.utils import cfg
+from fabricatio_core.utils import cfg, execute_time
 
 cfg(["lancedb"])
 
@@ -41,8 +41,10 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
             digest = await self._digest_style_docs(docs, ctx, **kwargs)
             if digest:
                 requirement += "\n\n## Writing Style Guideline\n" + digest
+                logger.debug(f"Style guideline appended to scene '{ctx.title}' requirement ({len(digest)} chars)")
         return requirement
 
+    @execute_time
     async def _digest_style_docs(
         self,
         docs: List[WritingStyleDocument],
@@ -71,15 +73,19 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
         question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
+        logger.debug(f"Refining style query for scene '{ctx.title}': {question}")
         queries = await self.arefined_query(question, **kwargs, k=self.fetch_head)
-        logger.debug(f"fetch for\n{queries} ")
         if not queries:
             return []
+        logger.debug(f"Refined {len(queries)} search head(s) for scene '{ctx.title}'")
 
         config = WritingStyleFetchConfig(limit=ctx.rag_limit)
         docs = await self.afetch_document(queries, config)
         docs = [doc for doc in docs if doc.as_prompt().strip()]
-        logger.debug(f"fet {len(docs)} docs")
+        logger.debug(f"Fetched {len(docs)} non-blank writing style doc(s) for scene '{ctx.title}'")
         if docs:
             docs = await self.arank_documents(question, docs, **kwargs)
-        return docs[: config.limit]
+            logger.debug(f"Reranked to {len(docs)} writing style doc(s) for scene '{ctx.title}'")
+        docs = docs[: config.limit]
+        logger.info(f"Retrieved {len(docs)} writing style reference(s) for scene '{ctx.title}'")
+        return docs
