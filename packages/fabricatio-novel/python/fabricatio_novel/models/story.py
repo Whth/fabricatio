@@ -3,7 +3,6 @@
 from typing import List, Self
 
 from fabricatio_capabilities.models.generic import WordCount
-
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import StoryPlan
 from fabricatio_novel.models.scene import Scene
@@ -13,6 +12,10 @@ class Story(StoryPlan, WordCount):
     """A composed story: its plan fields and the scenes it contains."""
 
     scenes: List[Scene]
+
+    @property
+    def exact_word_count(self) -> int:
+        return sum(c.exact_word_count for c in self.scenes)
 
     @classmethod
     def from_context(cls, ctx: StoryContext) -> Self:

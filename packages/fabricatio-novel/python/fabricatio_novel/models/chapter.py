@@ -4,7 +4,6 @@ from typing import List, Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
-
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import ChapterPlan
@@ -16,6 +15,10 @@ class Chapter(ChapterPlan, WordCount):
     """A composed chapter: its plan fields and the stories it contains."""
 
     story: List[Story]
+
+    @property
+    def exact_word_count(self) -> int:
+        return sum(c.exact_word_count for c in self.story)
 
     @classmethod
     def from_context(cls, ctx: ChapterContext) -> Self:

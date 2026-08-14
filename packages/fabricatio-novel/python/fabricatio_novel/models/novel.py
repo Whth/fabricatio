@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List, Self
 
 from fabricatio_capabilities.models.generic import PersistentAble
-
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.plan import NovelPlan
@@ -16,6 +15,10 @@ class Novel(PersistentAble, NovelPlan):
     """A composed novel: its plan fields and the chapters it contains."""
 
     chapter: List[Chapter]
+
+    @property
+    def exact_word_count(self) -> int:
+        return sum(c.exact_word_count for c in self.chapter)
 
     @classmethod
     def from_context(cls, ctx: NovelContext) -> Self:
@@ -29,12 +32,12 @@ class Novel(PersistentAble, NovelPlan):
         )
 
     def dump_epub(
-        self,
-        path: str | Path,
-        css: str | None = None,
-        font: str | Path | None = None,
-        font_family: str | None = None,
-        cover: str | Path | None = None,
+            self,
+            path: str | Path,
+            css: str | None = None,
+            font: str | Path | None = None,
+            font_family: str | None = None,
+            cover: str | Path | None = None,
     ) -> Path:
         """Export the novel to an EPUB file at the given path.
 
