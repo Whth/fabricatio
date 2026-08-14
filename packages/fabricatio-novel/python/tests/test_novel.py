@@ -130,22 +130,21 @@ class TestCharactorTrace:
     """Test suite for CharactorTrace."""
 
     def test_iter_charactor_cards_applies_diffs_in_order(self) -> None:
-        """Assert iter_character_cards yields start, each interpolated diff, and end in order."""
+        """Assert iter_character_cards yields start then one card per interpolated diff."""
         start = card()
-        trace = CharacterTrace(
-            start=start,
-            end=start.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
-            interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
-        )
+        diff = CharacterCardDiff(look="scarred", reason="took a blade")
+        trace = CharacterTrace(start=start, interpolates=[diff])
         cards: List[CharacterCard] = list(trace.iter_character_cards())
         assert cards[0] is start
-        assert [c.look for c in cards] == ["tall", "scarred", "scarred"]
-        assert cards[-1] is trace.end
+        assert [c.look for c in cards] == ["tall", "scarred"]
+        # the final card is the derived end state, equal to the fold of the diffs
+        assert cards[-1] == start.apply(diff)
+        assert trace.end == start.apply(diff)
 
     def test_intepl_replaces_interpolates_and_returns_self(self) -> None:
         """Assert intepl replaces the interpolates list and returns the trace itself."""
         start = card()
-        trace = CharacterTrace(start=start, end=start)
+        trace = CharacterTrace(start=start)
         diff = CharacterCardDiff(look="wounded", reason="fell in battle")
         assert trace.intepl([diff]) is trace
         assert trace.interpolates == [diff]
@@ -155,9 +154,6 @@ class TestCharactorTrace:
         start = card()
         trace = CharacterTrace(
             start=start,
-            end=start.apply(CharacterCardDiff(look="wounded", reason="fell in battle"))
-            .apply(CharacterCardDiff(act="cautious", reason="learned from defeat"))
-            .apply(CharacterCardDiff(reason="reflected")),
             interpolates=[
                 CharacterCardDiff(look="wounded", reason="fell in battle"),
                 CharacterCardDiff(act="cautious", reason="learned from defeat"),
@@ -180,7 +176,7 @@ class TestCharactorTrace:
     def test_dump_to_prompt_without_changes_is_just_identity(self) -> None:
         """Assert a fresh trace renders only its starting card line."""
         start = card()
-        trace = CharacterTrace(start=start, end=start)
+        trace = CharacterTrace(start=start)
         assert trace.dump_to_prompt() == (
             "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
         )
@@ -322,7 +318,7 @@ class TestCharactorTraces:
         hero = card()
         d1 = CharacterCardDiff(look="wounded", reason="fell in battle")
         d2 = CharacterCardDiff(look="scarred", reason="took a blade")
-        ctx.set_charactor_traces([CharacterTrace(start=hero, end=hero.apply(d1).apply(d2), interpolates=[d1, d2])])
+        ctx.set_charactor_traces([CharacterTrace(start=hero, interpolates=[d1, d2])])
         child_a = ChapterContext(title="Ch1", description="The start.")
         child_b = ChapterContext(title="Ch2", description="The road.")
 
@@ -346,7 +342,6 @@ class TestCharactorTraces:
         ctx.character_trace = [
             CharacterTrace(
                 start=hero,
-                end=hero.apply(CharacterCardDiff(look="scarred", reason="took a blade")),
                 interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
             )
         ]
@@ -373,7 +368,7 @@ class TestNovelCompose:
     async def test_compose_scene_evolves_charactor_trace(self) -> None:
         """Assert compose_scene applies the proposed diff to the scene's character trace."""
         role = NovelRole(name="novel_role")
-        trace = CharacterTrace(start=card(), end=card())
+        trace = CharacterTrace(start=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         ctx.character_trace.append(trace)
         expected_diff = CharacterCardDiff(look="scarred", reason="took a blade")
@@ -429,6 +424,45 @@ class TestNovelCompose:
             ctx.chapter_context[0].story_context[0].scene_context[1].prefixed_content == f"{chapter_header}\n\nHe left."
         )
         assert ctx.chapter_context[0].story_context[0].scene_context[0].prefixed_content == chapter_header
+
+    async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
+        """Assert composition emits per-level progress and completion log lines."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
+        story_ctx = StoryContext(title="St1", description="The departure.")
+        scene_1 = SceneContext(title="S1", description="Leaving home.", expected_word_count=20)
+        scene_2 = SceneContext(title="S2", description="A stranger appears.", expected_word_count=20)
+        story_ctx.scene_context.extend([scene_1, scene_2])
+        chapter_ctx.story_context.append(story_ctx)
+        ctx.chapter_context.append(chapter_ctx)
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching for his father.",
+            expected_word_count=40,
+            series_bible=SeriesBible(),
+        )
+
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                raw_value("He left."),
+                raw_value("A stranger appeared."),
+            )
+        ):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        err = capfd.readouterr().err
+        assert "Generating novel from outline" in err
+        assert "Novel plan proposed: 'The Search'" in err
+        assert "Composing chapter 1/1 'Ch1'" in err
+        assert "Composing story 1/1 'St1'" in err
+        assert "Composing scene 1/2 'S1'" in err
+        assert "Composing scene 2/2 'S2'" in err
+        assert "Scene 'S1' composed" in err
+        assert "Chapter 'Ch1' composed" in err
+        assert "Novel 'The Search' composed" in err
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         """Assert compose_novel returns None when metadata generation fails."""

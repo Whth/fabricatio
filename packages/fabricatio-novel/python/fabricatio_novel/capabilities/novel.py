@@ -6,7 +6,6 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterTrace
@@ -69,14 +68,18 @@ class NovelCompose(ChapterCompose, ABC):
         """Create the initial character traces from the setting bible roster."""
         bible = ctx.series_bible
         if bible is None or not bible.characters:
+            logger.debug("No setting bible roster; skipping character trace creation")
             return
         requirements = [line.strip() for line in bible.characters.splitlines() if line.strip()]
         if not requirements:
+            logger.debug("Setting bible roster is empty; skipping character trace creation")
             return
         cards = await self.compose_characters(requirements, **kwargs)
         if not cards:
+            logger.warn("Character proposal returned no cards; skipping character trace creation")
             return
-        ctx.set_charactor_traces([CharacterTrace(start=card, end=card) for card in cards if card is not None])
+        ctx.set_charactor_traces([CharacterTrace(start=card) for card in cards if card is not None])
+        logger.info(f"Created {len(ctx.character_trace)} character trace(s) from the setting bible")
 
     async def generate_novel(
         self,
@@ -94,6 +97,7 @@ class NovelCompose(ChapterCompose, ABC):
         when metadata proposal, chapter planning, or any chapter composition
         fails.
         """
+        logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
@@ -101,15 +105,19 @@ class NovelCompose(ChapterCompose, ABC):
         )
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
+            logger.error("Novel metadata proposal failed; aborting novel generation")
             return None
         ctx.set_novel_plan(plan).update_from(plan)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         if not ctx.character_trace:
             await self.create_charactor_traces(ctx, **kwargs)
+        if ctx.character_trace:
+            logger.info(f"Interpolating {len(ctx.character_trace)} character(s) over the novel outline")
         await self.interpolate_characters(ctx, send_to, outline=ctx.outline, **kwargs)
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
+                logger.error("Chapter planning failed; aborting novel generation")
                 return None
             counts = ctx.allocate([p.weight for p in chapter_plans]) if chapter_plans else []
             for chapter_plan, count in zip(chapter_plans, counts, strict=True):
@@ -122,11 +130,18 @@ class NovelCompose(ChapterCompose, ABC):
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()
         await self.split_character_slices(ctx, ctx.chapter_context, send_to, **kwargs)
-        for chapter_ctx in ctx.iter_prefixed_contexts():
+        total = len(ctx.chapter_context)
+        for i, chapter_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
+            logger.info(f"Composing chapter {i}/{total} '{chapter_ctx.title}'")
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
+                logger.error(f"Chapter '{chapter_ctx.title}' failed; aborting novel generation")
                 return None
-        logger.info(f"Composed {len(ctx.chapter_context)} chapter(s)")
-        return Novel.from_context(ctx)
+        novel = Novel.from_context(ctx)
+
+        logger.info(
+            f"Novel '{novel.title}' composed ({len(novel.chapter)} chapter(s), word count satisfaction: {novel.satisfy_ratio()}"
+        )
+        return novel
 
     async def compose_novel(
         self,

@@ -7,8 +7,7 @@ from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.models.character import CharacterCardDiffs, CharacterCardSlices
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK, detect_language
-
+from fabricatio_core.rust import TASK, detect_language, word_count
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
@@ -85,6 +84,7 @@ class SceneCompose(CharacterCompose, ABC):
         logger.debug(f"Generating scene '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
+        logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
         scene = Scene(
             title=ctx.title,
             description=ctx.description,
@@ -93,7 +93,9 @@ class SceneCompose(CharacterCompose, ABC):
         )
         scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
-        logger.info(f"Scene '{scene.title}' generated")
+        logger.info(
+            f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}"
+        )
         return scene
 
     async def interpolate_characters(
@@ -133,12 +135,13 @@ class SceneCompose(CharacterCompose, ABC):
             send_to=send_to,
             **kwargs,
         )
+        applied = 0
         for trace, chain in zip(ctx.character_trace, chains or [], strict=False):
             if chain is None or not chain.root:
                 continue
-            for diff in chain.root:
-                trace.end = trace.end.apply(diff)
+            applied += 1
             trace.intepl([*trace.interpolates, *chain.root])
+        logger.debug(f"Extended {applied} character chain(s) for '{ctx.title}'")
 
     async def split_character_slices(
         self,
@@ -175,14 +178,14 @@ class SceneCompose(CharacterCompose, ABC):
             send_to=send_to,
             **kwargs,
         )
+        assigned = 0
         for trace, per_child in zip(ctx.character_trace, slices or [], strict=False):
             if per_child is None:
                 continue
+            assigned += 1
             for child, slice_ in zip(children, per_child.root, strict=False):
-                end = trace.start
-                for diff in slice_:
-                    end = end.apply(diff)
-                child.add_charactor_trace(CharacterTrace(start=trace.start, end=end, interpolates=slice_))
+                child.add_charactor_trace(CharacterTrace(start=trace.start, interpolates=slice_))
+        logger.debug(f"Assigned {assigned} character chain slice(s) across {len(children)} child(ren)")
 
     async def compose_scene(
         self,

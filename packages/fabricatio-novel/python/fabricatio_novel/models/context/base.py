@@ -13,26 +13,36 @@ from fabricatio_novel.models.series_book import SeriesBible
 
 
 class CharacterTrace(SketchedAble):
-    """A character's evolution across the novel: start card, end card and interpolated diffs."""
+    """A character's evolution across the novel: a start card and interpolated diffs.
+
+    The final card is derived by folding the diffs over the start, so the end
+    state can never contradict the chain that produced it.
+    """
 
     start: CharacterCard
-    end: CharacterCard
 
     interpolates: list[CharacterCardDiff] = Field(default_factory=list)
+
+    @property
+    def end(self) -> CharacterCard:
+        """The trace's final card: the interpolated diffs folded over the start card."""
+        card = self.start
+        for diff in self.interpolates:
+            card = card.apply(diff)
+        return card
 
     @final
     def iter_character_cards(self) -> Generator[CharacterCard, None, None]:
         """Iterate over the character cards along this trace, in evolution order.
 
         Yields the `start` card, then one card per interpolated diff applied
-        to the previous state, and finally the `end` card.
+        to the previous state; the last yielded card is the final state.
         """
         card = self.start
         yield card
         for diff in self.interpolates:
             card = card.apply(diff)
             yield card
-        yield self.end
 
     @final
     def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
