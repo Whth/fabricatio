@@ -6,15 +6,15 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Self, Set, Type, final
 
 import orjson
-from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
-from fabricatio_core.rust import blake3_hash
 from pydantic import (
     BaseModel,
 )
 
 from fabricatio_capabilities.config import capabilities_config
+from fabricatio_core import TEMPLATE_MANAGER
+from fabricatio_core.journal import logger
+from fabricatio_core.models.generic import Base, ProposedAble, SketchedAble, UnsortGenerate
+from fabricatio_core.rust import blake3_hash
 
 
 class ModelHash(Base, ABC):
@@ -459,3 +459,6 @@ class WordCount(Base, ABC):
     def exact_word_count(self) -> int:
         """Get the exact word count of this research component."""
         raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
+
+    def satisfy_ratio(self) -> float:
+        return self.exact_word_count / self.expected_word_count if self.expected_word_count else 0.0
