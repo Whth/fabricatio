@@ -221,9 +221,16 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
     ),
+    constraint: Optional[str] = typer.Option(
+        None,
+        "--constraint",
+        "-c",
+        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
+    ),
 ) -> None:
     """Generate a novel from an outline."""
     ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
+    ctx.set_writing_constraint(constraint or "")
     if bible is not None:
         ctx.set_series_bible(_load_bible(bible))
     role = WriterRole(name="writer")
@@ -267,6 +274,12 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
     ),
+    constraint: Optional[str] = typer.Option(
+        None,
+        "--constraint",
+        "-c",
+        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
+    ),
 ) -> None:
     """Generate a novel with writing style RAG from an outline."""
     from fabricatio_novel.capabilities.rag import RAGCompose
@@ -275,6 +288,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         """Writer role with writing style retrieval."""
 
     ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
+    ctx.set_writing_constraint(constraint or "")
     if bible is not None:
         ctx.set_series_bible(_load_bible(bible))
     ctx.set_rag_query(rag_query or "").set_rag_limit(retrieve_limit)

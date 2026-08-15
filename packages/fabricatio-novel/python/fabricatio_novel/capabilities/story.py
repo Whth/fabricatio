@@ -5,9 +5,10 @@ from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK, word_count
+from fabricatio_core.rust import TASK
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.base import merge_writing_constraints
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ScenePlan, ScenePlans
@@ -55,6 +56,8 @@ class StoryCompose(SceneCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
+                "writing_style": ctx.writing_style,
+                "writing_constraint": ctx.writing_constraint,
                 "language": ctx.language,
                 "characters": ctx.dump_charactors(),
             },
@@ -90,6 +93,9 @@ class StoryCompose(SceneCompose, ABC):
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
+                    .set_writing_constraint(
+                        merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)
+                    )
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         ctx.broadcast_settings_bible()
@@ -101,7 +107,6 @@ class StoryCompose(SceneCompose, ABC):
                 logger.error(f"Scene '{scene_ctx.title}' failed; aborting story '{ctx.title}'")
                 return None
         story = Story.from_context(ctx)
-        words = sum(word_count(scene.content) for scene in story.scenes)
         logger.info(
             f"Story '{story.title}' composed ({len(story.scenes)} scene(s),  word count satisfaction: {story.satisfy_ratio()}"
         )

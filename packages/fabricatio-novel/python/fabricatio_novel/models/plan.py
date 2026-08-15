@@ -17,6 +17,11 @@ class WeightedPlan(SketchedAble, Titled, Described):
     """Writing technique guidance for this element's prose: narrative voice, point of view,
     tone, rhythm, and recurring techniques; empty when no specific style is required."""
 
+    writing_constraint: str = ""
+    """Additional hard writing constraint for this element on top of the parent's: point of
+    view, tense, perspective, prohibitions. The parent's constraint stays in force and is
+    accumulated down the tree; empty when no extra constraint applies."""
+
 
 class ScenePlan(WeightedPlan):
     """Plan of a single scene; its weight allocates the story's expected word count."""
@@ -72,6 +77,12 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     """4-5 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
     and recurring techniques. It seeds the style guidance of every chapter, story, and scene;
     empty when the outline implies no particular style."""
+
+    writing_constraint: str = ""
+    """The novel's global writing constraint, generated from the author's stated intent
+    (e.g. first person view): concrete, enforceable rules every chapter, story, and scene
+    must honor. It is allocated down the tree and accumulated onto every scene prompt;
+    empty when no constraint applies."""
 
     series_bible: SeriesBible = Field(default_factory=SeriesBible)
 

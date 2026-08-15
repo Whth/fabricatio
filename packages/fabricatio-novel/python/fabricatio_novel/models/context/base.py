@@ -12,6 +12,15 @@ from pydantic import Field
 from fabricatio_novel.models.series_book import SeriesBible
 
 
+def merge_writing_constraints(parent: str, own: str) -> str:
+    """Accumulate a parent's writing constraint with this element's own allocation.
+
+    The parent's constraint stays in force verbatim; the element's own allocation
+    (empty when none) is appended on a new line. Both empty yields an empty string.
+    """
+    return "\n".join(part for part in (parent, own) if part)
+
+
 class CharacterTrace(SketchedAble):
     """A character's evolution across the novel: a start card and interpolated diffs.
 
@@ -85,6 +94,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     """Writing technique guidance for this element's prose: voice, tone, rhythm, dialogue
     handling; proposed with the plan and carried down to the scene that is written."""
 
+    writing_constraint: str = ""
+    """Hard writing constraint allocated down from the novel (point of view, tense,
+    prohibitions); the accumulated chain of the parent's constraint plus this element's own
+    allocation. Empty when no constraint applies."""
+
     character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     language: str = ""
@@ -109,6 +123,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     def set_writing_style(self, writing_style: str) -> Self:
         """Set the writing technique guidance carried down to the written scenes."""
         self.writing_style = writing_style
+        return self
+
+    def set_writing_constraint(self, writing_constraint: str) -> Self:
+        """Set the accumulated writing constraint carried down to the written scenes."""
+        self.writing_constraint = writing_constraint
         return self
 
     def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:

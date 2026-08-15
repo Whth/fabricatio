@@ -6,9 +6,10 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import CharacterTrace
+from fabricatio_novel.models.context.base import CharacterTrace, merge_writing_constraints
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
@@ -58,6 +59,9 @@ class NovelCompose(ChapterCompose, ABC):
                 "language": ctx.language,
                 "title": ctx.title,
                 "description": ctx.description,
+                "expected_word_count": ctx.expected_word_count,
+                "writing_style": ctx.writing_style,
+                "writing_constraint": ctx.writing_constraint,
                 "characters": ctx.dump_charactors(),
             },
         )
@@ -101,7 +105,7 @@ class NovelCompose(ChapterCompose, ABC):
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
-            {"outline": ctx.outline, "language": ctx.language},
+            {"outline": ctx.outline, "language": ctx.language, "constraint": ctx.writing_constraint},
         )
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
@@ -126,6 +130,9 @@ class NovelCompose(ChapterCompose, ABC):
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
+                    .set_writing_constraint(
+                        merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint)
+                    )
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         ctx.broadcast_settings_bible()

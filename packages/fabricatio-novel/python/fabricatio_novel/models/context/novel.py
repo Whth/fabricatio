@@ -38,6 +38,7 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
         self.description = other.description
         self.expected_word_count = other.expected_word_count
         self.writing_style = other.writing_style
+        self.writing_constraint = other.writing_constraint or self.writing_constraint
         if other.series_bible is not None and not other.series_bible.is_empty():
             self.series_bible = other.series_bible
         return self

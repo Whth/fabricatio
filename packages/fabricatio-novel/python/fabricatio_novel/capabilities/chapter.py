@@ -6,9 +6,11 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
+from fabricatio_novel.models.context.base import merge_writing_constraints
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import StoryPlan, StoryPlans
@@ -18,17 +20,17 @@ class ChapterCompose(StoryCompose, ABC):
     """This class contains the capabilities for the chapter."""
 
     async def before_compose_chapter(
-            self,
-            ctx: ChapterContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         """Identity hook invoked before composing a chapter; may mutate the context."""
         return ctx
 
     async def after_compose_chapter(
-            self,
-            ctx: ChapterContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ChapterContext:
         """Identity hook invoked after generating a chapter; may mutate the context."""
         return ctx
@@ -38,10 +40,10 @@ class ChapterCompose(StoryCompose, ABC):
         return chapter
 
     async def plan_stories(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
         """Propose story plans for the chapter via the LLM.
 
@@ -55,6 +57,8 @@ class ChapterCompose(StoryCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
+                "writing_style": ctx.writing_style,
+                "writing_constraint": ctx.writing_constraint,
                 "language": ctx.language,
                 "characters": ctx.dump_charactors(),
             },
@@ -63,10 +67,10 @@ class ChapterCompose(StoryCompose, ABC):
         return plans.root if plans is not None else None
 
     async def generate_chapter(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Generate the chapter by composing its stories.
 
@@ -90,6 +94,9 @@ class ChapterCompose(StoryCompose, ABC):
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
+                    .set_writing_constraint(
+                        merge_writing_constraints(ctx.writing_constraint, story_plan.writing_constraint)
+                    )
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         ctx.broadcast_settings_bible()
@@ -107,10 +114,10 @@ class ChapterCompose(StoryCompose, ABC):
         return chapter
 
     async def compose_chapter(
-            self,
-            ctx: ChapterContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Compose a chapter end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_chapter(ctx, **kwargs)
