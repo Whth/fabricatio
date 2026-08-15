@@ -63,6 +63,7 @@ class TestNovelContext:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
+            writing_constraint="First person view throughout.",
             series_bible=SeriesBible(characters="Hero — brave protagonist."),
         )
         result = ctx.update_from(plan)
@@ -70,7 +71,16 @@ class TestNovelContext:
         assert ctx.title == "The Search"
         assert ctx.description == "A hero searching."
         assert ctx.expected_word_count == 100
+        assert ctx.writing_constraint == "First person view throughout."
         assert ctx.series_bible == plan.series_bible
+
+    def test_update_from_keeps_intent_when_plan_constraint_empty(self) -> None:
+        """Assert the author's stated constraint survives an empty plan constraint."""
+        ctx = NovelContext.create("The hero.", language="English")
+        ctx.set_writing_constraint("I hope the novel is first person view.")
+        plan = NovelPlan(title="The Search", description="A hero searching.", expected_word_count=100)
+        ctx.update_from(plan)
+        assert ctx.writing_constraint == "I hope the novel is first person view."
 
     def test_update_from_keeps_preset_bible_when_plan_bible_empty(self) -> None:
         """Assert a preset series bible survives update_from with an empty-plan bible."""
@@ -95,6 +105,7 @@ class TestNovelContext:
             .set_language("English")
             .set_content("He left.")
             .set_prefixed_content("Before.")
+            .set_writing_constraint("First person view throughout.")
             .set_scene_plan(ScenePlan(title="S1", description="Leaving home."))
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
@@ -113,6 +124,7 @@ class TestNovelContext:
         assert scene.content == "He left."
         assert scene.prefixed_content == "Before."
         assert scene.language == "English"
+        assert scene.writing_constraint == "First person view throughout."
         assert story.scene_context == [scene]
         assert chapter.story_context == [story]
         assert novel.chapter_context == [chapter]
@@ -505,6 +517,23 @@ class TestNovelCompose:
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Style" not in requirement
 
+    async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
+        """Assert the scene's accumulated writing constraint guides the prose requirement."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        ctx.writing_constraint = "First person view throughout."
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Writing Constraint" in requirement
+        assert "First person view throughout." in requirement
+        assert requirement.index("## Writing Constraint") > requirement.index("## Scene")
+
+    async def test_prepare_scene_requirement_skips_writing_constraint_when_empty(self) -> None:
+        """Assert an unset writing constraint renders no constraint section."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Writing Constraint" not in requirement
+
 
 class TestPrefixAccumulation:
     """Test suite for prefixed_content dependency injection across levels."""
@@ -649,6 +678,69 @@ class TestNovelPlan:
         assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
         assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
         assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
+
+    async def test_compose_novel_allocates_writing_constraint_down_tree(self) -> None:
+        """Assert the global constraint is generated and accumulated down to every scene."""
+        role = NovelRole(name="novel_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx.set_writing_constraint("I hope the novel is first person view.")
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching for his father.",
+            expected_word_count=100,
+            writing_constraint="First person view throughout: narrate from the protagonist's perspective using I.",
+            series_bible=SeriesBible(),
+        )
+        chapter_plans_json = [
+            {
+                "title": "Ch1",
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_constraint": "Keep first person during the road journey.",
+            }
+        ]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_constraint": ""}]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_constraint": "Stay in the protagonist's head; no head-hopping.",
+            }
+        ]
+        responses = return_mixed_router_usage(
+            Value(meta, "model"),
+            Value(chapter_plans_json, "json"),
+            Value(story_plans_json, "json"),
+            Value(scene_plans_json, "json"),
+            raw_value("He left."),
+        )
+        with install_router_usage(*responses):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        chapter_ctx = ctx.chapter_context[0]
+        story_ctx = chapter_ctx.story_context[0]
+        scene_ctx = story_ctx.scene_context[0]
+        # the generated global constraint replaces the author's raw intent
+        assert ctx.writing_constraint == meta.writing_constraint
+        # each level accumulates its own allocation on top of the parent's
+        assert chapter_ctx.writing_constraint == (
+            "First person view throughout: narrate from the protagonist's perspective using I.\n"
+            "Keep first person during the road journey."
+        )
+        # a level without its own allocation inherits the parent's accumulated constraint
+        assert story_ctx.writing_constraint == chapter_ctx.writing_constraint
+        assert scene_ctx.writing_constraint == (
+            "First person view throughout: narrate from the protagonist's perspective using I.\n"
+            "Keep first person during the road journey.\n"
+            "Stay in the protagonist's head; no head-hopping."
+        )
+        # the full accumulated chain reaches the scene's prose requirement
+        requirement = await role.prepare_scene_requirement(scene_ctx)
+        assert "## Writing Constraint" in requirement
+        assert "First person view throughout" in requirement
+        assert "no head-hopping" in requirement
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
         """Assert compose_novel returns None when chapter plan generation fails."""
