@@ -2,6 +2,7 @@
 
 ## Goal
 Plan the stories of the chapter from its plan.
+Each story may carry a Writing Constraint of its own on top of the one in force; leave it empty when the story adds none.
 
 ## Chapter
 Title: {{ title }}
@@ -9,6 +10,9 @@ Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
 {{#if writing_style}}
 - Writing style: {{ writing_style }}
+{{/if}}
+{{#if writing_constraint}}
+- Writing constraint in force: {{ writing_constraint }}
 {{/if}}
 
 {{#if characters}}

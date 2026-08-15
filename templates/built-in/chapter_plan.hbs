@@ -3,6 +3,7 @@
 
 ## Goal
 Plan the chapters of the novel from its outline and metadata.
+Each chapter may carry a Writing Constraint of its own on top of the one in force; leave it empty when the chapter adds none.
 
 ## Novel
 Title: {{ title }}
@@ -10,6 +11,9 @@ Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
 {{#if writing_style}}
 - Writing style: {{ writing_style }}
+{{/if}}
+{{#if writing_constraint}}
+- Writing constraint in force: {{ writing_constraint }}
 {{/if}}
 
 {{#if characters}}
