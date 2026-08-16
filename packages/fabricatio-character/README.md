@@ -55,7 +55,7 @@ progresses. The ten text fields are required and non-empty; `metric` is optional
 | `condition` | `str` | Current physical state — health, energy, injuries, resources |
 | `mood` | `str` | Current emotional state |
 | `goal` | `str` | Immediate objective right now, as opposed to the deeper `want` |
-| `metric` | `dict[str, int \| float]` | Tracked numerical stats (e.g. `{"hp": 80, "reputation": 30}`); empty by default. Diffs merge entries instead of replacing the map |
+| `metric` | `dict[str, int \| float]` | Tracked numerical stats — any measurable quantity, including physical stats like body weight (e.g. `{"hp": 80, "reputation": 30, "weight_kg": 62}`); empty by default. Diffs merge entries instead of replacing the map |
 
 `CharacterCard` inherits:
 - `SketchedAble` — instantiation from natural-language descriptions via LLM

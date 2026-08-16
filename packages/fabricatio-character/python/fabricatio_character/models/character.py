@@ -52,7 +52,9 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     metric: dict[str, int | float] = Field(default_factory=dict)
     """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
 
-    Empty when no stats are tracked; diffs merge entries instead of replacing the map.
+    Any measurable quantity, including physical stats such as body weight or
+    height. Empty when no stats are tracked; diffs merge entries instead of
+    replacing the map.
     """
 
     rendering_template: ClassVar[str] = character_config.render_character_card_template
@@ -120,7 +122,7 @@ class CharacterCardDiff(CharacterCard):
     """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
     metric: dict[str, int | float] | None = None
-    """Numerical stats changed in this step (e.g. ``{"hp": 60}``); entries merge into the card."""
+    """Numerical stats changed in this step (e.g. ``{"hp": 60, "weight_kg": 61}``); entries merge into the card."""
 
     reason: str
     """Reason why the change happen"""
