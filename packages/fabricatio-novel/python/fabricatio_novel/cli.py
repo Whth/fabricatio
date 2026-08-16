@@ -14,22 +14,27 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from fabricatio_core import TEMPLATE_MANAGER, Role
+from fabricatio_core import TEMPLATE_MANAGER, Event, Role, Task
+from fabricatio_core.models.action import WorkFlow
 
 from fabricatio_novel.capabilities.bible import BibleCompose
-from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.series_book import SeriesBible
+from fabricatio_novel.workflows.novel import DebugNovelWorkflow, RagDebugNovelWorkflow
 
 app = typer.Typer(help="A CLI tool to generate novels using AI-driven workflows.")
 bible_app = typer.Typer(help="Create, update, and show the setting bible (设定集).")
 app.add_typer(bible_app, name="bible")
 
 
-class WriterRole(Role, NovelCompose, BibleCompose):
-    """Writer role for base novel generation."""
+def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Optional[Path]:
+    """Dispatch the task through the subscribed workflow and return its output (the EPUB path)."""
+
+    async def _run() -> Optional[Path]:
+        Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), workflow).dispatch()
+        return await task.delegate(namespace)
+
+    return asyncio.run(_run())
 
 
 def _collect_files(patterns: List[str]) -> List[Path]:
@@ -61,31 +66,6 @@ def _resolve_outline(outline: Optional[str], outline_file: Optional[Path]) -> st
         "❌ Provide the outline as a positional argument or via --outline-file.", fg=typer.colors.RED, bold=True
     )
     raise typer.Exit(1)
-
-
-def _compose(ctx: NovelContext, role: NovelCompose, send_to: str) -> Optional[Novel]:
-    return asyncio.run(role.compose_novel(ctx, send_to=send_to))
-
-
-def _persist(
-    novel: Novel,
-    persist_dir: Path,
-    output: Optional[Path] = None,
-    font: Optional[Path] = None,
-    cover: Optional[Path] = None,
-) -> Path:
-    persist_dir.mkdir(parents=True, exist_ok=True)
-    novel.persist(persist_dir)
-    epub_path = persist_dir / output if output else persist_dir / "novel.epub"
-    novel.dump_epub(epub_path, font=font, cover=cover)
-    typer.secho(
-        f"✅ Novel '{novel.title}' generated with {len(novel.chapter)} chapter(s)\n"
-        f"   JSON:  {persist_dir}\n"
-        f"   EPUB:  {epub_path}",
-        fg=typer.colors.GREEN,
-        bold=True,
-    )
-    return epub_path
 
 
 def _load_bible(path: Path) -> SeriesBible:
@@ -229,16 +209,29 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     ),
 ) -> None:
     """Generate a novel from an outline."""
-    ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
-    ctx.set_writing_constraint(constraint or "")
-    if bible is not None:
-        ctx.set_series_bible(_load_bible(bible))
-    role = WriterRole(name="writer")
-    novel = _compose(ctx, role, send_to)
-    if novel is None:
+    if bible is not None and not bible.is_file():
+        typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    task = Task(name="write novel").update_init_context(
+        novel_outline=_resolve_outline(outline, outline_file),
+        novel_language=language,
+        writing_constraint=constraint or "",
+        bible_path=bible,
+        persist_dir=persist_dir,
+        output_path=output,
+        font=font,
+        cover=cover,
+        send_to=send_to,
+    )
+    epub_path = _run_workflow(task, DebugNovelWorkflow, "write")
+    if epub_path is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    _persist(novel, persist_dir, output=output, font=font, cover=cover)
+    typer.secho(
+        f"✅ Novel generated\n   JSON:  {persist_dir}\n   EPUB:  {epub_path}",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
 
 
 @app.command(name="wr")
@@ -282,22 +275,31 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     ),
 ) -> None:
     """Generate a novel with writing style RAG from an outline."""
-    from fabricatio_novel.capabilities.rag import RAGCompose
-
-    class WriterRAGRole(Role, NovelCompose, RAGCompose, BibleCompose):
-        """Writer role with writing style retrieval."""
-
-    ctx = NovelContext.create(_resolve_outline(outline, outline_file), language)
-    ctx.set_writing_constraint(constraint or "")
-    if bible is not None:
-        ctx.set_series_bible(_load_bible(bible))
-    ctx.set_rag_query(rag_query or "").set_rag_limit(retrieve_limit)
-    role = WriterRAGRole(name="writer")
-    novel = _compose(ctx, role, send_to)
-    if novel is None:
+    if bible is not None and not bible.is_file():
+        typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    task = Task(name="write novel with rag").update_init_context(
+        novel_outline=_resolve_outline(outline, outline_file),
+        novel_language=language,
+        writing_constraint=constraint or "",
+        bible_path=bible,
+        rag_query=rag_query or "",
+        rag_limit=retrieve_limit or 15,
+        persist_dir=persist_dir,
+        output_path=output,
+        font=font,
+        cover=cover,
+        send_to=send_to,
+    )
+    epub_path = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
+    if epub_path is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    _persist(novel, persist_dir, output=output, font=font, cover=cover)
+    typer.secho(
+        f"✅ Novel generated\n   JSON:  {persist_dir}\n   EPUB:  {epub_path}",
+        fg=typer.colors.GREEN,
+        bold=True,
+    )
 
 
 @app.command(name="store-refs")
