@@ -1,6 +1,5 @@
 """RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
-import asyncio
 from abc import ABC
 from typing import ClassVar, List, Unpack, cast
 
@@ -39,29 +38,28 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
-        """Prepare every scene concurrently: character chains, then writing style digests.
+        """Interpolate all scene chains, then digest style docs once for the story.
 
-        Scene-scoped retrieval is kept: each scene refines, fetches, reranks,
-        and digests against its own description, but all scenes run in
-        parallel before any scene is written; the router rate-limits the
-        concurrent LLM calls.
+        The base phase interpolates every scene's character chain
+        concurrently. Style references are then retrieved and digested a
+        single time against the story context, and the shared guideline is
+        stored on the story and every scene context for the serial write
+        phase.
         """
         await super().prepare_scenes(ctx, send_to, **kwargs)
         scenes = ctx.scene_context
         if not scenes:
             return
-        logger.debug(f"Gathering scene docs.")
-
-        async def _prep(scene: SceneContext) -> None:
-            docs = await self._fetch_style_docs(scene, **kwargs)
-            if not docs:
-                return
-            digest = await self._digest_style_docs(docs, scene, **kwargs)
-            if digest:
-                scene.set_style_digest(digest)
-                logger.debug(f"Style guideline stored for scene '{scene.title}' ({len(digest)} chars)")
-
-        await asyncio.gather(*[_prep(scene) for scene in scenes])
+        docs = await self._fetch_style_docs(ctx, **kwargs)
+        if not docs:
+            return
+        digest = await self._digest_style_docs(docs, ctx, **kwargs)
+        if not digest:
+            return
+        ctx.set_style_digest(digest)
+        for scene in scenes:
+            scene.set_style_digest(digest)
+        logger.debug(f"Style guideline stored for story '{ctx.title}' ({len(digest)} chars)")
 
     async def prepare_scene_requirement(
         self,
@@ -79,7 +77,7 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     async def _digest_style_docs(
         self,
         docs: List[WritingStyleDocument],
-        ctx: SceneContext,
+        ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> str | None:
         """Condense the raw reference documents into a writing style guideline string."""
@@ -100,23 +98,23 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
 
     async def _fetch_style_docs(
         self,
-        ctx: SceneContext,
+        ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[WritingStyleDocument]:
         question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
-        logger.debug(f"Refining style query for scene '{ctx.title}': {question}")
+        logger.debug(f"Refining style query for story '{ctx.title}': {question}")
         queries = await self.arefined_query(question, **kwargs, k=self.fetch_head)
         if not queries:
             return []
-        logger.debug(f"Refined {len(queries)} search head(s) for scene '{ctx.title}'")
+        logger.debug(f"Refined {len(queries)} search head(s) for story '{ctx.title}'")
 
         config = WritingStyleFetchConfig(limit=ctx.rag_limit)
         docs = await self.afetch_document(queries, config)
         docs = [doc for doc in docs if doc.as_prompt().strip()]
-        logger.debug(f"Fetched {len(docs)} non-blank writing style doc(s) for scene '{ctx.title}'")
+        logger.debug(f"Fetched {len(docs)} non-blank writing style doc(s) for story '{ctx.title}'")
         if docs:
             docs = await self.arank_documents(question, docs, **kwargs)
-            logger.debug(f"Reranked to {len(docs)} writing style doc(s) for scene '{ctx.title}'")
+            logger.debug(f"Reranked to {len(docs)} writing style doc(s) for story '{ctx.title}'")
         docs = docs[: config.limit]
-        logger.info(f"Retrieved {len(docs)} writing style reference(s) for scene '{ctx.title}'")
+        logger.info(f"Retrieved {len(docs)} writing style reference(s) for story '{ctx.title}'")
         return docs

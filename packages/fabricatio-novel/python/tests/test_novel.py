@@ -948,8 +948,8 @@ class TestRAGCompose:
         assert "## Writing Style Guideline" not in requirement
         assert "The hero fights." in requirement
 
-    async def test_prepare_scenes_fetches_and_digests_per_scene(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert every scene retrieves against its own description and stores its own digest."""
+    async def test_prepare_scenes_fetches_and_digests_once_per_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert one story-level retrieval feeds a digest shared by every scene."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
         scene_a = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
@@ -983,18 +983,20 @@ class TestRAGCompose:
 
         await role.prepare_scenes(story)
 
+        assert story.style_digest == "terse action lines"
         assert scene_a.style_digest == "terse action lines"
         assert scene_b.style_digest == "terse action lines"
-        assert refined == ["Leaving home.", "A stranger appears."]
-        assert set(fetched) == {"['Leaving home.']", "['A stranger appears.']"}
-        assert len(digested) == 2
+        assert refined == ["The departure."]
+        assert fetched == ["['The departure.']"]
+        assert len(digested) == 1
+        assert "The departure." in digested[0]
 
     async def test_fetch_style_docs_combines_query_uses_limit_and_reranks(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert _fetch_style_docs joins description and rag_query, applies the per-head limit, and reranks."""
         role = RAGRole(name="rag_role")
-        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        ctx = StoryContext(title="Battle", description="The hero fights.")
         ctx.set_rag_query("中文查询指南").set_rag_limit(7)
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: List[str] = []
@@ -1030,10 +1032,10 @@ class TestRAGCompose:
         assert captured_configs[0].limit == 7
         assert ranked_queries == ["The hero fights.\n中文查询指南"]
 
-    async def test_fetch_style_docs_defaults_to_scene_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert _fetch_style_docs falls back to the scene description as the refine question."""
+    async def test_fetch_style_docs_defaults_to_story_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert _fetch_style_docs falls back to the story description as the refine question."""
         role = RAGRole(name="rag_role")
-        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        ctx = StoryContext(title="Battle", description="The hero fights.")
         captured_queries: List[str] = []
 
         async def fake_refine(question: str, **kwargs: object) -> List[str]:
@@ -1080,7 +1082,7 @@ class TestRAGCompose:
     async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert docs whose prompt renders blank never reach the reranker."""
         role = RAGRole(name="rag_role")
-        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        ctx = StoryContext(title="Battle", description="The hero fights.")
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         blank = WritingStyleDocument.with_text_chunk("   ")
         reranked_queries: List[str] = []
