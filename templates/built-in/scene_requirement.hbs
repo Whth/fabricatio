@@ -1,9 +1,3 @@
-{{ block prefixed_content "Story so far" }}
-
-The story written so far above. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
-
----
-
 # Scene Writing
 
 ## Goal
@@ -17,7 +11,15 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 
 Respond entirely in "{{ language }}".
 
+{{#if prefixed_content}}
+# Previous Content
 
+The story written so far follows. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
+
+{{ block prefixed_content "Story so far" }}
+
+---
+{{/if}}
 {{#if bible_context}}
 {{ bible_context }}
 
