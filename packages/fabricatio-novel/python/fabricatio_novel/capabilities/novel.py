@@ -85,23 +85,17 @@ class NovelCompose(ChapterCompose, ABC):
         ctx.set_charactor_traces([CharacterTrace(start=card) for card in cards if card is not None])
         logger.info(f"Created {len(ctx.character_trace)} character trace(s) from the setting bible")
 
-    async def generate_novel(
+    async def propose_novel_metadata(
         self,
         ctx: NovelContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Novel | None:
-        """Generate the novel by composing its chapters.
+    ) -> bool:
+        """Propose the novel metadata from the outline and adopt it onto the context.
 
-        Proposes novel metadata from the outline, creates the initial
-        character traces, interpolates character states, plans chapters (with
-        word counts allocated by weight) when none are scheduled, broadcasts
-        the settings bible, splits character slices per chapter, and composes
-        each chapter in prefix order. Returns the materialized novel or None
-        when metadata proposal, chapter planning, or any chapter composition
-        fails.
+        Returns:
+            bool: True when the plan was proposed and adopted; False on failure.
         """
-        logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
@@ -110,19 +104,40 @@ class NovelCompose(ChapterCompose, ABC):
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
             logger.error("Novel metadata proposal failed; aborting novel generation")
-            return None
+            return False
         ctx.set_novel_plan(plan).update_from(plan)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
+        return True
+
+    async def prepare_character_traces(
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Create the character traces from the bible roster and interpolate them over the outline."""
         if not ctx.character_trace:
             await self.create_charactor_traces(ctx, **kwargs)
         if ctx.character_trace:
             logger.info(f"Interpolating {len(ctx.character_trace)} character(s) over the novel outline")
         await self.interpolate_characters(ctx, send_to, outline=ctx.outline, **kwargs)
+
+    async def plan_chapters_phase(
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> bool:
+        """Plan chapters when none are scheduled and materialize their contexts.
+
+        Returns:
+            bool: True when the chapters are planned; False on planning failure.
+        """
         if not ctx.chapter_context:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
                 logger.error("Chapter planning failed; aborting novel generation")
-                return None
+                return False
             counts = ctx.allocate([p.weight for p in chapter_plans]) if chapter_plans else []
             for chapter_plan, count in zip(chapter_plans, counts, strict=True):
                 ctx.add_chapter_context(
@@ -135,6 +150,19 @@ class NovelCompose(ChapterCompose, ABC):
                     )
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
+        return True
+
+    async def compose_chapters_phase(
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> bool:
+        """Broadcast the bible, split character slices, and compose every chapter in prefix order.
+
+        Returns:
+            bool: True when every chapter composed; False on any failure.
+        """
         ctx.broadcast_settings_bible()
         await self.split_character_slices(ctx, ctx.chapter_context, send_to, **kwargs)
         total = len(ctx.chapter_context)
@@ -142,13 +170,39 @@ class NovelCompose(ChapterCompose, ABC):
             logger.info(f"Composing chapter {i}/{total} '{chapter_ctx.title}'")
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:
                 logger.error(f"Chapter '{chapter_ctx.title}' failed; aborting novel generation")
-                return None
-        novel = Novel.from_context(ctx)
+                return False
+        return True
 
+    def assemble_novel(self, ctx: NovelContext) -> Novel:
+        """Materialize the composed context tree as a Novel."""
+        novel = Novel.from_context(ctx)
         logger.info(
             f"Novel '{novel.title}' composed ({len(novel.chapter)} chapter(s), word count satisfaction: {novel.satisfy_ratio()}"
         )
         return novel
+
+    async def generate_novel(
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Novel | None:
+        """Generate the novel by composing its chapters.
+
+        Runs the staged phases in order: metadata proposal, character trace
+        creation and interpolation, chapter planning, chapter composition,
+        and novel assembly. Returns the materialized novel or None when any
+        phase fails.
+        """
+        logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
+        if not await self.propose_novel_metadata(ctx, send_to, **kwargs):
+            return None
+        await self.prepare_character_traces(ctx, send_to, **kwargs)
+        if not await self.plan_chapters_phase(ctx, send_to, **kwargs):
+            return None
+        if not await self.compose_chapters_phase(ctx, send_to, **kwargs):
+            return None
+        return self.assemble_novel(ctx)
 
     async def compose_novel(
         self,

@@ -67,27 +67,23 @@ class ChapterCompose(StoryCompose, ABC):
         plans = await self.propose(StoryPlans, requirement, send_to=send_to, **kwargs)
         return plans.root if plans is not None else None
 
-    async def generate_chapter(
+    async def plan_stories_phase(
         self,
         ctx: ChapterContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Chapter | None:
-        """Generate the chapter by composing its stories.
+    ) -> bool:
+        """Interpolate the chapter's characters and plan its stories when none are scheduled.
 
-        Interpolates character states, plans stories (with word counts
-        allocated by weight) when none are scheduled, broadcasts the settings
-        bible, splits character slices per story, and composes each story in
-        prefix order. Returns the materialized chapter or None when planning
-        or any story composition fails.
+        Returns:
+            bool: True when the stories are planned; False on planning failure.
         """
-        logger.debug(f"Generating chapter '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
         if not ctx.story_context:
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
                 logger.error(f"Story planning failed for chapter '{ctx.title}'; aborting chapter generation")
-                return None
+                return False
             counts = ctx.allocate([s.weight for s in story_plans]) if story_plans else []
             for story_plan, count in zip(story_plans, counts, strict=True):
                 ctx.add_story_context(
@@ -100,6 +96,19 @@ class ChapterCompose(StoryCompose, ABC):
                     )
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
+        return True
+
+    async def compose_stories_phase(
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> bool:
+        """Broadcast the bible, split character slices, and compose every story in prefix order.
+
+        Returns:
+            bool: True when every story composed; False on any failure.
+        """
         ctx.broadcast_settings_bible()
         await self.split_character_slices(ctx, ctx.story_context, send_to, **kwargs)
         total = len(ctx.story_context)
@@ -107,7 +116,26 @@ class ChapterCompose(StoryCompose, ABC):
             logger.info(f"Composing story {i}/{total} '{story_ctx.title}'")
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:
                 logger.error(f"Story '{story_ctx.title}' failed; aborting chapter '{ctx.title}'")
-                return None
+                return False
+        return True
+
+    async def generate_chapter(
+        self,
+        ctx: ChapterContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Chapter | None:
+        """Generate the chapter by composing its stories.
+
+        Runs the staged phases in order: story planning, story composition,
+        and chapter assembly. Returns the materialized chapter or None when
+        any phase fails.
+        """
+        logger.debug(f"Generating chapter '{ctx.title}'")
+        if not await self.plan_stories_phase(ctx, send_to, **kwargs):
+            return None
+        if not await self.compose_stories_phase(ctx, send_to, **kwargs):
+            return None
         chapter = Chapter.from_context(ctx)
         logger.info(
             f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}"
