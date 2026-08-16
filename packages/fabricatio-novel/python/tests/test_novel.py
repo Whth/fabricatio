@@ -29,7 +29,18 @@ from fabricatio_novel.models.series_book import SeriesBible
 
 def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
     """Build a default protagonist CharacterCard for tests."""
-    return CharacterCard(name=name, role="protagonist", look=look, act="brave", want="seek truth", flaw="stubborn")
+    return CharacterCard(
+        name=name,
+        role="protagonist",
+        look=look,
+        act="brave",
+        want="seek truth",
+        flaw="stubborn",
+        where="starting village",
+        condition="healthy",
+        mood="determined",
+        goal="reach the capital",
+    )
 
 
 def raw_value(text: str) -> Value[str]:
@@ -190,7 +201,39 @@ class TestCharactorTrace:
         trace = CharacterTrace(start=start)
         assert trace.dump_to_prompt() == (
             "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
+            " | where: starting village | condition: healthy | mood: determined | goal: reach the capital"
         )
+
+    def test_state_diffs_fold_into_end_and_render_on_the_prompt(self) -> None:
+        """Assert current-state fields appear on the identity line and state diffs fold."""
+        start = card()
+        trace = CharacterTrace(
+            start=start,
+            interpolates=[
+                CharacterCardDiff(
+                    where="enemy palace wine cellar",
+                    condition="feverish, limping",
+                    mood="smoldering fury",
+                    goal="steal the seal before dawn",
+                    reason="captured and drugged",
+                ),
+            ],
+        )
+        prompt = trace.dump_to_prompt()
+        lines = prompt.splitlines()
+        assert "where: starting village" in lines[0]
+        assert "mood: determined" in lines[0]
+        assert (
+            "1. where: starting village → enemy palace wine cellar; "
+            "condition: healthy → feverish, limping; "
+            "mood: determined → smoldering fury; "
+            "goal: reach the capital → steal the seal before dawn; "
+            "reason: captured and drugged"
+        ) in lines[1]
+        assert trace.end.where == "enemy palace wine cellar"
+        assert trace.end.condition == "feverish, limping"
+        assert trace.end.mood == "smoldering fury"
+        assert trace.end.goal == "steal the seal before dawn"
 
 
 class TestFromContext:

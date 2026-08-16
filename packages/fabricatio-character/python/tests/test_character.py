@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.config import CharacterConfig, character_config
-from fabricatio_character.models.character import CharacterCard
+from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_character.utils import dump_card
 from fabricatio_mock.models.mock_role import ProposeTestRole
 
@@ -56,6 +56,10 @@ class TestCharacterCard:
             act="Calm and analytical",
             want="To find the truth",
             flaw="Overthinks everything",
+            where="In a rainy alley, tailing a suspect",
+            condition="Healthy but damp",
+            mood="Focused",
+            goal="Catch the witness before dawn",
         )
 
     def test_card_creation(self, card: CharacterCard) -> None:
@@ -66,6 +70,10 @@ class TestCharacterCard:
         assert card.act == "Calm and analytical"
         assert card.want == "To find the truth"
         assert card.flaw == "Overthinks everything"
+        assert card.where == "In a rainy alley, tailing a suspect"
+        assert card.condition == "Healthy but damp"
+        assert card.mood == "Focused"
+        assert card.goal == "Catch the witness before dawn"
 
     def test_card_model_dump(self, card: CharacterCard) -> None:
         """Test model_dump returns all fields."""
@@ -76,18 +84,60 @@ class TestCharacterCard:
         assert data["act"] == "Calm and analytical"
         assert data["want"] == "To find the truth"
         assert data["flaw"] == "Overthinks everything"
+        assert data["where"] == "In a rainy alley, tailing a suspect"
+        assert data["condition"] == "Healthy but damp"
+        assert data["mood"] == "Focused"
+        assert data["goal"] == "Catch the witness before dawn"
 
     def test_card_as_prompt(self, card: CharacterCard) -> None:
         """Test as_prompt generates a string containing card data."""
         result = card.as_prompt()
         assert isinstance(result, str)
         assert "Alice" in result
+        assert "## Where" in result
+        assert "## Condition" in result
+        assert "## Mood" in result
+        assert "## Goal (immediate)" in result
+        assert "## Want (core motivation)" in result
 
     def test_card_has_all_fields(self) -> None:
         """Test that CharacterCard has all expected fields."""
         fields = CharacterCard.model_fields
-        expected = {"name", "role", "look", "act", "want", "flaw"}
+        expected = {
+            "name",
+            "role",
+            "look",
+            "act",
+            "want",
+            "flaw",
+            "where",
+            "condition",
+            "mood",
+            "goal",
+        }
         assert expected.issubset(set(fields.keys()))
+
+    def test_state_fields_roundtrip_through_diff(self, card: CharacterCard) -> None:
+        """State fields fold through a CharacterCardDiff; only the changed fields move."""
+        updated = card.apply(
+            CharacterCardDiff(
+                where="In the enemy palace's wine cellar",
+                condition="Feverish, limping",
+                mood="Smoldering fury",
+                goal="Steal the seal before dawn",
+                reason="Captured and drugged in chapter 4",
+            )
+        )
+        assert updated.name == card.name
+        assert updated.role == card.role
+        assert updated.look == card.look
+        assert updated.act == card.act
+        assert updated.want == card.want
+        assert updated.flaw == card.flaw
+        assert updated.where == "In the enemy palace's wine cellar"
+        assert updated.condition == "Feverish, limping"
+        assert updated.mood == "Smoldering fury"
+        assert updated.goal == "Steal the seal before dawn"
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +157,10 @@ class TestDumpCard:
             act="Loyal",
             want="Adventure",
             flaw="Naive",
+            where="Downtown",
+            condition="Fine",
+            mood="Eager",
+            goal="Join the crew",
         )
         result = dump_card(card)
         assert isinstance(result, str)
@@ -122,6 +176,10 @@ class TestDumpCard:
                 act="Act",
                 want="Want",
                 flaw="Flaw",
+                where="Where",
+                condition="Condition",
+                mood="Mood",
+                goal="Goal",
             )
             for i in range(3)
         ]
@@ -133,8 +191,12 @@ class TestDumpCard:
     def test_dump_cards_joined_by_newline(self) -> None:
         """Test that multiple cards are joined by newlines."""
         cards = [
-            CharacterCard(name="A", role="R", look="L", act="A", want="W", flaw="F"),
-            CharacterCard(name="B", role="R", look="L", act="A", want="W", flaw="F"),
+            CharacterCard(
+                name="A", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M", goal="G"
+            ),
+            CharacterCard(
+                name="B", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M", goal="G"
+            ),
         ]
         result = dump_card(*cards)
         assert "\n" in result
@@ -167,6 +229,10 @@ class TestCharacterCompose:
             act="Brave",
             want="Justice",
             flaw="Stubborn",
+            where="Arena",
+            condition="Rested",
+            mood="Resolute",
+            goal="Win the trial",
         )
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_card):
             result = await role.compose_characters("Create a warrior character")
@@ -177,8 +243,30 @@ class TestCharacterCompose:
     async def test_compose_characters_list(self, role: CharacterRole) -> None:
         """Test compose_characters with a list of requirements."""
         mock_cards = [
-            CharacterCard(name="Hero", role="Warrior", look="Strong", act="Brave", want="Justice", flaw="Stubborn"),
-            CharacterCard(name="Mage", role="Wizard", look="Wise", act="Calm", want="Knowledge", flaw="Arrogant"),
+            CharacterCard(
+                name="Hero",
+                role="Warrior",
+                look="Strong",
+                act="Brave",
+                want="Justice",
+                flaw="Stubborn",
+                where="Arena",
+                condition="Rested",
+                mood="Resolute",
+                goal="Win the trial",
+            ),
+            CharacterCard(
+                name="Mage",
+                role="Wizard",
+                look="Wise",
+                act="Calm",
+                want="Knowledge",
+                flaw="Arrogant",
+                where="Library",
+                condition="Fine",
+                mood="Curious",
+                goal="Find the grimoire",
+            ),
         ]
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_cards):
             result = await role.compose_characters(["warrior", "wizard"])

@@ -29,7 +29,7 @@ pip install fabricatio[full]
 
 ## Overview
 
-`fabricatio-character` provides a `CharacterCard` model capturing a character's name, role, appearance, behavior, motivation, and flaw — six required fields that together define a complete narrative persona. The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
+`fabricatio-character` provides a `CharacterCard` model capturing a character as they currently are: stable identity (name, role, motivation) plus the mutable state of the moment (appearance, behavior, vulnerability, location, physical condition, mood, immediate goal) — ten required fields that together define a complete narrative persona and its present situation. The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
 
 Generated cards are renderable through the Fabricatio template system (`as_prompt()`) and persistable (`PersistentAble`) for checkpoint/restore workflows.
 
@@ -39,16 +39,22 @@ Generated cards are renderable through the Fabricatio template system (`as_promp
 
 ### `CharacterCard`
 
-A structured character profile. All six fields are required and non-empty.
+A character as they currently are. The identity fields (`name`, `role`, `want`) change
+slowly; the state fields describe how the character is right now and evolve as the story
+progresses. All ten fields are required and non-empty.
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | `str` | Identifying name, alias, or title |
-| `role` | `str` | Narrative or functional role within the story |
-| `look` | `str` | Visual appearance — clothing, physique, distinguishing features |
-| `act` | `str` | Typical behaviors, mannerisms, speech patterns, stress reactions |
-| `want` | `str` | Core motivation or deepest goal driving the character's actions |
-| `flaw` | `str` | Critical weakness, moral failing, or psychological vulnerability |
+| `role` | `str` | Current narrative or functional role within the story |
+| `look` | `str` | Current appearance — clothing, physique, distinguishing features, wounds, disguise |
+| `act` | `str` | Current behaviors, mannerisms, speech patterns, stress reactions |
+| `want` | `str` | Core motivation or deepest goal driving the character's actions (slow-changing) |
+| `flaw` | `str` | Current weakness, moral failing, or psychological vulnerability |
+| `where` | `str` | Current location and immediate situation |
+| `condition` | `str` | Current physical state — health, energy, injuries, resources |
+| `mood` | `str` | Current emotional state |
+| `goal` | `str` | Immediate objective right now, as opposed to the deeper `want` |
 
 `CharacterCard` inherits:
 - `SketchedAble` — instantiation from natural-language descriptions via LLM

@@ -176,7 +176,18 @@ class TestMentalState:
 
     def test_from_card_sets_name(self) -> None:
         """from_card populates name and uses default personality values."""
-        card = CharacterCard(name="Hero", role="protagonist", look="tall", act="brave", want="love", flaw="anxious")
+        card = CharacterCard(
+            name="Hero",
+            role="protagonist",
+            look="tall",
+            act="brave",
+            want="love",
+            flaw="anxious",
+            where="home",
+            condition="healthy",
+            mood="hopeful",
+            goal="win the trial",
+        )
         state = MentalState.from_card(card)
         assert state.mind.character_name == "Hero"
         assert state.needs.current_level == MaslowLevel.PHYSIOLOGICAL  # default

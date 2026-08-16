@@ -9,29 +9,43 @@ from fabricatio_character.config import character_config
 
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
-    """A structured character profile for storytelling, role-playing, or AI narrative generation.
+    """A character as they currently are: a stable identity plus the mutable state of the moment.
 
-    Each field captures a core dimension of the character to ensure consistent and vivid portrayal.
-    All fields are required and must contain at least one character.
+    The identity fields (``name``, ``role``, ``want``) change slowly; the state fields
+    (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``, ``goal``) describe
+    how the character is right now and evolve as the story progresses. All fields are
+    required and non-empty.
     """
 
     name: str
     """The character's identifying name (can be real name, alias, or title)."""
 
     role: str
-    """The character’s narrative or functional role within the story."""
+    """The character's current narrative or functional role within the story."""
 
     look: str
-    """Visual appearance including clothing, physique, distinguishing features, and style."""
+    """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
 
     act: str
-    """Typical behaviors, mannerisms, speech patterns, or reactions under stress."""
+    """How the character currently behaves: mannerisms, speech patterns, reactions under stress."""
 
     want: str
-    """The character’s core motivation or deepest goal driving their actions."""
+    """The character's core motivation or deepest goal driving their actions (slow-changing)."""
 
     flaw: str
-    """Critical weakness, moral failing, or psychological vulnerability that creates conflict."""
+    """The character's current vulnerability: weakness, moral failing, or psychological pressure."""
+
+    where: str
+    """Where the character currently is and what surrounds them: location and immediate situation."""
+
+    condition: str
+    """The character's current physical state: health, energy, injuries, resources."""
+
+    mood: str
+    """The character's current emotional state."""
+
+    goal: str
+    """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
     rendering_template: ClassVar[str] = character_config.render_character_card_template
 
@@ -59,19 +73,31 @@ class CharacterCardDiff(CharacterCard):
     """The character's identifying name (can be real name, alias, or title)."""
 
     role: str | None = None
-    """The character's narrative or functional role within the story."""
+    """The character's current narrative or functional role within the story."""
 
     look: str | None = None
-    """Visual appearance including clothing, physique, distinguishing features, and style."""
+    """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
 
     act: str | None = None
-    """Typical behaviors, mannerisms, speech patterns, or reactions under stress."""
+    """How the character currently behaves: mannerisms, speech patterns, reactions under stress."""
 
     want: str | None = None
-    """The character's core motivation or deepest goal driving their actions."""
+    """The character's core motivation or deepest goal driving their actions (slow-changing)."""
 
     flaw: str | None = None
-    """Critical weakness, moral failing, or psychological vulnerability that creates conflict."""
+    """The character's current vulnerability: weakness, moral failing, or psychological pressure."""
+
+    where: str | None = None
+    """Where the character currently is and what surrounds them: location and immediate situation."""
+
+    condition: str | None = None
+    """The character's current physical state: health, energy, injuries, resources."""
+
+    mood: str | None = None
+    """The character's current emotional state."""
+
+    goal: str | None = None
+    """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
     reason: str
     """Reason why the change happen"""

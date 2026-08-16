@@ -72,6 +72,7 @@ class CharacterTrace(SketchedAble):
         card = self.start
         lines = [
             f"{card.name} — {card.role}. look: {card.look} | act: {card.act} | want: {card.want} | flaw: {card.flaw}"
+            f" | where: {card.where} | condition: {card.condition} | mood: {card.mood} | goal: {card.goal}"
         ]
         for index, diff in enumerate(self.interpolates, start=1):
             changes = diff.model_dump(exclude_none=True, exclude={"reason"})

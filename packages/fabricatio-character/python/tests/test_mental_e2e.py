@@ -41,6 +41,10 @@ def _make_hamlet() -> CharacterCard:
         act="Indecisive, philosophical, prone to soliloquies, oscillates between action and contemplation",
         want="To avenge his father's murder while reconciling his moral conscience with the duty of revenge",
         flaw="Paralyzing indecision rooted in over-intellectualization; tendency toward catastrophizing and existential despair",
+        where="Elsinore Castle, the great hall, his uncle's court watching",
+        condition="Haggard from sleepless nights, mourning clothes still black",
+        mood="Melancholic, brooding, coiled anger beneath the surface",
+        goal="Confirm Claudius's guilt before committing to revenge",
     )
 
 
@@ -52,6 +56,10 @@ def _make_daiyu() -> CharacterCard:
         act="Poetic, sharp-tongued, deeply sensitive, prone to weeping",
         want="To be loved unconditionally by Jia Baoyu and to find belonging in the Jia household",
         flaw="Extreme sensitivity and jealousy; interprets ambiguity as rejection; emotional reasoning dominates",
+        where="The Grand View Garden, Bamboo Lodge, evening rain on the window",
+        condition="Frail, recurring cough, thin and easily exhausted",
+        mood="Lonely, wistful, on the verge of tears",
+        goal="Keep Baoyu's heart without appearing to scheme for it",
     )
 
 
