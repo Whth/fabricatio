@@ -61,6 +61,7 @@ class StoryCompose(SceneCompose, ABC):
                 "writing_constraint": ctx.writing_constraint,
                 "language": ctx.language,
                 "characters": ctx.dump_charactors(),
+                "style_docs": "\n\n".join(doc.as_prompt() for doc in ctx.style_docs),
             },
         )
         plans = await self.propose(ScenePlans, requirement, send_to=send_to, **kwargs)
@@ -74,14 +75,16 @@ class StoryCompose(SceneCompose, ABC):
     ) -> Story | None:
         """Generate the story by composing its scenes.
 
-        Interpolates character states, plans scenes (with word counts
-        allocated by weight) when none are scheduled, broadcasts the settings
-        bible, splits character slices per scene, and composes each scene in
-        prefix order. Returns the materialized story or None when planning
-        or any scene composition fails.
+        Interpolates character states, retrieves story-scoped references,
+        plans scenes (with word counts allocated by weight) when none are
+        scheduled, broadcasts the settings bible, splits character slices
+        per scene, and composes each scene in prefix order. Returns the
+        materialized story or None when planning or any scene composition
+        fails.
         """
         logger.debug(f"Generating story '{ctx.title}'")
         await self.interpolate_characters(ctx, send_to, **kwargs)
+        await self.prepare_story(ctx, send_to, **kwargs)
         if not ctx.scene_context:
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
             if scene_plans is None:

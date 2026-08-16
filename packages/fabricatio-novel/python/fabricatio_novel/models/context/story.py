@@ -9,6 +9,7 @@ from fabricatio_novel.models.context.base import ContextBase
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
+from fabricatio_novel.models.rag import WritingStyleDocument
 
 
 class StoryContext(RAGChannel, Titled, Described, ContextBase):
@@ -18,6 +19,9 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
     """The story's own plan; proposed before the scene contexts are created."""
 
     scene_context: list[SceneContext] = Field(default_factory=list)
+
+    style_docs: list[WritingStyleDocument] = Field(default_factory=list)
+    """Writing style reference documents retrieved for this story; held to inform scene planning."""
 
     @classmethod
     def from_plan(cls, plan: StoryPlan, expected_word_count: int) -> Self:
@@ -62,4 +66,9 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
     def add_scene_context(self, scene: SceneContext) -> Self:
         """Append a scene context to the story and return self."""
         self.scene_context.append(scene)
+        return self
+
+    def set_style_docs(self, docs: list[WritingStyleDocument]) -> Self:
+        """Set the retrieved writing style references and return self."""
+        self.style_docs = docs
         return self

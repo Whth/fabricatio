@@ -193,6 +193,18 @@ class SceneCompose(CharacterCompose, ABC):
                 child.add_charactor_trace(CharacterTrace(start=trace.start, interpolates=slice_))
         logger.debug(f"Assigned {assigned} character chain slice(s) across {len(children)} child(ren)")
 
+    async def prepare_story(
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Prepare the story before its scenes are planned.
+
+        Identity hook; retrieval capabilities (e.g. RAG) override it to
+        gather style references held on the story context for planning.
+        """
+
     async def prepare_scenes(
         self,
         ctx: StoryContext,

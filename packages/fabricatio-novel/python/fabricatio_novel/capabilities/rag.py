@@ -32,28 +32,45 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     """Number of search heads (sub-queries) requested for each question."""
 
     @logging_exec_time
+    async def prepare_story(
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Retrieve writing style references for the story before its scenes are planned.
+
+        The documents are held on the story context so scene planning can
+        align with them; :meth:`prepare_scenes` condenses the same documents
+        into the per-scene writing guideline.
+        """
+        await super().prepare_story(ctx, send_to, **kwargs)
+        docs = await self._fetch_style_docs(ctx, **kwargs)
+        if not docs:
+            return
+        ctx.set_style_docs(docs)
+        logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")
+
+    @logging_exec_time
     async def prepare_scenes(
         self,
         ctx: StoryContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
-        """Interpolate all scene chains, then digest style docs once for the story.
+        """Interpolate all scene chains, then digest the story's held style docs once.
 
         The base phase interpolates every scene's character chain
-        concurrently. Style references are then retrieved and digested a
-        single time against the story context, and the shared guideline is
-        stored on the story and every scene context for the serial write
-        phase.
+        concurrently. The style references retrieved by :meth:`prepare_story`
+        are then digested a single time against the story context, and the
+        shared guideline is stored on the story and every scene context for
+        the serial write phase.
         """
         await super().prepare_scenes(ctx, send_to, **kwargs)
         scenes = ctx.scene_context
-        if not scenes:
+        if not scenes or not ctx.style_docs:
             return
-        docs = await self._fetch_style_docs(ctx, **kwargs)
-        if not docs:
-            return
-        digest = await self._digest_style_docs(docs, ctx, **kwargs)
+        digest = await self._digest_style_docs(ctx.style_docs, ctx, **kwargs)
         if not digest:
             return
         ctx.set_style_digest(digest)
