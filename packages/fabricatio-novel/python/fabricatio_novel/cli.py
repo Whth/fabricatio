@@ -252,7 +252,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         None,
         "--rag-query",
         "-rq",
-        help="Custom query guideline for writing style retrieval; defaults to per-scene descriptions.",
+        help="Custom query guideline for writing style retrieval; defaults to the story description.",
     ),
     retrieve_limit: int = typer.Option(
         0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15)."

@@ -7,7 +7,7 @@ class RAGChannel:
     """Caller-owned RAG retrieval settings, propagated to every scene context."""
 
     rag_query: str = ""
-    """Additional query guideline for style retrieval; combined with the scene description."""
+    """Additional query guideline for style retrieval; combined with the story description."""
 
     rag_limit: int = 15
     """Final reference documents kept after reranking.
