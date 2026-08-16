@@ -108,10 +108,12 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
                 "writing_style": ctx.writing_style,
             },
         )
-        return cast(
+        digest = cast(
             "str | None",
             await self.ageneric_string(prompt, **kwargs),
         )
+        logger.debug(f"Digested {len(docs)} style reference(s) for story '{ctx.title}':\n{digest}")
+        return digest
 
     async def _fetch_style_docs(
         self,
