@@ -1,12 +1,14 @@
 """RAG-extended scene composition: retrieve writing style references and digest them into a guideline."""
 
+import asyncio
 from abc import ABC
 from typing import ClassVar, List, Unpack, cast
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import detect_language
-from fabricatio_core.utils import cfg, execute_time
+from fabricatio_core.rust import TASK, detect_language
+from fabricatio_core.utils import cfg
 
 cfg(["lancedb"])
 
@@ -15,6 +17,7 @@ from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, Lancedb
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
+from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 
 
@@ -29,22 +32,50 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     fetch_head: ClassVar[int] = 6
     """Number of search heads (sub-queries) requested for each question."""
 
+    @logging_exec_time
+    async def prepare_scenes(
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Prepare every scene concurrently: character chains, then writing style digests.
+
+        Scene-scoped retrieval is kept: each scene refines, fetches, reranks,
+        and digests against its own description, but all scenes run in
+        parallel before any scene is written; the router rate-limits the
+        concurrent LLM calls.
+        """
+        await super().prepare_scenes(ctx, send_to, **kwargs)
+        scenes = ctx.scene_context
+        if not scenes:
+            return
+        logger.debug(f"Gathering scene docs.")
+
+        async def _prep(scene: SceneContext) -> None:
+            docs = await self._fetch_style_docs(scene, **kwargs)
+            if not docs:
+                return
+            digest = await self._digest_style_docs(docs, scene, **kwargs)
+            if digest:
+                scene.set_style_digest(digest)
+                logger.debug(f"Style guideline stored for scene '{scene.title}' ({len(digest)} chars)")
+
+        await asyncio.gather(*[_prep(scene) for scene in scenes])
+
     async def prepare_scene_requirement(
         self,
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
-        """Render the scene requirement and append a writing style guideline from retrieved references."""
+        """Render the scene requirement and append the story-prepared writing style guideline."""
         requirement = await super().prepare_scene_requirement(ctx, **kwargs)
-        docs = await self._fetch_style_docs(ctx, **kwargs)
-        if docs:
-            digest = await self._digest_style_docs(docs, ctx, **kwargs)
-            if digest:
-                requirement += "\n\n## Writing Style Guideline\n" + digest
-                logger.debug(f"Style guideline appended to scene '{ctx.title}' requirement ({len(digest)} chars)")
+        if ctx.style_digest:
+            requirement += "\n\n## Writing Style Guideline\n" + ctx.style_digest
+            logger.debug(f"Style guideline appended to scene '{ctx.title}' requirement ({len(ctx.style_digest)} chars)")
         return requirement
 
-    @execute_time
+    @logging_exec_time
     async def _digest_style_docs(
         self,
         docs: List[WritingStyleDocument],

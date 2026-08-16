@@ -1,5 +1,6 @@
 """Scene composition capabilities: rendering requirements and generating scene content."""
 
+import asyncio
 from abc import ABC
 from typing import Sequence, Unpack
 
@@ -8,9 +9,11 @@ from fabricatio_character.models.character import CharacterCardDiffs, CharacterC
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, detect_language, word_count
+
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
+from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.scene import Scene
 
 
@@ -80,12 +83,12 @@ class SceneCompose(CharacterCompose, ABC):
     ) -> Scene | None:
         """Generate the scene content via the LLM.
 
-        Interpolates character states, renders the scene requirement, asks
-        the LLM for the scene text, sets the expected word count, and stores
-        the content on the context. Returns the generated scene.
+        Renders the scene requirement, asks the LLM for the scene text, sets
+        the expected word count, and stores the content on the context.
+        Returns the generated scene. Character chains are interpolated
+        concurrently for all scenes by :meth:`prepare_scenes` beforehand.
         """
         logger.debug(f"Generating scene '{ctx.title}'")
-        await self.interpolate_characters(ctx, send_to, **kwargs)
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
         scene = Scene(
@@ -189,6 +192,27 @@ class SceneCompose(CharacterCompose, ABC):
             for child, slice_ in zip(children, per_child.root, strict=False):
                 child.add_charactor_trace(CharacterTrace(start=trace.start, interpolates=slice_))
         logger.debug(f"Assigned {assigned} character chain slice(s) across {len(children)} child(ren)")
+
+    async def prepare_scenes(
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Concurrently interpolate every scene's character chain before the story is written.
+
+        Runs after scene planning and chain slicing; each scene extends its
+        own allocated slice. Subclasses (e.g. RAG) may extend this to prepare
+        additional per-scene state concurrently.
+        """
+        scenes = ctx.scene_context
+        if not scenes:
+            return
+
+        async def _prep(scene: SceneContext) -> None:
+            await self.interpolate_characters(scene, send_to, **kwargs)
+
+        await asyncio.gather(*[_prep(scene) for scene in scenes])
 
     async def compose_scene(
         self,

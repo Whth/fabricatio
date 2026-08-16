@@ -8,12 +8,11 @@ from fabricatio_character.models.character import CharacterCard, CharacterCardDi
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
-    return_json_router_usage,
     return_mixed_router_usage,
     return_model_json_router_usage,
     return_router_usage,
 )
-from fabricatio_mock.utils import code_block, generic_block, install_router_usage
+from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.models.context.base import CharacterTrace
@@ -378,11 +377,13 @@ class TestNovelCompose:
         assert ctx.content == "He walked out."
 
     async def test_compose_scene_evolves_charactor_trace(self) -> None:
-        """Assert compose_scene applies the proposed diff to the scene's character trace."""
+        """Assert scene preparation applies the proposed diff to the scene's character trace."""
         role = NovelRole(name="novel_role")
+        story = StoryContext(title="St1", description="The departure.")
         trace = CharacterTrace(start=card())
         ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         ctx.character_trace.append(trace)
+        story.scene_context.append(ctx)
         expected_diff = CharacterCardDiff(look="scarred", reason="took a blade")
         with install_router_usage(
             *return_mixed_router_usage(
@@ -390,6 +391,7 @@ class TestNovelCompose:
                 raw_value("He fought."),
             )
         ):
+            await role.prepare_scenes(story)
             scene = await role.compose_scene(ctx)
         assert scene is not None
         assert trace.interpolates == [expected_diff]
@@ -877,45 +879,27 @@ class RAGRole(LLMTestRole, NovelCompose, RAGCompose):
 class TestRAGCompose:
     """Test suite for writing style RAG scene prompts."""
 
-    async def test_prepare_scene_requirement_injects_style_digest(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert the RAG digest renders as a Writing Style Guideline with no raw reference section."""
+    async def test_prepare_scene_requirement_injects_style_digest(self) -> None:
+        """Assert a stored style digest renders as a Writing Style Guideline with no raw reference section."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
-        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")
+        ctx.set_style_digest("Use dark gothic prose with terse action lines.")
 
-        async def fake_fetch(query: str, config: object | None = None) -> List[WritingStyleDocument]:
-            return [doc]
-
-        async def fake_rank(
-            query: str, documents: List[WritingStyleDocument], **kwargs: object
-        ) -> List[WritingStyleDocument]:
-            return documents
-
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
-        with install_router_usage(
-            *return_router_usage(
-                code_block(
-                    '["hero fights dragon", "dragon weaknesses", "battle choreography", "dark gothic prose", "terse action lines", "victory conditions"]'
-                ),
-                generic_block("Use dark gothic prose with terse action lines.", "String"),
-            )
-        ):
-            requirement = await role.prepare_scene_requirement(ctx)
+        requirement = await role.prepare_scene_requirement(ctx)
 
         assert "## Writing Style Guideline" in requirement
         assert "Use dark gothic prose with terse action lines." in requirement
         assert "## Writing Style References" not in requirement
 
-    async def test_prepare_scene_requirement_skips_digest_when_digest_fails(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Assert a failed style digest leaves the scene requirement unchanged."""
+    async def test_prepare_scenes_skips_digest_when_digest_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert a failed style digest leaves the scene without a stored guideline."""
         role = RAGRole(name="rag_role")
-        ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
+        story = StoryContext(title="St1", description="The departure.")
+        scene = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
+        story.scene_context.append(scene)
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")
 
-        async def fake_fetch(query: str, config: object | None = None) -> List[WritingStyleDocument]:
+        async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:
             return [doc]
 
         async def fake_rank(
@@ -926,29 +910,84 @@ class TestRAGCompose:
         async def fake_digest(prompt: str, **kwargs: object) -> str | None:
             return None
 
+        async def fake_refine(question: str, **kwargs: object) -> List[str]:
+            return ["q"]
+
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
         monkeypatch.setattr(RAGRole, "ageneric_string", staticmethod(fake_digest))
-        with install_router_usage(*return_json_router_usage('["hero fights dragon"]')):
-            requirement = await role.prepare_scene_requirement(ctx)
 
+        await role.prepare_scenes(story)
+
+        assert scene.style_digest == ""
+        requirement = await role.prepare_scene_requirement(scene)
         assert "## Writing Style Guideline" not in requirement
         assert "The hero fights the dragon." in requirement
 
-    async def test_prepare_scene_requirement_without_docs_keeps_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert empty fetched docs leave the base scene requirement unchanged."""
+    async def test_prepare_scenes_without_docs_keeps_requirement_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert empty fetched docs leave scenes without a stored guideline."""
         role = RAGRole(name="rag_role")
-        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        story = StoryContext(title="St1", description="The departure.")
+        scene = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        story.scene_context.append(scene)
 
-        async def fake_fetch(query: str, config: object | None = None) -> List[WritingStyleDocument]:
+        async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:
             return []
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        with install_router_usage(*return_json_router_usage('["hero fights"]')):
-            requirement = await role.prepare_scene_requirement(ctx)
+        async def fake_refine(question: str, **kwargs: object) -> List[str]:
+            return ["q"]
 
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+
+        await role.prepare_scenes(story)
+
+        assert scene.style_digest == ""
+        requirement = await role.prepare_scene_requirement(scene)
         assert "## Writing Style Guideline" not in requirement
         assert "The hero fights." in requirement
+
+    async def test_prepare_scenes_fetches_and_digests_per_scene(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert every scene retrieves against its own description and stores its own digest."""
+        role = RAGRole(name="rag_role")
+        story = StoryContext(title="St1", description="The departure.")
+        scene_a = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        scene_b = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        story.scene_context.extend([scene_a, scene_b])
+        refined: List[str] = []
+        fetched: List[str] = []
+        digested: List[str] = []
+
+        async def fake_refine(question: str, **kwargs: object) -> List[str]:
+            refined.append(question)
+            return [question]
+
+        async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:
+            fetched.append(str(query))
+            return [WritingStyleDocument.with_text_chunk("Dark gothic prose.")]
+
+        async def fake_digest(prompt: str, **kwargs: object) -> str:
+            digested.append(prompt)
+            return "terse action lines"
+
+        async def fake_rank(
+            query: str, documents: List[WritingStyleDocument], **kwargs: object
+        ) -> List[WritingStyleDocument]:
+            return documents
+
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arank_documents", staticmethod(fake_rank))
+        monkeypatch.setattr(RAGRole, "ageneric_string", staticmethod(fake_digest))
+
+        await role.prepare_scenes(story)
+
+        assert scene_a.style_digest == "terse action lines"
+        assert scene_b.style_digest == "terse action lines"
+        assert refined == ["Leaving home.", "A stranger appears."]
+        assert set(fetched) == {"['Leaving home.']", "['A stranger appears.']"}
+        assert len(digested) == 2
 
     async def test_fetch_style_docs_combines_query_uses_limit_and_reranks(
         self, monkeypatch: pytest.MonkeyPatch

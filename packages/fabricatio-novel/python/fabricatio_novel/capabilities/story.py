@@ -6,6 +6,7 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import merge_writing_constraints
@@ -19,17 +20,17 @@ class StoryCompose(SceneCompose, ABC):
     """This class contains the capabilities for the story."""
 
     async def before_compose_story(
-            self,
-            ctx: StoryContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: StoryContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> StoryContext:
         """Identity hook invoked before composing a story; may mutate the context."""
         return ctx
 
     async def after_compose_story(
-            self,
-            ctx: StoryContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: StoryContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> StoryContext:
         """Identity hook invoked after generating a story; may mutate the context."""
         return ctx
@@ -39,10 +40,10 @@ class StoryCompose(SceneCompose, ABC):
         return story
 
     async def plan_scenes(
-            self,
-            ctx: StoryContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[ScenePlan] | None:
         """Propose scene plans for the story via the LLM.
 
@@ -66,10 +67,10 @@ class StoryCompose(SceneCompose, ABC):
         return plans.root if plans is not None else None
 
     async def generate_story(
-            self,
-            ctx: StoryContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
         """Generate the story by composing its scenes.
 
@@ -100,6 +101,7 @@ class StoryCompose(SceneCompose, ABC):
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         ctx.broadcast_settings_bible()
         await self.split_character_slices(ctx, ctx.scene_context, send_to, **kwargs)
+        await self.prepare_scenes(ctx, send_to, **kwargs)
         total = len(ctx.scene_context)
         for i, scene_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing scene {i}/{total} '{scene_ctx.title}'")
@@ -113,10 +115,10 @@ class StoryCompose(SceneCompose, ABC):
         return story
 
     async def compose_story(
-            self,
-            ctx: StoryContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: StoryContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
         """Compose a story end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_story(ctx, **kwargs)

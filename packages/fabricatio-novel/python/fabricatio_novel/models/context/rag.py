@@ -15,6 +15,9 @@ class RAGChannel:
     Fetching retrieves this limit of documents for each refined query (head).
     """
 
+    style_digest: str = ""
+    """Prepared writing style guideline for this element, stored by the story-level prep phase."""
+
     def set_rag_query(self, query: str) -> Self:
         """Set the additional retrieval query guideline."""
         self.rag_query = query
@@ -23,4 +26,9 @@ class RAGChannel:
     def set_rag_limit(self, limit: int) -> Self:
         """Set the final reference documents kept after reranking."""
         self.rag_limit = limit
+        return self
+
+    def set_style_digest(self, digest: str) -> Self:
+        """Set the prepared writing style guideline and return self."""
+        self.style_digest = digest
         return self

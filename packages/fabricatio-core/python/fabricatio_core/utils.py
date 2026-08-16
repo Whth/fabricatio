@@ -1,12 +1,8 @@
 """A collection of utility functions for the fabricatio package."""
 
-import inspect
 from enum import IntEnum, StrEnum
-from functools import wraps
-from time import perf_counter
 from typing import (
     Any,
-    Callable,
     Dict,
     Generator,
     Iterable,
@@ -20,34 +16,8 @@ from typing import (
     overload,
 )
 
-from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import extras_satisfied
-
-
-def execute_time[F: Callable](func: F) -> F:
-    """Log the execution time of a sync or async callable at debug level."""
-    if inspect.iscoroutinefunction(func):
-
-        @wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            start = perf_counter()
-            try:
-                return await func(*args, **kwargs)
-            finally:
-                logger.debug(f"{func.__name__} took {perf_counter() - start:.3f}s")
-
-        return cast(F, async_wrapper)
-
-    @wraps(func)
-    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-        start = perf_counter()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            logger.debug(f"{func.__name__} took {perf_counter() - start:.3f}s")
-
-    return cast(F, sync_wrapper)
 
 
 @overload
