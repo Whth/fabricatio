@@ -3,6 +3,7 @@
 ## Goal
 Plan the stories of the chapter from its plan.
 Each story may carry a Writing Constraint of its own on top of the one in force; leave it empty when the story adds none.
+Each story names its cast — the characters on stage in it — as a `cast` list of names, within the chapter's cast below.
 
 ## Chapter
 Title: {{ title }}
@@ -18,6 +19,11 @@ Description: {{ description }}
 {{#if characters}}
 ## Characters' state transitions
 {{ characters }}
+{{/if}}
+
+{{#if cast}}
+## Chapter Cast
+{{ cast }}
 {{/if}}
 
 Respond entirely in "{{ language }}".

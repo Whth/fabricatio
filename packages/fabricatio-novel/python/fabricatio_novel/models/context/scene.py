@@ -34,6 +34,7 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
             )
             .set_scene_plan(plan)
             .set_writing_style(plan.writing_style)
+            .set_cast(plan.cast)
         )
 
     def set_content(self, content: str) -> Self:

@@ -216,6 +216,21 @@ class TestFromContext:
         assert ctx.writing_style == "Gothic, lyrical prose."
         assert ctx.scene_plan is plan
 
+    def test_plans_default_to_empty_cast(self) -> None:
+        """Assert every weighted plan proposes an empty cast unless the planner names one."""
+        assert ScenePlan(title="S1", description="D").cast == []
+        assert StoryPlan(title="St1", description="D").cast == []
+        assert ChapterPlan(title="C1", description="D").cast == []
+
+    def test_from_plan_copies_cast(self) -> None:
+        """Assert from_plan copies the proposed cast onto every context level."""
+        scene = SceneContext.from_plan(ScenePlan(title="S1", description="D", cast=["Hero", "Villain"]), 100)
+        story = StoryContext.from_plan(StoryPlan(title="St1", description="D", cast=["Hero"]), 300)
+        chapter = ChapterContext.from_plan(ChapterPlan(title="C1", description="D", cast=["Hero"]), 1000)
+        assert scene.cast == ["Hero", "Villain"]
+        assert story.cast == ["Hero"]
+        assert chapter.cast == ["Hero"]
+
     def test_novel_from_context_assembles_full_tree(self) -> None:
         """Assert Novel.from_context assembles the full chapter, story, and scene tree."""
         ctx = NovelContext.create("The hero seeks his father.", language="English")
@@ -360,6 +375,20 @@ class TestCharactorTraces:
         assert "Hero — protagonist." in requirement
         assert "look: tall → scarred" in requirement
         assert "took a blade" in requirement
+
+    def test_cast_missing_traces_reports_unknown_members(self) -> None:
+        """Assert cast members without a character trace are reported by the roster check."""
+        ctx = StoryContext(title="St1", description="D")
+        ctx.set_cast(["Hero", "Ghost"])
+        ctx.character_trace = [CharacterTrace(start=card())]
+        assert ctx.cast_missing_traces() == ["Ghost"]
+
+    def test_cast_missing_traces_empty_when_covered(self) -> None:
+        """Assert a fully traced cast passes the roster check."""
+        ctx = StoryContext(title="St1", description="D")
+        ctx.set_cast(["Hero"])
+        ctx.character_trace = [CharacterTrace(start=card())]
+        assert ctx.cast_missing_traces() == []
 
 
 class TestNovelCompose:
@@ -535,6 +564,56 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Constraint" not in requirement
+
+    async def test_scene_requirement_renders_cast(self) -> None:
+        """Assert the scene's cast renders as an on-stage roster in the prose requirement."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        ctx.set_cast(["Hero", "Villain"])
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Cast" in requirement
+        assert "Hero, Villain" in requirement
+
+    async def test_scene_requirement_omits_cast_when_empty(self) -> None:
+        """Assert an empty cast renders no cast section."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "## Cast" not in requirement
+
+    async def test_plan_scenes_renders_story_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert scene planning sees the story's cast as context."""
+        role = NovelRole(name="novel_role")
+        story = StoryContext(title="St1", description="The departure.")
+        story.set_cast(["Hero", "Villain"])
+        captured: List[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
+            captured.append(requirement)
+
+        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        await role.plan_scenes(story)
+
+        assert captured
+        assert "## Story Cast" in captured[0]
+        assert "Hero, Villain" in captured[0]
+
+    async def test_plan_stories_renders_chapter_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert story planning sees the chapter's cast as context."""
+        role = NovelRole(name="novel_role")
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        chapter.set_cast(["Hero"])
+        captured: List[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
+            captured.append(requirement)
+
+        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        await role.plan_stories(chapter)
+
+        assert captured
+        assert "## Chapter Cast" in captured[0]
+        assert "Hero" in captured[0]
 
 
 class TestPrefixAccumulation:

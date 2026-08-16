@@ -62,6 +62,7 @@ class StoryCompose(SceneCompose, ABC):
                 "language": ctx.language,
                 "characters": ctx.dump_charactors(),
                 "style_docs": "\n\n".join(doc.as_prompt() for doc in ctx.style_docs),
+                "cast": ", ".join(ctx.cast),
             },
         )
         plans = await self.propose(ScenePlans, requirement, send_to=send_to, **kwargs)

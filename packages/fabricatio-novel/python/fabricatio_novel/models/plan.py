@@ -22,6 +22,10 @@ class WeightedPlan(SketchedAble, Titled, Described):
     view, tense, perspective, prohibitions. The parent's constraint stays in force and is
     accumulated down the tree; empty when no extra constraint applies."""
 
+    cast: list[str] = Field(default_factory=list)
+    """Names of the characters on stage in this element; the planner proposes the cast.
+    Empty when no character appears in this element."""
+
 
 class ScenePlan(WeightedPlan):
     """Plan of a single scene; its weight allocates the story's expected word count."""

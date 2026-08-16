@@ -56,6 +56,7 @@ class SceneCompose(CharacterCompose, ABC):
             "writing_style": ctx.writing_style,
             "writing_constraint": ctx.writing_constraint,
             "characters": characters,
+            "cast": ", ".join(ctx.cast),
             "language": ctx.language or detect_language(ctx.description),
             "prefixed_content": ctx.prefixed_content,
         }

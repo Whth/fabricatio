@@ -99,6 +99,9 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     prohibitions); the accumulated chain of the parent's constraint plus this element's own
     allocation. Empty when no constraint applies."""
 
+    cast: list[str] = Field(default_factory=list)
+    """Names of the characters on stage in this element, proposed with its plan."""
+
     character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     language: str = ""
@@ -130,6 +133,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         self.writing_constraint = writing_constraint
         return self
 
+    def set_cast(self, cast: list[str]) -> Self:
+        """Set the on-stage character names of this element and return self."""
+        self.cast = cast
+        return self
+
     def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:
         """Replace this element's character traces and return self."""
         self.character_trace = traces
@@ -143,6 +151,17 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     def dump_charactors(self) -> str:
         """Render every character's evolution for prompts, in trace order."""
         return "\n\n".join(trace.dump_to_prompt() for trace in self.character_trace)
+
+    def cast_missing_traces(self) -> list[str]:
+        """Return cast members that have no character trace on this context.
+
+        A non-empty result means the proposed cast names characters the
+        roster does not know, so the rendered character prompt cannot cover
+        them; this is the check that the character parse into the model
+        carries the proper cast.
+        """
+        traced = {trace.start.name for trace in self.character_trace}
+        return [name for name in self.cast if name not in traced]
 
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.
