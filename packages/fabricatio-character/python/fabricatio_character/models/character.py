@@ -7,6 +7,8 @@ from fabricatio_core.models.generic import JSONList, Named, SketchedAble
 
 from fabricatio_character.config import character_config
 
+from pydantic import Field
+
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """A character as they currently are: a stable identity plus the mutable state of the moment.
@@ -14,7 +16,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     The identity fields (``name``, ``role``, ``want``) change slowly; the state fields
     (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``, ``goal``) describe
     how the character is right now and evolve as the story progresses. All fields are
-    required and non-empty.
+    required and non-empty; ``metric`` is an optional map of tracked numerical stats.
     """
 
     name: str
@@ -47,19 +49,37 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     goal: str
     """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
+    metric: dict[str, int | float] = Field(default_factory=dict)
+    """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
+
+    Empty when no stats are tracked; diffs merge entries instead of replacing the map.
+    """
+
     rendering_template: ClassVar[str] = character_config.render_character_card_template
 
+    def metric_prompt(self) -> str:
+        """Render the tracked metrics inline as ``name=value`` pairs."""
+        return ", ".join(f"{name}={value}" for name, value in self.metric.items())
+
     def _as_prompt_inner(self) -> Dict[str, str]:
-        return self.model_dump()
+        data = self.model_dump()
+        data["metric"] = self.metric_prompt()
+        return data
 
     def apply(self, diff: "CharacterCardDiff") -> Self:
         """Apply a character card diff to this card.
+
+        Diff ``metric`` entries are merged into this card's metric map rather than
+        replacing it, so a diff only needs to name the stats it changes.
 
         Returns:
             Self: A new card updated with the diff fields, excluding unset (``None``)
             values and the diff's ``reason`` field.
         """
-        return self.model_copy(update=diff.model_dump(exclude_none=True, exclude={"reason"}))
+        update = diff.model_dump(exclude_none=True, exclude={"reason"})
+        if diff.metric is not None:
+            update["metric"] = {**self.metric, **diff.metric}
+        return self.model_copy(update=update)
 
 
 class CharacterCardDiff(CharacterCard):
@@ -98,6 +118,9 @@ class CharacterCardDiff(CharacterCard):
 
     goal: str | None = None
     """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
+
+    metric: dict[str, int | float] | None = None
+    """Numerical stats changed in this step (e.g. ``{"hp": 60}``); entries merge into the card."""
 
     reason: str
     """Reason why the change happen"""

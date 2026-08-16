@@ -235,6 +235,35 @@ class TestCharactorTrace:
         assert trace.end.mood == "smoldering fury"
         assert trace.end.goal == "steal the seal before dawn"
 
+    def test_metric_diffs_render_per_entry_and_merge(self) -> None:
+        """Metric diffs show each entry's before → after and merge into the card."""
+        start = CharacterCard(
+            name="Hero",
+            role="protagonist",
+            look="tall",
+            act="brave",
+            want="seek truth",
+            flaw="stubborn",
+            where="starting village",
+            condition="healthy",
+            mood="determined",
+            goal="reach the capital",
+            metric={"hp": 100, "reputation": 30},
+        )
+        trace = CharacterTrace(
+            start=start,
+            interpolates=[
+                CharacterCardDiff(metric={"hp": 60}, reason="took a hit"),
+                CharacterCardDiff(metric={"hp": 40, "sanity": 0.5}, reason="wounded again"),
+            ],
+        )
+        prompt = trace.dump_to_prompt()
+        lines = prompt.splitlines()
+        assert "metric: hp=100, reputation=30" in lines[0]
+        assert "1. metric.hp: 100 → 60; reason: took a hit" in lines[1]
+        assert "2. metric.hp: 60 → 40; metric.sanity: unset → 0.5; reason: wounded again" in lines[2]
+        assert trace.end.metric == {"hp": 40, "reputation": 30, "sanity": 0.5}
+
 
 class TestFromContext:
     """Test suite for the from_context assembly methods."""

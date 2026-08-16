@@ -70,16 +70,37 @@ class CharacterTrace(SketchedAble):
         tokens.
         """
         card = self.start
-        lines = [
-            f"{card.name} — {card.role}. look: {card.look} | act: {card.act} | want: {card.want} | flaw: {card.flaw}"
-            f" | where: {card.where} | condition: {card.condition} | mood: {card.mood} | goal: {card.goal}"
-        ]
+        lines = [self._identity_line(card)]
         for index, diff in enumerate(self.interpolates, start=1):
             changes = diff.model_dump(exclude_none=True, exclude={"reason"})
-            steps = "; ".join(f"{field}: {getattr(card, field)} → {value}" for field, value in changes.items())
+            steps = "; ".join(self._step_text(card, field, value) for field, value in changes.items())
             lines.append(f"{index}. {steps}; reason: {diff.reason}" if steps else f"{index}. reason: {diff.reason}")
             card = card.apply(diff)
         return "\n".join(lines)
+
+    @staticmethod
+    def _identity_line(card: CharacterCard) -> str:
+        """Render the starting card as one state line, appending metrics when tracked."""
+        parts = [
+            f"look: {card.look}",
+            f"act: {card.act}",
+            f"want: {card.want}",
+            f"flaw: {card.flaw}",
+            f"where: {card.where}",
+            f"condition: {card.condition}",
+            f"mood: {card.mood}",
+            f"goal: {card.goal}",
+        ]
+        if card.metric:
+            parts.append(f"metric: {card.metric_prompt()}")
+        return f"{card.name} — {card.role}. " + " | ".join(parts)
+
+    @classmethod
+    def _step_text(cls, card: CharacterCard, field: str, value: object) -> str:
+        """Render one diff step; metric diffs show each entry's before → after."""
+        if field == "metric" and isinstance(value, dict):
+            return "; ".join(f"metric.{name}: {card.metric.get(name, 'unset')} → {new}" for name, new in value.items())
+        return f"{field}: {getattr(card, field)} → {value}"
 
 
 class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):

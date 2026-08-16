@@ -60,6 +60,7 @@ class TestCharacterCard:
             condition="Healthy but damp",
             mood="Focused",
             goal="Catch the witness before dawn",
+            metric={"hp": 100, "reputation": 25},
         )
 
     def test_card_creation(self, card: CharacterCard) -> None:
@@ -74,6 +75,7 @@ class TestCharacterCard:
         assert card.condition == "Healthy but damp"
         assert card.mood == "Focused"
         assert card.goal == "Catch the witness before dawn"
+        assert card.metric == {"hp": 100, "reputation": 25}
 
     def test_card_model_dump(self, card: CharacterCard) -> None:
         """Test model_dump returns all fields."""
@@ -88,6 +90,7 @@ class TestCharacterCard:
         assert data["condition"] == "Healthy but damp"
         assert data["mood"] == "Focused"
         assert data["goal"] == "Catch the witness before dawn"
+        assert data["metric"] == {"hp": 100, "reputation": 25}
 
     def test_card_as_prompt(self, card: CharacterCard) -> None:
         """Test as_prompt generates a string containing card data."""
@@ -99,6 +102,8 @@ class TestCharacterCard:
         assert "## Mood" in result
         assert "## Goal (immediate)" in result
         assert "## Want (core motivation)" in result
+        assert "## Metrics" in result
+        assert "hp=100, reputation=25" in result
 
     def test_card_has_all_fields(self) -> None:
         """Test that CharacterCard has all expected fields."""
@@ -138,6 +143,31 @@ class TestCharacterCard:
         assert updated.condition == "Feverish, limping"
         assert updated.mood == "Smoldering fury"
         assert updated.goal == "Steal the seal before dawn"
+
+    def test_metric_diff_merges_into_card(self, card: CharacterCard) -> None:
+        """A metric diff updates only the named entries and keeps the rest."""
+        updated = card.apply(CharacterCardDiff(metric={"hp": 60, "sanity": 0.5}, reason="took a hit"))
+        assert updated.metric == {"hp": 60, "reputation": 25, "sanity": 0.5}
+        # untouched persona and state fields stay put
+        assert updated.look == card.look
+        assert updated.mood == card.mood
+
+    def test_empty_metric_renders_no_metrics_section(self) -> None:
+        """A card without tracked stats omits the Metrics section from its prompt."""
+        plain = CharacterCard(
+            name="NoStats",
+            role="bit",
+            look="plain",
+            act="quiet",
+            want="none",
+            flaw="none",
+            where="nowhere",
+            condition="fine",
+            mood="calm",
+            goal="nothing",
+        )
+        assert plain.metric == {}
+        assert "## Metrics" not in plain.as_prompt()
 
 
 # ---------------------------------------------------------------------------
