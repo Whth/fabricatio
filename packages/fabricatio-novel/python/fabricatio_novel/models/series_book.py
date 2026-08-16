@@ -6,25 +6,29 @@ Characters are one prompt-ready string; every non-character fact is one plain
 string in ``background_settings``.
 """
 
-from typing import List
+from typing import Any, ClassVar, Dict, List
 
-from fabricatio_capabilities.models.generic import FinalizedDumpAble, PersistentAble
 from pydantic import Field
 
+from fabricatio_capabilities.models.generic import AsPrompt, FinalizedDumpAble, PersistentAble
+from fabricatio_novel.config import novel_config
 
-class SeriesBible(FinalizedDumpAble, PersistentAble):
-    """The setting bible: the novel's settings facts.
 
-    Created skeleton-first from the outline (``fanvl bible create``), persists as
-    BLAKE3-hashed JSON checkpoints (:class:`PersistentAble`) and exports to
-    markdown. Consumed by scene generation via :mod:`fabricatio_novel.capabilities.bible`.
-    """
+class SeriesBible(FinalizedDumpAble, AsPrompt, PersistentAble):
+    """The setting bible: the novel's settings facts."""
+
+    rendering_template: ClassVar[str] = novel_config.setting_bible_context_template
+    """Template used to render the bible into prompts via :meth:`as_prompt`."""
 
     characters: str = ""
     """The canonical character roster as a single prompt-ready string."""
 
     background_settings: List[str] = Field(default_factory=list)
     """All non-character settings facts (premise, tone, world rules, factions, terminology, foreshadowing), one plain string per fact."""
+
+    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+        """Return the bible sections for the prompt template."""
+        return self.model_dump()
 
     def is_empty(self) -> bool:
         """Return True when neither section carries content (fresh default bible)."""

@@ -44,7 +44,9 @@ class SceneCompose(CharacterCompose, ABC):
         their own blocks before rendering.
         """
         characters = ctx.dump_charactors()
+        bible = ctx.series_bible
         return {
+            "bible_context": bible.as_prompt() if bible is not None and not bible.is_empty() else "",
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,

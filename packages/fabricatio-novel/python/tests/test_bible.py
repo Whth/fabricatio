@@ -59,6 +59,18 @@ class TestSeriesBibleModel:
         restored = SeriesBible.model_validate_json(bible.model_dump_json())
         assert restored == bible
 
+    def test_as_prompt_renders_both_sections(self) -> None:
+        """Assert as_prompt renders the roster and every background fact."""
+        bible = SeriesBible(
+            characters="Hero: brave protagonist.",
+            background_settings=["Qi is the world's vital energy.", "The Azure Sect rules the north."],
+        )
+        prompt = bible.as_prompt()
+        assert prompt.startswith("## Setting Bible")
+        assert "Hero: brave protagonist." in prompt
+        assert "Qi is the world's vital energy." in prompt
+        assert "The Azure Sect rules the north." in prompt
+
 
 class TestContextBibleAccess:
     """Test suite for bible access and broadcast on contexts."""

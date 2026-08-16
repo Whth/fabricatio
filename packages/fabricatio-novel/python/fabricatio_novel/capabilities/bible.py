@@ -156,5 +156,4 @@ class BibleCompose(SceneCompose, ABC):
         """
         if ctx.series_bible is None or ctx.series_bible.is_empty():
             return ""
-        bible = ctx.access_settings_bible()
-        return TEMPLATE_MANAGER.render_template(novel_config.setting_bible_context_template, bible.model_dump()).strip()
+        return ctx.access_settings_bible().as_prompt().strip()
