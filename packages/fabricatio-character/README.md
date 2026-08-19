@@ -48,7 +48,7 @@ progresses. The ten text fields are required and non-empty; `metric` is optional
 | `name` | `str` | Identifying name, alias, or title |
 | `role` | `str` | Current narrative or functional role within the story |
 | `look` | `str` | Current appearance — clothing, physique, distinguishing features, wounds, disguise |
-| `act` | `str` | Current behaviors, mannerisms, speech patterns, stress reactions |
+| `act` | `str` | Current behaviors, mannerisms, stress reactions |
 | `want` | `str` | Core motivation or deepest goal driving the character's actions (slow-changing) |
 | `flaw` | `str` | Current weakness, moral failing, or psychological vulnerability |
 | `where` | `str` | Current location and immediate situation |

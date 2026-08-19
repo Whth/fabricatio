@@ -29,7 +29,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
 
     act: str
-    """How the character currently behaves: mannerisms, speech patterns, reactions under stress."""
+    """How the character currently behaves: mannerisms and reactions under stress."""
 
     want: str
     """The character's core motivation or deepest goal driving their actions (slow-changing)."""
@@ -101,7 +101,7 @@ class CharacterCardDiff(CharacterCard):
     """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
 
     act: str | None = None
-    """How the character currently behaves: mannerisms, speech patterns, reactions under stress."""
+    """How the character currently behaves: mannerisms and reactions under stress."""
 
     want: str | None = None
     """The character's core motivation or deepest goal driving their actions (slow-changing)."""
