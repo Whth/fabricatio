@@ -29,7 +29,7 @@ pip install fabricatio[full]
 
 ## Overview
 
-`fabricatio-character` provides a `CharacterCard` model capturing a character as they currently are: stable identity (name, role, motivation) plus the mutable state of the moment (appearance, behavior, vulnerability, location, physical condition, mood) — nine required fields that together define a complete narrative persona and its present situation, plus an optional `metric` map of tracked numerical stats (hp, energy, reputation, ...). The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
+`fabricatio-character` provides a `CharacterCard` model capturing a character as they currently are: stable identity (name, roles list, activated role, motivation) plus the mutable state of the moment (appearance, behavior, vulnerability, location, physical condition, mood) — ten required fields that together define a complete narrative persona and its present situation, plus an optional `metric` map of tracked numerical stats (hp, energy, reputation, ...). The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
 
 Generated cards are renderable through the Fabricatio template system (`as_prompt()`) and persistable (`PersistentAble`) for checkpoint/restore workflows.
 
@@ -39,14 +39,13 @@ Generated cards are renderable through the Fabricatio template system (`as_promp
 
 ### `CharacterCard`
 
-A character as they currently are. The identity fields (`name`, `role`, `want`) change
-slowly; the state fields describe how the character is right now and evolve as the story
-progresses. The nine text fields are required and non-empty; `metric` is optional.
+A character as they currently are. The identity fields (`name`, `roles`, `activated_role`, `want`) change slowly; the state fields describe how the character is right now and evolve as the story progresses. The ten text fields are required and non-empty; `metric` is optional. `roles` must contain at least one entry and `activated_role` must be one of the entries in `roles`.
 
 | Field | Type | Description |
 |---|---|---|
 | `name` | `str` | Identifying name, alias, or title |
-| `role` | `str` | Current narrative or functional role within the story |
+| `roles` | `list[str]` | All narrative or functional roles the character holds within the story (e.g. `["protagonist", "mentor"]`); non-empty |
+| `activated_role` | `str` | The role the character is currently playing; must be one of the entries in `roles` |
 | `look` | `str` | Current appearance — clothing, physique, distinguishing features, wounds, disguise |
 | `act` | `str` | Current behaviors, mannerisms, stress reactions |
 | `want` | `str` | Core motivation driving the character's actions (slow-changing) |
@@ -55,7 +54,6 @@ progresses. The nine text fields are required and non-empty; `metric` is optiona
 | `condition` | `str` | Current physical state — health, energy, injuries, resources |
 | `mood` | `str` | Current emotional state |
 | `metric` | `dict[str, int \| float]` | Tracked numerical stats — any measurable quantity, including physical stats like body weight (e.g. `{"hp": 80, "reputation": 30, "weight_kg": 62}`); empty by default. Diffs merge entries instead of replacing the map |
-
 `CharacterCard` inherits:
 - `SketchedAble` — instantiation from natural-language descriptions via LLM
 - `Named` — equality by `name` field
@@ -146,7 +144,7 @@ cards = await agent.compose_characters(
     ]
 )
 for c in cards:
-    print(c.name, "-", c.role)
+    print(c.name, "-", c.activated_role)
 ```
 
 ### Rendering and Persistence

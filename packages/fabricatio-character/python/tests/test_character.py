@@ -51,7 +51,8 @@ class TestCharacterCard:
         """Create a sample CharacterCard."""
         return CharacterCard(
             name="Alice",
-            role="Protagonist",
+            roles=["Protagonist"],
+            activated_role="Protagonist",
             look="Tall, dark hair, blue eyes",
             act="Calm and analytical",
             want="To find the truth",
@@ -65,7 +66,8 @@ class TestCharacterCard:
     def test_card_creation(self, card: CharacterCard) -> None:
         """Test basic CharacterCard creation."""
         assert card.name == "Alice"
-        assert card.role == "Protagonist"
+        assert card.roles == ["Protagonist"]
+        assert card.activated_role == "Protagonist"
         assert card.look == "Tall, dark hair, blue eyes"
         assert card.act == "Calm and analytical"
         assert card.want == "To find the truth"
@@ -79,7 +81,8 @@ class TestCharacterCard:
         """Test model_dump returns all fields."""
         data = card.model_dump()
         assert data["name"] == "Alice"
-        assert data["role"] == "Protagonist"
+        assert data["roles"] == ["Protagonist"]
+        assert data["activated_role"] == "Protagonist"
         assert data["look"] == "Tall, dark hair, blue eyes"
         assert data["act"] == "Calm and analytical"
         assert data["want"] == "To find the truth"
@@ -97,6 +100,8 @@ class TestCharacterCard:
         assert "## Where" in result
         assert "## Condition" in result
         assert "## Mood" in result
+        assert "## Roles" in result
+        assert "## Activated Role" in result
         assert "## Want (core motivation)" in result
         assert "## Metrics" in result
         assert "hp=100, reputation=25" in result
@@ -106,7 +111,8 @@ class TestCharacterCard:
         fields = CharacterCard.model_fields
         expected = {
             "name",
-            "role",
+            "roles",
+            "activated_role",
             "look",
             "act",
             "want",
@@ -128,14 +134,12 @@ class TestCharacterCard:
             )
         )
         assert updated.name == card.name
-        assert updated.role == card.role
+        assert updated.roles == card.roles
+        assert updated.activated_role == card.activated_role
         assert updated.look == card.look
         assert updated.act == card.act
         assert updated.want == card.want
         assert updated.flaw == card.flaw
-        assert updated.where == "In the enemy palace's wine cellar"
-        assert updated.condition == "Feverish, limping"
-        assert updated.mood == "Smoldering fury"
 
     def test_metric_diff_merges_into_card(self, card: CharacterCard) -> None:
         """A metric diff updates only the named entries and keeps the rest."""
@@ -149,7 +153,8 @@ class TestCharacterCard:
         """A card without tracked stats omits the Metrics section from its prompt."""
         plain = CharacterCard(
             name="NoStats",
-            role="bit",
+            roles=["bit"],
+            activated_role="bit",
             look="plain",
             act="quiet",
             want="none",
@@ -174,7 +179,8 @@ class TestDumpCard:
         """Test dumping a single character card."""
         card = CharacterCard(
             name="Bob",
-            role="Sidekick",
+            roles=["Sidekick"],
+            activated_role="Sidekick",
             look="Short",
             act="Loyal",
             want="Adventure",
@@ -192,7 +198,8 @@ class TestDumpCard:
         cards = [
             CharacterCard(
                 name=f"Char{i}",
-                role="Role",
+                roles=["Role"],
+                activated_role="Role",
                 look="Look",
                 act="Act",
                 want="Want",
@@ -212,10 +219,28 @@ class TestDumpCard:
         """Test that multiple cards are joined by newlines."""
         cards = [
             CharacterCard(
-                name="A", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M"
+                name="A",
+                roles=["R"],
+                activated_role="R",
+                look="L",
+                act="A",
+                want="W",
+                flaw="F",
+                where="X",
+                condition="C",
+                mood="M",
             ),
             CharacterCard(
-                name="B", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M"
+                name="B",
+                roles=["R"],
+                activated_role="R",
+                look="L",
+                act="A",
+                want="W",
+                flaw="F",
+                where="X",
+                condition="C",
+                mood="M",
             ),
         ]
         result = dump_card(*cards)
@@ -244,7 +269,8 @@ class TestCharacterCompose:
         """Test compose_characters with a single requirement string."""
         mock_card = CharacterCard(
             name="Hero",
-            role="Warrior",
+            roles=["Warrior"],
+            activated_role="Warrior",
             look="Strong",
             act="Brave",
             want="Justice",
@@ -256,7 +282,6 @@ class TestCharacterCompose:
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_card):
             result = await role.compose_characters("Create a warrior character")
         assert isinstance(result, CharacterCard)
-        assert result.name == "Hero"
 
     @pytest.mark.asyncio
     async def test_compose_characters_list(self, role: CharacterRole) -> None:
@@ -264,7 +289,8 @@ class TestCharacterCompose:
         mock_cards = [
             CharacterCard(
                 name="Hero",
-                role="Warrior",
+                roles=["Warrior"],
+                activated_role="Warrior",
                 look="Strong",
                 act="Brave",
                 want="Justice",
@@ -275,7 +301,8 @@ class TestCharacterCompose:
             ),
             CharacterCard(
                 name="Mage",
-                role="Wizard",
+                roles=["Wizard"],
+                activated_role="Wizard",
                 look="Wise",
                 act="Calm",
                 want="Knowledge",

@@ -2,18 +2,17 @@
 
 from typing import ClassVar, Dict, Self
 
+from pydantic import Field, field_validator
+
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
-from fabricatio_core.models.generic import JSONList, Named, SketchedAble
-
 from fabricatio_character.config import character_config
-
-from pydantic import Field
+from fabricatio_core.models.generic import JSONList, Named, SketchedAble
 
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """A character as they currently are: a stable identity plus the mutable state of the moment.
 
-    The identity fields (``name``, ``role``, ``want``) change slowly; the state fields
+    The identity fields (``name``, ``roles``, ``activated_role``, ``want``) change slowly; the state fields
     (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``) describe
     how the character is right now and evolve as the story progresses. All fields are
     required and non-empty; ``metric`` is an optional map of tracked numerical stats.
@@ -22,8 +21,11 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     name: str
     """The character's identifying name (can be real name, alias, or title)."""
 
-    role: str
-    """The character's current narrative or functional role within the story."""
+    roles: list[str]
+    """All narrative or functional roles the character holds within the story (e.g. ``["protagonist", "mentor"]``)."""
+
+    activated_role: str
+    """The role the character is currently playing; must be one of the entries in ``roles``."""
 
     look: str
     """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
@@ -45,6 +47,30 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
 
     mood: str
     """The character's current emotional state."""
+
+    metric: dict[str, int | float] = Field(default_factory=dict)
+    """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
+
+    Entries are surfaced via :meth:`metric_prompt` and rendered into the prompt
+    as inline ``name=value`` pairs when non-empty.
+    """
+
+    @field_validator("roles")
+    @classmethod
+    def _roles_non_empty(cls, value: list[str]) -> list[str]:
+        """Reject an empty ``roles`` list so the field matches the other required-text-field convention."""
+        if not value:
+            raise ValueError("roles must contain at least one entry")
+        return value
+
+    @field_validator("activated_role")
+    @classmethod
+    def _activated_role_in_roles(cls, value: str, info) -> str:
+        """Reject an ``activated_role`` that is not one of the character's roles."""
+        roles = info.data.get("roles") or []
+        if value not in roles:
+            raise ValueError(f"activated_role '{value}' must be one of roles: {roles}")
+        return value
 
     metric: dict[str, int | float] = Field(default_factory=dict)
     """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
@@ -91,14 +117,27 @@ class CharacterCardDiff(CharacterCard):
     name: str | None = None
     """The character's identifying name (can be real name, alias, or title)."""
 
-    role: str | None = None
-    """The character's current narrative or functional role within the story."""
+    roles: list[str] | None = None
+    """Replace the character's roles list wholesale; entries are not merged."""
+
+    activated_role: str | None = None
+    """Replace the currently activated role; must be one of the post-apply roles."""
 
     look: str | None = None
     """How the character currently appears: clothing, physique, distinguishing features, wounds, disguise."""
 
     act: str | None = None
     """How the character currently behaves: mannerisms and reactions under stress."""
+
+    def model_dump(self, **kwargs) -> dict:
+        kwargs.setdefault("exclude_none", True)
+        return super().model_dump(**kwargs)
+
+    def _as_prompt_inner(self) -> Dict[str, str]:
+        data = self.model_dump()
+        if self.metric is not None:
+            data["metric"] = self.metric_prompt()
+        return data
 
     want: str | None = None
     """The character's core motivation driving their actions (slow-changing)."""

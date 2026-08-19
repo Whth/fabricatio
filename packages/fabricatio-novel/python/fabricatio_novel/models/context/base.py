@@ -82,6 +82,7 @@ class CharacterTrace(SketchedAble):
     def _identity_line(card: CharacterCard) -> str:
         """Render the starting card as one state line, appending metrics when tracked."""
         parts = [
+            f"roles: {', '.join(card.roles)} (activated: {card.activated_role})",
             f"look: {card.look}",
             f"act: {card.act}",
             f"want: {card.want}",
@@ -92,7 +93,7 @@ class CharacterTrace(SketchedAble):
         ]
         if card.metric:
             parts.append(f"metric: {card.metric_prompt()}")
-        return f"{card.name} — {card.role}. " + " | ".join(parts)
+        return f"{card.name}. " + " | ".join(parts)
 
     @classmethod
     def _step_text(cls, card: CharacterCard, field: str, value: object) -> str:

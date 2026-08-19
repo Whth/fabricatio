@@ -178,7 +178,8 @@ class TestMentalState:
         """from_card populates name and uses default personality values."""
         card = CharacterCard(
             name="Hero",
-            role="protagonist",
+            roles=["protagonist"],
+            activated_role="protagonist",
             look="tall",
             act="brave",
             want="love",

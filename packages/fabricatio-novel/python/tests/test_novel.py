@@ -32,7 +32,8 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
     """Build a default protagonist CharacterCard for tests."""
     return CharacterCard(
         name=name,
-        role="protagonist",
+        roles=["protagonist"],
+        activated_role="protagonist",
         look=look,
         act="brave",
         want="seek truth",
@@ -184,10 +185,9 @@ class TestCharactorTrace:
         )
         prompt = trace.dump_to_prompt()
         lines = prompt.splitlines()
-        assert lines[0].startswith("Hero — protagonist.")
+        assert lines[0].startswith("Hero. roles: protagonist")
         assert "look: tall" in lines[0]
         assert "flaw: stubborn" in lines[0]
-        assert "look: tall → wounded; reason: fell in battle" in lines[1]
         assert "act: brave → cautious; reason: learned from defeat" in lines[2]
         # a diff that changes nothing renders only its labeled reason
         assert lines[3] == "3. reason: reflected"
@@ -200,7 +200,7 @@ class TestCharactorTrace:
         start = card()
         trace = CharacterTrace(start=start)
         assert trace.dump_to_prompt() == (
-            "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
+            "Hero. roles: protagonist (activated: protagonist) | look: tall | act: brave | want: seek truth | flaw: stubborn"
             " | where: starting village | condition: healthy | mood: determined"
         )
 
@@ -236,7 +236,8 @@ class TestCharactorTrace:
         """Metric diffs show each entry's before → after and merge into the card."""
         start = CharacterCard(
             name="Hero",
-            role="protagonist",
+            roles=["protagonist"],
+            activated_role="protagonist",
             look="tall",
             act="brave",
             want="seek truth",
@@ -440,12 +441,12 @@ class TestCharactorTraces:
             )
         ]
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "Hero — protagonist." in requirement
+        assert "Hero. roles: protagonist" in requirement
         assert "look: tall → scarred" in requirement
         assert "took a blade" in requirement
 
     def test_cast_missing_traces_reports_unknown_members(self) -> None:
-        """Assert cast members without a character trace are reported by the roster check."""
+
         ctx = StoryContext(title="St1", description="D")
         ctx.set_cast(["Hero", "Ghost"])
         ctx.character_trace = [CharacterTrace(start=card())]

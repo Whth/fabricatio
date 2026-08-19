@@ -36,7 +36,8 @@ def _make_state(name: str = "Test", **kwargs) -> MentalState:
 def _make_hamlet() -> CharacterCard:
     return CharacterCard(
         name="Hamlet",
-        role="Prince of Denmark, tragic protagonist",
+        roles=["Prince of Denmark", "tragic protagonist"],
+        activated_role="Prince of Denmark",
         look="Young prince, melancholic bearing, dark clothing",
         act="Indecisive, philosophical, prone to soliloquies, oscillates between action and contemplation",
         want="To avenge his father's murder while reconciling his moral conscience with the duty of revenge",
@@ -50,7 +51,8 @@ def _make_hamlet() -> CharacterCard:
 def _make_daiyu() -> CharacterCard:
     return CharacterCard(
         name="Lin Daiyu",
-        role="Tragic heroine of Dream of the Red Chamber",
+        roles=["Tragic heroine of Dream of the Red Chamber"],
+        activated_role="Tragic heroine of Dream of the Red Chamber",
         look="Fragile, ethereal beauty, often coughing blood",
         act="Poetic, sharp-tongued, deeply sensitive, prone to weeping",
         want="To be loved unconditionally by Jia Baoyu and to find belonging in the Jia household",
