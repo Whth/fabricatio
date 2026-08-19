@@ -1,24 +1,12 @@
---- BEGIN of JSON SCHEMA ---
-```json
-{{json_schema}}
-```
---- BEGIN of JSON SCHEMA ---
-
 # Critical Constraints:
-‼️ Output MUST contain ONLY the JSON object within the Markdown format codeblock
-‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.)
+‼️ Your response MUST contain ONLY the JSON object within the Markdown format codeblock
+‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.), if the value you want to fill in does have default value you can omit to output it to save time and token
 ‼️ PROPERLY ESCAPE special characters in strings (quotes, newlines, etc.)
 ‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
 ‼️ Handle optional parameters context-appropriately
+‼️ Your output json SHALL meet the `REQUIREMENT` from the user
 
---- BEGIN of REQUIREMENT ---
-{{requirement}}
---- END of REQUIREMENT ---
-‼️ Your response MUST be a valid JSON object wrapped in a Markdown JSON codeblock. which is
-```json
-<Fill in your response JSON>
-```
-‼️It's recommended to not add space indents, which can save a lot of spaces.
-‼️To satisfy the given requirements, Generate a JSON object that strictly adheres to the above `JSON SCHEMA` specification with The output satisfying all defined constraints.
+{{ block json_schema "JSON SCHEMA"}}
 
-`REQUIREMENT` is absolute and the highest priority to satisfy, even higher than `Critical Constraints`!!!
+{{ block requirement "REQUIREMENT"}}
+
