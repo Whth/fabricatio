@@ -26,7 +26,7 @@ from fabricatio_core.models.kwargs_types import (
     RerankerKwargs,
     ValidateKwargs,
 )
-from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, TextCapturer, blake3_hash, detect_language, is_likely_text
+from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, blake3_hash, detect_language, is_likely_text
 from fabricatio_core.utils import first_available, ok
 
 
@@ -76,9 +76,9 @@ class Display(Base, ABC):
             str: Combined display output with boundary markers
         """
         return (
-            "--- Start of Extra Info Sequence ---"
-            + "\n".join(d.compact() if compact else d.display() for d in seq)
-            + "--- End of Extra Info Sequence ---"
+                "--- Start of Extra Info Sequence ---"
+                + "\n".join(d.compact() if compact else d.display() for d in seq)
+                + "--- End of Extra Info Sequence ---"
         )
 
 
@@ -197,7 +197,8 @@ class WithDependency(Base, ABC):
         return self.clear_dependencies().add_dependency(dependencies)
 
     def read_dependency[T](
-        self, idx: int = -1, reader: Callable[[str], T] = lambda p: Path(p).read_text(encoding="utf-8", errors="ignore")
+            self, idx: int = -1,
+            reader: Callable[[str], T] = lambda p: Path(p).read_text(encoding="utf-8", errors="ignore")
     ) -> T:
         """Read the content of a file dependency.
 
@@ -286,9 +287,9 @@ class ScopedConfig(Base, ABC):
                 continue
             # Check if both self and other have the attribute before accessing
             if (
-                hasattr(other, attr_name)
-                and getattr(self, attr_name) is None
-                and (attr := getattr(other, attr_name)) is not None
+                    hasattr(other, attr_name)
+                    and getattr(self, attr_name) is None
+                    and (attr := getattr(other, attr_name)) is not None
             ):
                 logger.trace(f"Falling back `{attr_name}` to `{attr}`")
                 # Copy the attribute value from 'other' to 'self' only if 'self' has None and 'other' has a non-None value
@@ -299,9 +300,9 @@ class ScopedConfig(Base, ABC):
 
     @final
     def hold_to(
-        self,
-        others: Union["ScopedConfig", Any] | Iterable[Union["ScopedConfig", Any]],
-        exclude: Optional[Set[str]] = None,
+            self,
+            others: Union["ScopedConfig", Any] | Iterable[Union["ScopedConfig", Any]],
+            exclude: Optional[Set[str]] = None,
     ) -> Self:
         """Propagate non-null values to other configurations.
 
@@ -339,12 +340,12 @@ class EmbeddingScopedConfig(ScopedConfig):
     Defaults to 10 when not set in config or kwargs."""
 
     def _resolve_embedding_params(
-        self,
-        send_to: str | None = None,
-        ndim: int | None = None,
-        no_cache: bool | None = None,
-        max_batch_emb_size: int | None = None,
-        **_,
+            self,
+            send_to: str | None = None,
+            ndim: int | None = None,
+            no_cache: bool | None = None,
+            max_batch_emb_size: int | None = None,
+            **_,
     ) -> EmbeddingKwargs:
         return EmbeddingKwargs(
             send_to=ok(
@@ -355,7 +356,7 @@ class EmbeddingScopedConfig(ScopedConfig):
             no_cache=first_available(
                 (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache), raise_exception=False
             )
-            or False,
+                     or False,
             max_batch_emb_size=first_available(
                 (max_batch_emb_size, self.embedding_max_batch_emb_size, CONFIG.embedding.max_batch_emb_size, 10),
                 raise_exception=False,
@@ -373,7 +374,7 @@ class RerankerScopedConfig(ScopedConfig):
     """Whether to disable caching for the reranker."""
 
     def _resolve_reranker_params(
-        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, **_
+            self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, **_
     ) -> RerankerKwargs:
         return RerankerKwargs(
             send_to=ok(
@@ -383,7 +384,7 @@ class RerankerScopedConfig(ScopedConfig):
             no_cache=first_available(
                 (no_cache, self.reranker_no_cache, CONFIG.reranker.no_cache), raise_exception=False
             )
-            or False,
+                     or False,
         )
 
 
@@ -418,8 +419,8 @@ class LLMScopedConfig(ScopedConfig):
     """The reasoning effort level for models that support it (e.g. o1, o3)."""
 
     def _resolve_completion_send_to(
-        self,
-        send_to: Optional[str] = None,
+            self,
+            send_to: Optional[str] = None,
     ) -> str:
         """Resolve ``send_to`` to a router group name with variant-slot precedence.
 
@@ -437,18 +438,18 @@ class LLMScopedConfig(ScopedConfig):
         )
 
     def _resolve_completion_params(  # noqa: PLR0913
-        self,
-        *,
-        stream: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
-        effort: Optional[str] = None,
-        no_cache: Optional[bool] = None,
-        images: Optional[List[bytes]] = None,
-        **_,
+            self,
+            *,
+            stream: Optional[bool] = None,
+            temperature: Optional[float] = None,
+            top_p: Optional[float] = None,
+            max_completion_tokens: Optional[int] = None,
+            presence_penalty: Optional[float] = None,
+            frequency_penalty: Optional[float] = None,
+            effort: Optional[str] = None,
+            no_cache: Optional[bool] = None,
+            images: Optional[List[bytes]] = None,
+            **_,
     ) -> LLMKwargs:
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
         return LLMKwargs(
@@ -469,21 +470,21 @@ class LLMScopedConfig(ScopedConfig):
             ),
             effort=first_available((effort, self.llm_effort, CONFIG.llm.effort), raise_exception=False),
             no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
-            or False,
+                     or False,
             images=images,
         )
 
     def _resolve_validation_params[T](
-        self, default: T | None = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs]
+            self, default: T | None = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs]
     ) -> ValidateKwargs[T]:
         res = self._resolve_completion_params(**kwargs)
         return ValidateKwargs(default=default, max_validations=max_validations, **res)
 
     def _resolve_mapping_kv_params[K, V](
-        self,
-        key_type: Type[K],
-        value_type: Type[V],
-        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
+            self,
+            key_type: Type[K],
+            value_type: Type[V],
+            **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
     ) -> MappingKwargs[K, V]:
         """Resolve mapping key-value parameters from kwargs, instance defaults, and CONFIG.
 
@@ -499,9 +500,9 @@ class LLMScopedConfig(ScopedConfig):
         return MappingKwargs(key_type=key_type, value_type=value_type, **res)
 
     def _resolve_listing_v_params[T: int | str | bool | float](
-        self,
-        value_type: Type[T],
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
+            self,
+            value_type: Type[T],
+            **kwargs: Unpack[ValidateKwargs[List[T]]],
     ) -> ListValueKwargs[T]:
         """Resolve listing value parameters from kwargs, instance defaults, and CONFIG.
 
@@ -564,8 +565,10 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: str) -> str: ...
+
     @overload
     def create_json_prompt(self, requirement: str | List[str]) -> str | List[str]: ...
+
     @classmethod
     def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
         """Create the prompt for creating a JSON object with given requirement.
@@ -646,21 +649,5 @@ class SketchedAble(ProposedAble, Display, ABC):
     """
 
 
-_CODE_BLOCK = TextCapturer.capture_code_block()
-
-
 class JSONList[T](SketchedAble, RootModel[list[T]]):
-    """A bare JSON array of models as the LLM returns it, optionally wrapped in a code fence.
-
-    The SketchedAble machinery supplies the create-JSON prompt and display
-    sides; :meth:`instantiate_from_string` unwraps an optional code fence via
-    the core capturer before validating, so raw model responses parse without
-    any manual cleanup. The element type may itself be a list (per-child
-    slices).
-    """
-
-    @classmethod
-    def instantiate_from_string(cls, string: str) -> Self | None:
-        """Instantiate the list from a raw model response, unwrapping an optional code fence."""
-        inner = _CODE_BLOCK.cap1(string)
-        return cls.model_validate_json(inner if inner is not None else string)
+    """A bare JSON array of models as the LLM returns it, optionally wrapped in a code fence."""
