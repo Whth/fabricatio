@@ -3,12 +3,12 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
 
-from pydantic import Field
-
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
-from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
+from pydantic import Field
+
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -19,6 +19,16 @@ def merge_writing_constraints(parent: str, own: str) -> str:
     (empty when none) is appended on a new line. Both empty yields an empty string.
     """
     return "\n".join(part for part in (parent, own) if part)
+
+
+class CharacterSpan(SketchedAble):
+    start: CharacterCard
+    """"""
+    end: CharacterCard
+    """"""
+
+
+class CharacterSpans(JSONList[CharacterSpan]): ...
 
 
 class CharacterTrace(SketchedAble):
@@ -69,7 +79,6 @@ class CharacterTrace(SketchedAble):
         separator, skipping redundant repeats of unchanged fields to save
         tokens.
         """
-
         lines = [self.start.as_prompt()]
         lines.extend(d.as_prompt() for d in self.interpolates)
         return "\n".join(lines)
@@ -95,8 +104,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
 
     cast: list[str] = Field(default_factory=list)
     """Names of the characters on stage in this element, proposed with its plan."""
-
-    character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
@@ -131,31 +138,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         """Set the on-stage character names of this element and return self."""
         self.cast = cast
         return self
-
-    def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:
-        """Replace this element's character traces and return self."""
-        self.character_trace = traces
-        return self
-
-    def add_charactor_trace(self, trace: CharacterTrace) -> Self:
-        """Append one character trace to this element and return self."""
-        self.character_trace.append(trace)
-        return self
-
-    def dump_charactors(self) -> str:
-        """Render every character's evolution for prompts, in trace order."""
-        return "\n\n".join(trace.dump_to_prompt() for trace in self.character_trace)
-
-    def cast_missing_traces(self) -> list[str]:
-        """Return cast members that have no character trace on this context.
-
-        A non-empty result means the proposed cast names characters the
-        roster does not know, so the rendered character prompt cannot cover
-        them; this is the check that the character parse into the model
-        carries the proper cast.
-        """
-        traced = {trace.start.name for trace in self.character_trace}
-        return [name for name in self.cast if name not in traced]
 
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.

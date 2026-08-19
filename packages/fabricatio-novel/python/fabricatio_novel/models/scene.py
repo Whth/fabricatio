@@ -4,6 +4,7 @@ from typing import Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.rust import word_count
+
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import ScenePlan
 

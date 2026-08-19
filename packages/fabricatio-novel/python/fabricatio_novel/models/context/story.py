@@ -5,7 +5,7 @@ from typing import Generator, Self, final
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
-from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.base import CharacterTrace, ContextBase
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
@@ -16,6 +16,8 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
 
     story_plan: StoryPlan | None = None
     """The story's own plan; proposed before the scene contexts are created."""
+
+    character_trace: list[CharacterTrace] = Field(default_factory=list)
 
     scene_context: list[SceneContext] = Field(default_factory=list)
 
@@ -32,6 +34,31 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
             .set_writing_style(plan.writing_style)
             .set_cast(plan.cast)
         )
+
+    def set_charactor_traces(self, traces: list[CharacterTrace]) -> Self:
+        """Replace this element's character traces and return self."""
+        self.character_trace = traces
+        return self
+
+    def add_charactor_trace(self, trace: CharacterTrace) -> Self:
+        """Append one character trace to this element and return self."""
+        self.character_trace.append(trace)
+        return self
+
+    def dump_characters(self) -> str:
+        """Render every character's evolution for prompts, in trace order."""
+        return "\n\n".join(trace.dump_to_prompt() for trace in self.character_trace)
+
+    def cast_missing_traces(self) -> list[str]:
+        """Return cast members that have no character trace on this context.
+
+        A non-empty result means the proposed cast names characters the
+        roster does not know, so the rendered character prompt cannot cover
+        them; this is the check that the character parse into the model
+        carries the proper cast.
+        """
+        traced = {trace.start.name for trace in self.character_trace}
+        return [name for name in self.cast if name not in traced]
 
     @final
     def iter_scene_content(self) -> Generator[str, None, None]:

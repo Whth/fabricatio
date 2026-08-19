@@ -4,6 +4,7 @@ from typing import List, Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
+
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.plan import ChapterPlan

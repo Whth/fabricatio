@@ -6,7 +6,7 @@ from fabricatio_capabilities.models.generic import UpdateFrom
 from fabricatio_core.rust import detect_language
 from pydantic import Field
 
-from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import NovelPlan
@@ -25,6 +25,8 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
     """The novel's own plan; proposed before the chapter contexts are created."""
 
     chapter_context: list[ChapterContext] = Field(default_factory=list)
+
+    charactor_span: list[CharacterSpan]
 
     def update_pre_check(self, other: NovelPlan | Self) -> Self:
         """Accept a novel plan (or another novel context) as the update source."""

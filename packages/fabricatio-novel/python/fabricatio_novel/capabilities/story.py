@@ -60,7 +60,7 @@ class StoryCompose(SceneCompose, ABC):
                 "writing_style": ctx.writing_style,
                 "writing_constraint": ctx.writing_constraint,
                 "language": ctx.language,
-                "characters": ctx.dump_charactors(),
+                "characters": ctx.dump_characters(),
                 "style_docs": "\n\n".join(doc.as_prompt() for doc in ctx.style_docs),
                 "cast": ", ".join(ctx.cast),
             },

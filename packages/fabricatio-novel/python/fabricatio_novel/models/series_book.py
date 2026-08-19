@@ -8,9 +8,9 @@ string in ``background_settings``.
 
 from typing import Any, ClassVar, Dict, List
 
+from fabricatio_capabilities.models.generic import AsPrompt, FinalizedDumpAble, PersistentAble
 from pydantic import Field
 
-from fabricatio_capabilities.models.generic import AsPrompt, FinalizedDumpAble, PersistentAble
 from fabricatio_novel.config import novel_config
 
 

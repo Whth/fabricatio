@@ -5,7 +5,7 @@ from typing import ClassVar, Generator, Self, final
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
-from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
@@ -20,6 +20,8 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     """The chapter's own plan; proposed before the story contexts are created."""
 
     story_context: list[StoryContext] = Field(default_factory=list)
+
+    charactor_span: list[CharacterSpan]
 
     @classmethod
     def from_plan(cls, plan: ChapterPlan, expected_word_count: int) -> Self:
