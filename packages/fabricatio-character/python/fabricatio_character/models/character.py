@@ -2,11 +2,11 @@
 
 from typing import ClassVar, Dict, Self
 
+from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
+from fabricatio_core.models.generic import JSONList, Named, SketchedAble
 from pydantic import Field, field_validator
 
-from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_character.config import character_config
-from fabricatio_core.models.generic import JSONList, Named, SketchedAble
 
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):

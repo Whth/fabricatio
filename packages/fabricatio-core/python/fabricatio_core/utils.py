@@ -173,24 +173,24 @@ def first_available[T](iterable: Iterable[Optional[T]]) -> T: ...
 
 @overload
 def first_available[T](
-        iterable: Iterable[Optional[T]], *, raise_exception: Literal[True, False] = False
+    iterable: Iterable[Optional[T]], *, raise_exception: Literal[True, False] = False
 ) -> T | None: ...
 
 
 @overload
 def first_available[T](
-        iterable: Iterable[Optional[T]],
-        msg: str = "No available item found in the iterable.",
-        *,
-        raise_exception: Literal[True, False] = True,
+    iterable: Iterable[Optional[T]],
+    msg: str = "No available item found in the iterable.",
+    *,
+    raise_exception: Literal[True, False] = True,
 ) -> T: ...
 
 
 def first_available[T](
-        iterable: Iterable[Optional[T]],
-        msg: str = "No available item found in the iterable.",
-        *,
-        raise_exception: Literal[True, False] = True,
+    iterable: Iterable[Optional[T]],
+    msg: str = "No available item found in the iterable.",
+    *,
+    raise_exception: Literal[True, False] = True,
 ) -> T | None:
     """Return the first available item in the iterable that's not None.
 
