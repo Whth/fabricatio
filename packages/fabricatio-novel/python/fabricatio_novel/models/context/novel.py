@@ -2,10 +2,10 @@
 
 from typing import Generator, Self, final
 
-from fabricatio_capabilities.models.generic import UpdateFrom
-from fabricatio_core.rust import detect_language
 from pydantic import Field
 
+from fabricatio_capabilities.models.generic import UpdateFrom
+from fabricatio_core.rust import detect_language
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.rag import RAGChannel
@@ -80,3 +80,7 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
     def create(cls, outline: str, language: str | None = None) -> Self:
         """Build a novel context from an outline, detecting the language from the outline when none is given."""
         return cls(outline=outline, language=language or detect_language(outline))
+
+    def dump_characters(self) -> str:
+
+        return "\n".join(s.dump_to_prompt() for s in self.charactor_span)

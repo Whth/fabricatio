@@ -3,12 +3,12 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
 
+from pydantic import Field
+
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
-from pydantic import Field
-
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -26,6 +26,11 @@ class CharacterSpan(SketchedAble):
     """"""
     end: CharacterCard
     """"""
+
+    @final
+    def dump_to_prompt(self) -> str:
+        return (f'Initial State:\n{self.start}\n\n'
+                f'finalizing State:\n{self.end}')
 
 
 class CharacterSpans(JSONList[CharacterSpan]): ...
