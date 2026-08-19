@@ -3,12 +3,12 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
 
+from pydantic import Field
+
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.utils import ok
-from pydantic import Field
-
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -69,38 +69,10 @@ class CharacterTrace(SketchedAble):
         separator, skipping redundant repeats of unchanged fields to save
         tokens.
         """
-        card = self.start
-        lines = [self._identity_line(card)]
-        for index, diff in enumerate(self.interpolates, start=1):
-            changes = diff.model_dump(exclude_none=True, exclude={"reason"})
-            steps = "; ".join(self._step_text(card, field, value) for field, value in changes.items())
-            lines.append(f"{index}. {steps}; reason: {diff.reason}" if steps else f"{index}. reason: {diff.reason}")
-            card = card.apply(diff)
+
+        lines = [self.start.as_prompt()]
+        lines.extend(d.as_prompt() for d in self.interpolates)
         return "\n".join(lines)
-
-    @staticmethod
-    def _identity_line(card: CharacterCard) -> str:
-        """Render the starting card as one state line, appending metrics when tracked."""
-        parts = [
-            f"roles: {', '.join(card.roles)} (activated: {card.activated_role})",
-            f"look: {card.look}",
-            f"act: {card.act}",
-            f"want: {card.want}",
-            f"flaw: {card.flaw}",
-            f"where: {card.where}",
-            f"condition: {card.condition}",
-            f"mood: {card.mood}",
-        ]
-        if card.metric:
-            parts.append(f"metric: {card.metric_prompt()}")
-        return f"{card.name}. " + " | ".join(parts)
-
-    @classmethod
-    def _step_text(cls, card: CharacterCard, field: str, value: object) -> str:
-        """Render one diff step; metric diffs show each entry's before → after."""
-        if field == "metric" and isinstance(value, dict):
-            return "; ".join(f"metric.{name}: {card.metric.get(name, 'unset')} → {new}" for name, new in value.items())
-        return f"{field}: {getattr(card, field)} → {value}"
 
 
 class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
