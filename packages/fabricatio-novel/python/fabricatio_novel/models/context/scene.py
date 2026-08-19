@@ -15,12 +15,20 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
     content: str = ""
     """The composed prose of this scene; the only context level that owns composed content."""
 
+    scenes_so_far: str = ""
+    """The story's composed scenes before this one; rendered after the style references."""
+
     scene_plan: ScenePlan | None = None
     """The scene's own plan."""
 
     def set_scene_plan(self, plan: ScenePlan) -> Self:
         """Set the scene's plan and return self."""
         self.scene_plan = plan
+        return self
+
+    def set_scenes_so_far(self, scenes_so_far: str) -> Self:
+        """Set the story's composed scenes preceding this scene and return self."""
+        self.scenes_so_far = scenes_so_far
         return self
 
     @classmethod

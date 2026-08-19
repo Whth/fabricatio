@@ -1,22 +1,26 @@
-"""RAG retrieval settings carried down the context tree to scenes."""
+"""RAG retrieval settings and story-scoped style references carried down the context tree."""
 
 from typing import Self
 
+from pydantic import Field
+
+from fabricatio_novel.models.rag import WritingStyleDocument
+
 
 class RAGChannel:
-    """Caller-owned RAG retrieval settings, propagated to every scene context."""
+    """Caller-owned RAG retrieval settings and story-scoped style references."""
 
     rag_query: str = ""
     """Additional query guideline for style retrieval; combined with the story description."""
 
     rag_limit: int = 15
-    """Final reference documents kept after reranking.
+    """Reference documents kept for the story's scene prompts.
 
-    Fetching retrieves this limit of documents for each refined query (head).
+    The story description query retrieves this limit of documents.
     """
 
-    style_digest: str = ""
-    """Prepared writing style guideline for this element, stored by the story-level prep phase."""
+    style_docs: list[WritingStyleDocument] = Field(default_factory=list)
+    """Writing style reference documents retrieved for this story; injected raw into its scenes."""
 
     def set_rag_query(self, query: str) -> Self:
         """Set the additional retrieval query guideline."""
@@ -24,11 +28,11 @@ class RAGChannel:
         return self
 
     def set_rag_limit(self, limit: int) -> Self:
-        """Set the final reference documents kept after reranking."""
+        """Set the reference documents kept for the story's scene prompts."""
         self.rag_limit = limit
         return self
 
-    def set_style_digest(self, digest: str) -> Self:
-        """Set the prepared writing style guideline and return self."""
-        self.style_digest = digest
+    def set_style_docs(self, docs: list[WritingStyleDocument]) -> Self:
+        """Set the retrieved writing style references and return self."""
+        self.style_docs = docs
         return self

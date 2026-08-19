@@ -14,14 +14,32 @@ Respond entirely in "{{ language }}".
 {{#if prefixed_content}}
 # Previous Content
 
-The story written so far follows. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
+The novel written before this story follows. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
 
-{{ block prefixed_content "Story so far" }}
+{{ block prefixed_content "Previous content" }}
+
+---
+{{/if}}
+{{#if style_docs}}
+## Writing Style References
+
+Reference excerpts — match the narrative voice, rhetorical devices, and descriptive techniques where they fit this scene.
+
+{{ style_docs }}
 
 ---
 {{/if}}
 {{#if bible_context}}
 {{ bible_context }}
+
+---
+{{/if}}
+{{#if scenes_so_far}}
+## Story so far
+
+The scenes of this story written so far follow. Continue seamlessly from where they end — do not repeat or contradict them.
+
+{{ block scenes_so_far "Story so far" }}
 
 ---
 {{/if}}

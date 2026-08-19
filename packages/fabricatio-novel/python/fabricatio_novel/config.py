@@ -56,9 +56,6 @@ class NovelConfig:
     writing_style_as_prompt_template: str = "built-in/writing_style_as_prompt"
     """template used to render writing style documents as prompts."""
 
-    writing_style_digest_template: str = "built-in/writing_style_digest"
-    """template used to condense retrieved writing style documents into a guideline."""
-
     enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
     """template used to render enriched reference documents as prompts."""
 

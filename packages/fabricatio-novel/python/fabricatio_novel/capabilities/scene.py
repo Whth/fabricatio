@@ -59,6 +59,8 @@ class SceneCompose(CharacterCompose, ABC):
             "cast": ", ".join(ctx.cast),
             "language": ctx.language or detect_language(ctx.description),
             "prefixed_content": ctx.prefixed_content,
+            "scenes_so_far": ctx.scenes_so_far,
+            "style_docs": "\n\n".join(doc.as_prompt() for doc in ctx.style_docs),
         }
 
     async def prepare_scene_requirement(

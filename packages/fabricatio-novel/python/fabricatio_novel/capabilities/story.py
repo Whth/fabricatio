@@ -96,6 +96,7 @@ class StoryCompose(SceneCompose, ABC):
                     .set_language(ctx.language)
                     .set_rag_query(ctx.rag_query)
                     .set_rag_limit(ctx.rag_limit)
+                    .set_style_docs(ctx.style_docs)
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)
                     )
@@ -122,15 +123,24 @@ class StoryCompose(SceneCompose, ABC):
     ) -> bool:
         """Compose every scene serially in prefix order.
 
+        Each scene's prefixed content is the story's own prefix (everything
+        composed before the story, constant across its scenes) while the
+        story's earlier scenes accumulate separately, so stable content like
+        style references can sit between them for prefix-cache reuse.
+
         Returns:
             bool: True when every scene composed; False on any failure.
         """
         total = len(ctx.scene_context)
-        for i, scene_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
+        prefix = ctx.prefixed_content
+        scenes_so_far = ""
+        for i, scene_ctx in enumerate(ctx.scene_context, start=1):
+            scene_ctx.set_prefixed_content(prefix).set_scenes_so_far(scenes_so_far)
             logger.info(f"Composing scene {i}/{total} '{scene_ctx.title}'")
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 logger.error(f"Scene '{scene_ctx.title}' failed; aborting story '{ctx.title}'")
                 return False
+            scenes_so_far = "\n\n".join(p for p in (scenes_so_far, scene_ctx.render_prefixed_block()) if p)
         return True
 
     async def generate_story(

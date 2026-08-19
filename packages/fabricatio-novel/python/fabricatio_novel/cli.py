@@ -10,6 +10,7 @@ Simple typer app wrapping the novel composition chain:
 """
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -35,6 +36,17 @@ def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Optional[Pa
         return await task.delegate(namespace)
 
     return asyncio.run(_run())
+
+
+def _stamped_run_dir(persist_dir: Path) -> Path:
+    """Return ``<persist_dir>/<YYYYmmdd-HHMMSS>`` for this run, uniquified with a -N suffix."""
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    run_dir = persist_dir / timestamp
+    n = 2
+    while run_dir.exists():
+        run_dir = persist_dir / f"{timestamp}-{n}"
+        n += 1
+    return run_dir
 
 
 def _collect_files(patterns: List[str]) -> List[Path]:
@@ -188,7 +200,13 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
     ),
     persist_dir: Path = typer.Option(
-        Path("novels"), "--persist-dir", "-p", help="Directory to persist the generated novel JSON and EPUB."
+        Path("novels"),
+        "--persist-dir",
+        "-p",
+        help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
+    ),
+    flat: bool = typer.Option(
+        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
     ),
     send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
     font: Optional[Path] = typer.Option(
@@ -196,7 +214,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     ),
     cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
     output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to --persist-dir)."
+        None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
@@ -212,12 +230,13 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     if bible is not None and not bible.is_file():
         typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
+    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
     task = Task(name="write novel").update_init_context(
         novel_outline=_resolve_outline(outline, outline_file),
         novel_language=language,
         writing_constraint=constraint or "",
         bible_path=bible,
-        persist_dir=persist_dir,
+        persist_dir=run_dir,
         output_path=output,
         font=font,
         cover=cover,
@@ -228,7 +247,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
     typer.secho(
-        f"✅ Novel generated\n   JSON:  {persist_dir}\n   EPUB:  {epub_path}",
+        f"✅ Novel generated\n   JSON:  {run_dir}\n   EPUB:  {epub_path}",
         fg=typer.colors.GREEN,
         bold=True,
     )
@@ -245,7 +264,13 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
     ),
     persist_dir: Path = typer.Option(
-        Path("novels"), "--persist-dir", "-p", help="Directory to persist the generated novel JSON and EPUB."
+        Path("novels"),
+        "--persist-dir",
+        "-p",
+        help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
+    ),
+    flat: bool = typer.Option(
+        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
     ),
     send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
     rag_query: Optional[str] = typer.Option(
@@ -262,7 +287,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     ),
     cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
     output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to --persist-dir)."
+        None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
@@ -278,6 +303,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     if bible is not None and not bible.is_file():
         typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
+    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
     task = Task(name="write novel with rag").update_init_context(
         novel_outline=_resolve_outline(outline, outline_file),
         novel_language=language,
@@ -285,7 +311,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         bible_path=bible,
         rag_query=rag_query or "",
         rag_limit=retrieve_limit or 15,
-        persist_dir=persist_dir,
+        persist_dir=run_dir,
         output_path=output,
         font=font,
         cover=cover,
@@ -296,7 +322,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
     typer.secho(
-        f"✅ Novel generated\n   JSON:  {persist_dir}\n   EPUB:  {epub_path}",
+        f"✅ Novel generated\n   JSON:  {run_dir}\n   EPUB:  {epub_path}",
         fg=typer.colors.GREEN,
         bold=True,
     )
