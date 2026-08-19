@@ -14,7 +14,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """A character as they currently are: a stable identity plus the mutable state of the moment.
 
     The identity fields (``name``, ``role``, ``want``) change slowly; the state fields
-    (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``, ``goal``) describe
+    (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``) describe
     how the character is right now and evolve as the story progresses. All fields are
     required and non-empty; ``metric`` is an optional map of tracked numerical stats.
     """
@@ -32,7 +32,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     """How the character currently behaves: mannerisms and reactions under stress."""
 
     want: str
-    """The character's core motivation or deepest goal driving their actions (slow-changing)."""
+    """The character's core motivation driving their actions (slow-changing)."""
 
     flaw: str
     """The character's current vulnerability: weakness, moral failing, or psychological pressure."""
@@ -45,9 +45,6 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
 
     mood: str
     """The character's current emotional state."""
-
-    goal: str
-    """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
     metric: dict[str, int | float] = Field(default_factory=dict)
     """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
@@ -104,7 +101,7 @@ class CharacterCardDiff(CharacterCard):
     """How the character currently behaves: mannerisms and reactions under stress."""
 
     want: str | None = None
-    """The character's core motivation or deepest goal driving their actions (slow-changing)."""
+    """The character's core motivation driving their actions (slow-changing)."""
 
     flaw: str | None = None
     """The character's current vulnerability: weakness, moral failing, or psychological pressure."""
@@ -117,9 +114,6 @@ class CharacterCardDiff(CharacterCard):
 
     mood: str | None = None
     """The character's current emotional state."""
-
-    goal: str | None = None
-    """What the character is trying to achieve right now, as opposed to the deeper ``want``."""
 
     metric: dict[str, int | float] | None = None
     """Numerical stats changed in this step (e.g. ``{"hp": 60, "weight_kg": 61}``); entries merge into the card."""

@@ -59,7 +59,6 @@ class TestCharacterCard:
             where="In a rainy alley, tailing a suspect",
             condition="Healthy but damp",
             mood="Focused",
-            goal="Catch the witness before dawn",
             metric={"hp": 100, "reputation": 25},
         )
 
@@ -74,7 +73,6 @@ class TestCharacterCard:
         assert card.where == "In a rainy alley, tailing a suspect"
         assert card.condition == "Healthy but damp"
         assert card.mood == "Focused"
-        assert card.goal == "Catch the witness before dawn"
         assert card.metric == {"hp": 100, "reputation": 25}
 
     def test_card_model_dump(self, card: CharacterCard) -> None:
@@ -89,7 +87,6 @@ class TestCharacterCard:
         assert data["where"] == "In a rainy alley, tailing a suspect"
         assert data["condition"] == "Healthy but damp"
         assert data["mood"] == "Focused"
-        assert data["goal"] == "Catch the witness before dawn"
         assert data["metric"] == {"hp": 100, "reputation": 25}
 
     def test_card_as_prompt(self, card: CharacterCard) -> None:
@@ -100,7 +97,6 @@ class TestCharacterCard:
         assert "## Where" in result
         assert "## Condition" in result
         assert "## Mood" in result
-        assert "## Goal (immediate)" in result
         assert "## Want (core motivation)" in result
         assert "## Metrics" in result
         assert "hp=100, reputation=25" in result
@@ -118,7 +114,6 @@ class TestCharacterCard:
             "where",
             "condition",
             "mood",
-            "goal",
         }
         assert expected.issubset(set(fields.keys()))
 
@@ -129,7 +124,6 @@ class TestCharacterCard:
                 where="In the enemy palace's wine cellar",
                 condition="Feverish, limping",
                 mood="Smoldering fury",
-                goal="Steal the seal before dawn",
                 reason="Captured and drugged in chapter 4",
             )
         )
@@ -142,7 +136,6 @@ class TestCharacterCard:
         assert updated.where == "In the enemy palace's wine cellar"
         assert updated.condition == "Feverish, limping"
         assert updated.mood == "Smoldering fury"
-        assert updated.goal == "Steal the seal before dawn"
 
     def test_metric_diff_merges_into_card(self, card: CharacterCard) -> None:
         """A metric diff updates only the named entries and keeps the rest."""
@@ -164,7 +157,6 @@ class TestCharacterCard:
             where="nowhere",
             condition="fine",
             mood="calm",
-            goal="nothing",
         )
         assert plain.metric == {}
         assert "## Metrics" not in plain.as_prompt()
@@ -190,7 +182,6 @@ class TestDumpCard:
             where="Downtown",
             condition="Fine",
             mood="Eager",
-            goal="Join the crew",
         )
         result = dump_card(card)
         assert isinstance(result, str)
@@ -209,7 +200,6 @@ class TestDumpCard:
                 where="Where",
                 condition="Condition",
                 mood="Mood",
-                goal="Goal",
             )
             for i in range(3)
         ]
@@ -222,10 +212,10 @@ class TestDumpCard:
         """Test that multiple cards are joined by newlines."""
         cards = [
             CharacterCard(
-                name="A", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M", goal="G"
+                name="A", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M"
             ),
             CharacterCard(
-                name="B", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M", goal="G"
+                name="B", role="R", look="L", act="A", want="W", flaw="F", where="X", condition="C", mood="M"
             ),
         ]
         result = dump_card(*cards)
@@ -262,7 +252,6 @@ class TestCharacterCompose:
             where="Arena",
             condition="Rested",
             mood="Resolute",
-            goal="Win the trial",
         )
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_card):
             result = await role.compose_characters("Create a warrior character")
@@ -283,7 +272,6 @@ class TestCharacterCompose:
                 where="Arena",
                 condition="Rested",
                 mood="Resolute",
-                goal="Win the trial",
             ),
             CharacterCard(
                 name="Mage",
@@ -295,7 +283,6 @@ class TestCharacterCompose:
                 where="Library",
                 condition="Fine",
                 mood="Curious",
-                goal="Find the grimoire",
             ),
         ]
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_cards):

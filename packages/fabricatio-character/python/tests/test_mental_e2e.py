@@ -44,7 +44,6 @@ def _make_hamlet() -> CharacterCard:
         where="Elsinore Castle, the great hall, his uncle's court watching",
         condition="Haggard from sleepless nights, mourning clothes still black",
         mood="Melancholic, brooding, coiled anger beneath the surface",
-        goal="Confirm Claudius's guilt before committing to revenge",
     )
 
 
@@ -59,7 +58,6 @@ def _make_daiyu() -> CharacterCard:
         where="The Grand View Garden, Bamboo Lodge, evening rain on the window",
         condition="Frail, recurring cough, thin and easily exhausted",
         mood="Lonely, wistful, on the verge of tears",
-        goal="Keep Baoyu's heart without appearing to scheme for it",
     )
 
 

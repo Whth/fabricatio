@@ -186,7 +186,6 @@ class TestMentalState:
             where="home",
             condition="healthy",
             mood="hopeful",
-            goal="win the trial",
         )
         state = MentalState.from_card(card)
         assert state.mind.character_name == "Hero"

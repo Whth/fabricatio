@@ -89,7 +89,6 @@ class CharacterTrace(SketchedAble):
             f"where: {card.where}",
             f"condition: {card.condition}",
             f"mood: {card.mood}",
-            f"goal: {card.goal}",
         ]
         if card.metric:
             parts.append(f"metric: {card.metric_prompt()}")

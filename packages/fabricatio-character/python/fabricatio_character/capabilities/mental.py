@@ -62,7 +62,7 @@ class UseMind(Propose, ABC):
 
         Args:
             name: Character name.
-            want: Character's core motivation/goal.
+            want: Character's core motivation.
             flaw: Character's critical weakness/vulnerability.
 
         Returns:

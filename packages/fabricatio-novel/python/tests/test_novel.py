@@ -40,7 +40,6 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
         where="starting village",
         condition="healthy",
         mood="determined",
-        goal="reach the capital",
     )
 
 
@@ -202,7 +201,7 @@ class TestCharactorTrace:
         trace = CharacterTrace(start=start)
         assert trace.dump_to_prompt() == (
             "Hero — protagonist. look: tall | act: brave | want: seek truth | flaw: stubborn"
-            " | where: starting village | condition: healthy | mood: determined | goal: reach the capital"
+            " | where: starting village | condition: healthy | mood: determined"
         )
 
     def test_state_diffs_fold_into_end_and_render_on_the_prompt(self) -> None:
@@ -215,7 +214,6 @@ class TestCharactorTrace:
                     where="enemy palace wine cellar",
                     condition="feverish, limping",
                     mood="smoldering fury",
-                    goal="steal the seal before dawn",
                     reason="captured and drugged",
                 ),
             ],
@@ -228,13 +226,11 @@ class TestCharactorTrace:
             "1. where: starting village → enemy palace wine cellar; "
             "condition: healthy → feverish, limping; "
             "mood: determined → smoldering fury; "
-            "goal: reach the capital → steal the seal before dawn; "
             "reason: captured and drugged"
         ) in lines[1]
         assert trace.end.where == "enemy palace wine cellar"
         assert trace.end.condition == "feverish, limping"
         assert trace.end.mood == "smoldering fury"
-        assert trace.end.goal == "steal the seal before dawn"
 
     def test_metric_diffs_render_per_entry_and_merge(self) -> None:
         """Metric diffs show each entry's before → after and merge into the card."""
@@ -248,7 +244,6 @@ class TestCharactorTrace:
             where="starting village",
             condition="healthy",
             mood="determined",
-            goal="reach the capital",
             metric={"hp": 100, "reputation": 30},
         )
         trace = CharacterTrace(

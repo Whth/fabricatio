@@ -29,7 +29,7 @@ pip install fabricatio[full]
 
 ## Overview
 
-`fabricatio-character` provides a `CharacterCard` model capturing a character as they currently are: stable identity (name, role, motivation) plus the mutable state of the moment (appearance, behavior, vulnerability, location, physical condition, mood, immediate goal) — ten required fields that together define a complete narrative persona and its present situation, plus an optional `metric` map of tracked numerical stats (hp, energy, reputation, ...). The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
+`fabricatio-character` provides a `CharacterCard` model capturing a character as they currently are: stable identity (name, role, motivation) plus the mutable state of the moment (appearance, behavior, vulnerability, location, physical condition, mood) — nine required fields that together define a complete narrative persona and its present situation, plus an optional `metric` map of tracked numerical stats (hp, energy, reputation, ...). The `CharacterCompose` capability plugs into Fabricatio's `Propose` pipeline to generate cards via LLM from natural-language requirements, with built-in Pydantic validation.
 
 Generated cards are renderable through the Fabricatio template system (`as_prompt()`) and persistable (`PersistentAble`) for checkpoint/restore workflows.
 
@@ -41,7 +41,7 @@ Generated cards are renderable through the Fabricatio template system (`as_promp
 
 A character as they currently are. The identity fields (`name`, `role`, `want`) change
 slowly; the state fields describe how the character is right now and evolve as the story
-progresses. The ten text fields are required and non-empty; `metric` is optional.
+progresses. The nine text fields are required and non-empty; `metric` is optional.
 
 | Field | Type | Description |
 |---|---|---|
@@ -49,12 +49,11 @@ progresses. The ten text fields are required and non-empty; `metric` is optional
 | `role` | `str` | Current narrative or functional role within the story |
 | `look` | `str` | Current appearance — clothing, physique, distinguishing features, wounds, disguise |
 | `act` | `str` | Current behaviors, mannerisms, stress reactions |
-| `want` | `str` | Core motivation or deepest goal driving the character's actions (slow-changing) |
+| `want` | `str` | Core motivation driving the character's actions (slow-changing) |
 | `flaw` | `str` | Current weakness, moral failing, or psychological vulnerability |
 | `where` | `str` | Current location and immediate situation |
 | `condition` | `str` | Current physical state — health, energy, injuries, resources |
 | `mood` | `str` | Current emotional state |
-| `goal` | `str` | Immediate objective right now, as opposed to the deeper `want` |
 | `metric` | `dict[str, int \| float]` | Tracked numerical stats — any measurable quantity, including physical stats like body weight (e.g. `{"hp": 80, "reputation": 30, "weight_kg": 62}`); empty by default. Diffs merge entries instead of replacing the map |
 
 `CharacterCard` inherits:
