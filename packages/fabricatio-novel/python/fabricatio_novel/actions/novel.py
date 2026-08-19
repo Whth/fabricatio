@@ -91,7 +91,7 @@ class CharactersStage(StageAction, NovelCompose):
     stage: ClassVar[str] = "03_characters"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
-        await self.prepare_character_traces(novel_ctx, send_to=cxt.get("send_to", TASK))
+        await self.prepare_character_span(novel_ctx, send_to=cxt.get("send_to", TASK))
         await self.snapshot(novel_ctx, cxt)
         return True
 

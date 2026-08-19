@@ -6,10 +6,11 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
+from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import CharacterTrace, merge_writing_constraints
+from fabricatio_novel.models.context.base import CharacterSpans, merge_writing_constraints
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
@@ -68,23 +69,6 @@ class NovelCompose(ChapterCompose, ABC):
         plans = await self.propose(ChapterPlans, requirement, send_to=send_to, **kwargs)
         return plans.root if plans is not None else None
 
-    async def create_charactor_traces(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> None:
-        """Create the initial character traces from the setting bible roster."""
-        bible = ctx.series_bible
-        if bible is None or not bible.characters:
-            logger.debug("No setting bible roster; skipping character trace creation")
-            return
-        requirements = [line.strip() for line in bible.characters.splitlines() if line.strip()]
-        if not requirements:
-            logger.debug("Setting bible roster is empty; skipping character trace creation")
-            return
-        cards = await self.compose_characters(requirements, **kwargs)
-        if not cards:
-            logger.warn("Character proposal returned no cards; skipping character trace creation")
-            return
-        ctx.set_charactor_traces([CharacterTrace(start=card) for card in cards if card is not None])
-        logger.info(f"Created {len(ctx.character_trace)} character trace(s) from the setting bible")
-
     async def propose_novel_metadata(
         self,
         ctx: NovelContext,
@@ -109,18 +93,28 @@ class NovelCompose(ChapterCompose, ABC):
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         return True
 
-    async def prepare_character_traces(
+    async def prepare_character_span(
         self,
         ctx: NovelContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Create the character traces from the bible roster and interpolate them over the outline."""
-        if not ctx.character_trace:
-            await self.create_charactor_traces(ctx, **kwargs)
-        if ctx.character_trace:
-            logger.info(f"Interpolating {len(ctx.character_trace)} character(s) over the novel outline")
-        await self.interpolate_characters(ctx, send_to, outline=ctx.outline, **kwargs)
+        bible = ctx.series_bible
+
+        spans = ok(
+            await self.propose(
+                CharacterSpans,
+                TEMPLATE_MANAGER.render_template(
+                    novel_config.novel_character_span_template,
+                    {"bible": bible.as_prompt(), "desc": ctx.description, "title": ctx.title},
+                ),
+                send_to=send_to,
+                **kwargs,
+            )
+        )
+
+        ctx.charactor_span = spans.root
 
     async def plan_chapters_phase(
         self,
@@ -197,7 +191,7 @@ class NovelCompose(ChapterCompose, ABC):
         logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
         if not await self.propose_novel_metadata(ctx, send_to, **kwargs):
             return None
-        await self.prepare_character_traces(ctx, send_to, **kwargs)
+        await self.prepare_character_span(ctx, send_to, **kwargs)
         if not await self.plan_chapters_phase(ctx, send_to, **kwargs):
             return None
         if not await self.compose_chapters_phase(ctx, send_to, **kwargs):

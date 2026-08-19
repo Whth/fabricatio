@@ -2,16 +2,14 @@
 
 import asyncio
 from abc import ABC
-from typing import Sequence, Unpack
+from typing import Unpack
 
 from fabricatio_character.capabilities.character import CharacterCompose
-from fabricatio_character.models.character import CharacterCardDiffs, CharacterCardSlices
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, detect_language, word_count
 
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import CharacterTrace, ContextBase
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.scene import Scene
@@ -106,95 +104,6 @@ class SceneCompose(CharacterCompose, ABC):
             f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}"
         )
         return scene
-
-    async def interpolate_characters(
-        self,
-        ctx: ContextBase,
-        send_to: str | None = TASK,
-        outline: str = "",
-        **kwargs: Unpack[LLMKwargs],
-    ) -> None:
-        """Extend every trace with the character states occurring in this element.
-
-        Runs before the element is planned or written, so the pre-scheduled
-        chain can guide both plan and content generation.
-
-        ``outline`` is the novel-level story outline; only the novel root passes
-        it. Lower levels leave it empty and the prompt section is dropped.
-        """
-        if not ctx.character_trace:
-            return
-        logger.debug(f"Interpolating {len(ctx.character_trace)} character(s) for '{ctx.title}'")
-        prompts = [
-            TEMPLATE_MANAGER.render_template(
-                novel_config.charactor_diff_template,
-                {
-                    "title": ctx.title,
-                    "description": ctx.description,
-                    "outline": outline,
-                    "chain": trace.dump_to_prompt(),
-                    "language": ctx.language,
-                },
-            )
-            for trace in ctx.character_trace
-        ]
-        chains = await self.propose(
-            CharacterCardDiffs,
-            prompts,
-            send_to=send_to,
-            **kwargs,
-        )
-        applied = 0
-        for trace, chain in zip(ctx.character_trace, chains or [], strict=False):
-            if chain is None or not chain.root:
-                continue
-            applied += 1
-            trace.intepl([*trace.interpolates, *chain.root])
-        logger.debug(f"Extended {applied} character chain(s) for '{ctx.title}'")
-
-    async def split_character_slices(
-        self,
-        ctx: ContextBase,
-        children: Sequence[ContextBase],
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> None:
-        """Split each trace's chain into per-child slices and assign them to the children.
-
-        Runs after the children are planned; every child receives one trace
-        per character, holding its allocated slice (possibly empty), so the
-        child extends only its own states.
-        """
-        if not ctx.character_trace or not children:
-            return
-        logger.debug(f"Splitting {len(ctx.character_trace)} character chain(s) into {len(children)} slice(s)")
-        prompts = [
-            TEMPLATE_MANAGER.render_template(
-                novel_config.charactor_slice_template,
-                {
-                    "title": ctx.title,
-                    "description": ctx.description,
-                    "children": [{"title": child.title, "description": child.description} for child in children],
-                    "chain": trace.dump_to_prompt(),
-                    "language": ctx.language,
-                },
-            )
-            for trace in ctx.character_trace
-        ]
-        slices = await self.propose(
-            CharacterCardSlices,
-            prompts,
-            send_to=send_to,
-            **kwargs,
-        )
-        assigned = 0
-        for trace, per_child in zip(ctx.character_trace, slices or [], strict=False):
-            if per_child is None:
-                continue
-            assigned += 1
-            for child, slice_ in zip(children, per_child.root, strict=False):
-                child.add_charactor_trace(CharacterTrace(start=trace.start, interpolates=slice_))
-        logger.debug(f"Assigned {assigned} character chain slice(s) across {len(children)} child(ren)")
 
     async def prepare_story(
         self,

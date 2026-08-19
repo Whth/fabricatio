@@ -59,6 +59,8 @@ class NovelConfig:
     enriched_as_prompt_template: str = "built-in/enriched_as_prompt"
     """template used to render enriched reference documents as prompts."""
 
+    novel_character_span_template: str = "built-in/novel_character_span"
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 

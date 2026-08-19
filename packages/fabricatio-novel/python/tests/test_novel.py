@@ -333,29 +333,6 @@ class NovelRole(LLMTestRole, NovelCompose):
 class TestCharactorTraces:
     """Test suite for hierarchical character state chains."""
 
-    async def test_create_charactor_traces_skips_without_roster(self) -> None:
-        """Assert trace creation is skipped without a bible roster."""
-        role = NovelRole(name="novel_role")
-        ctx = NovelContext.create("The hero.", language="English")
-        await role.create_charactor_traces(ctx)
-        assert ctx.character_trace == []
-
-    async def test_create_charactor_traces_from_bible(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert the bible roster seeds one trace per character."""
-        role = NovelRole(name="novel_role")
-        ctx = NovelContext.create("The hero.", language="English")
-        ctx.set_series_bible(SeriesBible(characters="Hero — brave.\nVillain — cruel."))
-        hero = card()
-        villain = card(name="Villain", look="dark")
-
-        async def fake_compose(requirements: list[str], **kwargs: object) -> list[CharacterCard | None]:
-            return [hero, villain]
-
-        monkeypatch.setattr(NovelRole, "compose_characters", staticmethod(fake_compose))
-        await role.create_charactor_traces(ctx)
-        assert [t.start.name for t in ctx.character_trace] == ["Hero", "Villain"]
-        assert all(t.start == t.end for t in ctx.character_trace)
-
     async def test_compose_novel_builds_hierarchical_chains(self) -> None:
         """Assert each level extends its allocated slice of the parent chain, without mutating it."""
         role = NovelRole(name="novel_role")
@@ -446,7 +423,6 @@ class TestCharactorTraces:
         assert "took a blade" in requirement
 
     def test_cast_missing_traces_reports_unknown_members(self) -> None:
-
         ctx = StoryContext(title="St1", description="D")
         ctx.set_cast(["Hero", "Ghost"])
         ctx.character_trace = [CharacterTrace(start=card())]
