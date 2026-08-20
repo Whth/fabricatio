@@ -2,10 +2,10 @@
 
 from typing import Generator, Self, final
 
-from pydantic import Field
-
 from fabricatio_capabilities.models.generic import UpdateFrom
 from fabricatio_core.rust import detect_language
+from pydantic import Field
+
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.rag import RAGChannel

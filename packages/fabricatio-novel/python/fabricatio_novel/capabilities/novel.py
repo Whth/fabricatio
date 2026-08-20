@@ -8,6 +8,7 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
+
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import (
@@ -26,17 +27,17 @@ class NovelCompose(ChapterCompose, ABC):
     """This class contains the capabilities for the novel."""
 
     async def before_compose_novel(
-            self,
-            ctx: NovelContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         """Identity hook invoked before composing a novel; may mutate the context."""
         return ctx
 
     async def after_compose_novel(
-            self,
-            ctx: NovelContext,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        **kwargs: Unpack[LLMKwargs],
     ) -> NovelContext:
         """Identity hook invoked after generating a novel; may mutate the context."""
         return ctx
@@ -46,10 +47,10 @@ class NovelCompose(ChapterCompose, ABC):
         return novel
 
     async def plan_chapters(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[ChapterPlan] | None:
         """Propose chapter plans for the novel via the LLM.
 
@@ -75,10 +76,10 @@ class NovelCompose(ChapterCompose, ABC):
         return plans.root if plans is not None else None
 
     async def propose_novel_metadata(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> bool:
         """Propose the novel metadata from the outline and adopt it onto the context.
 
@@ -99,10 +100,10 @@ class NovelCompose(ChapterCompose, ABC):
         return True
 
     async def prepare_character_span(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Propose the novel roster as one CharacterSpan per character in a single batch.
 
@@ -127,10 +128,10 @@ class NovelCompose(ChapterCompose, ABC):
         logger.info(f"Proposed {len(ctx.charactor_span)} novel character span(s)")
 
     async def draft_chapter_spans(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Draft the N-1 chapter-boundary cards per character in a single LLM batch.
 
@@ -177,13 +178,13 @@ class NovelCompose(ChapterCompose, ABC):
         )
 
     def _stitch_boundaries(
-            self,
-            parent_spans: list[CharacterSpan],
-            children: list,
-            spans_accessor,
-            proposed: list[list[CharacterCard]],
-            expected_boundaries: int,
-            level: str,
+        self,
+        parent_spans: list[CharacterSpan],
+        children: list,
+        spans_accessor,
+        proposed: list[list[CharacterCard]],
+        expected_boundaries: int,
+        level: str,
     ) -> None:
         """Stitch one child span per element from the parent spans and proposed boundaries.
 
@@ -206,10 +207,10 @@ class NovelCompose(ChapterCompose, ABC):
         logger.debug(f"Stitched {level} spans from boundary cards")
 
     async def plan_chapters_phase(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> bool:
         """Plan chapters when none are scheduled, materialize their contexts, and draft spans.
 
@@ -237,10 +238,10 @@ class NovelCompose(ChapterCompose, ABC):
         return True
 
     async def compose_chapters_phase(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> bool:
         """Broadcast the bible and compose every chapter in prefix order.
 
@@ -265,10 +266,10 @@ class NovelCompose(ChapterCompose, ABC):
         return novel
 
     async def generate_novel(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         """Generate the novel by composing its chapters.
 
@@ -288,10 +289,10 @@ class NovelCompose(ChapterCompose, ABC):
         return self.assemble_novel(ctx)
 
     async def compose_novel(
-            self,
-            ctx: NovelContext,
-            send_to: str | None = TASK,
-            **kwargs: Unpack[LLMKwargs],
+        self,
+        ctx: NovelContext,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         """Compose a novel end to end: before, generate, after, then post-process; returns None when generation fails."""
         ctx = await self.before_compose_novel(ctx, **kwargs)

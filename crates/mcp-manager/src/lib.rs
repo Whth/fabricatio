@@ -15,11 +15,11 @@ use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
 use rmcp::{ErrorData, RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
-use std::future::Future;
 use serde_json::value::Value;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fmt::Debug;
+use std::future::Future;
 use tokio::process::Command;
 use which::which;
 
@@ -83,9 +83,8 @@ impl Service<RoleClient> for ClientService {
         &self,
         request: <RoleClient as ServiceRole>::PeerReq,
         context: RequestContext<RoleClient>,
-    ) -> impl Future<Output = Result<<RoleClient as ServiceRole>::Resp, ErrorData>>
-        + MaybeSendFuture
-        + '_ {
+    ) -> impl Future<Output = Result<<RoleClient as ServiceRole>::Resp, ErrorData>> + MaybeSendFuture + '_
+    {
         DynService::handle_request(&*self.0, request, context)
     }
 
@@ -168,12 +167,10 @@ impl MCPManager {
         };
 
         match TokioChildProcess::new(cmd) {
-            Ok(proc) => {
-                ClientService(().into_dyn())
-                    .serve(proc)
-                    .map_err(|e| McpError::ServiceInitError(Box::new(e)))
-                    .boxed()
-            }
+            Ok(proc) => ClientService(().into_dyn())
+                .serve(proc)
+                .map_err(|e| McpError::ServiceInitError(Box::new(e)))
+                .boxed(),
             Err(e) => async move { Err(McpError::IoError(e)) }.boxed(),
         }
     }

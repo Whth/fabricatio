@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 import pytest
-from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
+from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
     Value,

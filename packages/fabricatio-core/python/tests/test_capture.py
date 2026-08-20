@@ -243,7 +243,7 @@ class TestJsonParser:
         assert result == {"key": "value"}
 
     def test_convert_plain_array_unchanged(self) -> None:
-        """convert on plain (non-fenced) JSON must keep working."""
+        """Convert on plain (non-fenced) JSON must keep working."""
         parser = JsonParser.capture_json_codeblock()
         text = '[{"a": 1}, {"b": 2}]'
         result = parser.convert(text, fix=True)
@@ -251,7 +251,7 @@ class TestJsonParser:
         assert result == [{"a": 1}, {"b": 2}]
 
     def test_convert_prose_wrapped_array_recovers_full_array(self) -> None:
-        """convert on prose + fenced array should extract the array, not a single object."""
+        """Convert on prose + fenced array should extract the array, not a single object."""
         parser = JsonParser.capture_json_codeblock()
         text = 'Here is the data:\n```json\n[{"a": 1}, {"b": 2}]\n```\nDone.'
         result = parser.convert(text, fix=True)

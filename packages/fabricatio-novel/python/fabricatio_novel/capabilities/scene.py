@@ -129,4 +129,3 @@ class SceneCompose(CharacterCompose, ABC):
         if scene is None:
             return None
         return await self.post_process_scene(ctx, scene, **kwargs)
-

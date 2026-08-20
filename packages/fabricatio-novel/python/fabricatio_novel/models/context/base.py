@@ -3,12 +3,12 @@
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
 
-from pydantic import Field
-
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
+from pydantic import Field
+
 from fabricatio_novel.models.series_book import SeriesBible
 
 

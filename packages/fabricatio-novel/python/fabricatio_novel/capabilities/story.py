@@ -180,4 +180,3 @@ class StoryCompose(SceneCompose, ABC):
         if story is None:
             return None
         return await self.post_process_story(ctx, story, **kwargs)
-
