@@ -1,11 +1,11 @@
 [package]
 name = "mcp-manager"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 
 [dependencies]
 futures = "0.3.32"
-rmcp = { version = "2.1.0", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
+rmcp = { version = "3.1.4", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 tokio = { version = "1.52.3", features = ["process", "rt-multi-thread", "sync"] }
