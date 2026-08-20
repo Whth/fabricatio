@@ -220,7 +220,8 @@ class TestJsonParser:
         assert result is None
 
     def test_convert_fenced_array_with_repair(self) -> None:
-        """Regression: convert(fenced_array, fix=True) must return the full array,
+        """Regression: convert(fenced_array, fix=True) must return the full array.
+
         not be mangled into the first object by repair_json.
 
         See: playground1.py failure where convert returned a dict for an
@@ -233,7 +234,8 @@ class TestJsonParser:
         assert result == [{"a": 1}, {"b": 2}, {"c": 3}]
 
     def test_convert_fenced_object_with_repair(self) -> None:
-        """Regression: convert(fenced_object, fix=True) must return the dict,
+        """Regression: convert(fenced_object, fix=True) must return the dict.
+
         not be mangled or return None.
         """
         parser = JsonParser.capture_json_codeblock()

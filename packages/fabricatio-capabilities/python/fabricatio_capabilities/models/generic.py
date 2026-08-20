@@ -461,4 +461,5 @@ class WordCount(Base, ABC):
         raise NotImplementedError(f"`exact_word_count` is not implemented for {self.__class__.__name__}")
 
     def satisfy_ratio(self) -> float:
+        """Return the fraction of expected words already produced by this element."""
         return self.exact_word_count / self.expected_word_count if self.expected_word_count else 0.0

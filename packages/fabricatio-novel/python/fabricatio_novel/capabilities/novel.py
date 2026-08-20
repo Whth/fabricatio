@@ -1,7 +1,7 @@
 """Novel composition capabilities: planning chapters and composing novels."""
 
 from abc import ABC
-from typing import Unpack
+from typing import Callable, Sequence, Unpack
 
 from fabricatio_character.models.character import CharacterCard, CharacterCardBoundaries
 from fabricatio_core import TEMPLATE_MANAGER, logger
@@ -177,11 +177,11 @@ class NovelCompose(ChapterCompose, ABC):
             "chapter",
         )
 
-    def _stitch_boundaries(
+    def _stitch_boundaries[C](
         self,
         parent_spans: list[CharacterSpan],
-        children: list,
-        spans_accessor,
+        children: Sequence[C],
+        spans_accessor: Callable[[C], list[CharacterSpan]],
         proposed: list[list[CharacterCard]],
         expected_boundaries: int,
         level: str,

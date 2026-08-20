@@ -16,6 +16,7 @@ class Story(StoryPlan, WordCount):
 
     @property
     def exact_word_count(self) -> int:
+        """Sum the exact word counts of every scene in this story."""
         return sum(c.exact_word_count for c in self.scenes)
 
     @classmethod

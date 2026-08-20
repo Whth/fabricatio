@@ -4,7 +4,7 @@ from typing import ClassVar, Dict, Self
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_core.models.generic import JSONList, Named, SketchedAble
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 
 from fabricatio_character.config import character_config
 
@@ -65,7 +65,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
 
     @field_validator("activated_role")
     @classmethod
-    def _activated_role_in_roles(cls, value: str, info) -> str:
+    def _activated_role_in_roles(cls, value: str, info: ValidationInfo) -> str:
         """Reject an ``activated_role`` that is not one of the character's roles."""
         roles = info.data.get("roles") or []
         if value not in roles:
@@ -130,6 +130,7 @@ class CharacterCardDiff(CharacterCard):
     """How the character currently behaves: mannerisms and reactions under stress."""
 
     def model_dump(self, **kwargs) -> dict:
+        """Serialize this card with ``exclude_none=True`` by default so unset fields are dropped."""
         kwargs.setdefault("exclude_none", True)
         return super().model_dump(**kwargs)
 

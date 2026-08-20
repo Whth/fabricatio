@@ -22,13 +22,16 @@ def merge_writing_constraints(parent: str, own: str) -> str:
 
 
 class CharacterSpan(SketchedAble):
+    """A character's state arc between two cards: the start card and the end card."""
+
     start: CharacterCard
-    """"""
+    """The character state at the beginning of this span."""
     end: CharacterCard
-    """"""
+    """The character state at the end of this span."""
 
     @final
     def dump_to_prompt(self) -> str:
+        """Render this span as the Initial State / finalizing State prompt pair."""
         return f"Initial State:\n{self.start.as_prompt()}\n\nfinalizing State:\n{self.end.as_prompt()}"
 
 
@@ -44,10 +47,13 @@ def derive_child_spans(parent: CharacterSpan, boundaries: list[CharacterCard]) -
     return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
 
 
-class CharacterSpans(JSONList[CharacterSpan]): ...
+class CharacterSpans(JSONList[CharacterSpan]):
+    """An ordered list of character spans, one per roster character."""
 
 
 class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
+    """Base class for hierarchical novel contexts shared across chapter, story and scene levels."""
+
     title: str = ""
     """The title of this element; the novel root keeps it empty until planned."""
 

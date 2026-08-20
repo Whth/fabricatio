@@ -19,6 +19,7 @@ class Novel(PersistentAble, NovelPlan):
 
     @property
     def exact_word_count(self) -> int:
+        """Sum the exact word counts of every chapter in this novel."""
         return sum(c.exact_word_count for c in self.chapter)
 
     @classmethod

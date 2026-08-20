@@ -16,6 +16,7 @@ class Scene(ScenePlan, WordCount):
 
     @property
     def exact_word_count(self) -> int:
+        """Count the words in this scene's composed prose."""
         return word_count(self.content)
 
     @classmethod
