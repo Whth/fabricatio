@@ -15,9 +15,10 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
+
 from fabricatio_core import TEMPLATE_MANAGER, Event, Role, Task
 from fabricatio_core.models.action import WorkFlow
-
+from fabricatio_core.rust import PLAN, TASK
 from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.series_book import SeriesBible
@@ -58,7 +59,7 @@ def _collect_files(patterns: List[str]) -> List[Path]:
                 files.add(p.resolve())
             continue
         root = Path(p.root or ".")
-        rel = pattern[len(p.root) :] if p.root else pattern
+        rel = pattern[len(p.root):] if p.root else pattern
         for match in root.glob(rel):
             if match.is_file():
                 files.add(match.resolve())
@@ -109,20 +110,20 @@ def _save_bible(bible: SeriesBible, out: Path) -> None:
 
 @bible_app.command(name="create")
 def create_bible(
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
-    ),
-    language: Optional[str] = typer.Option(
-        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
-    ),
-    sections: str = typer.Option(
-        "", "--sections", "-s", help="Comma-separated sections to create: characters, background (default: all)."
-    ),
-    out: Path = typer.Option(
-        Path("settings/bible.json"), "--out", "-o", help="Output bible JSON path (default: settings/bible.json)."
-    ),
-    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
+        outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+        outline_file: Optional[Path] = typer.Option(
+            None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        ),
+        language: Optional[str] = typer.Option(
+            None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+        ),
+        sections: str = typer.Option(
+            "", "--sections", "-s", help="Comma-separated sections to create: characters, background (default: all)."
+        ),
+        out: Path = typer.Option(
+            Path("settings/bible.json"), "--out", "-o", help="Output bible JSON path (default: settings/bible.json)."
+        ),
+        send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
     """Create a setting bible from an outline."""
     from fabricatio_novel.capabilities.bible import parse_sections
@@ -145,19 +146,21 @@ def create_bible(
 
 @bible_app.command(name="update")
 def update_bible(
-    bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
-    ),
-    language: Optional[str] = typer.Option(
-        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
-    ),
-    sections: str = typer.Option(
-        "", "--sections", "-s", help="Comma-separated sections to re-propose: characters, background (default: all)."
-    ),
-    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
-    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
+        bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
+        outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+        outline_file: Optional[Path] = typer.Option(
+            None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        ),
+        language: Optional[str] = typer.Option(
+            None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+        ),
+        sections: str = typer.Option(
+            "", "--sections", "-s",
+            help="Comma-separated sections to re-propose: characters, background (default: all)."
+        ),
+        out: Optional[Path] = typer.Option(None, "--out", "-o",
+                                           help="Output bible JSON path (default: update in place)."),
+        send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
     """Re-propose sections of an existing setting bible from the outline."""
     from fabricatio_novel.capabilities.bible import parse_sections
@@ -183,7 +186,7 @@ def update_bible(
 
 @bible_app.command(name="show")
 def show_bible(
-    bible_path: Path = typer.Argument(..., help="Path to the bible JSON to display."),
+        bible_path: Path = typer.Argument(..., help="Path to the bible JSON to display."),
 ) -> None:
     """Print the setting bible as rendered markdown."""
     typer.echo(_render_bible_md(_load_bible(bible_path)))
@@ -191,40 +194,40 @@ def show_bible(
 
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913 - flat signature required by typer option derivation
-    *,
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
-    ),
-    language: Optional[str] = typer.Option(
-        None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
-    ),
-    persist_dir: Path = typer.Option(
-        Path("novels"),
-        "--persist-dir",
-        "-p",
-        help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
-    ),
-    flat: bool = typer.Option(
-        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
-    ),
-    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
-    font: Optional[Path] = typer.Option(
-        None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
-    ),
-    cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
-    output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
-    ),
-    bible: Optional[Path] = typer.Option(
-        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
-    ),
-    constraint: Optional[str] = typer.Option(
-        None,
-        "--constraint",
-        "-c",
-        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
-    ),
+        *,
+        outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+        outline_file: Optional[Path] = typer.Option(
+            None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        ),
+        language: Optional[str] = typer.Option(
+            None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
+        ),
+        persist_dir: Path = typer.Option(
+            Path("novels"),
+            "--persist-dir",
+            "-p",
+            help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
+        ),
+        flat: bool = typer.Option(
+            False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
+        ),
+        send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+        font: Optional[Path] = typer.Option(
+            None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
+        ),
+        cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
+        output: Optional[Path] = typer.Option(
+            None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
+        ),
+        bible: Optional[Path] = typer.Option(
+            None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
+        ),
+        constraint: Optional[str] = typer.Option(
+            None,
+            "--constraint",
+            "-c",
+            help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
+        ),
 ) -> None:
     """Generate a novel from an outline."""
     if bible is not None and not bible.is_file():
@@ -255,49 +258,49 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
 
 @app.command(name="wr")
 def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer option derivation
-    *,
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
-    ),
-    language: Optional[str] = typer.Option(
-        None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
-    ),
-    persist_dir: Path = typer.Option(
-        Path("novels"),
-        "--persist-dir",
-        "-p",
-        help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
-    ),
-    flat: bool = typer.Option(
-        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
-    ),
-    send_to: str = typer.Option("fla", "--send-to", "-st", help="Routing group for LLM calls."),
-    rag_query: Optional[str] = typer.Option(
-        None,
-        "--rag-query",
-        "-rq",
-        help="Custom query guideline for writing style retrieval; defaults to the story description.",
-    ),
-    retrieve_limit: int = typer.Option(
-        0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15)."
-    ),
-    font: Optional[Path] = typer.Option(
-        None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
-    ),
-    cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
-    output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
-    ),
-    bible: Optional[Path] = typer.Option(
-        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
-    ),
-    constraint: Optional[str] = typer.Option(
-        None,
-        "--constraint",
-        "-c",
-        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
-    ),
+        *,
+        outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
+        outline_file: Optional[Path] = typer.Option(
+            None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        ),
+        language: Optional[str] = typer.Option(
+            None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
+        ),
+        persist_dir: Path = typer.Option(
+            Path("novels"),
+            "--persist-dir",
+            "-p",
+            help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
+        ),
+        flat: bool = typer.Option(
+            False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
+        ),
+        send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+        rag_query: Optional[str] = typer.Option(
+            None,
+            "--rag-query",
+            "-rq",
+            help="Custom query guideline for writing style retrieval; defaults to the story description.",
+        ),
+        retrieve_limit: int = typer.Option(
+            0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15)."
+        ),
+        font: Optional[Path] = typer.Option(
+            None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
+        ),
+        cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
+        output: Optional[Path] = typer.Option(
+            None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
+        ),
+        bible: Optional[Path] = typer.Option(
+            None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
+        ),
+        constraint: Optional[str] = typer.Option(
+            None,
+            "--constraint",
+            "-c",
+            help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
+        ),
 ) -> None:
     """Generate a novel with writing style RAG from an outline."""
     if bible is not None and not bible.is_file():
@@ -330,10 +333,10 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
 
 @app.command(name="store-refs")
 def store_reference_texts(
-    patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to ingest."),
-    chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
-    max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),
-    min_size: int = typer.Option(2, "--min-size", "-mi", help="Minimum chunks per split."),
+        patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to ingest."),
+        chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
+        max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),
+        min_size: int = typer.Option(2, "--min-size", "-mi", help="Minimum chunks per split."),
 ) -> None:
     """Ingest text files as writing style references into LanceDB."""
     from fabricatio_core.utils import cfg
@@ -367,13 +370,14 @@ def store_reference_texts(
 
 @app.command(name="enrich-refs")
 def store_enriched_texts(
-    patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to enrich and ingest."),
-    enrich_guideline: str = typer.Option(
-        "", "--enrich-guideline", "-eg", help="Guidance for QA-pair generation (e.g. 'Extract world-building facts')."
-    ),
-    chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
-    max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),
-    min_size: int = typer.Option(2, "--min-size", "-mi", help="Minimum chunks per split."),
+        patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to enrich and ingest."),
+        enrich_guideline: str = typer.Option(
+            "", "--enrich-guideline", "-eg",
+            help="Guidance for QA-pair generation (e.g. 'Extract world-building facts')."
+        ),
+        chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
+        max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),
+        min_size: int = typer.Option(2, "--min-size", "-mi", help="Minimum chunks per split."),
 ) -> None:
     """Chunk reference texts, enrich them into QA pairs, and store in LanceDB."""
     from fabricatio_core.utils import cfg
