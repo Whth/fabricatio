@@ -623,7 +623,8 @@ impl JsonParser {
         text: &str,
         fix: bool,
     ) -> Option<Bound<'a, PyAny>> {
-        let val = Self::deserialize::<Value>(text, fix).ok()?;
+        let body = self.capturer.cap1(text).unwrap_or_else(|| text.to_string());
+        let val = Self::deserialize::<Value>(body, fix).ok()?;
         let py_val = pythonize(python, &val);
         if py_val.is_err() {
             warn!("JsonParser: failed to convert text");
