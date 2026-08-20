@@ -35,7 +35,14 @@ impl TextCapturer {
     }
 
     pub fn get_group_1(captures: Captures) -> String {
-        captures.get(1).unwrap().as_str().to_string()
+        // Prefer group 1, but fall back to the whole match (group 0) for
+        // patterns without a capture group — e.g. `\{[^}]+\}`.
+        captures
+            .get(1)
+            .or(captures.get(0))
+            .unwrap()
+            .as_str()
+            .to_string()
     }
 
     pub fn get_group_2(captures: Captures) -> (String, String) {

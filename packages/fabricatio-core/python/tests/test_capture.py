@@ -219,6 +219,45 @@ class TestJsonParser:
         result = parser.validate_dict(text, key_type=str, value_type=str, length=5, fix=False)
         assert result is None
 
+    def test_convert_fenced_array_with_repair(self) -> None:
+        """Regression: convert(fenced_array, fix=True) must return the full array,
+        not be mangled into the first object by repair_json.
+
+        See: playground1.py failure where convert returned a dict for an
+        array-of-three input wrapped in ```json fences.
+        """
+        parser = JsonParser.capture_json_codeblock()
+        text = '```json\n[{"a": 1}, {"b": 2}, {"c": 3}]\n```'
+        result = parser.convert(text, fix=True)
+        assert isinstance(result, list), f"expected list, got {type(result).__name__}: {result}"
+        assert result == [{"a": 1}, {"b": 2}, {"c": 3}]
+
+    def test_convert_fenced_object_with_repair(self) -> None:
+        """Regression: convert(fenced_object, fix=True) must return the dict,
+        not be mangled or return None.
+        """
+        parser = JsonParser.capture_json_codeblock()
+        text = '```json\n{"key": "value"}\n```'
+        result = parser.convert(text, fix=True)
+        assert isinstance(result, dict)
+        assert result == {"key": "value"}
+
+    def test_convert_plain_array_unchanged(self) -> None:
+        """convert on plain (non-fenced) JSON must keep working."""
+        parser = JsonParser.capture_json_codeblock()
+        text = '[{"a": 1}, {"b": 2}]'
+        result = parser.convert(text, fix=True)
+        assert isinstance(result, list)
+        assert result == [{"a": 1}, {"b": 2}]
+
+    def test_convert_prose_wrapped_array_recovers_full_array(self) -> None:
+        """convert on prose + fenced array should extract the array, not a single object."""
+        parser = JsonParser.capture_json_codeblock()
+        text = 'Here is the data:\n```json\n[{"a": 1}, {"b": 2}]\n```\nDone.'
+        result = parser.convert(text, fix=True)
+        assert isinstance(result, list), f"expected list, got {type(result).__name__}: {result}"
+        assert result == [{"a": 1}, {"b": 2}]
+
 
 # =============================================================================
 # CodeBlockParser Tests
