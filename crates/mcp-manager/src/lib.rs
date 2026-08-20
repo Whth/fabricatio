@@ -5,13 +5,17 @@ use error::McpError::RmcpError;
 use futures::future::BoxFuture;
 use futures::{FutureExt, StreamExt, TryFutureExt, stream};
 use rmcp::model::{CallToolRequestParams, Tool};
-use rmcp::service::{DynService, RunningService};
+use rmcp::service::{
+    DynService, MaybeSendFuture, NotificationContext, RequestContext, RunningService, Service,
+    ServiceRole,
+};
 use rmcp::transport::ConfigureCommandExt;
 use rmcp::transport::child_process::TokioChildProcess;
 use rmcp::transport::streamable_http_client::StreamableHttpClientTransport;
 use rmcp::transport::worker::WorkerTransport;
-use rmcp::{RoleClient, ServiceExt};
+use rmcp::{ErrorData, RoleClient, ServiceExt};
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 use serde_json::value::Value;
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -64,7 +68,41 @@ pub struct MCPConfig {
     pub servers: HashMap<String, ServiceConfig>,
 }
 
-type MCPService = RunningService<RoleClient, Box<dyn DynService<RoleClient>>>;
+/// Concrete `Service<RoleClient>` adapter over a boxed dynamic service.
+///
+/// rmcp's blanket `impl Service<R> for Box<dyn DynService<R>>` elides the dyn
+/// lifetime; rustc re-instantiates it as a higher-ranked `'0` when the RPITIT
+/// `handle_request` future is normalized at a `Send + 'static` boundary (e.g.
+/// pyo3's `future_into_py`), making the `Service` obligation unprovable.
+/// Wrapping the box in a concrete local type with `+ 'static` spelled out keeps
+/// the obligation resolvable.
+struct ClientService(Box<dyn DynService<RoleClient> + 'static>);
+
+impl Service<RoleClient> for ClientService {
+    fn handle_request(
+        &self,
+        request: <RoleClient as ServiceRole>::PeerReq,
+        context: RequestContext<RoleClient>,
+    ) -> impl Future<Output = Result<<RoleClient as ServiceRole>::Resp, ErrorData>>
+        + MaybeSendFuture
+        + '_ {
+        DynService::handle_request(&*self.0, request, context)
+    }
+
+    fn handle_notification(
+        &self,
+        notification: <RoleClient as ServiceRole>::PeerNot,
+        context: NotificationContext<RoleClient>,
+    ) -> impl Future<Output = Result<(), ErrorData>> + MaybeSendFuture + '_ {
+        DynService::handle_notification(&*self.0, notification, context)
+    }
+
+    fn get_info(&self) -> <RoleClient as ServiceRole>::Info {
+        DynService::get_info(&*self.0)
+    }
+}
+
+type MCPService = RunningService<RoleClient, ClientService>;
 
 /// Inner manager structure handling client connections
 pub struct MCPManager {
@@ -84,13 +122,13 @@ impl MCPManager {
                         Self::make_stdio_client_future(&config).await
                     }
                     Transport::Stream if config.url.is_some() => {
-                        ().into_dyn()
+                        ClientService(().into_dyn())
                             .serve(StreamableHttpClientTransport::from_uri(config.url.unwrap()))
                             .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                             .await
                     }
                     Transport::Worker if config.url.is_some() => {
-                        ().into_dyn()
+                        ClientService(().into_dyn())
                             .serve(WorkerTransport::from_uri(config.url.unwrap()))
                             .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                             .await
@@ -131,7 +169,7 @@ impl MCPManager {
 
         match TokioChildProcess::new(cmd) {
             Ok(proc) => {
-                ().into_dyn()
+                ClientService(().into_dyn())
                     .serve(proc)
                     .map_err(|e| McpError::ServiceInitError(Box::new(e)))
                     .boxed()
@@ -162,11 +200,11 @@ impl MCPManager {
 
     /// Lists available tools from a client
     pub async fn list_tools(&self, client_id: &str) -> error::Result<Vec<Tool>> {
-        self.clients
+        let client = self
+            .clients
             .get(client_id)
-            .ok_or(McpError::ClientNotFound(client_id.to_owned()))
-            .map(|client| async move { client.list_all_tools().await.map_err(RmcpError) })?
-            .await
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?;
+        client.list_all_tools().await.map_err(RmcpError)
     }
     /// Retrieves a specific tool from a client by name
     ///
@@ -178,22 +216,19 @@ impl MCPManager {
     /// # Returns
     ///
     /// * `Result<Tool>` - The requested tool if found, or an error if the client
-    ///   doesn't exist, there's a communication issue, or the tool is not found
     pub async fn get_tool(&self, client_id: &str, tool_name: &str) -> error::Result<Tool> {
-        self.clients
+        let client = self
+            .clients
             .get(client_id)
-            .ok_or(McpError::ClientNotFound(client_id.to_owned()))
-            .map(|client| async move {
-                client
-                    .list_all_tools()
-                    .await
-                    .map_err(RmcpError)?
-                    .into_iter()
-                    .filter(|tool| tool.name == tool_name)
-                    .last()
-                    .ok_or(McpError::ToolNotFound(tool_name.to_string()))
-            })?
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?;
+        client
+            .list_all_tools()
             .await
+            .map_err(RmcpError)?
+            .into_iter()
+            .filter(|tool| tool.name == tool_name)
+            .last()
+            .ok_or(McpError::ToolNotFound(tool_name.to_string()))
     }
     /// Executes a tool on a client
     pub async fn call_tool(
@@ -202,19 +237,18 @@ impl MCPManager {
         tool_name: &str,
         arguments: Option<serde_json::Map<String, Value>>,
     ) -> error::Result<rmcp::model::CallToolResult> {
-        self.clients
+        let client = self
+            .clients
             .get(client_id)
-            .ok_or(McpError::ClientNotFound(client_id.to_owned()))
-            .map(|client| {
-                client.call_tool(
-                    CallToolRequestParams::new(tool_name.to_string())
-                        .with_arguments(arguments.unwrap_or_default()),
-                )
-            })?
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?;
+        client
+            .call_tool(
+                CallToolRequestParams::new(tool_name.to_string())
+                    .with_arguments(arguments.unwrap_or_default()),
+            )
             .await
             .map_err(RmcpError)
     }
-
     /// Checks if a client with the given ID exists in the manager
     pub fn has_client(&self, client_id: &str) -> bool {
         self.clients.contains_key(client_id)
@@ -232,17 +266,15 @@ impl MCPManager {
     /// * `Result<bool>` - Ok(true) if the tool exists, Ok(false) if it doesn't,
     ///   or an error if the client doesn't exist or there's a communication issue
     pub async fn has_tool(&self, client_id: &str, tool_name: &str) -> error::Result<bool> {
-        self.clients
+        let client = self
+            .clients
             .get(client_id)
-            .map(|client| async move {
-                client
-                    .list_all_tools()
-                    .await
-                    .map(|tools| tools.iter().any(|t| t.name == tool_name))
-                    .map_err(RmcpError)
-            })
-            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?
+            .ok_or(McpError::ClientNotFound(client_id.to_owned()))?;
+        client
+            .list_all_tools()
             .await
+            .map(|tools| tools.iter().any(|t| t.name == tool_name))
+            .map_err(RmcpError)
     }
 }
 
