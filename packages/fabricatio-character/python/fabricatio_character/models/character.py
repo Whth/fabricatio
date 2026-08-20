@@ -163,7 +163,3 @@ class CharacterCardDiff(CharacterCard):
 
 class CharacterCardDiffs(JSONList[CharacterCardDiff]):
     """A bare JSON array of character-card diffs as the LLM returns it."""
-
-
-class CharacterCardSlices(JSONList[list[CharacterCardDiff]]):
-    """A bare JSON array of per-child diff slices as the LLM returns it."""
