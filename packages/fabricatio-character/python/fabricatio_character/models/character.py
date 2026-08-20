@@ -163,3 +163,12 @@ class CharacterCardDiff(CharacterCard):
 
 class CharacterCardDiffs(JSONList[CharacterCardDiff]):
     """A bare JSON array of character-card diffs as the LLM returns it."""
+
+
+class CharacterCardBoundaries(JSONList[list[CharacterCard]]):
+    """A bare JSON array of per-character boundary card lists as the LLM returns it.
+
+    One inner list per roster character, in roster order; each inner list
+    carries the character's state at every element boundary except the
+    parent's start and end, which the parent span already fixes.
+    """
