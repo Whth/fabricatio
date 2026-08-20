@@ -3,8 +3,9 @@
 from typing import Self, final
 
 from fabricatio_core.models.generic import Described, Titled
+from pydantic import Field
 
-from fabricatio_novel.models.context.base import ContextBase
+from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import ScenePlan
 
@@ -21,14 +22,22 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
     scene_plan: ScenePlan | None = None
     """The scene's own plan."""
 
+    charactor_span: list[CharacterSpan] = Field(default_factory=list)
+    """The story's character spans broadcast to this scene for prompt rendering; prompt-only clone, no slice."""
+
     def set_scene_plan(self, plan: ScenePlan) -> Self:
-        """Set the scene's plan and return self."""
+        """Set the scene's own plan and return self."""
         self.scene_plan = plan
         return self
 
     def set_scenes_so_far(self, scenes_so_far: str) -> Self:
         """Set the story's composed scenes preceding this scene and return self."""
         self.scenes_so_far = scenes_so_far
+        return self
+
+    def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
+        """Replace this scene's character spans and return self."""
+        self.charactor_span = spans
         return self
 
     @classmethod
@@ -49,6 +58,10 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
         """Set the scene's composed prose and return self."""
         self.content = content
         return self
+
+    def dump_characters(self) -> str:
+        """Render this scene's broadcast character spans for its writing prompt."""
+        return "\n\n".join(span.dump_to_prompt() for span in self.charactor_span)
 
     @final
     def render_prefixed_block(self) -> str:

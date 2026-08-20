@@ -21,7 +21,7 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
 
     story_context: list[StoryContext] = Field(default_factory=list)
 
-    charactor_span: list[CharacterSpan]
+    charactor_span: list[CharacterSpan] = Field(default_factory=list)
 
     @classmethod
     def from_plan(cls, plan: ChapterPlan, expected_word_count: int) -> Self:
@@ -60,6 +60,10 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
         parts.extend(child.render_prefixed_block() for child in self.iter_child_contexts())
         return "\n\n".join(parts)
 
+    def dump_characters(self) -> str:
+        """Render every character's start and end states for prompts, in span order."""
+        return "\n\n".join(span.dump_to_prompt() for span in self.charactor_span)
+
     def set_chapter_plan(self, plan: ChapterPlan) -> Self:
         """Set the chapter's plan and return self."""
         self.chapter_plan = plan
@@ -73,4 +77,14 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     def add_story_context(self, story: StoryContext) -> Self:
         """Append a story context to the chapter and return self."""
         self.story_context.append(story)
+        return self
+
+    def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
+        """Replace this chapter's character spans and return self."""
+        self.charactor_span = spans
+        return self
+
+    def add_charactor_span(self, span: CharacterSpan) -> Self:
+        """Append one character span to this chapter and return self."""
+        self.charactor_span.append(span)
         return self

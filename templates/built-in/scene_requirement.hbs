@@ -5,7 +5,7 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 
 ## Requirements
 - Write exactly the scene defined by its Title and Description below; stay inside this scene and do not advance other plotlines or skip ahead in time.
-- Keep every character consistent with their established traits, speech patterns, and motivations, and honor their state transitions.
+- Keep every character consistent with their established traits, speech patterns, and motivations, and honor the story's start and end states.
 - When there is previous content, match its narrative voice, tense, and point of view, and never repeat or contradict anything already written.
 - Output ONLY the scene prose as plain paragraphs — no headings, no title, no blockquotes, no JSON, no commentary, no summary.
 
@@ -59,7 +59,7 @@ Description: {{ description }}
 {{/if}}
 
 {{#if characters}}
-## Characters' state transitions
+## Characters' state arc
 {{ characters }}
 {{/if}}
 

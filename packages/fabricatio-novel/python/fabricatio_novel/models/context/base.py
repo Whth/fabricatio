@@ -1,4 +1,4 @@
-"""Base context machinery: character traces and shared channel element behavior."""
+"""Base context machinery: character spans and shared channel element behavior."""
 
 from abc import ABC, abstractmethod
 from typing import Generator, Self, final
@@ -6,7 +6,7 @@ from typing import Generator, Self, final
 from pydantic import Field
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
-from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
+from fabricatio_character.models.character import CharacterCard
 from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
 from fabricatio_novel.models.series_book import SeriesBible
@@ -29,69 +29,25 @@ class CharacterSpan(SketchedAble):
 
     @final
     def dump_to_prompt(self) -> str:
-        return (f'Initial State:\n{self.start}\n\n'
-                f'finalizing State:\n{self.end}')
+        return f"Initial State:\n{self.start.as_prompt()}\n\nfinalizing State:\n{self.end.as_prompt()}"
+
+
+def derive_child_spans(parent: CharacterSpan, boundaries: list[CharacterCard]) -> list[CharacterSpan]:
+    """Split a parent span into child spans at the given boundary cards.
+
+    The parent's start opens the first child span and its end closes the
+    last one; each boundary card closes one child and opens the next.
+    ``len(boundaries) + 1`` child spans are returned, so with N children
+    only N-1 intermediate cards need to be drafted.
+    """
+    chain = [parent.start, *boundaries, parent.end]
+    return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
 
 
 class CharacterSpans(JSONList[CharacterSpan]): ...
 
 
-class CharacterTrace(SketchedAble):
-    """A character's evolution across the novel: a start card and interpolated diffs.
-
-    The final card is derived by folding the diffs over the start, so the end
-    state can never contradict the chain that produced it.
-    """
-
-    start: CharacterCard
-
-    interpolates: list[CharacterCardDiff] = Field(default_factory=list)
-
-    @property
-    def end(self) -> CharacterCard:
-        """The trace's final card: the interpolated diffs folded over the start card."""
-        card = self.start
-        for diff in self.interpolates:
-            card = card.apply(diff)
-        return card
-
-    @final
-    def iter_character_cards(self) -> Generator[CharacterCard, None, None]:
-        """Iterate over the character cards along this trace, in evolution order.
-
-        Yields the `start` card, then one card per interpolated diff applied
-        to the previous state; the last yielded card is the final state.
-        """
-        card = self.start
-        yield card
-        for diff in self.interpolates:
-            card = card.apply(diff)
-            yield card
-
-    @final
-    def intepl(self, diffs: list[CharacterCardDiff]) -> Self:
-        """Store the interpolate diffs describing the trace's evolution and return self."""
-        self.interpolates = diffs
-        return self
-
-    @final
-    def dump_to_prompt(self) -> str:
-        """Render the trace as a natural-language description of the evolution.
-
-        The starting card is rendered once; each interpolated diff then
-        describes only its changed fields (before → after), with the cause
-        stated explicitly as a labeled `reason:` clause instead of a bare
-        separator, skipping redundant repeats of unchanged fields to save
-        tokens.
-        """
-        lines = [self.start.as_prompt()]
-        lines.extend(d.as_prompt() for d in self.interpolates)
-        return "\n".join(lines)
-
-
 class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
-    """Base class of every pipeline channel element, carrying writing state and child contexts."""
-
     title: str = ""
     """The title of this element; the novel root keeps it empty until planned."""
 

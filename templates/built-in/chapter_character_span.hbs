@@ -1,0 +1,24 @@
+# Chapter Character Boundary Drafting
+
+## Goal
+Propose the character states at the boundaries BETWEEN consecutive chapters. The novel roster already fixes the endpoints: the first chapter starts at each character's roster start card and the last chapter ends at their roster end card. Only the intermediate states are drafted here, so with N chapters exactly N-1 cards per character are needed.
+
+## Novel
+Title: {{ novel_title }}
+Description: {{ novel_description }}
+
+## Roster Spans (whole-novel arc)
+{{ roster_spans }}
+
+## Chapters (in order)
+{{#each chapters}}
+- {{ title }}: {{ description }}
+{{/each}}
+
+## Requirements
+- Output a JSON array with one inner array per roster character, in the order the characters appear in the Roster Spans above.
+- Each inner array carries exactly N-1 CharacterCard objects, where N is the number of chapters: the character's state at the end of every chapter except the last (equivalently, at the start of every chapter except the first).
+- Do not propose the first chapter's start (it is the roster start card) nor the last chapter's end (it is the roster end card).
+- Keep every card coherent with the novel arc and the bible constraints; do not contradict the roster start and end cards.
+
+Respond entirely in "{{ language }}".

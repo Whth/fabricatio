@@ -1,11 +1,10 @@
 """Module containing configuration classes for fabricatio-novel.
 
-The config carries ONLY the template entries the overhaul pipeline needs:
-the novel metadata extraction, the scene writing, and the character
-evolution analysis. Everything belonging to the deleted chapter pipeline,
-the deferred capabilities (state/mental/RAG/illustration/enrich), and their
-templates is gone — it returns with the capability when it is integrated
-back.
+The config carries the template entries the overhaul pipeline needs: the
+novel metadata extraction, the scene writing, the character roster span
+proposal, and the per-chapter and per-story span drafting. The trace and
+slice machinery was removed entirely; only the flat CharacterSpan design
+remains.
 """
 
 from dataclasses import dataclass
@@ -35,12 +34,6 @@ class NovelConfig:
     render_chapter_xhtml_template: str = "built-in/render_chapter_xhtml"
     """template used to render a chapter as a full XHTML document."""
 
-    charactor_diff_template: str = "built-in/charactor_diff"
-    """template used to analyze how a character evolves inside a scene."""
-
-    charactor_slice_template: str = "built-in/charactor_slice"
-    """template used to allocate a character's states to the sub elements."""
-
     setting_bible_characters_template: str = "built-in/setting_bible_characters"
     """template used to propose the bible's character roster as a single string."""
 
@@ -60,6 +53,13 @@ class NovelConfig:
     """template used to render enriched reference documents as prompts."""
 
     novel_character_span_template: str = "built-in/novel_character_span"
+    """template used to propose the novel roster as one CharacterSpan per character."""
+
+    chapter_character_span_template: str = "built-in/chapter_character_span"
+    """template used to draft the N-1 chapter-boundary cards from the novel roster spans."""
+
+    story_character_span_template: str = "built-in/story_character_span"
+    """template used to draft the S-1 story-boundary cards from the chapter's spans."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)

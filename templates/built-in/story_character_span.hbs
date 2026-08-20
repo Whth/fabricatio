@@ -1,0 +1,24 @@
+# Story Character Boundary Drafting
+
+## Goal
+Propose the character states at the boundaries BETWEEN consecutive stories. The chapter spans already fix the endpoints: the first story starts at each character's chapter start card and the last story ends at their chapter end card. Only the intermediate states are drafted here, so with S stories exactly S-1 cards per character are needed.
+
+## Chapter
+Title: {{ chapter_title }}
+Description: {{ chapter_description }}
+
+## Chapter Spans (parent arc)
+{{ chapter_spans }}
+
+## Stories (in order)
+{{#each stories}}
+- {{ title }}: {{ description }}
+{{/each}}
+
+## Requirements
+- Output a JSON array with one inner array per roster character, in the order the characters appear in the Chapter Spans above.
+- Each inner array carries exactly S-1 CharacterCard objects, where S is the number of stories: the character's state at the end of every story except the last (equivalently, at the start of every story except the first).
+- Do not propose the first story's start (it is the chapter start card) nor the last story's end (it is the chapter end card).
+- Keep every card coherent with the chapter arc and the bible constraints; do not contradict the chapter start and end cards.
+
+Respond entirely in "{{ language }}".

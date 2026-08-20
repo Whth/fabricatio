@@ -1,6 +1,5 @@
 """Scene composition capabilities: rendering requirements and generating scene content."""
 
-import asyncio
 from abc import ABC
 from typing import Unpack
 
@@ -44,7 +43,7 @@ class SceneCompose(CharacterCompose, ABC):
         Overriding capabilities (bible context, RAG) reuse these vars and add
         their own blocks before rendering.
         """
-        characters = ctx.dump_charactors()
+        characters = ctx.dump_characters()
         bible = ctx.series_bible
         return {
             "bible_context": bible.as_prompt() if bible is not None and not bible.is_empty() else "",
@@ -86,8 +85,7 @@ class SceneCompose(CharacterCompose, ABC):
 
         Renders the scene requirement, asks the LLM for the scene text, sets
         the expected word count, and stores the content on the context.
-        Returns the generated scene. Character chains are interpolated
-        concurrently for all scenes by :meth:`prepare_scenes` beforehand.
+        Returns the generated scene.
         """
         logger.debug(f"Generating scene '{ctx.title}'")
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
@@ -117,27 +115,6 @@ class SceneCompose(CharacterCompose, ABC):
         gather style references held on the story context for planning.
         """
 
-    async def prepare_scenes(
-        self,
-        ctx: StoryContext,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> None:
-        """Concurrently interpolate every scene's character chain before the story is written.
-
-        Runs after scene planning and chain slicing; each scene extends its
-        own allocated slice. Subclasses (e.g. RAG) may extend this to prepare
-        additional per-scene state concurrently.
-        """
-        scenes = ctx.scene_context
-        if not scenes:
-            return
-
-        async def _prep(scene: SceneContext) -> None:
-            await self.interpolate_characters(scene, send_to, **kwargs)
-
-        await asyncio.gather(*[_prep(scene) for scene in scenes])
-
     async def compose_scene(
         self,
         ctx: SceneContext,
@@ -152,3 +129,4 @@ class SceneCompose(CharacterCompose, ABC):
         if scene is None:
             return None
         return await self.post_process_scene(ctx, scene, **kwargs)
+

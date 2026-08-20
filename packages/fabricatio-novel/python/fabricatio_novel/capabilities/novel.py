@@ -3,13 +3,19 @@
 from abc import ABC
 from typing import Unpack
 
+from fabricatio_character.models.character import CharacterCard, CharacterCardBoundaries
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import CharacterSpans, merge_writing_constraints
+from fabricatio_novel.models.context.base import (
+    CharacterSpan,
+    CharacterSpans,
+    derive_child_spans,
+    merge_writing_constraints,
+)
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
@@ -98,9 +104,14 @@ class NovelCompose(ChapterCompose, ABC):
             send_to: str | None = TASK,
             **kwargs: Unpack[LLMKwargs],
     ) -> None:
-        """Create the character traces from the bible roster and interpolate them over the outline."""
-        bible = ctx.series_bible
+        """Propose the novel roster as one CharacterSpan per character in a single batch.
 
+        Skipped silently when the settings bible has no character roster so
+        tests and runs without a character cast pass through unchanged.
+        """
+        bible = ctx.series_bible
+        if bible is None or not bible.characters:
+            return
         spans = ok(
             await self.propose(
                 CharacterSpans,
@@ -112,8 +123,87 @@ class NovelCompose(ChapterCompose, ABC):
                 **kwargs,
             )
         )
+        ctx.set_charactor_spans(spans.root)
+        logger.info(f"Proposed {len(ctx.charactor_span)} novel character span(s)")
 
-        ctx.charactor_span = spans.root
+    async def draft_chapter_spans(
+            self,
+            ctx: NovelContext,
+            send_to: str | None = TASK,
+            **kwargs: Unpack[LLMKwargs],
+    ) -> None:
+        """Draft the N-1 chapter-boundary cards per character in a single LLM batch.
+
+        The novel roster already fixes the endpoints: chapter 1 starts at
+        the roster start card and the last chapter ends at the roster end
+        card. Only the boundaries between consecutive chapters are proposed;
+        the spans are stitched in code so the chain is continuous by
+        construction. Skipped silently when the novel has no roster spans or
+        no chapters, so tests and runs without a roster pass through
+        unchanged. A single chapter inherits the roster spans directly
+        without any LLM call.
+        """
+        if not ctx.charactor_span or not ctx.chapter_context:
+            return
+        if len(ctx.chapter_context) == 1:
+            ctx.chapter_context[0].set_charactor_spans(ctx.charactor_span)
+            logger.debug("Single chapter inherits the novel roster spans")
+            return
+        logger.debug(f"Drafting {len(ctx.chapter_context) - 1} chapter boundary card(s) per character")
+        proposed = ok(
+            await self.propose(
+                CharacterCardBoundaries,
+                TEMPLATE_MANAGER.render_template(
+                    novel_config.chapter_character_span_template,
+                    {
+                        "novel_title": ctx.title,
+                        "novel_description": ctx.description,
+                        "language": ctx.language,
+                        "roster_spans": ctx.dump_characters(),
+                        "chapters": [{"title": c.title, "description": c.description} for c in ctx.chapter_context],
+                    },
+                ),
+                send_to=send_to,
+                **kwargs,
+            )
+        )
+        self._stitch_boundaries(
+            ctx.charactor_span,
+            ctx.chapter_context,
+            lambda chapter_ctx: chapter_ctx.charactor_span,
+            proposed.root,
+            len(ctx.chapter_context) - 1,
+            "chapter",
+        )
+
+    def _stitch_boundaries(
+            self,
+            parent_spans: list[CharacterSpan],
+            children: list,
+            spans_accessor,
+            proposed: list[list[CharacterCard]],
+            expected_boundaries: int,
+            level: str,
+    ) -> None:
+        """Stitch one child span per element from the parent spans and proposed boundaries.
+
+        For every roster character the parent span opens the first child and
+        closes the last; the proposed boundary cards are the intermediate
+        states. A character whose boundary count does not match the expected
+        number is skipped so a malformed proposal never yields a broken
+        chain.
+        """
+        for char_index, parent_span in enumerate(parent_spans):
+            boundaries = proposed[char_index] if char_index < len(proposed) else []
+            if len(boundaries) != expected_boundaries:
+                logger.warn(
+                    f"Expected {expected_boundaries} {level} boundary card(s) for '{parent_span.start.name}'"
+                    f" but got {len(boundaries)}; skipping"
+                )
+                continue
+            for child, span in zip(children, derive_child_spans(parent_span, boundaries), strict=True):
+                spans_accessor(child).append(span)
+        logger.debug(f"Stitched {level} spans from boundary cards")
 
     async def plan_chapters_phase(
             self,
@@ -121,7 +211,7 @@ class NovelCompose(ChapterCompose, ABC):
             send_to: str | None = TASK,
             **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Plan chapters when none are scheduled and materialize their contexts.
+        """Plan chapters when none are scheduled, materialize their contexts, and draft spans.
 
         Returns:
             bool: True when the chapters are planned; False on planning failure.
@@ -143,6 +233,7 @@ class NovelCompose(ChapterCompose, ABC):
                     )
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
+        await self.draft_chapter_spans(ctx, send_to, **kwargs)
         return True
 
     async def compose_chapters_phase(
@@ -151,7 +242,7 @@ class NovelCompose(ChapterCompose, ABC):
             send_to: str | None = TASK,
             **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Broadcast the bible, split character slices, and compose every chapter in prefix order.
+        """Broadcast the bible and compose every chapter in prefix order.
 
         Returns:
             bool: True when every chapter composed; False on any failure.
@@ -181,10 +272,10 @@ class NovelCompose(ChapterCompose, ABC):
     ) -> Novel | None:
         """Generate the novel by composing its chapters.
 
-        Runs the staged phases in order: metadata proposal, character trace
-        creation and interpolation, chapter planning, chapter composition,
-        and novel assembly. Returns the materialized novel or None when any
-        phase fails.
+        Runs the staged phases in order: metadata proposal, roster character
+        span creation, chapter planning with span drafting, chapter
+        composition, and novel assembly. Returns the materialized novel or
+        None when any phase fails.
         """
         logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
         if not await self.propose_novel_metadata(ctx, send_to, **kwargs):

@@ -3,7 +3,6 @@
 from abc import ABC
 from typing import Unpack
 
-from fabricatio_character.models.character import CharacterCardDiffs
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
@@ -40,51 +39,6 @@ class StoryCompose(SceneCompose, ABC):
         """Identity hook invoked on the composed story; may transform and return the story."""
         return story
 
-    async def interpolate_characters(
-        self,
-        ctx: ContextBase,
-        send_to: str | None = TASK,
-        outline: str = "",
-        **kwargs: Unpack[LLMKwargs],
-    ) -> None:
-        """Extend every trace with the character states occurring in this element.
-
-        Runs before the element is planned or written, so the pre-scheduled
-        chain can guide both plan and content generation.
-
-        ``outline`` is the novel-level story outline; only the novel root passes
-        it. Lower levels leave it empty and the prompt section is dropped.
-        """
-        if not ctx.character_trace:
-            return
-        logger.debug(f"Interpolating {len(ctx.character_trace)} character(s) for '{ctx.title}'")
-        prompts = [
-            TEMPLATE_MANAGER.render_template(
-                novel_config.charactor_diff_template,
-                {
-                    "title": ctx.title,
-                    "description": ctx.description,
-                    "outline": outline,
-                    "chain": trace.dump_to_prompt(),
-                    "language": ctx.language,
-                },
-            )
-            for trace in ctx.character_trace
-        ]
-        chains = await self.propose(
-            CharacterCardDiffs,
-            prompts,
-            send_to=send_to,
-            **kwargs,
-        )
-        applied = 0
-        for trace, chain in zip(ctx.character_trace, chains or [], strict=False):
-            if chain is None or not chain.root:
-                continue
-            applied += 1
-            trace.intepl([*trace.interpolates, *chain.root])
-        logger.debug(f"Extended {applied} character chain(s) for '{ctx.title}'")
-
     async def plan_scenes(
         self,
         ctx: StoryContext,
@@ -120,7 +74,7 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Interpolate the story's characters, retrieve story references, and plan its scenes.
+        """Retrieve story references and plan its scenes.
 
         Scene plans are materialized with word counts allocated by weight
         when none are scheduled.
@@ -128,7 +82,6 @@ class StoryCompose(SceneCompose, ABC):
         Returns:
             bool: True when the scenes are planned; False on planning failure.
         """
-        await self.interpolate_characters(ctx, send_to, **kwargs)
         await self.prepare_story(ctx, send_to, **kwargs)
         if not ctx.scene_context:
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
@@ -156,10 +109,10 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
-        """Broadcast the bible, split character slices per scene, and prepare scene state."""
+        """Broadcast the bible and the story's character spans to every scene before the write."""
         ctx.broadcast_settings_bible()
-        await self.split_character_slices(ctx, ctx.scene_context, send_to, **kwargs)
-        await self.prepare_scenes(ctx, send_to, **kwargs)
+        for scene_ctx in ctx.scene_context:
+            scene_ctx.set_charactor_spans(ctx.charactor_span)
 
     async def compose_scenes_phase(
         self,
@@ -227,3 +180,4 @@ class StoryCompose(SceneCompose, ABC):
         if story is None:
             return None
         return await self.post_process_story(ctx, story, **kwargs)
+

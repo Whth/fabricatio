@@ -1,0 +1,19 @@
+# Novel Character Roster Spans
+
+## Goal
+Propose one CharacterSpan per named character on the novel's roster. The start card captures the character's state before the novel; the end card captures their state after the whole novel arc. Span order follows the order characters are named in the bible.
+
+## Novel
+Title: {{ title }}
+Description: {{ desc }}
+
+## Settings Bible Roster
+{{ bible }}
+
+## Requirements
+- Output a JSON array of CharacterSpan objects, one per roster character in the order they appear above.
+- Every CharacterSpan carries two non-null CharacterCard fields: ``start`` (initial state before any plot event) and ``end`` (final state after the whole novel).
+- Do not invent characters that are not named in the bible roster.
+- Honor every bible constraint (background, setting rules, motivation) — the spans must remain coherent with the world.
+
+Respond entirely in "{{ language }}".

@@ -26,7 +26,7 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
 
     chapter_context: list[ChapterContext] = Field(default_factory=list)
 
-    charactor_span: list[CharacterSpan]
+    charactor_span: list[CharacterSpan] = Field(default_factory=list)
 
     def update_pre_check(self, other: NovelPlan | Self) -> Self:
         """Accept a novel plan (or another novel context) as the update source."""
@@ -76,11 +76,16 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
         self.chapter_context.append(chapter)
         return self
 
+    def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
+        """Replace the novel's roster character spans and return self."""
+        self.charactor_span = spans
+        return self
+
     @classmethod
     def create(cls, outline: str, language: str | None = None) -> Self:
         """Build a novel context from an outline, detecting the language from the outline when none is given."""
         return cls(outline=outline, language=language or detect_language(outline))
 
     def dump_characters(self) -> str:
-
+        """Render every character's start and end states for prompts, in span order."""
         return "\n".join(s.dump_to_prompt() for s in self.charactor_span)

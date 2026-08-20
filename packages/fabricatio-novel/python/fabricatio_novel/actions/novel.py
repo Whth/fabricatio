@@ -85,7 +85,7 @@ class MetadataStage(StageAction, NovelCompose):
 
 
 class CharactersStage(StageAction, NovelCompose):
-    """Create the character traces from the bible roster and interpolate them over the outline."""
+    """Propose the novel roster character spans from the bible; skipped when the bible is empty."""
 
     output_key: str = "characters_ok"
     stage: ClassVar[str] = "03_characters"
@@ -97,7 +97,7 @@ class CharactersStage(StageAction, NovelCompose):
 
 
 class ChapterPlanStage(StageAction, NovelCompose):
-    """Plan chapters, broadcast the bible, and split character slices per chapter."""
+    """Plan chapters, broadcast the bible, and draft per-chapter character spans."""
 
     output_key: str = "chapter_plan_ok"
     stage: ClassVar[str] = "04_chapter_plans"
@@ -107,13 +107,12 @@ class ChapterPlanStage(StageAction, NovelCompose):
         planned = await self.plan_chapters_phase(novel_ctx, send_to=send_to)
         if planned:
             novel_ctx.broadcast_settings_bible()
-            await self.split_character_slices(novel_ctx, novel_ctx.chapter_context, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return planned
 
 
 class StoryPlanStage(StageAction, ChapterCompose):
-    """Interpolate and plan the stories of every chapter, then split per-story slices."""
+    """Plan the stories of every chapter and draft per-story character spans."""
 
     output_key: str = "story_plan_ok"
     stage: ClassVar[str] = "05_story_plans"
@@ -125,7 +124,6 @@ class StoryPlanStage(StageAction, ChapterCompose):
                 await self.snapshot(novel_ctx, cxt)
                 return False
             chapter.broadcast_settings_bible()
-            await self.split_character_slices(chapter, chapter.story_context, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return True
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 import pytest
-from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterCardSlices
+from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
@@ -16,7 +16,7 @@ from fabricatio_mock.models.mock_router import (
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
-from fabricatio_novel.models.context.base import CharacterTrace
+from fabricatio_novel.models.context.base import CharacterSpan, derive_child_spans
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -149,117 +149,53 @@ class TestNovelContext:
         assert scene.scene_plan.title == "S1"
 
 
-class TestCharactorTrace:
-    """Test suite for CharactorTrace."""
+class TestCharacterSpan:
+    """Test suite for CharacterSpan."""
 
-    def test_iter_charactor_cards_applies_diffs_in_order(self) -> None:
-        """Assert iter_character_cards yields start then one card per interpolated diff."""
+    def test_dump_to_prompt_renders_start_and_end(self) -> None:
+        """Assert dump_to_prompt shows both states as Initial and finalizing."""
         start = card()
-        diff = CharacterCardDiff(look="scarred", reason="took a blade")
-        trace = CharacterTrace(start=start, interpolates=[diff])
-        cards: List[CharacterCard] = list(trace.iter_character_cards())
-        assert cards[0] is start
-        assert [c.look for c in cards] == ["tall", "scarred"]
-        # the final card is the derived end state, equal to the fold of the diffs
-        assert cards[-1] == start.apply(diff)
-        assert trace.end == start.apply(diff)
+        end = card().model_copy(update={"look": "scarred"})
+        span = CharacterSpan(start=start, end=end)
+        prompt = span.dump_to_prompt()
+        assert prompt.startswith("Initial State:")
+        assert "finalizing State:" in prompt
+        assert prompt.count("# Name") == 2
+        assert prompt.count("## Look") == 2
+        assert "tall" in prompt
+        assert "scarred" in prompt
 
-    def test_intepl_replaces_interpolates_and_returns_self(self) -> None:
-        """Assert intepl replaces the interpolates list and returns the trace itself."""
+    def test_dump_to_prompt_with_same_start_and_end(self) -> None:
+        """Assert a span whose end equals its start renders the same card twice."""
         start = card()
-        trace = CharacterTrace(start=start)
-        diff = CharacterCardDiff(look="wounded", reason="fell in battle")
-        assert trace.intepl([diff]) is trace
-        assert trace.interpolates == [diff]
+        span = CharacterSpan(start=start, end=start.model_copy(deep=True))
+        prompt = span.dump_to_prompt()
+        assert prompt.count("# Name") == 2
+        assert "Initial State:" in prompt
+        assert "finalizing State:" in prompt
 
-    def test_dump_to_prompt_shows_start_and_only_changed_fields(self) -> None:
-        """Assert the prompt renders the identity once and each change with its reason."""
+    def test_derive_child_spans_stitches_boundaries_between_parent_ends(self) -> None:
+        """Assert N children need N-1 boundary cards; the parent ends anchor the chain."""
         start = card()
-        trace = CharacterTrace(
-            start=start,
-            interpolates=[
-                CharacterCardDiff(look="wounded", reason="fell in battle"),
-                CharacterCardDiff(act="cautious", reason="learned from defeat"),
-                CharacterCardDiff(reason="reflected"),
-            ],
-        )
-        prompt = trace.dump_to_prompt()
-        lines = prompt.splitlines()
-        assert lines[0].startswith("Hero. roles: protagonist")
-        assert "look: tall" in lines[0]
-        assert "flaw: stubborn" in lines[0]
-        assert "act: brave → cautious; reason: learned from defeat" in lines[2]
-        # a diff that changes nothing renders only its labeled reason
-        assert lines[3] == "3. reason: reflected"
-        # unchanged fields are not repeated per step
-        assert prompt.count("flaw: stubborn") == 1
-        assert prompt.count("want: seek truth") == 1
+        b1 = start.model_copy(update={"act": "cautious"})
+        b2 = start.model_copy(update={"flaw": "distrustful"})
+        end = start.model_copy(update={"look": "wounded"})
+        spans = derive_child_spans(CharacterSpan(start=start, end=end), [b1, b2])
+        assert len(spans) == 3
+        assert [s.start for s in spans] == [start, b1, b2]
+        assert [s.end for s in spans] == [b1, b2, end]
+        # the chain is continuous by construction
+        assert spans[0].end is spans[1].start
+        assert spans[1].end is spans[2].start
 
-    def test_dump_to_prompt_without_changes_is_just_identity(self) -> None:
-        """Assert a fresh trace renders only its starting card line."""
+    def test_derive_child_spans_without_boundaries_returns_single_span(self) -> None:
+        """Assert one child inherits the parent span unchanged when no boundaries are drafted."""
         start = card()
-        trace = CharacterTrace(start=start)
-        assert trace.dump_to_prompt() == (
-            "Hero. roles: protagonist (activated: protagonist) | look: tall | act: brave | want: seek truth | flaw: stubborn"
-            " | where: starting village | condition: healthy | mood: determined"
-        )
-
-    def test_state_diffs_fold_into_end_and_render_on_the_prompt(self) -> None:
-        """Assert current-state fields appear on the identity line and state diffs fold."""
-        start = card()
-        trace = CharacterTrace(
-            start=start,
-            interpolates=[
-                CharacterCardDiff(
-                    where="enemy palace wine cellar",
-                    condition="feverish, limping",
-                    mood="smoldering fury",
-                    reason="captured and drugged",
-                ),
-            ],
-        )
-        prompt = trace.dump_to_prompt()
-        lines = prompt.splitlines()
-        assert "where: starting village" in lines[0]
-        assert "mood: determined" in lines[0]
-        assert (
-            "1. where: starting village → enemy palace wine cellar; "
-            "condition: healthy → feverish, limping; "
-            "mood: determined → smoldering fury; "
-            "reason: captured and drugged"
-        ) in lines[1]
-        assert trace.end.where == "enemy palace wine cellar"
-        assert trace.end.condition == "feverish, limping"
-        assert trace.end.mood == "smoldering fury"
-
-    def test_metric_diffs_render_per_entry_and_merge(self) -> None:
-        """Metric diffs show each entry's before → after and merge into the card."""
-        start = CharacterCard(
-            name="Hero",
-            roles=["protagonist"],
-            activated_role="protagonist",
-            look="tall",
-            act="brave",
-            want="seek truth",
-            flaw="stubborn",
-            where="starting village",
-            condition="healthy",
-            mood="determined",
-            metric={"hp": 100, "reputation": 30},
-        )
-        trace = CharacterTrace(
-            start=start,
-            interpolates=[
-                CharacterCardDiff(metric={"hp": 60}, reason="took a hit"),
-                CharacterCardDiff(metric={"hp": 40, "sanity": 0.5}, reason="wounded again"),
-            ],
-        )
-        prompt = trace.dump_to_prompt()
-        lines = prompt.splitlines()
-        assert "metric: hp=100, reputation=30" in lines[0]
-        assert "1. metric.hp: 100 → 60; reason: took a hit" in lines[1]
-        assert "2. metric.hp: 60 → 40; metric.sanity: unset → 0.5; reason: wounded again" in lines[2]
-        assert trace.end.metric == {"hp": 40, "reputation": 30, "sanity": 0.5}
+        end = start.model_copy(update={"look": "wounded"})
+        spans = derive_child_spans(CharacterSpan(start=start, end=end), [])
+        assert len(spans) == 1
+        assert spans[0].start is start
+        assert spans[0].end is end
 
 
 class TestFromContext:
@@ -330,11 +266,11 @@ class NovelRole(LLMTestRole, NovelCompose):
     """Test role combining mock LLM with the novel composition chain."""
 
 
-class TestCharactorTraces:
-    """Test suite for hierarchical character state chains."""
+class TestCharacterSpans:
+    """Test suite for the per-level CharacterSpan pipeline."""
 
-    async def test_compose_novel_builds_hierarchical_chains(self) -> None:
-        """Assert each level extends its allocated slice of the parent chain, without mutating it."""
+    async def test_compose_novel_stitches_chapter_boundaries_to_roster_ends(self) -> None:
+        """Assert N chapters need N-1 boundary cards; chapter 1 starts at the novel start and the last ends at the novel end."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         bible = SeriesBible(characters="Hero — brave protagonist.")
@@ -342,98 +278,103 @@ class TestCharactorTraces:
         meta = NovelPlan(
             title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible
         )
-        hero = card()
-        d_novel = CharacterCardDiff(look="wounded", reason="fell in battle")
-        d_chapter = CharacterCardDiff(act="cautious", reason="learned from defeat")
-        d_story = CharacterCardDiff(flaw="distrustful", reason="betrayed once")
-        d_scene = CharacterCardDiff(want="find his father", reason="learned the truth")
-        chapter_plans_json = [{"title": "Ch1", "description": "The start.", "weight": 1.0}]
+        novel_start = card()
+        novel_end = novel_start.model_copy(update={"look": "wounded"})
+        chapter_boundary = novel_start.model_copy(update={"act": "cautious"})
+        chapter_plans_json = [
+            {"title": "Ch1", "description": "The start.", "weight": 1.0},
+            {"title": "Ch2", "description": "The road.", "weight": 1.0},
+        ]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
-                Value(hero, "model"),
-                Value([d_novel.model_dump()], "json"),
+                Value([CharacterSpan(start=novel_start, end=novel_end).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
-                Value([[d_novel.model_dump()]], "json"),
-                Value([d_chapter.model_dump()], "json"),
+                # 2 chapters -> 1 boundary card per roster character
+                Value([[chapter_boundary.model_dump()]], "json"),
                 Value(story_plans_json, "json"),
-                Value([[d_novel.model_dump(), d_chapter.model_dump()]], "json"),
-                Value([d_story.model_dump()], "json"),
                 Value(scene_plans_json, "json"),
-                Value([[d_novel.model_dump(), d_chapter.model_dump(), d_story.model_dump()]], "json"),
-                Value([d_scene.model_dump()], "json"),
                 raw_value("He left."),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("He walked."),
             )
         ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        novel_trace = ctx.character_trace[0]
-        chapter_trace = ctx.chapter_context[0].character_trace[0]
-        story_trace = ctx.chapter_context[0].story_context[0].character_trace[0]
-        scene_trace = ctx.chapter_context[0].story_context[0].scene_context[0].character_trace[0]
-        assert novel_trace.interpolates == [d_novel]
-        assert chapter_trace.interpolates == [d_novel, d_chapter]
-        assert story_trace.interpolates == [d_novel, d_chapter, d_story]
-        assert scene_trace.interpolates == [d_novel, d_chapter, d_story, d_scene]
-        # extending a child must not mutate the parent's chain
-        assert novel_trace.interpolates == [d_novel]
-        assert novel_trace.end.look == "wounded"
-        assert scene_trace.end.want == "find his father"
+        assert len(ctx.charactor_span) == 1
+        assert ctx.charactor_span[0].start.name == "Hero"
+        assert ctx.charactor_span[0].end.look == "wounded"
+        # chapter 1 opens at the novel start and closes at the boundary
+        ch1 = ctx.chapter_context[0]
+        assert len(ch1.charactor_span) == 1
+        assert ch1.charactor_span[0].start.look == "tall"
+        assert ch1.charactor_span[0].end.act == "cautious"
+        # chapter 2 opens at the boundary and closes at the novel end
+        ch2 = ctx.chapter_context[1]
+        assert len(ch2.charactor_span) == 1
+        assert ch2.charactor_span[0].start.act == "cautious"
+        assert ch2.charactor_span[0].end.look == "wounded"
+        # a single story inherits the chapter span directly, and scenes broadcast it
+        story_ctx = ch1.story_context[0]
+        assert story_ctx.charactor_span is ch1.charactor_span
+        scene_ctx = story_ctx.scene_context[0]
+        assert scene_ctx.charactor_span is ch1.charactor_span
+        requirement = await role.prepare_scene_requirement(scene_ctx)
+        assert "Initial State:" in requirement
+        assert "finalizing State:" in requirement
+        assert "## Act" in requirement
+        assert "cautious" in requirement
 
-    async def test_split_charactor_slices_assigns_per_child(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert the chain splits into aligned per-child slices with recomputed ends."""
+    async def test_draft_chapter_spans_single_chapter_inherits_roster(self) -> None:
+        """Assert a single chapter gets the roster spans directly without an LLM call."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
-        hero = card()
-        d1 = CharacterCardDiff(look="wounded", reason="fell in battle")
-        d2 = CharacterCardDiff(look="scarred", reason="took a blade")
-        ctx.set_charactor_traces([CharacterTrace(start=hero, interpolates=[d1, d2])])
-        child_a = ChapterContext(title="Ch1", description="The start.")
-        child_b = ChapterContext(title="Ch2", description="The road.")
+        span = CharacterSpan(start=card(), end=card())
+        ctx.set_charactor_spans([span])
+        ctx.add_chapter_context(ChapterContext(title="Ch1", description="The start."))
+        await role.draft_chapter_spans(ctx)
+        assert ctx.chapter_context[0].charactor_span is ctx.charactor_span
 
-        async def fake_ask(question: object, validator: object, **kwargs: object) -> list[CharacterCardSlices]:
-            return [CharacterCardSlices(root=[[d1], [d2]])]
-
-        monkeypatch.setattr(NovelRole, "aask_validate", staticmethod(fake_ask))
-        await role.split_character_slices(ctx, [child_a, child_b])
-
-        assert child_a.character_trace[0].interpolates == [d1]
-        assert child_b.character_trace[0].interpolates == [d2]
-        assert child_a.character_trace[0].start == hero
-        assert child_a.character_trace[0].end.look == "wounded"
-        assert child_b.character_trace[0].end.look == "scarred"
-
-    async def test_scene_requirement_shows_character_chain(self) -> None:
-        """Assert every state of the arc appears in the scene prompt's Characters section."""
+    async def test_draft_story_spans_single_story_inherits_chapter_span(self) -> None:
+        """Assert a single story gets the chapter's spans directly without an LLM call."""
         role = NovelRole(name="novel_role")
-        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        hero = card()
-        ctx.character_trace = [
-            CharacterTrace(
-                start=hero,
-                interpolates=[CharacterCardDiff(look="scarred", reason="took a blade")],
-            )
-        ]
-        requirement = await role.prepare_scene_requirement(ctx)
-        assert "Hero. roles: protagonist" in requirement
-        assert "look: tall → scarred" in requirement
-        assert "took a blade" in requirement
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        span = CharacterSpan(start=card(), end=card())
+        chapter.set_charactor_spans([span])
+        chapter.add_story_context(StoryContext(title="St1", description="The departure."))
+        await role.draft_story_spans(chapter)
+        assert chapter.story_context[0].charactor_span is chapter.charactor_span
 
-    def test_cast_missing_traces_reports_unknown_members(self) -> None:
+    async def test_scene_requirement_shows_character_span(self) -> None:
+        """Assert the scene prompt renders the broadcast span's start and end."""
+        role = NovelRole(name="novel_role")
+        start = card()
+        end = card().model_copy(update={"look": "scarred"})
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        ctx.set_charactor_spans([CharacterSpan(start=start, end=end)])
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "Initial State:" in requirement
+        assert "finalizing State:" in requirement
+        assert "## Look" in requirement
+        assert "scarred" in requirement
+
+    def test_cast_missing_spans_reports_unknown_members(self) -> None:
+        """Assert an uncovered cast member is reported as missing."""
         ctx = StoryContext(title="St1", description="D")
         ctx.set_cast(["Hero", "Ghost"])
-        ctx.character_trace = [CharacterTrace(start=card())]
-        assert ctx.cast_missing_traces() == ["Ghost"]
+        ctx.set_charactor_spans([CharacterSpan(start=card(), end=card())])
+        assert ctx.cast_missing_spans() == ["Ghost"]
 
-    def test_cast_missing_traces_empty_when_covered(self) -> None:
-        """Assert a fully traced cast passes the roster check."""
+    def test_cast_missing_spans_empty_when_covered(self) -> None:
+        """Assert a fully covered cast passes the roster check."""
         ctx = StoryContext(title="St1", description="D")
         ctx.set_cast(["Hero"])
-        ctx.character_trace = [CharacterTrace(start=card())]
-        assert ctx.cast_missing_traces() == []
+        ctx.set_charactor_spans([CharacterSpan(start=card(), end=card())])
+        assert ctx.cast_missing_spans() == []
 
 
 class TestNovelCompose:
@@ -450,26 +391,20 @@ class TestNovelCompose:
         assert scene.expected_word_count == 50
         assert ctx.content == "He walked out."
 
-    async def test_compose_scene_evolves_charactor_trace(self) -> None:
-        """Assert scene preparation applies the proposed diff to the scene's character trace."""
+    async def test_compose_novel_broadcasts_story_span_to_scenes(self) -> None:
+        """Assert every scene inherits the story's spans when prepare_scene_write runs."""
         role = NovelRole(name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
-        trace = CharacterTrace(start=card())
-        ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
-        ctx.character_trace.append(trace)
-        story.scene_context.append(ctx)
-        expected_diff = CharacterCardDiff(look="scarred", reason="took a blade")
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value([expected_diff.model_dump()], "json"),
-                raw_value("He fought."),
-            )
-        ):
-            await role.prepare_scenes(story)
-            scene = await role.compose_scene(ctx)
+        span = CharacterSpan(start=card(), end=card())
+        story.set_charactor_spans([span])
+        scene_ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
+        story.scene_context.append(scene_ctx)
+        with install_router_usage(*return_router_usage("He fought.")):
+            await role.prepare_scene_write(story)
+            scene = await role.compose_scene(scene_ctx)
         assert scene is not None
-        assert trace.interpolates == [expected_diff]
-        assert trace.end.look == "scarred"
+        assert scene_ctx.charactor_span is story.charactor_span
+        assert scene_ctx.charactor_span == [span]
 
     async def test_compose_novel_end_to_end(self) -> None:
         """Assert a full composition fills content and prefixes across a prefilled tree."""
@@ -1063,7 +998,7 @@ class TestRAGCompose:
                 assert nxt.startswith(prev[:shared])
 
     async def test_prepare_story_retrieves_docs_once(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert docs are retrieved once per story; scene prep never refetches."""
+        """Assert plan_scenes_phase retrieves style docs exactly once."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
         story.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
@@ -1076,12 +1011,12 @@ class TestRAGCompose:
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
 
-        await role.prepare_story(story)
+        async def fake_propose(model: object, requirement: object, **kwargs: object) -> object:
+            return []
 
-        assert story.style_docs == [doc]
-        assert fetched == [["The departure."]]
+        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
 
-        await role.prepare_scenes(story)
+        await role.plan_scenes_phase(story)
 
         assert fetched == [["The departure."]]
 
