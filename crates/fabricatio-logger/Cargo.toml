@@ -7,7 +7,7 @@ authors.workspace = true
 license-file.workspace = true
 
 [dependencies]
-pyo3 = "0.29.0"
+pyo3 = "0.29.2"
 chrono = "0.4.45"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["env-filter", "chrono"] }
 tracing = "0.1.44"

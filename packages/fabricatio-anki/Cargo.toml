@@ -6,12 +6,12 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.6", features = ["derive"] }
 
-pyo3 = { version = "0.29.0", features = ["extension-module"] }
+pyo3 = { version = "0.29.2", features = ["extension-module"] }
 deck_loader = { path = "../../crates/deck_loader" }
 pythonize = "0.29.0"
-regex = "1.12.4"
+regex = "1.13.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
 serde_yaml2 = "0.1.3"

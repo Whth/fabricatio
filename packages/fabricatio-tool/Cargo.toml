@@ -6,18 +6,18 @@ edition = "2024"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-pyo3 = { version = "0.29.0", features = ["extension-module"] }
+pyo3 = { version = "0.29.2", features = ["extension-module"] }
 pyo3-async-runtimes = { version = "0.29.0", features = ["tokio-runtime"] }
 pythonize = "0.29.0"
 rustpython-ast = { version = "0.4.0", features = ["visitor", "num-bigint", "fold", "location"], default-features = false }
 rustpython-parser = { version = "0.4.0", features = ["num-bigint", "location"], default-features = false }
-serde_json = "1.0.150"
+serde_json = "1.0.151"
 mcp-manager = { workspace = true }
 signify = { workspace = true }
 rmcp = { version = "3.1.4", features = ["transport-streamable-http-client-reqwest", "client"] }
 fabricatio-logger = { workspace = true }
 
-ignore = { version = "0.4.27" }
+ignore = { version = "0.4.33" }
 
 error-mapping = { workspace = true, features = ["pythonize", "serde_json", "mcp-manager"] }
 rayon = "1.12.0"

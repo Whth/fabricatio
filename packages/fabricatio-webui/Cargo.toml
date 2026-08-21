@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 axum = { version = "0.8.9", features = ["ws"] }
 pyo3 = { version = ">=0.24.2", features = ["extension-module"] }
-tokio = { version = "1.52.3", features = ["rt-multi-thread"] }
+tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 tower-http = { version = "0.7.0", features = ["cors", "fs"] }
 pyo3-async-runtimes = { version = "0.29.0", features = ["tokio-runtime"] }
 serde = { version = "1", features = ["derive"] }
@@ -26,4 +26,4 @@ stubgen = []
 
 
 [build-dependencies]
-which = "8.0.4"
+which = "8.0.5"
