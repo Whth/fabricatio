@@ -75,6 +75,13 @@ entries from LanceDB once per story and renders them raw into the scene prompts.
 | `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
 | `SeriesBible` | `characters` roster string + `background_settings` fact list; broadcast down |
 
+Every channel carries its running manuscript as an **append-only `ContextLog`**: composed
+blocks enter as frozen `ContextEntry` records, parents seed children with pure log snapshots,
+and prompts render them exactly like the former prefixed-content strings. Logs support
+`with_entry`/`with_entries` appends, `branch()` to fork alternative continuations from any
+point (copy-on-write), and `clear()` which returns a fresh empty log while the original
+history stays intact.
+
 ### Plans & models
 
 | Class | Description |
