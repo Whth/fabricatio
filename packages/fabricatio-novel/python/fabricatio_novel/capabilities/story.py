@@ -122,24 +122,24 @@ class StoryCompose(SceneCompose, ABC):
     ) -> bool:
         """Compose every scene serially in prefix order.
 
-        Each scene's prefixed content is the story's own prefix (everything
-        composed before the story, constant across its scenes) while the
-        story's earlier scenes accumulate separately, so stable content like
-        style references can sit between them for prefix-cache reuse.
+        Each scene's prefix log is the story's own prefix (everything composed
+        before the story, constant across its scenes) while the story's earlier
+        scenes accumulate in a separate story-scoped log, so stable content like
+        style references can sit between them for prefix-cache reuse. Every scene
+        receives a branch of the story-scoped log taken before its own
+        composition, so a scene never sees itself or any later sibling.
 
         Returns:
             bool: True when every scene composed; False on any failure.
         """
         total = len(ctx.scene_context)
-        prefix = ctx.prefixed_content
-        scenes_so_far = ""
         for i, scene_ctx in enumerate(ctx.scene_context, start=1):
-            scene_ctx.set_prefixed_content(prefix).set_scenes_so_far(scenes_so_far)
+            scene_ctx.set_prefix_log(ctx.prefix_log).set_scenes_log(ctx.scenes_log.branch())
             logger.info(f"Composing scene {i}/{total} '{scene_ctx.title}'")
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 logger.error(f"Scene '{scene_ctx.title}' failed; aborting story '{ctx.title}'")
                 return False
-            scenes_so_far = "\n\n".join(p for p in (scenes_so_far, scene_ctx.render_prefixed_block()) if p)
+            ctx.scenes_log = ctx.scenes_log.with_entries(scene_ctx.prefixed_entries())
         return True
 
     async def generate_story(

@@ -7,6 +7,7 @@ from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.bible import BibleCompose, parse_sections
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -234,7 +235,9 @@ class TestBibleConsumption:
         role = BibleRole(name="bible_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_series_bible(self._bible())
-        ctx.prefixed_content = "He walked into the dark."
+        ctx.set_prefix_log(
+            ContextLog(entries=(ContextEntry(kind="scene_content", title="S2", body="He walked into the dark."),))
+        )
 
         requirement = await role.prepare_scene_requirement(ctx)
 

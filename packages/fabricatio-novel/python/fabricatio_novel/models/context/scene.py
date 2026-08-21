@@ -6,6 +6,7 @@ from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import ScenePlan
 
@@ -16,8 +17,8 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
     content: str = ""
     """The composed prose of this scene; the only context level that owns composed content."""
 
-    scenes_so_far: str = ""
-    """The story's composed scenes before this one; rendered after the style references."""
+    scenes_log: ContextLog = Field(default_factory=ContextLog)
+    """The story's composed scenes before this one, as an append-only log; rendered after the style references."""
 
     scene_plan: ScenePlan | None = None
     """The scene's own plan."""
@@ -30,9 +31,9 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
         self.scene_plan = plan
         return self
 
-    def set_scenes_so_far(self, scenes_so_far: str) -> Self:
-        """Set the story's composed scenes preceding this scene and return self."""
-        self.scenes_so_far = scenes_so_far
+    def set_scenes_log(self, scenes_log: ContextLog) -> Self:
+        """Set the story-scoped log of the scenes preceding this one and return self."""
+        self.scenes_log = scenes_log
         return self
 
     def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
@@ -64,6 +65,8 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
         return "\n\n".join(span.dump_to_prompt() for span in self.charactor_span)
 
     @final
-    def render_prefixed_block(self) -> str:
-        """Render the scene's composed content; scene titles and descriptions are not injected."""
-        return self.content
+    def prefixed_entries(self) -> tuple[ContextEntry, ...]:
+        """Contribute the composed content; scene titles and descriptions are not injected."""
+        if not self.content:
+            return ()
+        return (ContextEntry(kind="scene_content", title=self.title, body=self.content),)

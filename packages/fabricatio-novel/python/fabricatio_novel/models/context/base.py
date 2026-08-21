@@ -9,6 +9,7 @@ from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
 from pydantic import Field
 
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -78,8 +79,9 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     series_bible: SeriesBible | None = None
     """The novel's setting bible; uninitialized until set or broadcast down from the novel context."""
 
-    prefixed_content: str = ""
-    """Everything composed before this element in the novel; injected by the parent before composition."""
+    prefix_log: ContextLog = Field(default_factory=ContextLog)
+    """Everything composed before this element as an append-only entry log; injected by the
+    parent before composition."""
 
     def set_language(self, language: str) -> Self:
         """Set the written language of this element and return self."""
@@ -106,6 +108,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         self.cast = cast
         return self
 
+    def set_prefix_log(self, prefix_log: ContextLog) -> Self:
+        """Set the append-only log of everything composed before this element and return self."""
+        self.prefix_log = prefix_log
+        return self
+
     def access_settings_bible(self) -> SeriesBible:
         """Return the initialized settings bible.
 
@@ -118,46 +125,43 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
         yield from ()
 
-    def render_prefixed_header(self) -> str:
-        """Render this element's own heading block, seeded into every child's prefix.
+    def prefixed_header_entry(self) -> ContextEntry | None:
+        """This element's heading block as an entry seeded into every child's prefix.
 
         Only the chapter renders its own title and description here; the novel's,
         story's and scene's own titles are not part of the running text.
         """
-        return ""
+        return None
+
+    @abstractmethod
+    def prefixed_entries(self) -> tuple[ContextEntry, ...]:
+        """This element's blocks contributed to every following sibling's prefix.
+
+        Only the chapter contributes its heading entry; stories forward their
+        scenes' entries and scenes contribute their composed content.
+        """
+        ...
 
     @final
     def iter_prefixed_contexts(self) -> Generator[C, None, None]:
-        """Set each child's running prefixed content in place and yield it.
+        """Set each child's running prefix log in place and yield it.
 
-        The running prefix seeds with this element's incoming prefixed content
-        plus its own heading block, so each child sees the exact text that will
-        precede its content in the final manuscript. Composed content is read
-        live at each step, so in-place updates made while iterating are
-        reflected in the following children's prefixes.
+        The running log seeds with this element's incoming prefix plus its own
+        heading entry, so each child sees exactly the history that precedes its
+        content in the final manuscript. Seeding is pure — logs rebind fresh
+        tuples — so repeated walks are idempotent and readers holding an earlier
+        log never observe later appends.
         """
-        prefix = "\n\n".join(p for p in (self.prefixed_content, self.render_prefixed_header()) if p)
+        seed = self.prefix_log
+        if header := self.prefixed_header_entry():
+            seed = seed.with_entry(header)
         for child in self.iter_child_contexts():
-            child.set_prefixed_content(prefix)
+            child.set_prefix_log(seed)
             yield child
-            prefix = "\n\n".join(p for p in (prefix, child.render_prefixed_block()) if p)
-
-    @abstractmethod
-    def render_prefixed_block(self) -> str:
-        """Render this element's block, appended to the prefixed content of every following sibling.
-
-        Only the chapter renders its own title and description; stories render
-        their children's blocks and scenes render their composed content.
-        """
-        ...
+            seed = seed.with_entries(child.prefixed_entries())
 
     def broadcast_settings_bible(self) -> Self:
         """Push this context's settings bible onto every child context."""
         for child in self.iter_child_contexts():
             child.set_series_bible(self.series_bible)
-        return self
-
-    def set_prefixed_content(self, prefixed_content: str) -> Self:
-        """Set the composed text preceding this element in the novel and return self."""
-        self.prefixed_content = prefixed_content
         return self

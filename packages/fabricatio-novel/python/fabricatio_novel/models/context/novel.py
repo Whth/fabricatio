@@ -8,6 +8,7 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import NovelPlan
 
@@ -57,9 +58,12 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
         yield from self.chapter_context
 
     @final
-    def render_prefixed_block(self) -> str:
-        """Render the chapter blocks; the novel's own title is not injected."""
-        return "\n\n".join(child.render_prefixed_block() for child in self.iter_child_contexts())
+    def prefixed_entries(self) -> tuple[ContextEntry, ...]:
+        """Forward the chapters' entries; the novel's own title is not injected."""
+        entries: list[ContextEntry] = []
+        for child in self.iter_child_contexts():
+            entries.extend(child.prefixed_entries())
+        return tuple(entries)
 
     def set_novel_plan(self, plan: NovelPlan) -> Self:
         """Set the novel's plan and return self."""

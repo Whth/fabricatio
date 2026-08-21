@@ -6,6 +6,7 @@ from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
@@ -20,6 +21,9 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
     charactor_span: list[CharacterSpan] = Field(default_factory=list)
 
     scene_context: list[SceneContext] = Field(default_factory=list)
+
+    scenes_log: ContextLog = Field(default_factory=ContextLog)
+    """The story's composed scenes before the current one, as an append-only log; fresh per story."""
 
     @classmethod
     def from_plan(cls, plan: StoryPlan, expected_word_count: int) -> Self:
@@ -73,9 +77,12 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
         yield from self.scene_context
 
     @final
-    def render_prefixed_block(self) -> str:
-        """Render the scene blocks; the story's own title and description are not injected."""
-        return "\n\n".join(child.render_prefixed_block() for child in self.iter_child_contexts())
+    def prefixed_entries(self) -> tuple[ContextEntry, ...]:
+        """Forward the scenes' entries; the story's own title and description are not injected."""
+        entries: list[ContextEntry] = []
+        for child in self.iter_child_contexts():
+            entries.extend(child.prefixed_entries())
+        return tuple(entries)
 
     def set_story_plan(self, plan: StoryPlan) -> Self:
         """Set the story's plan and return self."""

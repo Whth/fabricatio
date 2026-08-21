@@ -6,6 +6,7 @@ from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
+from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
@@ -54,11 +55,17 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
         return f"{self.heading_level} {self.title}\n\n> {self.description}"
 
     @final
-    def render_prefixed_block(self) -> str:
-        """Render the chapter's heading block followed by its story blocks."""
-        parts: list[str] = [self.render_prefixed_header()]
-        parts.extend(child.render_prefixed_block() for child in self.iter_child_contexts())
-        return "\n\n".join(parts)
+    def prefixed_header_entry(self) -> ContextEntry:
+        """Wrap the heading block as the header entry seeded into children's prefixes."""
+        return ContextEntry(kind="chapter_header", title=self.title, body=self.render_prefixed_header())
+
+    @final
+    def prefixed_entries(self) -> tuple[ContextEntry, ...]:
+        """Contribute the heading entry followed by the stories' entries."""
+        entries: list[ContextEntry] = [self.prefixed_header_entry()]
+        for child in self.iter_child_contexts():
+            entries.extend(child.prefixed_entries())
+        return tuple(entries)
 
     def dump_characters(self) -> str:
         """Render every character's start and end states for prompts, in span order."""

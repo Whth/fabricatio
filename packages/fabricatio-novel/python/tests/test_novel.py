@@ -18,6 +18,7 @@ from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.models.context.base import CharacterSpan, derive_child_spans
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -47,6 +48,11 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
 def raw_value(text: str) -> Value[str]:
     """Wrap a plain scene response for mixed router usage."""
     return Value(text, "raw", convertor=lambda s: s)
+
+
+def prefix_log(body: str, *, title: str = "S1") -> ContextLog:
+    """Build a one-entry scene-content prefix log for tests."""
+    return ContextLog(entries=(ContextEntry(kind="scene_content", title=title, body=body),))
 
 
 class TestNovelContext:
@@ -115,7 +121,7 @@ class TestNovelContext:
             SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
             .set_language("English")
             .set_content("He left.")
-            .set_prefixed_content("Before.")
+            .set_prefix_log(prefix_log("Before.", title="S1"))
             .set_writing_constraint("First person view throughout.")
             .set_scene_plan(ScenePlan(title="S1", description="Leaving home."))
         )
@@ -133,7 +139,7 @@ class TestNovelContext:
 
         assert scene.title == "S1"
         assert scene.content == "He left."
-        assert scene.prefixed_content == "Before."
+        assert scene.prefix_log.render() == "Before."
         assert scene.language == "English"
         assert scene.writing_constraint == "First person view throughout."
         assert story.scene_context == [scene]
@@ -444,10 +450,10 @@ class TestNovelCompose:
         assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
         chapter_header = "# Ch1\n\n> The hero sets out."
         scenes = ctx.chapter_context[0].story_context[0].scene_context
-        assert scenes[0].prefixed_content == chapter_header
-        assert scenes[0].scenes_so_far == ""
-        assert scenes[1].prefixed_content == chapter_header
-        assert scenes[1].scenes_so_far == "He left."
+        assert scenes[0].prefix_log.render() == chapter_header
+        assert scenes[0].scenes_log.render() == ""
+        assert scenes[1].prefix_log.render() == chapter_header
+        assert scenes[1].scenes_log.render() == "He left."
 
     async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
         """Assert composition emits per-level progress and completion log lines."""
@@ -500,7 +506,7 @@ class TestNovelCompose:
         """Assert the static head leads and prefixed content renders after the Previous Content marker."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        ctx.prefixed_content = "He walked into the dark."
+        ctx.set_prefix_log(prefix_log("He walked into the dark.", title="S2"))
 
         requirement = await role.prepare_scene_requirement(ctx)
 
@@ -598,7 +604,7 @@ class TestNovelCompose:
 
 
 class TestPrefixAccumulation:
-    """Test suite for prefixed_content dependency injection across levels."""
+    """Test suite for prefix log dependency injection across levels."""
 
     def _scene_ctx(self, title: str, description: str) -> SceneContext:
         return SceneContext(title=title, description=description, expected_word_count=20)
@@ -618,10 +624,10 @@ class TestPrefixAccumulation:
         ):
             result = await role.compose_story(story)
         assert result is not None
-        assert scene_1.prefixed_content == ""
-        assert scene_1.scenes_so_far == ""
-        assert scene_2.prefixed_content == ""
-        assert scene_2.scenes_so_far == "He left."
+        assert scene_1.prefix_log.render() == ""
+        assert scene_1.scenes_log.render() == ""
+        assert scene_2.prefix_log.render() == ""
+        assert scene_2.scenes_log.render() == "He left."
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         """Assert stories inherit the chapter header plus prior story blocks as prefixed_content."""
@@ -642,9 +648,9 @@ class TestPrefixAccumulation:
         assert result is not None
         story_a_block = "Alpha."
         chapter_header = "# Ch1\n\n> The start."
-        assert story_a.prefixed_content == chapter_header
-        assert story_b.prefixed_content == f"{chapter_header}\n\n{story_a_block}"
-        assert story_b.scene_context[0].prefixed_content == f"{chapter_header}\n\n{story_a_block}"
+        assert story_a.prefix_log.render() == chapter_header
+        assert story_b.prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
+        assert story_b.scene_context[0].prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         """Assert chapter and story prefixed_content chain across the whole composed novel."""
@@ -686,18 +692,20 @@ class TestPrefixAccumulation:
         chapter_1_header = "# Ch1\n\n> The start."
         chapter_2_header = "# Ch2\n\n> The road."
         story_c_block = "C."
-        assert chapter_1.prefixed_content == ""
-        assert chapter_2.prefixed_content == chapter_1_block
-        assert chapter_1.story_context[1].prefixed_content == f"{chapter_1_header}\n\nA."
-        assert chapter_2.story_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
+        assert chapter_1.prefix_log.render() == ""
+        assert chapter_2.prefix_log.render() == chapter_1_block
+        assert chapter_1.story_context[1].prefix_log.render() == f"{chapter_1_header}\n\nA."
+        assert chapter_2.story_context[0].prefix_log.render() == f"{chapter_1_block}\n\n{chapter_2_header}"
         assert (
-            chapter_2.story_context[1].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
+            chapter_2.story_context[1].prefix_log.render()
+            == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
         )
         assert (
-            chapter_2.story_context[0].scene_context[0].prefixed_content == f"{chapter_1_block}\n\n{chapter_2_header}"
+            chapter_2.story_context[0].scene_context[0].prefix_log.render()
+            == f"{chapter_1_block}\n\n{chapter_2_header}"
         )
         assert (
-            chapter_2.story_context[1].scene_context[0].prefixed_content
+            chapter_2.story_context[1].scene_context[0].prefix_log.render()
             == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
         )
 
@@ -945,8 +953,8 @@ class TestRAGCompose:
         """Assert raw style docs render between the before-story prefix and the story so far."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
-        ctx.set_prefixed_content("Chapter One\n\nThe hero leaves home.")
-        ctx.set_scenes_so_far("Scene one: the hero rides north.")
+        ctx.set_prefix_log(prefix_log("Chapter One\n\nThe hero leaves home.", title="Battle"))
+        ctx.set_scenes_log(prefix_log("Scene one: the hero rides north.", title="Scene one"))
         ctx.set_style_docs([WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")])
 
         requirement = await role.prepare_scene_requirement(ctx)
