@@ -14,8 +14,11 @@ import type { FabricatioNodeData } from '@/stores/workflow'
 import { Crosshair } from '@lucide/vue'
 import ComfyNode from './ComfyNode.vue'
 import AddNodeMenu from './AddNodeMenu.vue'
+import NodeHoverCard from './NodeHoverCard.vue'
+import NodeInspector from './NodeInspector.vue'
 import CommandPalette from '@/components/chrome/CommandPalette.vue'
 import ActionSourceDialog from '@/components/chrome/ActionSourceDialog.vue'
+import { computed } from 'vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
@@ -33,6 +36,37 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
 const sourceViewer = ref<{ nodeType: string } | null>(null)
+
+// ── Node hover card + right-side inspector ─────────────────────────────────
+/** Node currently hovered (id), or null. */
+const hoveredNodeId = ref<string | null>(null)
+let hoverHideTimer: ReturnType<typeof setTimeout> | null = null
+
+function onNodeHover(nodeId: string | null) {
+  if (hoverHideTimer) {
+    clearTimeout(hoverHideTimer)
+    hoverHideTimer = null
+  }
+  if (nodeId === null) {
+    // Small grace period so moving across gaps/ports does not flicker.
+    hoverHideTimer = setTimeout(() => {
+      hoveredNodeId.value = null
+    }, 120)
+    return
+  }
+  hoveredNodeId.value = nodeId
+}
+
+/** Hovered node (never the selected one — the inspector covers it). */
+const hoveredNode = computed(() => {
+  if (!hoveredNodeId.value || hoveredNodeId.value === wfStore.selectedNodeId) return null
+  return wfStore.nodes.find((n) => n.id === hoveredNodeId.value) ?? null
+})
+
+/** id → title map for wiring-source display in the inspector. */
+const nodeTitles = computed(() =>
+  Object.fromEntries(wfStore.nodes.map((n) => [n.id, (n.data as FabricatioNodeData)?.title ?? n.id])),
+)
 
 /** True if wiring source → target would close a cycle (target already reaches source). */
 function wouldCreateCycle(source: string, target: string): boolean {
@@ -103,6 +137,7 @@ const {
       lastConnectionError.value = 'Would create a cycle'
       return false
     }
+
     return true
   },
 })
@@ -125,6 +160,11 @@ onConnectEnd((event) => {
     lastConnectionError.value = null
   }
 })
+
+/** Close = deselect (Esc/Del already route through selectNode(null)). */
+function closeInspector() {
+  wfStore.selectNode(null)
+}
 
 function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
@@ -340,6 +380,8 @@ function onDrop(ev: DragEvent) {
       :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
       :min-zoom="0.1"
       @node-click="onNodeClick"
+      @node-mouse-enter="({ node }: NodeMouseEvent) => onNodeHover(node.id)"
+      @node-mouse-leave="() => onNodeHover(null)"
       @pane-click="onPaneClick"
       @pane-context-menu="onPaneContextMenu"
       @pane-dblclick="onPaneDblClick"
@@ -356,6 +398,18 @@ function onDrop(ev: DragEvent) {
       />
       <CommandPalette v-if="uiStore.paletteOpen" />
     </VueFlow>
+
+    <!-- Lightweight hover info card (pointer-events: none) -->
+    <NodeHoverCard :node="hoveredNode" />
+
+    <!-- Right-side detailed inspector for the selected node -->
+    <NodeInspector
+      :node="wfStore.selectedNode"
+      :edges="wfStore.edges"
+      :node-titles="nodeTitles"
+      @close="closeInspector"
+      @open-source="(t: string) => (sourceViewer = { nodeType: t })"
+    />
 
     <AddNodeMenu
       v-if="menuPos"
