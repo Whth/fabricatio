@@ -9,6 +9,7 @@ use fabricatio_logger::*;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use std::path::PathBuf;
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, OnceLock};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
@@ -92,6 +93,7 @@ fn start_service<'a>(
     queue_snapshot_fn: Bound<'a, PyAny>,
     history_snapshot_fn: Bound<'a, PyAny>,
     rebuild_roles_fn: Bound<'a, PyAny>,
+    persist_workflows: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
     let registry: Vec<NodeTypeDefinition> = serde_json::from_str(&node_registry_json)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -99,6 +101,7 @@ fn start_service<'a>(
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
     let state = Arc::new(AppState::new(data_dir));
+    state.persist_workflows.store(persist_workflows, Ordering::Relaxed);
     if let Ok(mut reg) = state.node_registry.write() {
         *reg = registry;
     }

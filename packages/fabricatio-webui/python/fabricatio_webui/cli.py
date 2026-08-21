@@ -46,7 +46,12 @@ def main(
     resolved_frontend = str(frontend_dir or webui_config.frontend_dir or _default_www())
 
     async def _wrapper() -> None:
-        worker = WorkflowWorker(rust_broadcast, data_dir)
+        worker = WorkflowWorker(
+            rust_broadcast,
+            data_dir,
+            queue_max=webui_config.queue_max,
+            history_max=webui_config.history_max,
+        )
         await asyncio.gather(
             start_service(
                 resolved_frontend,
@@ -60,6 +65,7 @@ def main(
                 worker.queue_snapshot,
                 worker.history_snapshot,
                 worker.rebuild_roles,
+                bool(webui_config.persist_workflows),
             ),
             worker.run(),
         )

@@ -5,7 +5,6 @@ import builtins
 import os
 import pathlib
 import typing
-
 __all__ = [
     "rust_broadcast",
     "start_service",
@@ -16,23 +15,12 @@ def rust_broadcast(payload_json: builtins.str) -> None:
     Broadcast a serialized WsMessage to every connected WS session.
     """
 
-def start_service(
-    frontend_dir: builtins.str | os.PathLike | pathlib.Path,
-    data_dir: builtins.str | os.PathLike | pathlib.Path,
-    addr: builtins.str,
-    node_registry_json: builtins.str,
-    blueprints_json: builtins.str,
-    allowed_origins: typing.Sequence[builtins.str],
-    submit_fn: typing.Any,
-    cancel_fn: typing.Any,
-    queue_snapshot_fn: typing.Any,
-    history_snapshot_fn: typing.Any,
-    rebuild_roles_fn: typing.Any,
-) -> typing.Awaitable[None]:
+def start_service(frontend_dir: builtins.str | os.PathLike | pathlib.Path, data_dir: builtins.str | os.PathLike | pathlib.Path, addr: builtins.str, node_registry_json: builtins.str, blueprints_json: builtins.str, allowed_origins: typing.Sequence[builtins.str], submit_fn: typing.Any, cancel_fn: typing.Any, queue_snapshot_fn: typing.Any, history_snapshot_fn: typing.Any, rebuild_roles_fn: typing.Any, persist_workflows: builtins.bool) -> typing.Awaitable[None]:
     r"""
     Starts the web UI service with the given frontend and data directories.
-
+    
     The four ``*_fn`` callables are the Python WorkflowWorker entry points:
     submit(execution_id, workflow_json, task_input_json), cancel() -> bool,
     queue_snapshot() -> str, history_snapshot() -> str.
     """
+

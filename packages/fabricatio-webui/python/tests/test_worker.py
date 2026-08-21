@@ -352,3 +352,17 @@ async def test_rebuild_roles_dispatches_new_boards(tmp_path: Any) -> None:
         assert done2["result"] == "second"
     finally:
         loop_task.cancel()
+
+
+class TestWorkerConfigForwarding:
+    """CLI forwards webui_config knobs into the worker constructor."""
+
+    @staticmethod
+    def test_cli_source_forwards_config_kwargs() -> None:
+        import inspect
+
+        from fabricatio_webui import cli
+
+        src = inspect.getsource(cli.main)
+        assert "queue_max=webui_config.queue_max" in src
+        assert "history_max=webui_config.history_max" in src

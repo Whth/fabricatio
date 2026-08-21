@@ -3,6 +3,7 @@ use fabricatio_logger::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::RwLock;
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::sync::mpsc;
 
 pub struct AppState {
@@ -12,6 +13,9 @@ pub struct AppState {
     pub ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
     pub workflows: RwLock<HashMap<String, BoardJson>>,
     data_dir: PathBuf,
+    /// When false, in-memory CRUD still works but save/delete skip writing workflows.json.
+    /// Set once at startup; thereafter read-only.
+    pub persist_workflows: AtomicBool,
     // Python worker callables (set once at startup; never mutated afterwards)
     pub submit_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
     pub cancel_fn: std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>,
@@ -30,6 +34,7 @@ impl AppState {
             ws_sessions: RwLock::new(HashMap::new()),
             workflows: RwLock::new(workflows),
             data_dir,
+            persist_workflows: AtomicBool::new(true),
             submit_fn: std::sync::OnceLock::new(),
             cancel_fn: std::sync::OnceLock::new(),
             queue_snapshot_fn: std::sync::OnceLock::new(),
@@ -38,12 +43,12 @@ impl AppState {
         }
     }
 
-    // ── Workflow CRUD (docs are boards, format_version 2) ─────────────────────
-
     pub fn save_workflow(&self, id: String, wf: BoardJson) {
         if let Ok(mut wfs) = self.workflows.write() {
             wfs.insert(id, wf);
-            Self::persist_to_disk(&self.data_dir, &wfs);
+            if self.persist_workflows.load(Ordering::Relaxed) {
+                Self::persist_to_disk(&self.data_dir, &wfs);
+            }
         }
     }
 
@@ -64,14 +69,14 @@ impl AppState {
             Err(_) => return false,
         };
         if wfs.remove(id).is_some() {
-            Self::persist_to_disk(&self.data_dir, &wfs);
+            if self.persist_workflows.load(Ordering::Relaxed) {
+                Self::persist_to_disk(&self.data_dir, &wfs);
+            }
             true
         } else {
             false
         }
     }
-
-    // ── Disk Persistence ──────────────────────────────────────────────────────
 
     fn workflows_file(data_dir: &std::path::Path) -> PathBuf {
         data_dir.join("workflows.json")
