@@ -121,6 +121,45 @@ its typed ports, config fields, widget hints, MRO groups, source code, and an
 through `GET|POST /api/workflows` and `GET|DELETE /api/workflows/{id}`; every
 save/delete re-dispatches roles onto the worker's event bus.
 
+### Using the editor
+
+- **Add nodes**: right-click or double-click the canvas → fuzzy-searchable node
+  menu grouped by category. `Ctrl+F` opens the command palette for node/command
+  search from anywhere.
+- **Wire dataflow**: drag between port dots; connections are type-checked
+  (`isValidConnection`), optional inputs render hollow handles.
+- **Configure inline**: every config field renders an in-node widget derived
+  from the Action's pydantic annotations — toggles, number steppers with
+  min/max/step, combos fed by `Literal` options, text/textarea, JSON fields;
+  fields are grouped by their owning class in the Action's MRO.
+- **Run**: `Ctrl+Enter` opens the run dialog; publish a task by namespace and
+  watch per-node status badges + the live console (`node_start/done/error`
+  events). `POST /api/interrupt` cancels mid-run.
+- **Save**: `Ctrl+S` persists the board server-side; autosave drafts go to
+  browser localStorage.
+
+### Themes
+
+The UI ships dark (default) and light themes. Switch via **Settings sidebar →
+Appearance → Theme**. The choice persists per-browser (localStorage) and is
+applied before first paint (no flash on reload).
+
+### Import / export boards
+
+In the **Boards** sidebar:
+
+- **Export all** (header ⤓): downloads `fabricatio-boards.json`, a JSON array of
+  every saved board.
+- **Per-board export** (row ⤓): downloads `<name>.json` for that one board.
+- **Import** (header ⤓↑): pick one or more JSON files — each may hold a single
+  board object or an array. Every entry must be `format_version: 2`; entries are
+  upserted by name (the server derives the storage id from it), so re-importing
+  an edited file updates the existing board. Invalid payloads raise an error
+  toast and leave the stored boards untouched.
+
+Boards exported this way are plain JSON — diff them, commit them, share them,
+or hand-edit roles/workflows offline and import back.
+
 ## WebSocket protocol
 
 One endpoint: `/ws`. Messages are JSON objects tagged by a `type` field.

@@ -346,6 +346,27 @@ The ``thryd`` crate provides:
 - **Response caching**: SQLite-based request caching
 - **Concurrent routing**: Thread-safe provider selection
 
+[webui]
+~~~~~~~
+
+Configuration for the optional ``fabricatio-webui`` package (board editor +
+execution service). Loaded via ``from fabricatio_webui.config import webui_config``
+and honored by the ``fc-webui`` CLI.
+
+.. code-block:: toml
+
+    [webui]
+    addr = "127.0.0.1:9846"          # Bind address for the HTTP/WS server
+    frontend_dir = ""                 # Empty = use the bundled SPA in the wheel
+    allowed_origins = ["http://localhost:*", "http://127.0.0.1:*"]  # CORS; empty list = permissive
+    queue_max = 64                    # Max queued executions before submit raises
+    history_max = 256                 # Max finished executions kept in history
+    persist_workflows = true          # false = keep boards in memory only, never write workflows.json
+
+``queue_max`` / ``history_max`` are forwarded to the Python
+``WorkflowWorker``; ``persist_workflows`` gates the Rust side's disk writes of
+``workflows.json`` (in-memory CRUD still works when disabled).
+
 Programmatic Configuration
 --------------------------
 
