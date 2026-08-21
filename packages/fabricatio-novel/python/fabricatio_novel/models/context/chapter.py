@@ -7,12 +7,12 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.log import ContextEntry
-from fabricatio_novel.models.context.rag import RAGChannel
+from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
 
-class ChapterContext(RAGChannel, Titled, Described, ContextBase):
+class ChapterContext(Titled, Described, ContextBase):
     """A chapter's composition channel: its plan, story contexts and heading block."""
 
     heading_level: ClassVar[str] = "#"
@@ -23,6 +23,9 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     story_context: list[StoryContext] = Field(default_factory=list)
 
     charactor_span: list[CharacterSpan] = Field(default_factory=list)
+
+    rag: RagRetrieval | None = None
+    """Opt-in writing style retrieval settings carried down from the novel; None when the run uses no RAG."""
 
     @classmethod
     def from_plan(cls, plan: ChapterPlan, expected_word_count: int) -> Self:
@@ -94,4 +97,9 @@ class ChapterContext(RAGChannel, Titled, Described, ContextBase):
     def add_charactor_span(self, span: CharacterSpan) -> Self:
         """Append one character span to this chapter and return self."""
         self.charactor_span.append(span)
+        return self
+
+    def set_rag(self, rag: RagRetrieval | None) -> Self:
+        """Set the opt-in writing style retrieval settings and return self."""
+        self.rag = rag
         return self

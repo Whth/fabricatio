@@ -18,6 +18,7 @@ from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.series_book import SeriesBible
 
@@ -67,7 +68,7 @@ class InitNovelContext(StageAction):
             ctx.set_writing_constraint(str(constraint))
         if bible_path := cxt.get("bible_path"):
             ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
-        ctx.set_rag_query(str(cxt.get("rag_query") or "")).set_rag_limit(int(cxt.get("rag_limit") or 15))
+        ctx.set_rag(RagRetrieval(query=str(cxt.get("rag_query") or ""), limit=int(cxt.get("rag_limit") or 15)))
         await self.snapshot(ctx, cxt)
         return ctx
 

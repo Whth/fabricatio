@@ -7,11 +7,10 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-from fabricatio_novel.models.context.rag import RAGChannel
 from fabricatio_novel.models.plan import ScenePlan
 
 
-class SceneContext(RAGChannel, Titled, Described, ContextBase):
+class SceneContext(Titled, Described, ContextBase):
     """A scene's composition channel: its plan and the composed prose it owns."""
 
     content: str = ""
@@ -19,6 +18,9 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
 
     scenes_log: ContextLog = Field(default_factory=ContextLog)
     """The story's composed scenes before this one, as an append-only log; rendered after the style references."""
+
+    style_docs: list[str] = Field(default_factory=list)
+    """Rendered writing style reference texts broadcast from the story; injected raw into the write prompt."""
 
     scene_plan: ScenePlan | None = None
     """The scene's own plan."""
@@ -34,6 +36,11 @@ class SceneContext(RAGChannel, Titled, Described, ContextBase):
     def set_scenes_log(self, scenes_log: ContextLog) -> Self:
         """Set the story-scoped log of the scenes preceding this one and return self."""
         self.scenes_log = scenes_log
+        return self
+
+    def set_style_docs(self, docs: list[str]) -> Self:
+        """Set the rendered writing style reference texts and return self."""
+        self.style_docs = docs
         return self
 
     def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:

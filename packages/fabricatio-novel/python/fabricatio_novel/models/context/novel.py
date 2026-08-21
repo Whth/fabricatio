@@ -9,11 +9,11 @@ from pydantic import Field
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
-from fabricatio_novel.models.context.rag import RAGChannel
+from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.plan import NovelPlan
 
 
-class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
+class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
     """The novel root channel: outline, language, plan and the chapter contexts it writes."""
 
     outline: str
@@ -28,6 +28,9 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
     chapter_context: list[ChapterContext] = Field(default_factory=list)
 
     charactor_span: list[CharacterSpan] = Field(default_factory=list)
+
+    rag: RagRetrieval | None = None
+    """Opt-in writing style retrieval settings; None when the run uses no RAG."""
 
     def update_pre_check(self, other: NovelPlan | Self) -> Self:
         """Accept a novel plan (or another novel context) as the update source."""
@@ -83,6 +86,11 @@ class NovelContext(UpdateFrom, RAGChannel, ContextBase[ChapterContext]):
     def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
         """Replace the novel's roster character spans and return self."""
         self.charactor_span = spans
+        return self
+
+    def set_rag(self, rag: RagRetrieval | None) -> Self:
+        """Set the opt-in writing style retrieval settings and return self."""
+        self.rag = rag
         return self
 
     @classmethod

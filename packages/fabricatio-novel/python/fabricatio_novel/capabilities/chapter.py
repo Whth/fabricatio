@@ -173,8 +173,7 @@ class ChapterCompose(StoryCompose, ABC):
                 ctx.add_story_context(
                     StoryContext.from_plan(story_plan, expected_word_count=count)
                     .set_language(ctx.language)
-                    .set_rag_query(ctx.rag_query)
-                    .set_rag_limit(ctx.rag_limit)
+                    .set_rag(ctx.rag)
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, story_plan.writing_constraint)
                     )

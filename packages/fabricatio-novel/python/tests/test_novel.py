@@ -20,6 +20,7 @@ from fabricatio_novel.models.context.base import CharacterSpan, derive_child_spa
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.novel import Novel
@@ -955,7 +956,7 @@ class TestRAGCompose:
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("Chapter One\n\nThe hero leaves home.", title="Battle"))
         ctx.set_scenes_log(prefix_log("Scene one: the hero rides north.", title="Scene one"))
-        ctx.set_style_docs([WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")])
+        ctx.set_style_docs(["Dark gothic prose with terse action lines."])
 
         requirement = await role.prepare_scene_requirement(ctx)
 
@@ -974,13 +975,12 @@ class TestRAGCompose:
         """
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")
         bible = SeriesBible(characters="Hero, Villain", background_settings=["The world is cold."])
         story.set_series_bible(bible)
         for title, desc in [("S1", "Leaving home."), ("S2", "A stranger appears."), ("S3", "The road.")]:
             story.add_scene_context(
                 SceneContext(title=title, description=desc, expected_word_count=50)
-                .set_style_docs([doc])
+                .set_style_docs(["Dark gothic prose with terse action lines."])
                 .set_series_bible(bible)
             )
 
@@ -1009,6 +1009,7 @@ class TestRAGCompose:
         """Assert plan_scenes_phase retrieves style docs exactly once."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
+        story.set_rag(RagRetrieval())
         story.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
         fetched: List[object] = []
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
@@ -1034,6 +1035,7 @@ class TestRAGCompose:
         story = StoryContext(title="St1", description="The departure.")
         scene = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         story.scene_context.append(scene)
+        story.set_rag(RagRetrieval())
 
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> List[WritingStyleDocument]:
             return []
@@ -1051,7 +1053,7 @@ class TestRAGCompose:
         """Assert scenes materialized after the story prep inherit the story's style references."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        story.set_style_docs([WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")])
+        story.set_style_docs(["Dark gothic prose with terse action lines."])
 
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> List[WritingStyleDocument]:
             return []
@@ -1071,7 +1073,7 @@ class TestRAGCompose:
         """Assert the story's held style references render into the scene planning prompt."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        story.set_style_docs([WritingStyleDocument.with_text_chunk("Dark gothic prose with terse action lines.")])
+        story.set_style_docs(["Dark gothic prose with terse action lines."])
         captured: List[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
@@ -1089,7 +1091,7 @@ class TestRAGCompose:
         """Assert _fetch_style_docs joins description and rag_query and applies the limit."""
         role = RAGRole(name="rag_role")
         ctx = StoryContext(title="Battle", description="The hero fights.")
-        ctx.set_rag_query("中文查询指南").set_rag_limit(7)
+        ctx.set_rag(RagRetrieval(query="中文查询指南", limit=7))
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: List[object] = []
         captured_configs: List[WritingStyleFetchConfig] = []
@@ -1115,6 +1117,7 @@ class TestRAGCompose:
         """Assert _fetch_style_docs uses the story description when no rag_query is set."""
         role = RAGRole(name="rag_role")
         ctx = StoryContext(title="Battle", description="The hero fights.")
+        ctx.set_rag(RagRetrieval())
         captured_queries: List[object] = []
 
         async def fake_fetch(
@@ -1133,6 +1136,7 @@ class TestRAGCompose:
         """Assert docs whose prompt renders blank are filtered out."""
         role = RAGRole(name="rag_role")
         ctx = StoryContext(title="Battle", description="The hero fights.")
+        ctx.set_rag(RagRetrieval())
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         blank = WritingStyleDocument.with_text_chunk("   ")
 
@@ -1147,11 +1151,11 @@ class TestRAGCompose:
 
         assert docs == [doc]
 
-    async def test_rag_settings_propagate_to_scene_contexts(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert retrieval settings set on a parent flow down to the composed scenes."""
+    async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        story.set_rag_query("guide").set_rag_limit(7)
+        story.set_rag(RagRetrieval(query="guide", limit=7))
 
         async def fake_fetch(
             query: object, config: WritingStyleFetchConfig | None = None
@@ -1165,8 +1169,8 @@ class TestRAGCompose:
             result = await role.compose_story(story)
 
         assert result is not None
-        assert story.scene_context[0].rag_query == "guide"
-        assert story.scene_context[0].rag_limit == 7
+        assert story.rag == RagRetrieval(query="guide", limit=7)
+        assert story.scene_context[0].style_docs == []
 
 
 class TestNovelWorkflow:

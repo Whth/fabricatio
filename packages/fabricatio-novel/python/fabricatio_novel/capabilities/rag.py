@@ -21,12 +21,12 @@ from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchC
 class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig], ABC):
     """Scene composition extended with writing style retrieval.
 
-    Retrieval settings (query guideline, limit) are caller-owned on the
-    context channel (:class:`~fabricatio_novel.models.context.rag.RAGChannel`)
-    and propagated down to the scene contexts. Retrieved documents are held
-    on the story context and injected raw into every scene's write prompt,
-    between the before-story prefix and the story's scenes so far, so they
-    stay in the prompt's prefix-cacheable region.
+    Retrieval settings live on the context tree as opt-in
+    :class:`~fabricatio_novel.models.context.rag.RagRetrieval`; retrieval is skipped when a
+    context carries none. Retrieved documents render to plain reference texts held on the
+    story context, broadcast to its scenes, and injected raw into every scene's write prompt
+    between the before-story prefix and the story's scenes so far, so they stay in the
+    prompt's prefix-cacheable region.
     """
 
     @logging_exec_time
@@ -38,14 +38,16 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
     ) -> None:
         """Retrieve raw writing style references for the story before its scenes are planned.
 
-        The documents are held on the story context so the scenes it
-        materializes inherit and render them raw; no condensation is applied.
+        The documents render to plain texts held on the story context so the
+        scenes it materializes inherit them; no condensation is applied.
         """
         await super().prepare_story(ctx, send_to, **kwargs)
+        if ctx.rag is None:
+            return
         docs = await self._fetch_style_docs(ctx, **kwargs)
         if not docs:
             return
-        ctx.set_style_docs(docs)
+        ctx.set_style_docs([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")
 
     async def _fetch_style_docs(
@@ -58,10 +60,13 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         The story description (plus the optional query guideline) is used
         directly as the query; no refine or rerank LLM calls are made.
         """
-        question = "\n".join(part for part in (ctx.description, ctx.rag_query) if part)
+        rag = ctx.rag
+        if rag is None:
+            return []
+        question = "\n".join(part for part in (ctx.description, rag.query) if part)
         if not question:
             return []
-        config = WritingStyleFetchConfig(limit=ctx.rag_limit)
+        config = WritingStyleFetchConfig(limit=rag.limit)
         docs = await self.afetch_document([question], config)
         docs = [doc for doc in docs if doc.as_prompt().strip()]
         docs = docs[: config.limit]

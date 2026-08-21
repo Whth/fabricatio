@@ -7,12 +7,12 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-from fabricatio_novel.models.context.rag import RAGChannel
+from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
 
 
-class StoryContext(RAGChannel, Titled, Described, ContextBase):
+class StoryContext(Titled, Described, ContextBase):
     """A story's composition channel: its plan and the scene contexts it writes."""
 
     story_plan: StoryPlan | None = None
@@ -24,6 +24,12 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
 
     scenes_log: ContextLog = Field(default_factory=ContextLog)
     """The story's composed scenes before the current one, as an append-only log; fresh per story."""
+
+    rag: RagRetrieval | None = None
+    """Opt-in writing style retrieval settings carried down from the chapter; None when the run uses no RAG."""
+
+    style_docs: list[str] = Field(default_factory=list)
+    """Rendered writing style reference texts retrieved for this story; rendered into planning and broadcast to scenes."""
 
     @classmethod
     def from_plan(cls, plan: StoryPlan, expected_word_count: int) -> Self:
@@ -97,4 +103,14 @@ class StoryContext(RAGChannel, Titled, Described, ContextBase):
     def add_scene_context(self, scene: SceneContext) -> Self:
         """Append a scene context to the story and return self."""
         self.scene_context.append(scene)
+        return self
+
+    def set_rag(self, rag: RagRetrieval | None) -> Self:
+        """Set the opt-in writing style retrieval settings and return self."""
+        self.rag = rag
+        return self
+
+    def set_style_docs(self, docs: list[str]) -> Self:
+        """Set the rendered writing style reference texts and return self."""
+        self.style_docs = docs
         return self

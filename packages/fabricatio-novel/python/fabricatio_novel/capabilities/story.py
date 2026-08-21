@@ -61,7 +61,7 @@ class StoryCompose(SceneCompose, ABC):
                 "writing_constraint": ctx.writing_constraint,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
-                "style_docs": "\n\n".join(doc.as_prompt() for doc in ctx.style_docs),
+                "style_docs": "\n\n".join(ctx.style_docs),
                 "cast": ", ".join(ctx.cast),
             },
         )
@@ -93,8 +93,6 @@ class StoryCompose(SceneCompose, ABC):
                 ctx.add_scene_context(
                     SceneContext.from_plan(scene_plan, expected_word_count=count)
                     .set_language(ctx.language)
-                    .set_rag_query(ctx.rag_query)
-                    .set_rag_limit(ctx.rag_limit)
                     .set_style_docs(ctx.style_docs)
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)
