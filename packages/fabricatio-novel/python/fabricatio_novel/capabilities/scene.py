@@ -51,6 +51,7 @@ class SceneCompose(CharacterCompose, ABC):
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,
             "writing_styles": ctx.dump_writing_styles(),
+            "scene_style": ctx.scene_plan.writing_style if ctx.scene_plan is not None else "",
             "writing_constraint": ctx.writing_constraint,
             "characters": characters,
             "cast": ", ".join(ctx.cast),

@@ -520,14 +520,18 @@ class TestNovelCompose:
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
 
     async def test_prepare_scene_requirement_renders_writing_style(self) -> None:
-        """Assert the scene's planned writing style guides the prose requirement."""
+        """Assert shared styles render mid-prompt and the scene's own style sits inside ## Scene."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
+        ctx.set_scene_plan(
+            ScenePlan(title="S2", description="A stranger appears.", writing_style="Close first person.")
+        )
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" in requirement
         assert "Terse action lines, present tense, close third person." in requirement
         assert requirement.index("## Writing Styles") < requirement.index("## Scene")
+        assert requirement.index("- Style: Close first person.") > requirement.index("## Scene")
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
@@ -535,6 +539,7 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" not in requirement
+        assert "- Style:" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""

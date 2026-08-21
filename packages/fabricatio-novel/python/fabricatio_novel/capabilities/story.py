@@ -9,7 +9,7 @@ from fabricatio_core.rust import TASK
 
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import merge_writing_constraints, merge_writing_styles
+from fabricatio_novel.models.context.base import merge_writing_constraints
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ScenePlan, ScenePlans
@@ -92,7 +92,7 @@ class StoryCompose(SceneCompose, ABC):
                 ctx.add_scene_context(
                     SceneContext.from_plan(scene_plan, expected_word_count=count)
                     .set_language(ctx.language)
-                    .set_writing_styles(merge_writing_styles(ctx.writing_styles, scene_plan.writing_style))
+                    .set_writing_styles(list(ctx.writing_styles))
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)
                     )
