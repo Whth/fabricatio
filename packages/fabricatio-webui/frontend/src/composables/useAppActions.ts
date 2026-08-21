@@ -98,6 +98,74 @@ export function useAppActions() {
     }
   }
 
+  function downloadJson(name: string, data: unknown) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = name
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  /** Download every saved board as one JSON array file. */
+  async function exportAllBoards() {
+    try {
+      const boards = await api.getWorkflows()
+      downloadJson('fabricatio-boards.json', boards)
+      notifications.success('Exported', `${boards.length} board(s) downloaded`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      notifications.error('Export failed', message)
+    }
+  }
+
+  /** Download one board as `<id>.json`. */
+  async function exportBoardById(id: string) {
+    try {
+      const board = await api.getWorkflow(id)
+      downloadJson(`${id}.json`, board)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      notifications.error('Export failed', message)
+    }
+  }
+
+  /**
+   * Import board file(s): accepts a single board object or an array.
+   * Every entry must be format_version 2; upserts by name (the server
+   * derives the storage id from it). Returns per-file counts.
+   */
+  async function importBoards(file: File): Promise<{ added: number; overwritten: number }> {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(await file.text())
+    } catch {
+      throw new Error(`${file.name} is not valid JSON`)
+    }
+    const items = Array.isArray(parsed) ? parsed : [parsed]
+    for (const item of items) {
+      const b = item as BoardJSON
+      if (typeof item !== 'object' || item === null || b.format_version !== 2) {
+        throw new Error(`${file.name}: unsupported board — expected format_version 2`)
+      }
+    }
+
+    const known = new Set(savedBoards.value.map((s) => s.name))
+    let added = 0
+    let overwritten = 0
+    for (const item of items as BoardJSON[]) {
+      if ((item.name !== undefined && known.has(item.name)) || (item.id !== undefined && known.has(item.id))) {
+        overwritten += 1
+      } else {
+        added += 1
+      }
+      await api.saveWorkflow(item)
+    }
+    await refreshBoards()
+    return { added, overwritten }
+  }
+
   function runWorkflow(task: Parameters<typeof execStore.queuePrompt>[0]) {
     if (execStore.isRunning) return
     execStore.queuePrompt(task).catch(() => {
@@ -128,6 +196,9 @@ export function useAppActions() {
     refreshBoards,
     loadWorkflowById,
     deleteWorkflowById,
+    exportAllBoards,
+    exportBoardById,
+    importBoards,
     savedBoards,
     isLoadingBoards,
     runWorkflow,

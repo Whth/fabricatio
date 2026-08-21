@@ -1,12 +1,37 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useAppActions } from '@/composables/useAppActions'
-import { X, BookOpen, RefreshCw, Trash2 } from '@lucide/vue'
+import { X, BookOpen, RefreshCw, Trash2, Download, Upload } from '@lucide/vue'
 
 const ui = useUiStore()
-const { savedBoards, isLoadingBoards, refreshBoards, loadWorkflowById, deleteWorkflowById } =
-  useAppActions()
+const {
+  savedBoards,
+  isLoadingBoards,
+  refreshBoards,
+  loadWorkflowById,
+  deleteWorkflowById,
+  exportAllBoards,
+  exportBoardById,
+  importBoards,
+} = useAppActions()
+
+const fileInput = ref<HTMLInputElement | null>(null)
+const notifications = useNotificationsStore()
+
+async function onImport(ev: Event) {
+  const input = ev.target as HTMLInputElement
+  try {
+    for (const f of input.files ?? []) {
+      await importBoards(f)
+    }
+  } catch (err) {
+    notifications.error('Import failed', err instanceof Error ? err.message : String(err))
+  } finally {
+    input.value = ''
+  }
+}
 
 // Fetch the list every time the panel opens so it reflects server state.
 watch(
@@ -34,6 +59,16 @@ async function handleLoad(id: string) {
       <span>Boards</span>
       <button
         class="sidebar-icon"
+        title="Export all boards"
+        @click="exportAllBoards()"
+      >
+        <Download :size="13" />
+      </button>
+      <button class="sidebar-icon" title="Import boards" @click="fileInput?.click()">
+        <Upload :size="13" />
+      </button>
+      <button
+        class="sidebar-icon"
         title="Refresh list"
         :disabled="isLoadingBoards"
         @click="refreshBoards().catch(() => {})"
@@ -45,6 +80,15 @@ async function handleLoad(id: string) {
       </button>
     </div>
 
+    <input
+      ref="fileInput"
+      type="file"
+      accept="application/json,.json"
+      hidden
+      multiple
+      @change="onImport"
+    >
+
     <div class="sidebar-body">
       <div v-if="savedBoards.length === 0" class="workflows-empty">
         <p>No saved boards</p>
@@ -55,6 +99,13 @@ async function handleLoad(id: string) {
         <button class="workflow-open" :title="`Load ${wf.name}`" @click="handleLoad(wf.id)">
           <span class="workflow-name">{{ wf.name }}</span>
           <span class="workflow-count">{{ wf.workflowCount }} workflow(s)</span>
+        </button>
+        <button
+          class="workflow-delete"
+          title="Export board"
+          @click="exportBoardById(wf.id)"
+        >
+          <Download :size="13" />
         </button>
         <button class="workflow-delete" title="Delete board" @click="deleteWorkflowById(wf.id)">
           <Trash2 :size="13" />
