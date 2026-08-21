@@ -11,6 +11,7 @@ Simple typer app wrapping the novel composition chain:
 
 import asyncio
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import List, Optional
 
@@ -30,13 +31,33 @@ app.add_typer(bible_app, name="bible")
 
 
 def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Optional[Path]:
-    """Dispatch the task through the subscribed workflow and return its output (the EPUB path)."""
+    """Dispatch the task through the subscribed workflow and return its output (the artifact path)."""
 
     async def _run() -> Optional[Path]:
         Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), workflow).dispatch()
         return await task.delegate(namespace)
 
     return asyncio.run(_run())
+
+
+class ExportFormat(str, Enum):
+    """Export formats for a generated novel."""
+
+    EPUB = "epub"
+    TXT = "txt"
+    BOTH = "both"
+
+
+def _report_generation(run_dir: Path, artifact: Path, fmt: ExportFormat) -> None:
+    """Echo the run summary with the exported artifact locations."""
+    parts = ["✅ Novel generated", f"   JSON:  {run_dir}"]
+    if fmt is ExportFormat.TXT:
+        parts.append(f"   TXT:   {artifact}")
+    else:
+        parts.append(f"   EPUB:  {artifact}")
+        if fmt is ExportFormat.BOTH:
+            parts.append(f"   TXT:   {run_dir / 'chapters'}")
+    typer.secho("\n   ".join(parts), fg=typer.colors.GREEN, bold=True)
 
 
 def _stamped_run_dir(persist_dir: Path) -> Path:
@@ -217,6 +238,11 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
+    format: ExportFormat = typer.Option(
+        ExportFormat.EPUB,
+        "--format",
+        help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
+    ),
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
     ),
@@ -239,19 +265,16 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         bible_path=bible,
         persist_dir=run_dir,
         output_path=output,
+        format=format.value,
         font=font,
         cover=cover,
         send_to=send_to,
     )
-    epub_path = _run_workflow(task, DebugNovelWorkflow, "write")
-    if epub_path is None:
+    artifact = _run_workflow(task, DebugNovelWorkflow, "write")
+    if artifact is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    typer.secho(
-        f"✅ Novel generated\n   JSON:  {run_dir}\n   EPUB:  {epub_path}",
-        fg=typer.colors.GREEN,
-        bold=True,
-    )
+    _report_generation(run_dir, artifact, format)
 
 
 @app.command(name="wr")
@@ -290,6 +313,11 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
+    format: ExportFormat = typer.Option(
+        ExportFormat.EPUB,
+        "--format",
+        help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
+    ),
     bible: Optional[Path] = typer.Option(
         None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
     ),
@@ -314,19 +342,16 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         rag_limit=retrieve_limit or 15,
         persist_dir=run_dir,
         output_path=output,
+        format=format.value,
         font=font,
         cover=cover,
         send_to=send_to,
     )
-    epub_path = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
-    if epub_path is None:
+    artifact = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
+    if artifact is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    typer.secho(
-        f"✅ Novel generated\n   JSON:  {run_dir}\n   EPUB:  {epub_path}",
-        fg=typer.colors.GREEN,
-        bold=True,
-    )
+    _report_generation(run_dir, artifact, format)
 
 
 @app.command(name="store-refs")

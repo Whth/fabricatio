@@ -63,3 +63,16 @@ class Novel(PersistentAble, NovelPlan):
             builder.add_chapter(chapter.title, chapter.to_xhtml())
         builder.export(Path(path))
         return Path(path)
+
+    def dump_texts(self, dir_path: str | Path) -> Path:
+        """Export each chapter as a plain-text file named by its zero-padded index.
+
+        Writes ``01.txt``, ``02.txt`` … into the directory (created as needed); the padding
+        widens past 99 chapters so filenames keep sorting correctly. Returns the directory.
+        """
+        out = Path(dir_path)
+        out.mkdir(parents=True, exist_ok=True)
+        width = max(2, len(str(len(self.chapter))))
+        for index, chapter in enumerate(self.chapter, start=1):
+            (out / f"{index:0{width}d}.txt").write_text(chapter.to_text(), encoding="utf-8")
+        return out

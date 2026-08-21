@@ -32,6 +32,10 @@ class Chapter(ChapterPlan, WordCount):
             story=[Story.from_context(sc) for sc in ctx.story_context],
         )
 
+    def to_text(self) -> str:
+        """Render the chapter body as plain text: scene contents separated by blank lines."""
+        return "\n\n".join(scene.content for story in self.story for scene in story.scenes)
+
     def to_xhtml(self) -> str:
         """Render the chapter body as a full XHTML document.
 

@@ -55,7 +55,7 @@ whole-tree JSON snapshot after every stage so any wrong result is traceable:
 
 ```
 01_init → 02_metadata → 03_characters → 04_chapter_plans → 05_story_plans
-       → 06_scene_plans → 07_scenes → 08_novel → 09_epub
+       → 06_scene_plans → 07_scenes → 08_novel → 09_export
 ```
 
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
@@ -114,13 +114,13 @@ history stays intact.
 | `ScenePlanStage` / `RagScenePlanStage` | `06_scene_plans` — plan scenes (with RAG) |
 | `SceneWriteStage` / `RagSceneWriteStage` | `07_scenes` — broadcast spans + write scene prose |
 | `AssembleStage` | `08_novel` — materialize `Novel` |
-| `DumpEpubStage` | `09_epub` — export EPUB |
+| `DumpNovelStage` | export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
 
 ### Workflows
 
 | Workflow | Description |
 |---|---|
-| `DebugNovelWorkflow` | Outline → EPUB, one stage per action with per-stage snapshots |
+| `DebugNovelWorkflow` | Outline → exported novel (`--format epub\|txt\|both`), one stage per action with per-stage snapshots |
 | `RagDebugNovelWorkflow` | Same, with writing-style RAG per story |
 
 ### Rust / PyO3
@@ -143,6 +143,10 @@ fanvl wr -o "In a world where dreams are currency..." -rq "Hemingway terse prose
 
 # Constrain generation with a setting bible + global writing constraint
 fanvl w -o "..." -b settings/bible.json -c "first person view throughout"
+
+# Export as plain text instead of (or besides) EPUB: chapters/01.txt, 02.txt, …
+fanvl w -o "..." --format both
+fanvl w -o "..." --format txt
 
 # Create / update / show the setting bible
 fanvl bible create -o "In a world where dreams are currency..." --out settings/bible.json

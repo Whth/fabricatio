@@ -26,7 +26,7 @@ __all__ = [
     "AssembleStage",
     "ChapterPlanStage",
     "CharactersStage",
-    "DumpEpubStage",
+    "DumpNovelStage",
     "InitNovelContext",
     "MetadataStage",
     "RagScenePlanStage",
@@ -177,21 +177,27 @@ class AssembleStage(StageAction, NovelCompose):
         return novel
 
 
-class DumpEpubStage(Action):
-    """Dump the composed novel to JSON and EPUB, returning the EPUB path."""
+class DumpNovelStage(Action):
+    """Export the composed novel to JSON plus EPUB and/or per-chapter texts, returning the artifact path."""
 
     output_key: str = OUTPUT_KEY
-    stage: ClassVar[str] = "09_epub"
 
     async def _execute(self, novel: Novel, *_: Any, **cxt: Any) -> Path:
         persist_dir = Path(ok(cxt.get("persist_dir"), "`persist_dir` is required in the task init context"))
         persist_dir.mkdir(parents=True, exist_ok=True)
         novel.persist(persist_dir)
+        fmt = str(cxt.get("format") or "epub")
+        ok(fmt in ("epub", "txt", "both"), f"`format` must be 'epub', 'txt', or 'both', got '{fmt}'")
         output = cxt.get("output_path")
         epub_path = persist_dir / output if output else persist_dir / "novel.epub"
-        novel.dump_epub(epub_path, font=cxt.get("font"), cover=cxt.get("cover"))
-        logger.info(f"EPUB dumped to {epub_path}")
-        return epub_path
+        texts_dir = persist_dir / "chapters"
+        if fmt in ("epub", "both"):
+            novel.dump_epub(epub_path, font=cxt.get("font"), cover=cxt.get("cover"))
+            logger.info(f"EPUB dumped to {epub_path}")
+        if fmt in ("txt", "both"):
+            novel.dump_texts(texts_dir)
+            logger.info(f"Chapter texts dumped to {texts_dir}")
+        return texts_dir if fmt == "txt" else epub_path
 
 
 class RagScenePlanStage(ScenePlanStage, RAGCompose):

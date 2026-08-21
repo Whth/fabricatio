@@ -6,6 +6,8 @@ from typing import List
 
 import pytest
 from fabricatio_character.models.character import CharacterCard
+from fabricatio_core.models.generic import ProposedAble
+from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import (
     Value,
@@ -948,6 +950,50 @@ class TestNovelEpub:
             assert "custom" in zf.read(css_file).decode("utf-8"), "font-family rule must reference the embedded font"
 
 
+class TestNovelTexts:
+    """Test suite for Novel.dump_texts."""
+
+    @staticmethod
+    def _novel_with_chapters(count: int) -> Novel:
+        """Build a novel whose chapters each carry one story with one scene of distinct prose."""
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx.title = "The Search"
+        ctx.description = "A hero searching."
+        ctx.expected_word_count = 100
+        for index in range(1, count + 1):
+            chapter_ctx = ChapterContext(title=f"Ch{index}", description=f"Chapter {index}.")
+            story_ctx = StoryContext(title=f"St{index}", description="The departure.")
+            scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
+            scene_ctx.content = f"He left {index}.\n\nHe walked into the dark."
+            story_ctx.scene_context.append(scene_ctx)
+            chapter_ctx.story_context.append(story_ctx)
+            ctx.chapter_context.append(chapter_ctx)
+        return Novel.from_context(ctx)
+
+    def test_dump_texts_writes_prose_per_chapter(self, tmp_path: Path) -> None:
+        """Assert dump_texts writes zero-padded prose-only files named by chapter index."""
+        novel = self._novel_with_chapters(3)
+
+        out = novel.dump_texts(tmp_path / "chapters")
+
+        assert out == tmp_path / "chapters"
+        assert sorted(p.name for p in out.iterdir()) == ["01.txt", "02.txt", "03.txt"]
+        body = (out / "02.txt").read_text(encoding="utf-8")
+        assert body == "He left 2.\n\nHe walked into the dark."
+        assert "<" not in body, "txt export must be plain prose without xhtml markup"
+
+    def test_dump_texts_widens_padding_past_ninety_nine_chapters(self, tmp_path: Path) -> None:
+        """Assert filename padding widens beyond 99 chapters so names keep sorting by index."""
+        novel = self._novel_with_chapters(100)
+
+        out = novel.dump_texts(tmp_path / "chapters")
+
+        names = sorted(p.name for p in out.iterdir())
+        assert len(names) == 100
+        assert names[0] == "001.txt"
+        assert names[-1] == "100.txt"
+
+
 class RAGRole(LLMTestRole, NovelCompose, RAGCompose):
     """Test role combining mock LLM with RAG-extended novel composition."""
 
@@ -1231,6 +1277,44 @@ class TestNovelWorkflow:
             if stage_dir.is_dir():
                 assert any(stage_dir.glob("*.json")), f"{stage_dir.name} lacks a snapshot"
 
+    async def test_debug_workflow_txt_format_exports_chapter_texts(self, tmp_path: Path) -> None:
+        """Assert format='txt' skips the EPUB and returns the per-chapter text directory."""
+        from fabricatio_core import Event, Role, Task
+        from fabricatio_novel.workflows.novel import DebugNovelWorkflow
+
+        namespace = "write_test_txt"
+        persist_dir = tmp_path / "persist"
+        Role.with_bio(name="writer_txt").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
+        task = Task(name="wf novel texts").update_init_context(
+            novel_outline="The hero seeks his father.",
+            novel_language="English",
+            persist_dir=persist_dir,
+            format="txt",
+        )
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching for his father.",
+            expected_word_count=100,
+            series_bible=SeriesBible(),
+        )
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                Value(chapter_plans_json, "json"),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("He left."),
+            )
+        ):
+            artifact = await task.delegate(namespace)
+
+        assert artifact is not None, "txt-format run must return the texts directory"
+        assert artifact == persist_dir / "chapters"
+        assert not (persist_dir / "novel.epub").exists()
+
 
 class TestPlanningOutlineGrounding:
     """Test suite for outline grounding across every planning prompt."""
@@ -1240,8 +1324,13 @@ class TestPlanningOutlineGrounding:
         role = NovelRole(name="novel_role")
         captured: List[str] = []
 
-        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
-            captured.append(requirement)
+        async def fake_propose(
+            cls: type[ProposedAble],
+            prompt: str,
+            send_to: str,
+            **kwargs: ValidateKwargs,
+        ) -> None:
+            captured.append(prompt)
 
         monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
 

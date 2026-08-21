@@ -6,7 +6,7 @@ from fabricatio_novel.actions.novel import (
     AssembleStage,
     ChapterPlanStage,
     CharactersStage,
-    DumpEpubStage,
+    DumpNovelStage,
     InitNovelContext,
     MetadataStage,
     RagScenePlanStage,
@@ -23,7 +23,7 @@ DebugNovelWorkflow = WorkFlow(
     description=(
         "Step-by-step novel generation from an outline; every stage persists a whole-tree "
         "snapshot into the given persist_dir, so a wrong result can be traced to the stage "
-        "that produced it. Returns the EPUB path."
+        "that produced it. Returns the exported artifact path."
     ),
     steps=(
         InitNovelContext,
@@ -34,7 +34,7 @@ DebugNovelWorkflow = WorkFlow(
         ScenePlanStage,
         SceneWriteStage,
         AssembleStage,
-        DumpEpubStage,
+        DumpNovelStage,
     ),
 )
 
@@ -42,7 +42,7 @@ RagDebugNovelWorkflow = WorkFlow(
     name="Debug Novel (RAG)",
     description=(
         "Step-by-step novel generation with writing style RAG; every stage persists a "
-        "whole-tree snapshot into the given persist_dir. Returns the EPUB path."
+        "whole-tree snapshot into the given persist_dir. Returns the exported artifact path."
     ),
     steps=(
         InitNovelContext,
@@ -53,6 +53,6 @@ RagDebugNovelWorkflow = WorkFlow(
         RagScenePlanStage,
         RagSceneWriteStage,
         AssembleStage,
-        DumpEpubStage,
+        DumpNovelStage,
     ),
 )
