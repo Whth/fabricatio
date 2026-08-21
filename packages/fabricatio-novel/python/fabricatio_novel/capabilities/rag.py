@@ -47,7 +47,7 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         docs = await self._fetch_style_docs(ctx, **kwargs)
         if not docs:
             return
-        ctx.set_style_docs([doc.as_prompt() for doc in docs])
+        ctx.add_writing_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")
 
     async def _fetch_style_docs(

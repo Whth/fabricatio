@@ -28,9 +28,6 @@ class StoryContext(Titled, Described, ContextBase):
     rag: RagRetrieval | None = None
     """Opt-in writing style retrieval settings carried down from the chapter; None when the run uses no RAG."""
 
-    style_docs: list[str] = Field(default_factory=list)
-    """Rendered writing style reference texts retrieved for this story; rendered into planning and broadcast to scenes."""
-
     @classmethod
     def from_plan(cls, plan: StoryPlan, expected_word_count: int) -> Self:
         """Build the story context from its proposed plan."""
@@ -41,7 +38,6 @@ class StoryContext(Titled, Described, ContextBase):
                 expected_word_count=expected_word_count,
             )
             .set_story_plan(plan)
-            .set_writing_style(plan.writing_style)
             .set_cast(plan.cast)
         )
 
@@ -108,9 +104,4 @@ class StoryContext(Titled, Described, ContextBase):
     def set_rag(self, rag: RagRetrieval | None) -> Self:
         """Set the opt-in writing style retrieval settings and return self."""
         self.rag = rag
-        return self
-
-    def set_style_docs(self, docs: list[str]) -> Self:
-        """Set the rendered writing style reference texts and return self."""
-        self.style_docs = docs
         return self

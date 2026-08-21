@@ -16,6 +16,7 @@ from fabricatio_novel.models.context.base import (
     CharacterSpans,
     derive_child_spans,
     merge_writing_constraints,
+    merge_writing_styles,
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
@@ -67,7 +68,7 @@ class NovelCompose(ChapterCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
-                "writing_style": ctx.writing_style,
+                "writing_styles": ctx.dump_writing_styles(),
                 "writing_constraint": ctx.writing_constraint,
                 "characters": ctx.dump_characters(),
             },
@@ -228,6 +229,7 @@ class NovelCompose(ChapterCompose, ABC):
                     ChapterContext.from_plan(chapter_plan, expected_word_count=count)
                     .set_language(ctx.language)
                     .set_rag(ctx.rag)
+                    .set_writing_styles(merge_writing_styles(ctx.writing_styles, chapter_plan.writing_style))
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint)
                     )

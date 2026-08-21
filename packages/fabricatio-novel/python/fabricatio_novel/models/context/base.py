@@ -22,6 +22,11 @@ def merge_writing_constraints(parent: str, own: str) -> str:
     return "\n".join(part for part in (parent, own) if part)
 
 
+def merge_writing_styles(inherited: list[str], own: str) -> list[str]:
+    """Extend inherited writing style entries with this element's own allocation; empty adds none."""
+    return [*inherited, own] if own else list(inherited)
+
+
 class CharacterSpan(SketchedAble):
     """A character's state arc between two cards: the start card and the end card."""
 
@@ -61,9 +66,9 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     description: str = ""
     """A detailed description of this element's intent and content."""
 
-    writing_style: str = ""
-    """Writing technique guidance for this element's prose: voice, tone, rhythm, dialogue
-    handling; proposed with the plan and carried down to the scene that is written."""
+    writing_styles: list[str] = Field(default_factory=list)
+    """Writing style directives accumulated down the tree: inherited guidance first, this
+    element's own plan entry last; RAG reference texts join the same list when enabled."""
 
     writing_constraint: str = ""
     """Hard writing constraint allocated down from the novel (point of view, tense,
@@ -93,10 +98,19 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         self.series_bible = series_bible
         return self
 
-    def set_writing_style(self, writing_style: str) -> Self:
-        """Set the writing technique guidance carried down to the written scenes."""
-        self.writing_style = writing_style
+    def set_writing_styles(self, writing_styles: list[str]) -> Self:
+        """Replace this element's accumulated writing style entries and return self."""
+        self.writing_styles = writing_styles
         return self
+
+    def add_writing_styles(self, styles: list[str]) -> Self:
+        """Append non-empty writing style entries and return self."""
+        self.writing_styles.extend(style for style in styles if style)
+        return self
+
+    def dump_writing_styles(self) -> str:
+        """Render the style entries as bullet lines for prompts."""
+        return "\n".join(f"- {style}" for style in self.writing_styles if style)
 
     def set_writing_constraint(self, writing_constraint: str) -> Self:
         """Set the accumulated writing constraint carried down to the written scenes."""

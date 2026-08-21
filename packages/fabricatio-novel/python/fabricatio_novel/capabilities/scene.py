@@ -50,14 +50,13 @@ class SceneCompose(CharacterCompose, ABC):
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,
-            "writing_style": ctx.writing_style,
+            "writing_styles": ctx.dump_writing_styles(),
             "writing_constraint": ctx.writing_constraint,
             "characters": characters,
             "cast": ", ".join(ctx.cast),
             "language": ctx.language or detect_language(ctx.description),
             "prefixed_content": ctx.prefix_log.render(),
             "scenes_so_far": ctx.scenes_log.render(),
-            "style_docs": "\n\n".join(ctx.style_docs),
         }
 
     async def prepare_scene_requirement(

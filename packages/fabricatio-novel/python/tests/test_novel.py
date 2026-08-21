@@ -225,7 +225,7 @@ class TestFromContext:
         assert ctx.title == "S1"
         assert ctx.description == "The descent."
         assert ctx.expected_word_count == 300
-        assert ctx.writing_style == "Gothic, lyrical prose."
+        assert ctx.writing_styles == []
         assert ctx.scene_plan is plan
 
     def test_plans_default_to_empty_cast(self) -> None:
@@ -523,18 +523,18 @@ class TestNovelCompose:
         """Assert the scene's planned writing style guides the prose requirement."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        ctx.writing_style = "Terse action lines, present tense, close third person."
+        ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Style" in requirement
+        assert "## Writing Styles" in requirement
         assert "Terse action lines, present tense, close third person." in requirement
-        assert requirement.index("## Writing Style") > requirement.index("## Scene")
+        assert requirement.index("## Writing Styles") < requirement.index("## Scene")
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Style" not in requirement
+        assert "## Writing Styles" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""
@@ -956,14 +956,14 @@ class TestRAGCompose:
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("Chapter One\n\nThe hero leaves home.", title="Battle"))
         ctx.set_scenes_log(prefix_log("Scene one: the hero rides north.", title="Scene one"))
-        ctx.set_style_docs(["Dark gothic prose with terse action lines."])
+        ctx.set_writing_styles(["Dark gothic prose with terse action lines."])
 
         requirement = await role.prepare_scene_requirement(ctx)
 
-        assert "## Writing Style References" in requirement
+        assert "## Writing Styles" in requirement
         assert "Dark gothic prose with terse action lines." in requirement
-        assert requirement.index("# Previous Content") < requirement.index("## Writing Style References")
-        assert requirement.index("## Writing Style References") < requirement.index("## Story so far")
+        assert requirement.index("# Previous Content") < requirement.index("## Writing Styles")
+        assert requirement.index("## Writing Styles") < requirement.index("## Story so far")
         assert "## Writing Style Guideline" not in requirement
 
     async def test_compose_story_keeps_stable_prefix_byte_identical(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -980,7 +980,7 @@ class TestRAGCompose:
         for title, desc in [("S1", "Leaving home."), ("S2", "A stranger appears."), ("S3", "The road.")]:
             story.add_scene_context(
                 SceneContext(title=title, description=desc, expected_word_count=50)
-                .set_style_docs(["Dark gothic prose with terse action lines."])
+                .set_writing_styles(["Dark gothic prose with terse action lines."])
                 .set_series_bible(bible)
             )
 
@@ -1044,16 +1044,16 @@ class TestRAGCompose:
 
         await role.prepare_story(story)
 
-        assert story.style_docs == []
+        assert story.writing_styles == []
         requirement = await role.prepare_scene_requirement(scene)
-        assert "## Writing Style References" not in requirement
+        assert "## Writing Styles" not in requirement
         assert "The hero fights." in requirement
 
     async def test_plan_scenes_propagates_style_docs_to_scenes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scenes materialized after the story prep inherit the story's style references."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        story.set_style_docs(["Dark gothic prose with terse action lines."])
+        story.set_writing_styles(["Dark gothic prose with terse action lines."])
 
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> List[WritingStyleDocument]:
             return []
@@ -1067,13 +1067,13 @@ class TestRAGCompose:
         await role.plan_scenes_phase(story)
 
         assert len(story.scene_context) == 1
-        assert story.scene_context[0].style_docs == story.style_docs
+        assert story.scene_context[0].writing_styles == story.writing_styles
 
     async def test_plan_scenes_injects_held_style_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the story's held style references render into the scene planning prompt."""
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        story.set_style_docs(["Dark gothic prose with terse action lines."])
+        story.set_writing_styles(["Dark gothic prose with terse action lines."])
         captured: List[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
@@ -1084,7 +1084,7 @@ class TestRAGCompose:
         await role.plan_scenes(story)
 
         assert captured
-        assert "## Style References" in captured[0]
+        assert "- Writing styles:" in captured[0]
         assert "Dark gothic prose with terse action lines." in captured[0]
 
     async def test_fetch_style_docs_combines_query_and_applies_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -1170,7 +1170,7 @@ class TestRAGCompose:
 
         assert result is not None
         assert story.rag == RagRetrieval(query="guide", limit=7)
-        assert story.scene_context[0].style_docs == []
+        assert story.scene_context[0].writing_styles == []
 
 
 class TestNovelWorkflow:

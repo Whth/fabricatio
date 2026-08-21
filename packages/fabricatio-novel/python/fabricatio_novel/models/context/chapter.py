@@ -37,7 +37,6 @@ class ChapterContext(Titled, Described, ContextBase):
                 expected_word_count=expected_word_count,
             )
             .set_chapter_plan(plan)
-            .set_writing_style(plan.writing_style)
             .set_cast(plan.cast)
         )
 
