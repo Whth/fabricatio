@@ -303,7 +303,8 @@ const statusLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--ctrl-gap);
-  padding: var(--sp-1) var(--sp-2);
+  height: var(--ctrl-h);
+  padding: 0 var(--sp-2);
   background: var(--bg-2);
   border-bottom: 1px solid var(--border-soft);
 }
@@ -392,7 +393,7 @@ const statusLabel = computed(() => {
 /* ── Body / port columns ─────────────────────────────────────────────────── */
 .node-body {
   display: flex;
-  padding: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   gap: var(--sp-3);
   animation: fade-in var(--duration-slow) var(--ease-out);
 }
@@ -416,7 +417,7 @@ const statusLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--ctrl-gap);
-  min-height: var(--ctrl-h-sm);
+  min-height: 20px;
 }
 
 .port-row.input {
@@ -623,8 +624,14 @@ const statusLabel = computed(() => {
   border-color: var(--ok);
 }
 
+.comfy-node.selected {
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring), var(--shadow-glow);
+}
+
 .comfy-node.status-running {
   border-color: var(--running);
+  box-shadow: 0 0 0 1px var(--running), var(--shadow-glow);
   animation: node-pulse 1.2s ease-in-out infinite;
 }
 </style>

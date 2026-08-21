@@ -345,14 +345,14 @@ function onDrop(ev: DragEvent) {
       @pane-dblclick="onPaneDblClick"
       @node-drag-stop="onNodeDragStop"
     >
-      <Background :gap="16" :size="1" pattern-color="#30363d" />
+      <Background :gap="18" :size="1.5" pattern-color="var(--canvas-dot, #30363d)" />
       <Controls position="bottom-left" />
       <MiniMap
         v-if="uiStore.settings.showMinimap"
         position="bottom-right"
         :pannable="true"
         :zoomable="true"
-        :node-stroke-color="(n: any) => (n.data?.category === 'llm' ? '#a371f7' : '#30363d')"
+        mask-color="var(--bg-3)"
       />
       <CommandPalette v-if="uiStore.paletteOpen" />
     </VueFlow>
@@ -544,14 +544,14 @@ function onDrop(ev: DragEvent) {
 
 :deep(.vue-flow__minimap) {
   background: var(--bg-1);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
 :deep(.vue-flow__minimap svg) {
   background: var(--bg-1);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
 }
 
 :deep(.vue-flow__controls) {

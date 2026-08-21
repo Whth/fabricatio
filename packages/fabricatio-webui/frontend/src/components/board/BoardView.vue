@@ -105,7 +105,7 @@ function onRoleCode(index: number) {
       @pane-click="addMenuOpen = false"
       @node-click="onNodeClick"
     >
-      <Background :gap="16" :size="1" pattern-color="#30363d" />
+      <Background :gap="18" :size="1.5" pattern-color="var(--canvas-dot, #30363d)" />
       <Controls position="bottom-left" />
 
       <!-- Add-role menu -->
@@ -129,8 +129,9 @@ function onRoleCode(index: number) {
         <button class="add-role-submit" @click="addRole">Create</button>
       </div>
 
-      <div v-if="boardStore.board.roles.length === 0" class="board-empty">
-        No roles yet — right-click the canvas to add one.
+      <div v-if="boardStore.board.roles.length === 0 && boardStore.board.actions.length === 0" class="board-empty">
+        <span class="empty-title">Empty board</span>
+        <span class="empty-hint">Drag a blueprint from the left rail onto the canvas to add a role, or right-click to create one.</span>
       </div>
     </VueFlow>
 
@@ -231,8 +232,22 @@ function onRoleCode(index: number) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: var(--fg-2);
-  font-size: var(--text-md);
+  display: grid;
+  place-content: center;
+  gap: var(--sp-2);
+  text-align: center;
   pointer-events: none;
+}
+
+.empty-title {
+  color: var(--fg-1);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.empty-hint {
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  max-width: 320px;
 }
 </style>

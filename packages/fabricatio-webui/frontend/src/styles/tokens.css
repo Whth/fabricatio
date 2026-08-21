@@ -34,6 +34,7 @@
   --leading-base: 1.45;
   --leading-relaxed: 1.6;
 
+  /* ── Weights ───────────────────────────────────────────────────────────── */
   --weight-normal: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
@@ -122,6 +123,7 @@
   --border: #222a33;
   --border-mid: #2e3847;
   --border-soft: #1a2028;
+  --canvas-dot: #30363d;
 
   /* ── Category colours ──────────────────────────────────────────────────── */
   --cat-llm: #a371f7;
@@ -182,6 +184,7 @@
   --border: #e2e8f0;
   --border-mid: #cbd5e1;
   --border-soft: #edf1f6;
+  --canvas-dot: #c3ccd8;
 
   /* ── Category colours (AA-tuned for pale surfaces) ─────────────────────── */
   --cat-llm: #7c3aed;
