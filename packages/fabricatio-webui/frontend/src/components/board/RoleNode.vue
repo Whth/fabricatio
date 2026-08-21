@@ -243,7 +243,7 @@ function remove() {
 
 <template>
   <div
-    class="role-node nodrag"
+    class="role-node"
     :class="{ 'drag-over': dragOver }"
     @click="selectRoleForPaste"
     @dblclick.stop="open"
@@ -260,7 +260,7 @@ function remove() {
     <div v-if="role.description" class="role-desc">{{ role.description }}</div>
 
     <div
-      class="role-workflows"
+      class="role-workflows nodrag"
       :class="{ 'drag-tail': dragTail }"
       @dragenter="onTailEnter"
       @dragover="onTailOver"
@@ -316,7 +316,7 @@ function remove() {
       <div v-if="!role.workflows?.length" class="wf-empty">No workflows — double-click to edit, add one below.</div>
     </div>
 
-    <div class="role-actions">
+    <div class="role-actions nodrag">
       <button class="role-btn" title="Add workflow" @click.stop="addWorkflow">
         <Plus :size="13" />
       </button>
