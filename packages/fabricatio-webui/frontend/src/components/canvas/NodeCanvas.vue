@@ -36,13 +36,14 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
 const sourceViewer = ref<{ nodeType: string } | null>(null)
-
 // ── Node hover card + right-side inspector ─────────────────────────────────
 /** Node currently hovered (id), or null. */
 const hoveredNodeId = ref<string | null>(null)
+/** Viewport coords of the hover event — anchors the info card. */
+const hoverPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 let hoverHideTimer: ReturnType<typeof setTimeout> | null = null
 
-function onNodeHover(nodeId: string | null) {
+function onNodeHover(nodeId: string | null, event?: MouseEvent | Touch | TouchEvent) {
   if (hoverHideTimer) {
     clearTimeout(hoverHideTimer)
     hoverHideTimer = null
@@ -53,6 +54,10 @@ function onNodeHover(nodeId: string | null) {
       hoveredNodeId.value = null
     }, 120)
     return
+  }
+  const ev = event as { clientX?: number; clientY?: number } | undefined
+  if (ev && typeof ev.clientX === 'number' && typeof ev.clientY === 'number') {
+    hoverPos.value = { x: ev.clientX, y: ev.clientY }
   }
   hoveredNodeId.value = nodeId
 }
@@ -380,7 +385,7 @@ function onDrop(ev: DragEvent) {
       :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
       :min-zoom="0.1"
       @node-click="onNodeClick"
-      @node-mouse-enter="({ node }: NodeMouseEvent) => onNodeHover(node.id)"
+      @node-mouse-enter="({ node, event }: NodeMouseEvent) => onNodeHover(node.id, event)"
       @node-mouse-leave="() => onNodeHover(null)"
       @pane-click="onPaneClick"
       @pane-context-menu="onPaneContextMenu"
@@ -396,11 +401,10 @@ function onDrop(ev: DragEvent) {
         :zoomable="true"
         mask-color="var(--bg-3)"
       />
-      <CommandPalette v-if="uiStore.paletteOpen" />
     </VueFlow>
 
     <!-- Lightweight hover info card (pointer-events: none) -->
-    <NodeHoverCard :node="hoveredNode" />
+    <NodeHoverCard :node="hoveredNode" :pos="hoverPos" />
 
     <!-- Right-side detailed inspector for the selected node -->
     <NodeInspector

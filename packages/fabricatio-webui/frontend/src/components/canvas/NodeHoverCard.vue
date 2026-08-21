@@ -24,6 +24,8 @@ const props = defineProps<{
       configFields?: PortDefinition[]
     }
   } | null
+  /** Viewport coords of the hover event — the card anchors near the cursor. */
+  pos?: { x: number; y: number }
 }>()
 
 const d = computed(() => props.node?.data ?? null)
@@ -32,11 +34,29 @@ const d = computed(() => props.node?.data ?? null)
 const groupCount = computed(() =>
   d.value ? groupConfigFields(d.value.configFields ?? [], d.value.nodeType).length : 0,
 )
+
+/**
+ * Card anchored just below-right of the cursor, clamped to the viewport
+ * (flips above/left near the right/bottom edges). Estimated size keeps the
+ * first paint sane; CSS max-width bounds the real box.
+ */
+const CARD_W = 280
+const CARD_H = 84
+const MARGIN = 12
+const cardStyle = computed(() => {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const x = props.pos?.x ?? vw / 2
+  const y = props.pos?.y ?? vh / 2
+  const left = x + MARGIN + CARD_W > vw ? Math.max(MARGIN, x - CARD_W - MARGIN) : x + MARGIN
+  const top = y + MARGIN + CARD_H > vh ? Math.max(MARGIN, y - CARD_H - MARGIN) : y + MARGIN
+  return { left: `${left}px`, top: `${top}px` }
+})
 </script>
 
 <template>
   <Transition name="fade">
-    <div v-if="d" class="hover-card" aria-hidden="true">
+    <div v-if="d" class="hover-card" :style="cardStyle" aria-hidden="true">
       <div class="hc-header">
         <span class="hc-dot" :style="{ background: categoryColor(d.category) }"></span>
         <span class="hc-title">{{ d.title }}</span>
@@ -60,7 +80,7 @@ const groupCount = computed(() =>
 <style scoped>
 .hover-card {
   pointer-events: none; /* never intercept clicks/drags aimed at the node */
-  position: absolute;
+  position: fixed;
   z-index: 45;
   max-width: 280px;
   padding: var(--sp-2) var(--sp-3);
