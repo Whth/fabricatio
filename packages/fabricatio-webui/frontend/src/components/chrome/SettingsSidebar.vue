@@ -28,6 +28,25 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 
     <div class="sidebar-body">
       <div class="section">
+        <div class="section-title">Appearance</div>
+        <div class="setting-row">
+          <span class="setting-label">Theme</span>
+          <div class="seg">
+            <button
+              :class="{ active: ui.settings.theme === 'dark' }"
+              title="Dark theme"
+              @click="ui.setSetting('theme', 'dark')"
+            >Dark</button>
+            <button
+              :class="{ active: ui.settings.theme === 'light' }"
+              title="Light theme"
+              @click="ui.setSetting('theme', 'light')"
+            >Light</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
         <div class="section-title">Editor</div>
         <label class="setting-row">
           <span class="setting-label">Snap to grid</span>
@@ -261,5 +280,31 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 .shortcut-action {
   font-size: var(--text-sm);
   color: var(--fg-1);
+}
+.seg {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font-size: var(--text-xs);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-colors);
+}
+.seg button.active {
+  background: var(--accent);
+  color: var(--fg-inv);
+}
+.seg button:hover:not(.active) {
+  color: var(--fg-0);
+  background: var(--bg-3);
 }
 </style>

@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, watchEffect } from 'vue'
 import { defineStore } from 'pinia'
 
 /**
@@ -17,10 +17,12 @@ export interface UiSettings {
   showMinimap: boolean
   /** Start the execution console expanded. */
   consoleDefaultOpen: boolean
+  /** Color theme applied via <html data-theme="...">. */
+  theme: 'dark' | 'light'
 }
 
 const SETTINGS_KEY = 'webui:settings'
-/** Legacy autosave flag written by the pre-settings workflow store. */
+
 const LEGACY_AUTOSAVE_KEY = 'workflow:autosave'
 
 const DEFAULTS: UiSettings = {
@@ -29,22 +31,28 @@ const DEFAULTS: UiSettings = {
   gridSize: 16,
   showMinimap: true,
   consoleDefaultOpen: false,
+  theme: 'dark',
 }
 
 function loadSettings(): UiSettings {
+  let loaded: Partial<UiSettings> | null = null
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
-    if (raw) return { ...DEFAULTS, ...(JSON.parse(raw) as Partial<UiSettings>) }
+    if (raw) loaded = JSON.parse(raw) as Partial<UiSettings>
   } catch {
-    /* corrupted settings -> fall through to defaults */
+    /* corrupted settings -> fall through to legacy/defaults */
   }
-  try {
-    const legacy = localStorage.getItem(LEGACY_AUTOSAVE_KEY)
-    if (legacy !== null) return { ...DEFAULTS, autosave: legacy !== 'false' }
-  } catch {
-    /* ignore */
+  if (loaded === null) {
+    try {
+      const legacy = localStorage.getItem(LEGACY_AUTOSAVE_KEY)
+      if (legacy !== null) loaded = { autosave: legacy !== 'false' }
+    } catch {
+      /* ignore */
+    }
   }
-  return { ...DEFAULTS }
+  const merged = { ...DEFAULTS, ...loaded }
+  if (merged.theme !== 'dark' && merged.theme !== 'light') merged.theme = 'dark'
+  return merged
 }
 
 export const useUiStore = defineStore('ui', () => {
@@ -71,6 +79,11 @@ export const useUiStore = defineStore('ui', () => {
     },
     { deep: true },
   )
+
+  // Apply the color theme to <html data-theme="..."> on every change.
+  watchEffect(() => {
+    document.documentElement.dataset.theme = settings.value.theme
+  })
 
   function setSetting<K extends keyof UiSettings>(key: K, value: UiSettings[K]) {
     settings.value = { ...settings.value, [key]: value }

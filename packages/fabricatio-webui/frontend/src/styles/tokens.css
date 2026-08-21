@@ -1,6 +1,92 @@
-/* ── fabricatio-webui design tokens ── dark-only palette ──────────────────── */
+/* ── fabricatio-webui design tokens ── themeable palette ────────────────────
+   Layout tokens (spacing, type, radii, control sizing, transitions, keyframes)
+   live in :root. Color-bearing tokens live in [data-theme='dark'] and
+   [data-theme='light'] blocks. Default = dark (pre-JS paint uses the
+   `:root:not([data-theme])` fallback). */
 
 :root {
+  /* ── Spacing (4 px grid) ───────────────────────────────────────────────── */
+  --sp-0: 0;
+  --sp-px: 1px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+
+  --leading-tight: 1.25;
+  --leading-base: 1.45;
+  --leading-relaxed: 1.6;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Radii ─────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* ── Transitions ───────────────────────────────────────────────────────── */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-slow: 200ms;
+  --transition-colors: color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+  --transition-opacity: opacity var(--duration-fast) var(--ease-out);
+  --transition-transform: transform var(--duration-base) var(--ease-out);
+  --transition-shadow: box-shadow var(--duration-base) var(--ease-out);
+
+  /* ── Focus geometry (color is theme-owned) ─────────────────────────────── */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 1px;
+  --focus-ring: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+
+  /* ── Control sizing ────────────────────────────────────────────────────── */
+  --ctrl-h-sm: 22px;
+  --ctrl-h: 26px;
+  --ctrl-h-lg: 32px;
+  --ctrl-px: 8px;
+  --ctrl-gap: 6px;
+
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --toolbar-h: 40px;
+  --console-collapsed-h: 32px;
+  --console-expanded-max: 220px;
+  /* Fixed node width: identical for every node type. Shrink-to-fit was
+     unpredictable — `width: 100%` inputs contribute ~0 to max-content, so
+     a node with only manual fields collapsed to min-width while any wired
+     field (long unbreakable text) ballooned it to 2x. */
+  --node-w: 360px;
+}
+
+/* ══ Dark theme (default; current look preserved verbatim) ═══════════════ */
+[data-theme='dark'],
+:root:not([data-theme]) {
+  color-scheme: dark;
+
   /* ── Surfaces (layered elevation) ──────────────────────────────────────── */
   --bg-0: #0b0f14;           /* canvas / root */
   --bg-1: #141920;           /* nodes / cards */
@@ -48,88 +134,73 @@
   --cat-anki: #f0883e;
   --cat-general: #8895a7;
 
-  /* ── Spacing (4 px grid) ───────────────────────────────────────────────── */
-  --sp-0: 0;
-  --sp-px: 1px;
-  --sp-1: 4px;
-  --sp-2: 8px;
-  --sp-3: 12px;
-  --sp-4: 16px;
-  --sp-5: 20px;
-  --sp-6: 24px;
-  --sp-8: 32px;
-  --sp-10: 40px;
-  --sp-12: 48px;
-
-  /* ── Typography ────────────────────────────────────────────────────────── */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
-
-  --text-2xs: 10px;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-base: 13px;
-  --text-md: 14px;
-  --text-lg: 16px;
-  --text-xl: 20px;
-
-  --leading-tight: 1.25;
-  --leading-base: 1.45;
-  --leading-relaxed: 1.6;
-
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-
-  /* ── Radii ─────────────────────────────────────────────────────────────── */
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-full: 9999px;
-
   /* ── Shadows ───────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 12px var(--accent-glow);
 
-  /* ── Transitions ───────────────────────────────────────────────────────── */
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --duration-fast: 100ms;
-  --duration-base: 150ms;
-  --duration-slow: 200ms;
-  --transition-colors: color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
-  --transition-opacity: opacity var(--duration-fast) var(--ease-out);
-  --transition-transform: transform var(--duration-base) var(--ease-out);
-  --transition-shadow: box-shadow var(--duration-base) var(--ease-out);
-
-  /* ── Focus ─────────────────────────────────────────────────────────────── */
   --focus-ring-color: var(--accent);
-  --focus-ring-width: 2px;
-  --focus-ring-offset: 1px;
-  --focus-ring: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+}
 
-  /* ── Control sizing ────────────────────────────────────────────────────── */
-  --ctrl-h-sm: 22px;
-  --ctrl-h: 26px;
-  --ctrl-h-lg: 32px;
-  --ctrl-px: 8px;
-  --ctrl-gap: 6px;
+/* ══ Light theme ═════════════════════════════════════════════════════════ */
+[data-theme='light'] {
+  color-scheme: light;
 
-  /* ── Layout ────────────────────────────────────────────────────────────── */
-  --toolbar-h: 40px;
-  --console-collapsed-h: 32px;
-  --console-expanded-max: 220px;
-  /* Fixed node width: identical for every node type. Shrink-to-fit was
-     unpredictable — `width: 100%` inputs contribute ~0 to max-content, so
-     a node with only manual fields collapsed to min-width while any wired
-     field (long unbreakable text) ballooned it to 2x. */
-  --node-w: 360px;
+  /* ── Surfaces (layered elevation) ──────────────────────────────────────── */
+  --bg-0: #f4f6f9;           /* canvas / root */
+  --bg-1: #ffffff;           /* nodes / cards */
+  --bg-2: #f0f3f7;           /* title bars / headers */
+  --bg-3: #e6ebf2;           /* hover / selected / raised */
+  --bg-4: #dbe3ec;           /* pressed / active */
+
+  /* ── Foreground ────────────────────────────────────────────────────────── */
+  --fg-0: #1a2230;           /* primary text */
+  --fg-1: #5a6b80;           /* secondary / muted text */
+  --fg-2: #8595a8;           /* tertiary / disabled / hint */
+  --fg-3: #b6c2cf;           /* subtle / placeholder / ghost */
+  --fg-inv: #ffffff;         /* text on accent */
+
+  /* ── Accent ────────────────────────────────────────────────────────────── */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-pressed: #1e40af;
+  --accent-glow: rgba(37, 99, 235, 0.14);
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+
+  /* ── Semantic / status (AA-tuned for pale surfaces) ────────────────────── */
+  --ok: #16a34a;
+  --ok-subtle: rgba(22, 163, 74, 0.12);
+  --warn: #b45309;
+  --warn-subtle: rgba(180, 83, 9, 0.12);
+  --err: #dc2626;
+  --err-subtle: rgba(220, 38, 38, 0.10);
+  --running: #7c3aed;
+  --running-subtle: rgba(124, 58, 237, 0.12);
+
+  /* ── Borders ───────────────────────────────────────────────────────────── */
+  --border: #e2e8f0;
+  --border-mid: #cbd5e1;
+  --border-soft: #edf1f6;
+
+  /* ── Category colours (AA-tuned for pale surfaces) ─────────────────────── */
+  --cat-llm: #7c3aed;
+  --cat-novel: #16a34a;
+  --cat-comfyui: #db2777;
+  --cat-rag: #9333ea;
+  --cat-io: #2563eb;
+  --cat-data: #d97706;
+  --cat-character: #c2410c;
+  --cat-anki: #ea580c;
+  --cat-general: #64748b;
+
+  /* ── Shadows ───────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.14);
+  --shadow-glow: 0 0 12px var(--accent-glow);
+
+  --focus-ring-color: var(--accent);
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────── */
