@@ -560,4 +560,22 @@ mod tests {
         assert!(!s.contains("cancelled"));
         assert!(s.contains(r#""type":"execution_done""#));
     }
+
+    #[test]
+    fn status_message_round_trips() {
+        let raw = r#"{"type":"status","queue_length":2,"running_count":1}"#;
+        let m: WsMessage = serde_json::from_str(raw).unwrap();
+        match &m {
+            WsMessage::Status {
+                queue_length,
+                running_count,
+            } => {
+                assert_eq!(*queue_length, 2);
+                assert_eq!(*running_count, 1);
+            }
+            other => panic!("unexpected variant {other:?}"),
+        }
+        let s = serde_json::to_string(&m).unwrap();
+        assert_eq!(s, r#"{"type":"status","queue_length":2,"running_count":1}"#);
+    }
 }
