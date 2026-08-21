@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
 import { onUnmounted } from 'vue'
-import { X, Settings2 } from '@lucide/vue'
+import { X, Settings2, Palette, SlidersHorizontal, Wrench, Keyboard } from '@lucide/vue'
 
 /**
  * Frontend settings as a centered modal in the ComfyUI style: a window with
@@ -22,8 +22,14 @@ const offEsc = register('escape', () => {
 onUnmounted(offEsc)
 
 /** Left-rail categories, in display order. */
-const CATEGORIES = ['Appearance', 'Editor', 'General', 'Shortcuts'] as const
-const active = ref<(typeof CATEGORIES)[number]>('Appearance')
+const CATEGORIES = [
+  { name: 'Appearance', icon: Palette },
+  { name: 'Editor', icon: SlidersHorizontal },
+  { name: 'General', icon: Wrench },
+  { name: 'Shortcuts', icon: Keyboard },
+] as const
+type Category = (typeof CATEGORIES)[number]['name']
+const active = ref<Category>('Appearance')
 
 const SHORTCUTS: Array<{ keys: string; action: string }> = [
   { keys: 'Ctrl+F', action: 'Search nodes / commands' },
@@ -55,12 +61,13 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
             <nav class="settings-nav">
               <button
                 v-for="c in CATEGORIES"
-                :key="c"
+                :key="c.name"
                 class="nav-item"
-                :class="{ active: active === c }"
-                @click="active = c"
+                :class="{ active: active === c.name }"
+                @click="active = c.name"
               >
-                {{ c }}
+                <component :is="c.icon" :size="15" class="nav-icon" />
+                <span>{{ c.name }}</span>
               </button>
             </nav>
 
@@ -213,7 +220,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 }
 
 .settings-nav {
-  width: 148px;
+  width: 172px;
   flex-shrink: 0;
   background: var(--bg-1);
   border-right: 1px solid var(--border);
@@ -223,18 +230,24 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
   gap: 2px;
   overflow-y: auto;
 }
-
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   text-align: left;
   border: 0;
   background: transparent;
   color: var(--fg-1);
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   font-family: var(--font-sans);
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition-colors);
+}
+
+.nav-icon {
+  flex-shrink: 0;
 }
 
 .nav-item:hover {
@@ -261,7 +274,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 }
 
 .section-title {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--fg-2);
@@ -288,7 +301,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 }
 
 .setting-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   color: var(--fg-0);
 }
 
@@ -371,7 +384,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 }
 
 .shortcut-action {
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   color: var(--fg-1);
 }
 
