@@ -69,7 +69,7 @@ entries from LanceDB once per story and renders them raw into the scene prompts.
 |---|---|
 | `NovelContext` | Root channel: outline, language, roster `charactor_span`, `chapter_context` |
 | `ChapterContext` | Chapter channel: `charactor_span`, `story_context`, heading block |
-| `StoryContext` | Story channel: `charactor_span`, `scene_context`, `style_docs` references, optional `rag` retrieval settings |
+| `StoryContext` | Story channel: `charactor_span`, `scene_context`, accumulated `writing_styles`, optional `rag` retrieval settings |
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
 | `CharacterSpan` | Start + end `CharacterCard`; `derive_child_spans` stitches boundary cards |
 | `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
