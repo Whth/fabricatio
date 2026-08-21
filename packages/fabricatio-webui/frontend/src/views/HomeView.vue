@@ -3,7 +3,7 @@ import { onMounted } from 'vue'
 import Toolbar from '@/components/chrome/Toolbar.vue'
 import NodeCanvas from '@/components/canvas/NodeCanvas.vue'
 import ExecutionConsole from '@/components/console/ExecutionConsole.vue'
-import SettingsSidebar from '@/components/chrome/SettingsSidebar.vue'
+import SettingsDialog from '@/components/chrome/SettingsDialog.vue'
 import WorkflowsSidebar from '@/components/chrome/WorkflowsSidebar.vue'
 import ActionEditor from '@/components/chrome/ActionEditor.vue'
 import BoardView from '@/components/board/BoardView.vue'
@@ -15,10 +15,12 @@ import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { ChevronRight } from '@lucide/vue'
+import { useUiStore } from '@/stores/ui'
 
 const wfStore = useWorkflowStore()
 const boardStore = useBoardStore()
 const execStore = useExecutionStore()
+const uiStore = useUiStore()
 const { subscribe } = useWebSocket()
 
 onMounted(async () => {
@@ -99,8 +101,8 @@ function backToBoard() {
       />
       <ActionEditor />
       <WorkflowsSidebar />
-      <SettingsSidebar />
     </div>
+    <SettingsDialog @close="uiStore.closeSettings()" />
     <ExecutionConsole />
   </div>
   <NotificationToast />

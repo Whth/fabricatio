@@ -204,8 +204,8 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         <button
           class="btn btn-icon"
           title="Frontend settings"
-          :class="{ active: uiStore.sidebarOpen }"
-          @click="uiStore.toggleSidebar()"
+          :class="{ active: uiStore.settingsOpen }"
+          @click="uiStore.openSettings()"
         >
           <Settings :size="16" />
         </button>

@@ -45,7 +45,7 @@ const actions: PaletteAction[] = [
   { id: 'act-undo', kind: 'action', label: 'Undo', hint: 'Ctrl+Z', keywords: 'undo revert', icon: Undo2, run: () => undo() },
   { id: 'act-redo', kind: 'action', label: 'Redo', hint: 'Ctrl+Shift+Z', keywords: 'redo', icon: Redo2, run: () => redo() },
   { id: 'act-clear', kind: 'action', label: 'Clear canvas', hint: '', keywords: 'clear reset empty delete all', icon: Trash2, run: () => clearCanvas() },
-  { id: 'act-sidebar', kind: 'action', label: 'Toggle settings sidebar', hint: '', keywords: 'settings sidebar panel options', icon: PanelRight, run: () => uiStore.toggleSidebar() },
+  { id: 'act-settings', kind: 'action', label: 'Open settings', hint: '', keywords: 'settings options preferences theme sidebar panel', icon: PanelRight, run: () => uiStore.openSettings() },
   { id: 'act-console', kind: 'action', label: 'Toggle console', hint: '', keywords: 'console log terminal output', icon: Terminal, run: () => uiStore.toggleConsole() },
   {
     id: 'act-minimap',

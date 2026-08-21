@@ -58,8 +58,10 @@ function loadSettings(): UiSettings {
 export const useUiStore = defineStore('ui', () => {
   const settings = ref<UiSettings>(loadSettings())
   const paletteOpen = ref(false)
-  const sidebarOpen = ref(false)
+  /** Boards sidebar visibility. */
   const workflowsOpen = ref(false)
+  /** Settings dialog visibility (modal, opened by toolbar/palette). */
+  const settingsOpen = ref(false)
   /** Board-layer blueprint rail (predefined workflows, drag onto roles). */
   const blueprintRailOpen = ref(true)
   /** Run/publish task dialog (opened by toolbar, hotkeys, and palette). */
@@ -97,8 +99,12 @@ export const useUiStore = defineStore('ui', () => {
     paletteOpen.value = false
   }
 
-  function toggleSidebar() {
-    sidebarOpen.value = !sidebarOpen.value
+  function openSettings() {
+    settingsOpen.value = true
+  }
+
+  function closeSettings() {
+    settingsOpen.value = false
   }
 
   function toggleWorkflows() {
@@ -121,7 +127,7 @@ export const useUiStore = defineStore('ui', () => {
   return {
     settings,
     paletteOpen,
-    sidebarOpen,
+    settingsOpen,
     workflowsOpen,
     blueprintRailOpen,
     runDialogOpen,
@@ -130,7 +136,8 @@ export const useUiStore = defineStore('ui', () => {
     setSetting,
     togglePalette,
     closePalette,
-    toggleSidebar,
+    openSettings,
+    closeSettings,
     toggleWorkflows,
     toggleBlueprintRail,
     openRunDialog,
