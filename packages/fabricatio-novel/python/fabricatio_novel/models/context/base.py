@@ -81,6 +81,10 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
 
+    outline: str = ""
+    """The raw novel outline; run-wide constant, copied down every creation chain so each
+    planning prompt grounds on the full source text instead of compressed parent descriptions."""
+
     series_bible: SeriesBible | None = None
     """The novel's setting bible; uninitialized until set or broadcast down from the novel context."""
 
@@ -91,6 +95,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     def set_language(self, language: str) -> Self:
         """Set the written language of this element and return self."""
         self.language = language
+        return self
+
+    def set_outline(self, outline: str) -> Self:
+        """Set the raw novel outline carried into this element's planning prompts and return self."""
+        self.outline = outline
         return self
 
     def set_series_bible(self, series_bible: SeriesBible | None) -> Self:

@@ -1230,3 +1230,27 @@ class TestNovelWorkflow:
         for stage_dir in persist_dir.iterdir():
             if stage_dir.is_dir():
                 assert any(stage_dir.glob("*.json")), f"{stage_dir.name} lacks a snapshot"
+
+
+class TestPlanningOutlineGrounding:
+    """Test suite for outline grounding across every planning prompt."""
+
+    async def test_planning_requirements_embed_outline(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert chapter, story, and scene planning prompts all embed the raw outline text."""
+        role = NovelRole(name="novel_role")
+        captured: List[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
+            captured.append(requirement)
+
+        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        await role.plan_chapters_phase(novel)
+        chapter = ChapterContext(title="Ch1", description="The start.").set_outline(novel.outline)
+        await role.plan_stories_phase(chapter)
+        story = StoryContext(title="St1", description="The departure.").set_outline(novel.outline)
+        await role.plan_scenes_phase(story)
+
+        assert len(captured) == 3
+        assert all("The hero seeks his father." in requirement for requirement in captured)

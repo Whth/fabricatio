@@ -228,6 +228,7 @@ class NovelCompose(ChapterCompose, ABC):
                 ctx.add_chapter_context(
                     ChapterContext.from_plan(chapter_plan, expected_word_count=count)
                     .set_language(ctx.language)
+                    .set_outline(ctx.outline)
                     .set_rag(ctx.rag)
                     .set_writing_styles(merge_writing_styles(ctx.writing_styles, chapter_plan.writing_style))
                     .set_writing_constraint(

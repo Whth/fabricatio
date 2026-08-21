@@ -54,6 +54,7 @@ class StoryCompose(SceneCompose, ABC):
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.scene_plan_template,
             {
+                "outline": ctx.outline,
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
@@ -92,6 +93,7 @@ class StoryCompose(SceneCompose, ABC):
                 ctx.add_scene_context(
                     SceneContext.from_plan(scene_plan, expected_word_count=count)
                     .set_language(ctx.language)
+                    .set_outline(ctx.outline)
                     .set_writing_styles(list(ctx.writing_styles))
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)

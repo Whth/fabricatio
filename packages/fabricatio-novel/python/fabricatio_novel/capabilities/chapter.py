@@ -61,6 +61,7 @@ class ChapterCompose(StoryCompose, ABC):
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.story_plan_template,
             {
+                "outline": ctx.outline,
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
@@ -174,6 +175,7 @@ class ChapterCompose(StoryCompose, ABC):
                 ctx.add_story_context(
                     StoryContext.from_plan(story_plan, expected_word_count=count)
                     .set_language(ctx.language)
+                    .set_outline(ctx.outline)
                     .set_rag(ctx.rag)
                     .set_writing_styles(merge_writing_styles(ctx.writing_styles, story_plan.writing_style))
                     .set_writing_constraint(
