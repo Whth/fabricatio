@@ -72,6 +72,7 @@ entries from LanceDB once per story and renders them raw into the scene prompts.
 | `StoryContext` | Story channel: `charactor_span`, `scene_context`, story-scoped RAG style docs |
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
 | `CharacterSpan` | Start + end `CharacterCard`; `derive_child_spans` stitches boundary cards |
+| `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
 | `SeriesBible` | `characters` roster string + `background_settings` fact list; broadcast down |
 
 ### Plans & models
