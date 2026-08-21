@@ -34,9 +34,9 @@ class TestOutputKey:
     @staticmethod
     def test_explicit_output_key() -> None:
         """Uses the class's explicit output_key for the port name."""
-        from fabricatio_novel.actions.novel import GenerateNovelDraft
+        from fabricatio_novel.actions.novel import DumpEpubStage
 
-        assert _output_key(GenerateNovelDraft) == "novel_draft"
+        assert _output_key(DumpEpubStage) == "task_output"
 
     @staticmethod
     def test_falls_back_to_class_lower() -> None:
@@ -64,11 +64,9 @@ class TestCollectWorkflows:
 
     @staticmethod
     def test_novel_workflows_present() -> None:
-        """The headline Write Novel workflow is among the discovered novel workflows."""
+        """The headline Debug Novel workflow is among discovered novel workflows."""
         pairs = list(_collect_workflows())
-        {wf.name for cat, wf in pairs if cat == "novel"}
-        # The "Write Novel Workflow" must be present (it's a headline workflow in the package).
-        assert any("writenovel" in wf.name.lower() for _, wf in pairs if wf.name)
+        assert any(wf.name == "Debug Novel" for _, wf in pairs if wf.name)
 
 
 class TestBuildBlueprints:
@@ -164,48 +162,41 @@ class TestBuildBlueprints:
                 assert isinstance(node["pos"][1], (int, float))
 
 
-class TestWriteNovelWorkflowStructure:
-    """Spot-check the WriteNovelWorkflow blueprint (the headline one-step pipeline)."""
+def _get_blueprint(result: dict, bid: str) -> dict | None:
+    return next((b for b in result["blueprints"] if b["id"] == bid), None)
+
+
+class TestDebugNovelWorkflowStructure:
+    """Spot-check the Debug Novel blueprint (the headline staged pipeline)."""
 
     @staticmethod
-    def test_has_three_nodes() -> None:
-        """The WriteNovelWorkflow blueprint declares exactly three nodes."""
-        result = build_blueprints()
-        bp = next(
-            (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
-            None,
-        )
-        assert bp is not None, "novel-write-novel-workflow not found"
-        assert bp["node_count"] == 3, f"Expected 3 nodes, got {bp['node_count']}"
-        assert len(bp["workflow"]["nodes"]) == 3
+    def test_node_count_matches_declared() -> None:
+        """The Debug Novel blueprint declares and ships the same node count."""
+        bp = _get_blueprint(build_blueprints(), "novel-debug-novel")
+        assert bp is not None, "novel-debug-novel not found"
+        assert len(bp["workflow"]["nodes"]) == bp["node_count"]
 
     @staticmethod
-    def test_has_chained_edges() -> None:
-        """The three nodes are chained by two dataflow edges."""
-        result = build_blueprints()
-        bp = next(
-            (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
-            None,
-        )
+    def test_pipeline_is_fully_chained() -> None:
+        """Consecutive nodes are wired edge-to-edge through the whole pipeline."""
+        bp = _get_blueprint(build_blueprints(), "novel-debug-novel")
         assert bp is not None
-        # GenerateNovel → DumpNovel → PersistentAll: every consecutive pair is
-        # wired (novel → novel field; DumpNovel output → context display port).
+        nodes = bp["workflow"]["nodes"]
         edges = bp["workflow"]["edges"]
-        assert len(edges) == 2
-        assert edges[0]["source_handle"] == "novel"
-        assert edges[0]["target_handle"] == "novel"
-        assert edges[1]["target_handle"] == "context"
+        assert len(edges) == len(nodes) - 1
+        ids = [n["id"] for n in nodes]
+        for i in range(len(ids) - 1):
+            pair = (ids[i], ids[i + 1])
+            assert any(e["source"] == pair[0] and e["target"] == pair[1] for e in edges), f"missing edge {pair}"
 
     @staticmethod
-    def test_first_node_is_generate_novel() -> None:
-        """The pipeline starts with a GenerateNovel node."""
-        result = build_blueprints()
-        bp = next(
-            (b for b in result["blueprints"] if b["id"] == "novel-writenovelworkflow"),
-            None,
-        )
+    def test_first_and_last_stages() -> None:
+        """Pipeline starts at InitNovelContext and ends at DumpEpubStage."""
+        bp = _get_blueprint(build_blueprints(), "novel-debug-novel")
+        assert bp is not None
         nodes = bp["workflow"]["nodes"]
-        assert nodes[0]["type"] == "GenerateNovel"
+        assert nodes[0]["type"] == "InitNovelContext"
+        assert nodes[-1]["type"] == "DumpEpubStage"
 
 
 class TestBlueprintGraphConnectivity:
