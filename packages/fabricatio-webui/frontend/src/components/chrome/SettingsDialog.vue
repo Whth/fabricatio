@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
 import { onUnmounted } from 'vue'
 import { X, Settings2 } from '@lucide/vue'
+
 /**
- * Frontend settings as a centered modal dialog (Teleported to <body> so it
- * overlays every layer). Backdrop click and the X button close it; Esc is
- * handled by the global hotkey registry (escape → deselect/close).
+ * Frontend settings as a centered modal in the ComfyUI style: a window with
+ * a left category rail and a right content pane. Teleported to <body> so it
+ * overlays every layer. Backdrop click, the X button, and Esc close it.
  */
 const ui = useUiStore()
 const emit = defineEmits<{ close: [] }>()
@@ -18,6 +20,10 @@ const offEsc = register('escape', () => {
   if (ui.settingsOpen) emit('close')
 })
 onUnmounted(offEsc)
+
+/** Left-rail categories, in display order. */
+const CATEGORIES = ['Appearance', 'Editor', 'General', 'Shortcuts'] as const
+const active = ref<(typeof CATEGORIES)[number]>('Appearance')
 
 const SHORTCUTS: Array<{ keys: string; action: string }> = [
   { keys: 'Ctrl+F', action: 'Search nodes / commands' },
@@ -44,80 +50,96 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
             </button>
           </div>
 
-          <div class="dialog-body">
-            <div class="section">
-              <div class="section-title">Appearance</div>
-              <div class="setting-row">
-                <span class="setting-label">Theme</span>
-                <div class="seg">
-                  <button
-                    :class="{ active: ui.settings.theme === 'dark' }"
-                    title="Dark theme"
-                    @click="ui.setSetting('theme', 'dark')"
-                  >Dark</button>
-                  <button
-                    :class="{ active: ui.settings.theme === 'light' }"
-                    title="Light theme"
-                    @click="ui.setSetting('theme', 'light')"
-                  >Light</button>
+          <div class="dialog-layout">
+            <!-- Category rail -->
+            <nav class="settings-nav">
+              <button
+                v-for="c in CATEGORIES"
+                :key="c"
+                class="nav-item"
+                :class="{ active: active === c }"
+                @click="active = c"
+              >
+                {{ c }}
+              </button>
+            </nav>
+
+            <!-- Active category pane -->
+            <div class="dialog-pane">
+              <section v-show="active === 'Appearance'" class="pane-section">
+                <div class="section-title">Appearance</div>
+                <div class="setting-row">
+                  <span class="setting-label">Theme</span>
+                  <div class="seg">
+                    <button
+                      :class="{ active: ui.settings.theme === 'dark' }"
+                      title="Dark theme"
+                      @click="ui.setSetting('theme', 'dark')"
+                    >Dark</button>
+                    <button
+                      :class="{ active: ui.settings.theme === 'light' }"
+                      title="Light theme"
+                      @click="ui.setSetting('theme', 'light')"
+                    >Light</button>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </section>
 
-            <div class="section">
-              <div class="section-title">Editor</div>
-              <label class="setting-row">
-                <span class="setting-label">Snap to grid</span>
-                <span class="toggle-switch">
-                  <input v-model="ui.settings.snapToGrid" type="checkbox" class="toggle-input" />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </span>
-              </label>
-              <label class="setting-row" :class="{ disabled: !ui.settings.snapToGrid }">
-                <span class="setting-label">Grid size</span>
-                <input
-                  v-model.number="ui.settings.gridSize"
-                  type="number"
-                  class="setting-number"
-                  min="4"
-                  max="64"
-                  step="4"
-                  :disabled="!ui.settings.snapToGrid"
-                />
-              </label>
-              <label class="setting-row">
-                <span class="setting-label">Minimap</span>
-                <span class="toggle-switch">
-                  <input v-model="ui.settings.showMinimap" type="checkbox" class="toggle-input" />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </span>
-              </label>
-            </div>
+              <section v-show="active === 'Editor'" class="pane-section">
+                <div class="section-title">Editor</div>
+                <label class="setting-row">
+                  <span class="setting-label">Snap to grid</span>
+                  <span class="toggle-switch">
+                    <input v-model="ui.settings.snapToGrid" type="checkbox" class="toggle-input" />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </span>
+                </label>
+                <label class="setting-row" :class="{ disabled: !ui.settings.snapToGrid }">
+                  <span class="setting-label">Grid size</span>
+                  <input
+                    v-model.number="ui.settings.gridSize"
+                    type="number"
+                    class="setting-number"
+                    min="4"
+                    max="64"
+                    step="4"
+                    :disabled="!ui.settings.snapToGrid"
+                  />
+                </label>
+                <label class="setting-row">
+                  <span class="setting-label">Minimap</span>
+                  <span class="toggle-switch">
+                    <input v-model="ui.settings.showMinimap" type="checkbox" class="toggle-input" />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </span>
+                </label>
+              </section>
 
-            <div class="section">
-              <div class="section-title">General</div>
-              <label class="setting-row">
-                <span class="setting-label">Autosave draft</span>
-                <span class="toggle-switch">
-                  <input v-model="ui.settings.autosave" type="checkbox" class="toggle-input" />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </span>
-              </label>
-              <label class="setting-row">
-                <span class="setting-label">Console open at startup</span>
-                <span class="toggle-switch">
-                  <input v-model="ui.settings.consoleDefaultOpen" type="checkbox" class="toggle-input" />
-                  <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                </span>
-              </label>
-            </div>
+              <section v-show="active === 'General'" class="pane-section">
+                <div class="section-title">General</div>
+                <label class="setting-row">
+                  <span class="setting-label">Autosave draft</span>
+                  <span class="toggle-switch">
+                    <input v-model="ui.settings.autosave" type="checkbox" class="toggle-input" />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </span>
+                </label>
+                <label class="setting-row">
+                  <span class="setting-label">Console open at startup</span>
+                  <span class="toggle-switch">
+                    <input v-model="ui.settings.consoleDefaultOpen" type="checkbox" class="toggle-input" />
+                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
+                  </span>
+                </label>
+              </section>
 
-            <div class="section">
-              <div class="section-title">Shortcuts</div>
-              <div v-for="s in SHORTCUTS" :key="s.keys" class="shortcut-row">
-                <kbd class="shortcut-keys">{{ s.keys }}</kbd>
-                <span class="shortcut-action">{{ s.action }}</span>
-              </div>
+              <section v-show="active === 'Shortcuts'" class="pane-section">
+                <div class="section-title">Shortcuts</div>
+                <div v-for="s in SHORTCUTS" :key="s.keys" class="shortcut-row">
+                  <kbd class="shortcut-keys">{{ s.keys }}</kbd>
+                  <span class="shortcut-action">{{ s.action }}</span>
+                </div>
+              </section>
             </div>
           </div>
         </div>
@@ -138,7 +160,8 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
 }
 
 .settings-dialog {
-  width: 420px;
+  width: 640px;
+  height: 440px;
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 96px);
   background: var(--bg-2);
@@ -147,6 +170,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .dialog-header {
@@ -181,12 +205,59 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
   color: var(--fg-0);
 }
 
-.dialog-body {
-  padding: var(--sp-3) var(--sp-4);
-  overflow-y: auto;
+/* ── Two-column layout: rail + pane ─────────────────────────────────────── */
+.dialog-layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.settings-nav {
+  width: 148px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  padding: var(--sp-2);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.nav-item {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-colors);
+}
+
+.nav-item:hover {
+  background: var(--bg-3);
+  color: var(--fg-0);
+}
+
+.nav-item.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: var(--weight-medium);
+}
+
+.dialog-pane {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.pane-section {
+  display: flex;
+  flex-direction: column;
 }
 
 .section-title {
