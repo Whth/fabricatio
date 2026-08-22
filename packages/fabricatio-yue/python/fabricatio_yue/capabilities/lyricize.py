@@ -23,10 +23,15 @@ class Lyricize(Propose, SelectGenre):
     """
 
     @overload
-    async def lyricize(self, requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]) -> Song | None:
+    async def lyricize(
+        self, requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
+    ) -> Song | None:
         """Generate lyrics for a single requirement.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (str): A single requirement string describing the desired song characteristics
             **kwargs (Unpack[ValidateKwargs[Song]]): Additional validation kwargs
 
@@ -36,10 +41,15 @@ class Lyricize(Propose, SelectGenre):
         ...
 
     @overload
-    async def lyricize(self, requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]) -> List[Song | None]:
+    async def lyricize(
+        self, requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
+    ) -> List[Song | None]:
         """Generate lyrics for multiple requirements.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (List[str]): List of requirement strings for batch lyric generation
             **kwargs (Unpack[ValidateKwargs[Song]]): Additional validation kwargs
 
@@ -54,6 +64,9 @@ class Lyricize(Propose, SelectGenre):
         """Generate lyrics based on requirements.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (str | List[str]): Single requirement string or list of requirements for lyric generation
             **kwargs (Unpack[ValidateKwargs[Song]]): Additional validation kwargs
 
@@ -67,6 +80,9 @@ class Lyricize(Propose, SelectGenre):
             """Generate a song with lyrics based on a single requirement.
 
             Args:
+                send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                        the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                        ``TASK``.
                 req (str): A single requirement string describing the desired song characteristics.
 
             Returns:

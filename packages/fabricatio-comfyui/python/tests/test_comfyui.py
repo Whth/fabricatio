@@ -581,7 +581,8 @@ async def test_generate_timeout() -> None:
 
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
-        patch.object(client, "_get", return_value={}),pytest.raises(TimeoutError)
+        patch.object(client, "_get", return_value={}),
+        pytest.raises(TimeoutError),
     ):
         await role.acomfyui_generate(prompt="anything", timeout=0.2)
 

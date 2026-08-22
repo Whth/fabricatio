@@ -26,7 +26,9 @@ class Review(Rating, Propose, ABC):
     appropriate topic and criteria.
     """
 
-    async def review_task[T](self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]) -> Optional[Improvement]:
+    async def review_task[T](
+        self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
+    ) -> Optional[Improvement]:
         """Review a task using specified review criteria.
 
         This method analyzes a task object to identify problems and propose solutions
@@ -34,6 +36,9 @@ class Review(Rating, Propose, ABC):
 
         Args:
             task (Task[T]): The task object to be reviewed.
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             **kwargs (Unpack[ReviewKwargs]): Additional keyword arguments for the review process,
                 including topic and optional criteria.
 
@@ -58,6 +63,9 @@ class Review(Rating, Propose, ABC):
         based on the given topic and criteria.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             input_text (str): The text content to be reviewed.
             topic (str): The subject topic for the review criteria.
             criteria (Optional[Set[str]], optional): A set of criteria for the review.
@@ -99,6 +107,9 @@ class Review(Rating, Propose, ABC):
 
         Args:
             obj (M): The object to be reviewed, which must implement either Display or WithBriefing.
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             **kwargs (Unpack[ReviewKwargs]): Additional keyword arguments for the review process,
                 including topic and optional criteria.
 

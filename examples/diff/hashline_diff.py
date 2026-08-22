@@ -25,7 +25,6 @@ from fabricatio_diff.capabilities.hashline_edit import (
     HashlineEditExhaustedError,
 )
 
-
 # --- Role with the HashlineEdit capability ---
 
 

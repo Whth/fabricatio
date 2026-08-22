@@ -71,9 +71,14 @@ class Extract(Propose, ABC):
         """Extract information from a given source to a model.
 
         Args:
+            cls (Type[M]): The model class to extract information into.
+            source (List[str] | str): The source string(s) to extract from.
+            extract_requirement (Optional[str]): What to extract; defaults to the class docstring.
+            align_language (bool): Whether to align extraction language with the source. Defaults to True.
             send_to: Routing-group variant for the LLM call. Resolved against the agent variant
                 registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
                 to steer to a different model tier.
+            **kwargs (Unpack[ValidateKwargs[Optional[M]]]): Additional validation keyword arguments.
         """
         return await self.propose(
             cls,

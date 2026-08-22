@@ -79,7 +79,12 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_model(
-        self, fields: List[str], requirement: str, k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Model]]
+        self,
+        fields: List[str],
+        requirement: str,
+        k: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Model]],
     ) -> Model | None:
         """Overloaded version for single string requirement.
 
@@ -95,7 +100,12 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_model(
-        self, fields: List[str], requirement: List[str], k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Model]]
+        self,
+        fields: List[str],
+        requirement: List[str],
+        k: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Model]],
     ) -> List[Model] | None:
         """Overloaded version for multiple requirements.
 
@@ -191,7 +201,9 @@ class GenerateDeck(Propose):
             )
             templates_seq = await gather(
                 *[
-                    self.generate_template(fields, template_reqs, send_to=send_to, **override_kwargs(kwargs, defualt=None))
+                    self.generate_template(
+                        fields, template_reqs, send_to=send_to, **override_kwargs(kwargs, defualt=None)
+                    )
                     for template_reqs in template_generation_requirements_seq
                     if template_reqs
                 ]
@@ -207,11 +219,18 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_template(
-        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
+        self,
+        fields: List[str],
+        requirement: str,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Template]],
     ) -> Template | None:
         """Overloaded version for single template generation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields for the template
             requirement: Single requirement description
             **kwargs: Validation arguments
@@ -222,11 +241,18 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_template(
-        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
+        self,
+        fields: List[str],
+        requirement: List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Template]],
     ) -> List[Template] | None:
         """Overloaded version for multiple template generation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields for the template
             requirement: List of requirement descriptions
             **kwargs: Validation arguments
@@ -236,11 +262,18 @@ class GenerateDeck(Propose):
         """
 
     async def generate_template(
-        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
+        self,
+        fields: List[str],
+        requirement: str | List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Template]],
     ) -> Template | List[Template] | None:
         """Generate one or more card templates.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields used in the template
             requirement: Requirement(s) for template generation
             **kwargs: Validation keyword arguments
@@ -255,7 +288,11 @@ class GenerateDeck(Propose):
         raise ValueError("requirement must be a string or a list of strings")
 
     async def _generate_single_template(
-        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
+        self,
+        fields: List[str],
+        requirement: str,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Template]],
     ) -> Template | None:
         """Generate a single template from a string requirement.
 
@@ -290,7 +327,11 @@ class GenerateDeck(Propose):
         return Template(name=name, front=front, back=back)
 
     async def _generate_multiple_templates(
-        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
+        self,
+        fields: List[str],
+        requirement: List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Template]],
     ) -> List[Template] | None:
         """Generate multiple templates from a list of requirements.
 
@@ -379,6 +420,9 @@ class GenerateDeck(Propose):
         """Overloaded version for single front side generation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields for the front side
             requirement: Single requirement description
             **kwargs: Validation arguments
@@ -389,11 +433,18 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_front_side(
-        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self,
+        fields: List[str],
+        requirement: List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> List[Side | None] | None:
         """Overloaded version for multiple front side generation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields for the front side
             requirement: List of requirement descriptions
             **kwargs: Validation arguments
@@ -403,13 +454,20 @@ class GenerateDeck(Propose):
         """
 
     async def generate_front_side(
-        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self,
+        fields: List[str],
+        requirement: str | List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> Side | List[Side | None] | None:
         """Generate one or more front sides for Anki cards.
 
         Args:
             fields: Fields used in the front side
             requirement: Requirement(s) for front side generation
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             **kwargs: Validation keyword arguments
 
         Returns:
@@ -426,6 +484,9 @@ class GenerateDeck(Propose):
         """Overloaded version for single back side generation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             fields: Fields for the back side
             requirement: Single requirement description
             **kwargs: Validation arguments
@@ -436,7 +497,11 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_back_side(
-        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self,
+        fields: List[str],
+        requirement: List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> List[Side | None] | None:
         """Overloaded version for multiple back side generation.
 
@@ -450,13 +515,20 @@ class GenerateDeck(Propose):
         """
 
     async def generate_back_side(
-        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self,
+        fields: List[str],
+        requirement: str | List[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> Side | List[Side | None] | None:
         """Generate one or more back sides for Anki cards.
 
         Args:
             fields: Fields used in the back side
             requirement: Requirement(s) for back side generation
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             **kwargs: Validation keyword arguments
 
         Returns:

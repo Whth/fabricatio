@@ -20,16 +20,13 @@ class SearchedDocument:
     """
     @property
     def id(self) -> builtins.str:
-        r"""Unique identifier for the document, typically generated as a UUID string.
-        """
+        r"""Unique identifier for the document, typically generated as a UUID string."""
     @property
     def content(self) -> builtins.str:
-        r"""The textual content of the document that was searched and matched.
-        """
+        r"""The textual content of the document that was searched and matched."""
     @property
     def timestamp(self) -> builtins.int:
-        r"""Timestamp indicating when the document was created or last updated.
-        """
+        r"""Timestamp indicating when the document was created or last updated."""
     @property
     def metadata(self) -> typing.Optional[builtins.str]:
         r"""Optional metadata associated with the document, stored as a JSON string.
@@ -60,14 +57,12 @@ class StoreDocument:
     def __new__(
         cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[builtins.str]
     ) -> StoreDocument:
-        r"""Create a new Document instance.
-        """
+        r"""Create a new Document instance."""
     @staticmethod
     def with_metadata(
         content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[dict]
     ) -> StoreDocument:
-        r"""Create a new Document instance with metadata dict.
-        """
+        r"""Create a new Document instance with metadata dict."""
 
 @typing.final
 class VectorStoreService:
@@ -79,17 +74,13 @@ class VectorStoreService:
     """
     @staticmethod
     def connect(uri: builtins.str) -> typing.Awaitable[typing.Self]:
-        r"""Connect to a lancedb instance
-        """
+        r"""Connect to a lancedb instance."""
     def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create a table
-        """
+        r"""Create a table."""
     def open_table(self, table_name: builtins.str) -> typing.Awaitable[VectorStoreTable]:
-        r"""Open a table
-        """
+        r"""Open a table."""
     def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create or open a table
-        """
+        r"""Create or open a table."""
 
 @typing.final
 class VectorStoreTable:

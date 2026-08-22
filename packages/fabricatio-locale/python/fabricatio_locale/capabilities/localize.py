@@ -17,7 +17,9 @@ class Localize(Translate):
     while preserving message identifiers.
     """
 
-    async def localize(self, msgs: List[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs]) -> List[Msg]:
+    async def localize(
+        self, msgs: List[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs]
+    ) -> List[Msg]:
         """Localizes a list of messages by translating their text content.
 
         Args:
@@ -29,9 +31,7 @@ class Localize(Translate):
             A list of localized Message objects with translated texts,
             but retaining original message IDs.
         """
-        translated_msg_txt_seq = ok(
-            await self.translate([msg.txt for msg in msgs], send_to=send_to, **kwargs)
-        )
+        translated_msg_txt_seq = ok(await self.translate([msg.txt for msg in msgs], send_to=send_to, **kwargs))
         return [
             Msg(txt=translated_msg_txt or msg.txt, id=msg.id)
             for translated_msg_txt, msg in zip(translated_msg_txt_seq, msgs, strict=True)

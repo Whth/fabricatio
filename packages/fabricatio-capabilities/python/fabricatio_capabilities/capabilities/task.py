@@ -87,5 +87,3 @@ class DispatchTask(UseLLM, ABC):
             return await task.delegate(event=task_event)
         logger.error("Failed to decide where the task should be dispatched to.")
         return None
-
-

@@ -30,6 +30,9 @@ class Correct(Rating, ABC):
         """Decide the best solution from a list of problem solutions.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             problem_solutions (ProblemSolutions): The problem solutions to evaluate.
             **kwargs (Unpack[BestKwargs]): Additional keyword arguments for the decision process.
 
@@ -43,10 +46,15 @@ class Correct(Rating, ABC):
             problem_solutions.solutions = await self.best(problem_solutions.solutions, send_to=send_to, **kwargs)
         return problem_solutions
 
-    async def decide_improvement(self, improvement: Improvement, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs]) -> Improvement:
+    async def decide_improvement(
+        self, improvement: Improvement, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs]
+    ) -> Improvement:
         """Decide the best solution for each problem solution in an improvement.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             improvement (Improvement): The improvement containing problem solutions to evaluate.
             **kwargs (Unpack[BestKwargs]): Additional keyword arguments for the decision process.
 
@@ -88,6 +96,9 @@ class Correct(Rating, ABC):
             obj (M): The object to be fixed.
             problem_solutions (ProblemSolutions): The problem solutions to apply.
             reference (str): A reference or contextual information for the object.
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             **kwargs (Unpack[ValidateKwargs[M]]): Additional keyword arguments for the validation process.
 
         Returns:
@@ -121,6 +132,9 @@ class Correct(Rating, ABC):
         """Fix a troubled string based on problem solutions.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             input_text (str): The string to be fixed.
             problem_solutions (ProblemSolutions): The problem solutions to apply.
             reference (str): A reference or contextual information for the string.

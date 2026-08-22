@@ -29,6 +29,9 @@ class SynthesizeData(UseLLM, ABC):
         """Generate appropriate column headers based on the given requirement(s).
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement: A single or list of natural language descriptions of the required data.
             **kwargs: Additional keyword arguments passed to the underlying LLM processing.
 
@@ -58,6 +61,9 @@ class SynthesizeData(UseLLM, ABC):
         """Generate CSV-formatted synthetic data matching the specified requirement and header.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement: Natural language description of the required dataset characteristics.
             header: Optional list of column names; if not provided, will be auto-generated.
             rows: Number of data rows to generate (default: 100).
@@ -105,6 +111,9 @@ class SynthesizeData(UseLLM, ABC):
         """Synthesize large datasets efficiently by parallel batch generation and concatenation.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement: Natural language specification of the desired dataset.
             rows: Total number of rows to generate (default: 1000).
             batch_size: Number of rows per parallel batch (default: 100).
@@ -132,7 +141,11 @@ class SynthesizeData(UseLLM, ABC):
         batch_results = await gather(
             *[
                 self.generate_csv_data(
-                    f"{requirement}\n\nthis is the [{i}\\{len(batch_sizes)}] batch", header, batch_rows, send_to=send_to, **kwargs
+                    f"{requirement}\n\nthis is the [{i}\\{len(batch_sizes)}] batch",
+                    header,
+                    batch_rows,
+                    send_to=send_to,
+                    **kwargs,
                 )
                 for i, batch_rows in enumerate(batch_sizes)
             ]

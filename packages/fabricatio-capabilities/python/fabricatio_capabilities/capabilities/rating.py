@@ -153,7 +153,11 @@ class Rating(Propose, ABC):
         return await self.rate_fine_grind(to_rate, ok(manual), score_range, send_to=send_to, **okwargs)
 
     async def draft_rating_manual(
-        self, topic: str, criteria: Optional[Set[str]] = None, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+        self,
+        topic: str,
+        criteria: Optional[Set[str]] = None,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Dict[str, str]]],
     ) -> Optional[Dict[str, str]]:
         """Drafts a rating manual based on a topic and dimensions.
 
@@ -174,6 +178,7 @@ class Rating(Propose, ABC):
         if criteria is None:
             logger.error(f"Failed to draft rating criteria for topic {topic}")
             return None
+
         def _validator(response: str) -> Dict[str, str] | None:
             if (
                 json_data := json_parser.validate_dict(response, key_type=str, value_type=str)
@@ -366,7 +371,6 @@ class Rating(Propose, ABC):
         total = sum(weights)
         return dict(zip(criteria_seq, [w / total for w in weights], strict=True))
 
-
     async def composite_score(
         self,
         topic: str,
@@ -409,7 +413,9 @@ class Rating(Propose, ABC):
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
 
     @overload
-    async def best(self, candidates: List[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
+    async def best(
+        self, candidates: List[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> List[str]: ...
 
     @overload
     async def best[T: Display](
@@ -417,7 +423,11 @@ class Rating(Propose, ABC):
     ) -> List[T]: ...
 
     async def best[T: Display](
-        self, candidates: List[str] | List[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self,
+        candidates: List[str] | List[T],
+        k: int = 1,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[CompositeScoreKwargs],
     ) -> Optional[List[str] | List[T]]:
         """Choose the best candidates from the list of candidates based on the composite score.
 

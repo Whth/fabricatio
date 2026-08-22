@@ -32,6 +32,9 @@ class HandleTask(Handle, ABC):
         It supports customizable behavior through keyword arguments for both box and tool selection processes.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             task: The task object containing instructions and metadata for execution.
             data: A dictionary containing input data for the task.
             **kwargs: Additional unpacked keyword arguments for customization of execution behavior.

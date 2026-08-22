@@ -36,6 +36,9 @@ class Plot(Handle):
         """An asynchronous method that initiates a plot operation based on the given requirement and keyword arguments.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (str): A string describing the plot requirement or command.
             data (Optional[Dict[str, Any]]): A dictionary containing data for plotting.
             output_spec (Optional[Dict[str, str]]): A dictionary specifying the output format and location.

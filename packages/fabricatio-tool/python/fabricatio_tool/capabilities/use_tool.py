@@ -39,6 +39,9 @@ class UseTool(UseLLM, ToolConfig, ABC):
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             request (str): The request for toolbox selection.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
@@ -70,6 +73,9 @@ class UseTool(UseLLM, ToolConfig, ABC):
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             request (str): The request for tool selection.
             toolbox (ToolBox): The toolbox from which to choose tools.
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
@@ -97,6 +103,9 @@ class UseTool(UseLLM, ToolConfig, ABC):
         """Asynchronously gathers tools based on the provided request and toolbox and tool selection criteria.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             request (str): The request for gathering tools.
             box_choose_kwargs (Optional[ChooseKwargs]): Keyword arguments for choosing toolboxes.
             tool_choose_kwargs (Optional[ChooseKwargs]): Keyword arguments for choosing tools.
@@ -115,10 +124,15 @@ class UseTool(UseLLM, ToolConfig, ABC):
             chosen_tools.extend(ok(await self.choose_tools(request, toolbox, send_to=send_to, **tool_choose_kwargs)))
         return chosen_tools
 
-    async def gather_tools(self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]]) -> List[Tool]:
+    async def gather_tools(
+        self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]]
+    ) -> List[Tool]:
         """Asynchronously gathers tools based on the provided request.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             request (str): The request for gathering tools.
             **kwargs (Unpack[ChooseKwargs]): Keyword arguments for choosing tools.
 

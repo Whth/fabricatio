@@ -80,7 +80,13 @@ class Remember(Propose, RememberScopedConfig, ABC):
         return note
 
     async def recall(
-        self, query: str, top_k: int = 100, boost_recent: bool = True, *, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+        self,
+        query: str,
+        top_k: int = 100,
+        boost_recent: bool = True,
+        *,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Recall information from the memory system based on a query, Process with llm, which make a summary over memories.
 

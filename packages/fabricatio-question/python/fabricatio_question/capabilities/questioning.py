@@ -24,7 +24,9 @@ class Questioning(Propose):
     interactions.
     """
 
-    async def selection(self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]) -> str | List[str]:
+    async def selection(
+        self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> str | List[str]:
         """Create an interactive selection prompt for the user.
 
         This method first uses the LLM to generate a well-structured selection question
@@ -65,7 +67,9 @@ class Questioning(Propose):
 
         return await question.multiple(k)
 
-    async def selection_string(self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]) -> str:
+    async def selection_string(
+        self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> str:
         """Generates a selection question and returns the formatted response with selected indices.
 
         This method creates a selection question using the internal propose method to generate

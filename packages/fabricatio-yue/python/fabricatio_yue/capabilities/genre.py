@@ -27,6 +27,9 @@ class SelectGenre(UseLLM):
         """Select genres for a single requirement.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (str): A single requirement string describing the desired music style.
             genre_classifier (str): The type or category of genres to consider.
             genres (List[str]): List of available genres to choose from.
@@ -59,6 +62,7 @@ class SelectGenre(UseLLM):
             List[List[str] | None]: List of genre selections, where each selection is either a list of genres or None.
         """
         ...
+
     async def select_genre(
         self,
         requirement: str | List[str],
@@ -73,6 +77,9 @@ class SelectGenre(UseLLM):
         list based on textual requirements and a genre classifier.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirement (str | List[str]): Either a single requirement string or list of requirement strings
                         describing the desired music style or characteristics.
             genre_classifier (str): The type or category of genres to consider (e.g., "pop", "electronic").
@@ -118,8 +125,6 @@ class SelectGenre(UseLLM):
         logger.error(error_msg)
         raise TypeError(error_msg)
 
-
-
     @overload
     async def gather_genres(
         self,
@@ -157,6 +162,7 @@ class SelectGenre(UseLLM):
             List[List[str] | None]: List where each element corresponds to gathered genres for each requirement.
         """
         ...
+
     async def gather_genres(
         self,
         requirements: str | List[str],
@@ -169,6 +175,9 @@ class SelectGenre(UseLLM):
         appropriate genres for each category based on the given requirements.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             requirements (str | List[str]): Either a single requirement string or list of requirement strings.
             **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 

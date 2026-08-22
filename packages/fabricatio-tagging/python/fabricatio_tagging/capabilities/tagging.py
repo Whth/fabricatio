@@ -43,7 +43,12 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: List[str], requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+        self,
+        text: List[str],
+        requirement: str = "",
+        k: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[List[str]]:
         """Generate tags for multiple text strings.
 
@@ -60,7 +65,12 @@ class Tagging(Propose):
         ...
 
     async def tagging(
-        self, text: str | List[str], requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+        self,
+        text: str | List[str],
+        requirement: str = "",
+        k: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> List[List[str]] | List[str] | None:
         """Generate tags for text content.
 
@@ -99,7 +109,9 @@ class Tagging(Propose):
                 tagging_config.tagging_template, [{"text": t, "requirement": requirement} for t in text]
             )
 
-            tags_seq = await gather(*[self.alist_v(r, value_type=str, k=k, send_to=send_to, **kwargs) for r in rendered])
+            tags_seq = await gather(
+                *[self.alist_v(r, value_type=str, k=k, send_to=send_to, **kwargs) for r in rendered]
+            )
 
             return [t or [] for t in tags_seq]
 

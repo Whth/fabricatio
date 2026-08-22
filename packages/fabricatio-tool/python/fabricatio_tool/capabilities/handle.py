@@ -73,7 +73,9 @@ class Handle(UseTool, ABC):
         tools = await self.gather_tools_fine_grind(request, box_choose_kwargs, tool_choose_kwargs, send_to=send_to)
         logger.info(f"Gathered {[t.name for t in tools]}")
 
-        if tools and (source := await self.draft_tool_usage_code(request, tools, data, output_spec, send_to=send_to, **kwargs)):
+        if tools and (
+            source := await self.draft_tool_usage_code(request, tools, data, output_spec, send_to=send_to, **kwargs)
+        ):
             return await ToolExecutor(candidates=tools, data=data).execute(source)
 
         return None

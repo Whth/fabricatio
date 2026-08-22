@@ -78,6 +78,9 @@ class UseSkill(UseLLM, ABC):
         """Use LLM to select skills relevant to a question.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             question: The question/task to match skills against.
             available: Skill name pool to select from. Defaults to self.skill_names.
             **kwargs: LLM parameters.
@@ -123,6 +126,9 @@ class UseSkill(UseLLM, ABC):
         """Use LLM to extract the essential parts of skills relevant to a question.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             question: The question/task to focus distillation on.
             skills: Skills to distill.
             **kwargs: LLM parameters.
@@ -164,6 +170,9 @@ class UseSkill(UseLLM, ABC):
         3. RENDER: prepend distilled context to question, send to LLM
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             question: The question/task to solve.
             names: Force-select these skill names (skips LLM selection).
                    If None and select=True, uses LLM to pick from self.skill_names.
@@ -213,6 +222,9 @@ class UseSkill(UseLLM, ABC):
         """Ask LLM with arbitrary context prepended to the question.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             question: The question/task.
             context: Context text to prepend.
             **kwargs: LLM parameters.

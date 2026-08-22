@@ -40,9 +40,13 @@ def is_list_briefing(sq: Any) -> TypeGuard[List[WithBriefing]]:
 class Ordering(Rating):
     """Class providing methods to order sequences either directly via language model or by scores."""
 
-
     async def order_string(
-        self, seq: List[str], requirement: str, reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[List[str]]]
+        self,
+        seq: List[str],
+        requirement: str,
+        reverse: bool = False,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> List[str] | None:
         """Orders a list of strings based on a given requirement using a language model.
 
@@ -73,6 +77,7 @@ class Ordering(Rating):
             f"Generated sequence: {ordered_raw}"
         )
         return None
+
     async def order_briefed(
         self, seq: List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
     ) -> List[WithBriefing] | None:
@@ -124,7 +129,11 @@ class Ordering(Rating):
     ) -> List[WithBriefing] | None: ...
 
     async def order(
-        self, seq: List[str] | List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+        self,
+        seq: List[str] | List[WithBriefing],
+        requirement: str,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[OrderStringKwargs],
     ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence of either strings or WithBriefing objects based on a requirement.
 
@@ -152,11 +161,19 @@ class Ordering(Rating):
 
     @overload
     async def order_rated(
-        self, seq: List[WithBriefing], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self,
+        seq: List[WithBriefing],
+        reverse: bool = False,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[CompositeScoreKwargs],
     ) -> List[WithBriefing] | None: ...
 
     async def order_rated(
-        self, seq: List[str] | List[WithBriefing], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self,
+        seq: List[str] | List[WithBriefing],
+        reverse: bool = False,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[CompositeScoreKwargs],
     ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence based on composite scores calculated from their briefings or content.
 

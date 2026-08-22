@@ -80,4 +80,3 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
             send_to=send_to,
             **kwargs,
         )
-

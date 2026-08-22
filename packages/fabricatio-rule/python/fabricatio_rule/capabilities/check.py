@@ -26,11 +26,18 @@ class Check(EvidentlyJudge, Propose, ABC):
     """
 
     async def draft_ruleset(
-        self, ruleset_requirement: str, rule_count: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Rule]]
+        self,
+        ruleset_requirement: str,
+        rule_count: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Rule]],
     ) -> Optional[RuleSet]:
         """Generate rule set based on requirement description.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             ruleset_requirement (str): Natural language description of desired ruleset characteristics
             rule_count (int): Number of rules to generate (0 for default count)
             **kwargs: Validation parameters for rule generation
@@ -96,6 +103,9 @@ class Check(EvidentlyJudge, Propose, ABC):
         """Validate text against specific rule.
 
         Args:
+            send_to (str | None): Routing-group variant for the LLM call. Resolved against
+                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
+                    ``TASK``.
             input_text (str): Text content to validate
             rule (Rule): Rule instance for validation
             reference (str): Reference text for comparison (default: "")
