@@ -43,7 +43,7 @@ class TestRAGCompose:
         """
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        bible = SeriesBible(characters="Hero, Villain", background_settings=["The world is cold."])
+        bible = SeriesBible(characters=["Hero", "Villain"], background_settings=["The world is cold."])
         story.set_series_bible(bible)
         for title, desc in [("S1", "Leaving home."), ("S2", "A stranger appears."), ("S3", "The road.")]:
             story.add_scene_context(

@@ -35,7 +35,7 @@ class NovelConfig:
     """template used to render a chapter as a full XHTML document."""
 
     setting_bible_characters_template: str = "built-in/setting_bible_characters"
-    """template used to propose the bible's character roster as a single string."""
+    """template used to propose the bible's character roster as one string per character."""
 
     setting_bible_background_template: str = "built-in/setting_bible_background"
     """template used to propose the bible's background settings as a list of strings."""

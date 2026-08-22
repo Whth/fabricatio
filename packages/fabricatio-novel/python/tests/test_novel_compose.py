@@ -22,7 +22,7 @@ class TestCharacterSpans:
         """Assert N chapters need N-1 boundary cards; chapter 1 starts at the novel start and the last ends at the novel end."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
-        bible = SeriesBible(characters="Hero — brave protagonist.")
+        bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
         meta = NovelPlan(
             title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible

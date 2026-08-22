@@ -2,7 +2,10 @@
 
 {{#if characters}}
 ### Characters
-{{ characters }}
+{{#each characters}}
+{{ this }}
+
+{{/each}}
 {{/if}}
 
 {{#if background_settings}}

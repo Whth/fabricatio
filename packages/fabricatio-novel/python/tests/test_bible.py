@@ -46,14 +46,14 @@ class TestSeriesBibleModel:
     def test_defaults_are_empty(self) -> None:
         """Assert a fresh bible is empty."""
         bible = SeriesBible()
-        assert bible.characters == ""
+        assert bible.characters == []
         assert bible.background_settings == []
         assert bible.is_empty()
 
     def test_json_round_trip(self) -> None:
         """Assert a filled bible survives a JSON dump/validate round trip."""
         bible = SeriesBible(
-            characters="Hero: brave protagonist.",
+            characters=["Hero: brave protagonist."],
             background_settings=["Qi is the world's vital energy.", "The Azure Sect rules the north."],
         )
         assert not bible.is_empty()
@@ -63,7 +63,7 @@ class TestSeriesBibleModel:
     def test_as_prompt_renders_both_sections(self) -> None:
         """Assert as_prompt renders the roster and every background fact."""
         bible = SeriesBible(
-            characters="Hero: brave protagonist.",
+            characters=["Hero: brave protagonist."],
             background_settings=["Qi is the world's vital energy.", "The Azure Sect rules the north."],
         )
         prompt = bible.as_prompt()
@@ -71,6 +71,12 @@ class TestSeriesBibleModel:
         assert "Hero: brave protagonist." in prompt
         assert "Qi is the world's vital energy." in prompt
         assert "The Azure Sect rules the north." in prompt
+
+    def test_legacy_string_characters_coerce_to_lines(self) -> None:
+        """Assert pre-list bibles load by splitting a bare string roster into non-blank lines."""
+        legacy = '{"characters": "Hero.\\n\\n  Mentor.  \\n", "background_settings": []}'
+        bible = SeriesBible.model_validate_json(legacy)
+        assert bible.characters == ["Hero.", "Mentor."]
 
 
 class TestContextBibleAccess:
@@ -84,14 +90,14 @@ class TestContextBibleAccess:
 
     def test_access_settings_bible_returns_initialized_bible(self) -> None:
         """Assert the accessor returns the initialized bible instance."""
-        bible = SeriesBible(characters="Hero.")
+        bible = SeriesBible(characters=["Hero."])
         ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
         ctx.set_series_bible(bible)
         assert ctx.access_settings_bible() is bible
 
     def test_broadcast_settings_bible_reaches_all_descendants(self) -> None:
         """Assert broadcasting pushes the bible down the whole context chain."""
-        bible = SeriesBible(characters="Hero.")
+        bible = SeriesBible(characters=["Hero."])
         novel = NovelContext.create("The hero.", language="English")
         chapter = ChapterContext(title="Ch1", description="The start.")
         story = StoryContext(title="St1", description="The departure.")
@@ -113,7 +119,7 @@ class TestContextBibleAccess:
         """Assert an uninitialized parent broadcasts None, overriding stale children."""
         novel = NovelContext.create("The hero.", language="English")
         chapter = ChapterContext(title="Ch1", description="The start.")
-        chapter.set_series_bible(SeriesBible(characters="Stale."))
+        chapter.set_series_bible(SeriesBible(characters=["Stale."]))
         novel.add_chapter_context(chapter)
 
         novel.broadcast_settings_bible()
@@ -132,13 +138,13 @@ class TestCreateSettingBible:
     async def test_create_full_bible(self) -> None:
         """Assert both sections are proposed and assembled into the bible."""
         role = BibleRole(name="bible_role")
-        roster = "Hero — protagonist, brave, wants to find his father.\nMentor — supporting, wise."
+        roster = ["Hero — protagonist, brave, wants to find his father.", "Mentor — supporting, wise."]
         background = [
             "Qi is the vital energy of the world.",
             "The Azure Sect rules the north.",
             "A lost sword awaits its master.",
         ]
-        with install_router_usage(*return_mixed_router_usage(Value(roster, "generic"), Value(background, "json"))):
+        with install_router_usage(*return_mixed_router_usage(Value(roster, "json"), Value(background, "json"))):
             bible = await role.create_setting_bible("The hero seeks his father.", language="English")
 
         assert bible is not None
@@ -148,8 +154,8 @@ class TestCreateSettingBible:
     async def test_create_characters_only(self) -> None:
         """Assert a section filter proposes only that section."""
         role = BibleRole(name="bible_role")
-        roster = "Hero — brave protagonist."
-        with install_router_usage(*return_mixed_router_usage(Value(roster, "generic"))):
+        roster = ["Hero — brave protagonist."]
+        with install_router_usage(*return_mixed_router_usage(Value(roster, "json"))):
             bible = await role.create_setting_bible(
                 "The hero seeks his father.", language="English", sections="characters"
             )
@@ -168,7 +174,7 @@ class TestCreateSettingBible:
     async def test_create_fails_when_background_fails(self) -> None:
         """Assert creation aborts when the background proposal is invalid."""
         role = BibleRole(name="bible_role")
-        with install_router_usage(*return_mixed_router_usage(Value("Hero.", "generic"), Value("not-an-array", "json"))):
+        with install_router_usage(*return_mixed_router_usage(Value(["Hero."], "json"), Value("not-an-array", "json"))):
             bible = await role.create_setting_bible("The hero.", language="English")
         assert bible is None
 
@@ -180,27 +186,27 @@ class TestUpdateSettingBible:
         """Assert updating one section keeps the others intact."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(
-            characters="Old roster.",
+            characters=["Old roster."],
             background_settings=["Qi is vital.", "Old fact."],
         )
-        with install_router_usage(*return_mixed_router_usage(Value("New roster.", "generic"))):
+        with install_router_usage(*return_mixed_router_usage(Value(["New roster."], "json"))):
             updated = await role.update_setting_bible(bible, "The hero.", language="English", sections="characters")
 
         assert updated is not None
-        assert updated.characters == "New roster."
+        assert updated.characters == ["New roster."]
         assert updated.background_settings == ["Qi is vital.", "Old fact."]
 
     async def test_update_all_sections(self) -> None:
         """Assert updating without a filter re-proposes every section."""
         role = BibleRole(name="bible_role")
-        bible = SeriesBible(characters="Old roster.", background_settings=["Old fact."])
+        bible = SeriesBible(characters=["Old roster."], background_settings=["Old fact."])
         with install_router_usage(
-            *return_mixed_router_usage(Value("New roster.", "generic"), Value(["New fact."], "json"))
+            *return_mixed_router_usage(Value(["New roster."], "json"), Value(["New fact."], "json"))
         ):
             updated = await role.update_setting_bible(bible, "The hero.", language="English")
 
         assert updated is not None
-        assert updated.characters == "New roster."
+        assert updated.characters == ["New roster."]
         assert updated.background_settings == ["New fact."]
 
 
@@ -209,7 +215,7 @@ class TestBibleConsumption:
 
     def _bible(self) -> SeriesBible:
         return SeriesBible(
-            characters="Hero — brave protagonist, seeks his father.",
+            characters=["Hero — brave protagonist, seeks his father."],
             background_settings=["Qi is the vital energy of the world.", "The Azure Sect rules the north."],
         )
 

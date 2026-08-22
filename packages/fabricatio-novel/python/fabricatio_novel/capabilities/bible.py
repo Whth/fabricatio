@@ -1,8 +1,8 @@
 """Setting bible capabilities: creation, update, and scene-prompt consumption.
 
 Design authority: docs/superpowers/specs/2026-08-08-novel-gen-overhaul-design.md §3,
-simplified per user directive: characters are proposed as one string,
-background settings as a list of plain strings.
+simplified per user directive: characters are proposed as a list of plain
+strings, one per character, as are background settings.
 """
 
 from abc import ABC
@@ -51,7 +51,7 @@ class BibleCompose(SceneCompose, ABC):
         lang = language or detect_language(outline)
         names = parse_sections(sections)
 
-        characters = ""
+        characters: list[str] = []
         if names is None or "characters" in names:
             proposed_characters = await self._propose_characters(outline, lang, send_to, **kwargs)
             if proposed_characters is None:
@@ -103,15 +103,15 @@ class BibleCompose(SceneCompose, ABC):
         language: str,
         send_to: str | None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> str | None:
-        """Propose the character roster as a single string."""
+    ) -> list[str] | None:
+        """Propose the character roster as one string per character."""
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.setting_bible_characters_template,
             {"outline": outline, "language": language},
         )
         return cast(
-            "str | None",
-            await self.ageneric_string(requirement, send_to, **kwargs),
+            "list[str] | None",
+            await self.alist_v(requirement, str, send_to=send_to, **kwargs),
         )
 
     async def _propose_background(

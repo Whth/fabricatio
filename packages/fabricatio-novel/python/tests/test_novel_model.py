@@ -41,7 +41,7 @@ class TestNovelContext:
             description="A hero searching.",
             expected_word_count=100,
             writing_constraint="First person view throughout.",
-            series_bible=SeriesBible(characters="Hero — brave protagonist."),
+            series_bible=SeriesBible(characters=["Hero — brave protagonist."]),
         )
         result = ctx.update_from(plan)
         assert result is ctx
@@ -62,7 +62,7 @@ class TestNovelContext:
     def test_update_from_keeps_preset_bible_when_plan_bible_empty(self) -> None:
         """Assert a preset series bible survives update_from with an empty-plan bible."""
         ctx = NovelContext.create("The hero.", language="English")
-        bible = SeriesBible(characters="Hero — brave protagonist.")
+        bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
         plan = NovelPlan(title="The Search", description="A hero searching.", expected_word_count=100)
         ctx.update_from(plan)
@@ -208,7 +208,7 @@ class TestFromContext:
         ctx.title = "The Search"
         ctx.description = "A hero searching."
         ctx.expected_word_count = 200
-        bible = SeriesBible(characters="Hero — brave protagonist.")
+        bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
 
         chapter_ctx = ChapterContext(title="Ch1", description="The start.")
