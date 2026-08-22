@@ -5,6 +5,7 @@ from typing import Any, List, TypeGuard, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 from more_itertools.more import duplicates_everseen
 
 from fabricatio_capabilities.capabilities.rating import Rating
@@ -39,8 +40,9 @@ def is_list_briefing(sq: Any) -> TypeGuard[List[WithBriefing]]:
 class Ordering(Rating):
     """Class providing methods to order sequences either directly via language model or by scores."""
 
+
     async def order_string(
-        self, seq: List[str], requirement: str, reverse: bool = False, **kwargs: Unpack[ValidateKwargs[List[str]]]
+        self, seq: List[str], requirement: str, reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[List[str]]]
     ) -> List[str] | None:
         """Orders a list of strings based on a given requirement using a language model.
 
@@ -48,6 +50,9 @@ class Ordering(Rating):
             seq (List[str]): The input sequence to be ordered.
             requirement (str): The requirement string guiding the ordering.
             reverse (bool): Whether to reverse the order. Defaults to False.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Additional keyword arguments.
 
         Returns:
@@ -58,7 +63,7 @@ class Ordering(Rating):
         )
 
         logger.debug(f"Ordering sequence: \n{seq}")
-        ordered_raw = await self.alist_v(rendered, value_type=str, k=len(seq), **kwargs)
+        ordered_raw = await self.alist_v(rendered, value_type=str, k=len(seq), send_to=send_to, **kwargs)
 
         if (ordered_raw is not None) and (sorted(seq) == sorted(ordered_raw)):
             return ordered_raw
@@ -68,9 +73,8 @@ class Ordering(Rating):
             f"Generated sequence: {ordered_raw}"
         )
         return None
-
     async def order_briefed(
-        self, seq: List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
     ) -> List[WithBriefing] | None:
         """Orders a list of WithBriefing objects based on a given requirement using their names for language model processing.
 
@@ -81,6 +85,9 @@ class Ordering(Rating):
         Args:
             seq (List[WithBriefing]): The input sequence of WithBriefing objects to be ordered.
             requirement (str): The requirement string guiding the ordering.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Additional keyword arguments unpacked and passed to the order_string method.
 
         Returns:
@@ -98,6 +105,7 @@ class Ordering(Rating):
                     "with_briefings": [{"name": s.name, "briefing": s.briefing} for s in seq],
                 },
             ),
+            send_to=send_to,
             **kwargs,
         )
         if ordered_names is None:
@@ -107,51 +115,57 @@ class Ordering(Rating):
 
     @overload
     async def order(
-        self, seq: List[str], requirement: str, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
     ) -> List[str] | None: ...
 
     @overload
     async def order(
-        self, seq: List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
     ) -> List[WithBriefing] | None: ...
 
     async def order(
-        self, seq: List[str] | List[WithBriefing], requirement: str, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: List[str] | List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
     ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence of either strings or WithBriefing objects based on a requirement.
 
         Args:
             seq (List[str] | List[WithBriefing]): Input sequence to be ordered.
             requirement (str): Requirement guiding the ordering.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Keyword arguments for further customization.
 
         Returns:
             None | List[str] | List[WithBriefing]: Ordered sequence or None if invalid input.
         """
         if is_list_str(seq):
-            return await self.order_string(seq, requirement, **kwargs)
+            return await self.order_string(seq, requirement, send_to=send_to, **kwargs)
         if is_list_briefing(seq):
-            return await self.order_briefed(seq, requirement, **kwargs)
+            return await self.order_briefed(seq, requirement, send_to=send_to, **kwargs)
         raise ValueError("The sequence must be a list of strings or a list of WithBriefing objects.")
 
     @overload
     async def order_rated(
-        self, seq: List[str], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
+        self, seq: List[str], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[str] | None: ...
 
     @overload
     async def order_rated(
-        self, seq: List[WithBriefing], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
+        self, seq: List[WithBriefing], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[WithBriefing] | None: ...
 
     async def order_rated(
-        self, seq: List[str] | List[WithBriefing], reverse: bool = False, **kwargs: Unpack[CompositeScoreKwargs]
+        self, seq: List[str] | List[WithBriefing], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[str] | List[WithBriefing] | None:
         """Orders a sequence based on composite scores calculated from their briefings or content.
 
         Args:
             seq (List[str] | List[WithBriefing]): Sequence to rate and order.
             reverse (bool): Whether to reverse the sorting order. Defaults to False.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Arguments for score calculation.
 
         Returns:
@@ -159,7 +173,7 @@ class Ordering(Rating):
         """
         to_rate: List[str] = [s.briefing for s in seq] if is_list_briefing(seq) else seq  # pyright: ignore [reportAssignmentType]
 
-        scores = await self.composite_score(to_rate=to_rate, **kwargs)
+        scores = await self.composite_score(to_rate=to_rate, send_to=send_to, **kwargs)
         # order the sequence by the scores
         sorted_pack = sorted(zip(seq, scores, strict=False), key=lambda x: x[1], reverse=reverse)
         return [s[0] for s in sorted_pack]  # pyright: ignore [reportReturnType]

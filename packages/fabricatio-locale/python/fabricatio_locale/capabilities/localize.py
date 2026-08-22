@@ -2,6 +2,7 @@
 
 from typing import List, Unpack
 
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
 from fabricatio_translate.capabilities.translate import Translate
 from fabricatio_translate.models.kwargs_types import TranslateKwargs
@@ -16,18 +17,21 @@ class Localize(Translate):
     while preserving message identifiers.
     """
 
-    async def localize(self, msgs: List[Msg], **kwargs: Unpack[TranslateKwargs]) -> List[Msg]:
+    async def localize(self, msgs: List[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs]) -> List[Msg]:
         """Localizes a list of messages by translating their text content.
 
         Args:
-            msgs: A list of Message objects to be localized
-            **kwargs: Additional keyword arguments for translation
+            msgs: A list of Message objects to be localized.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
+            **kwargs: Additional keyword arguments for translation.
 
         Returns:
             A list of localized Message objects with translated texts,
-            but retaining original message IDs
+            but retaining original message IDs.
         """
-        translated_msg_txt_seq = ok(await self.translate([msg.txt for msg in msgs], **kwargs))
+        translated_msg_txt_seq = ok(
+            await self.translate([msg.txt for msg in msgs], send_to=send_to, **kwargs)
+        )
         return [
             Msg(txt=translated_msg_txt or msg.txt, id=msg.id)
             for translated_msg_txt, msg in zip(translated_msg_txt_seq, msgs, strict=True)

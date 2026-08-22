@@ -12,7 +12,7 @@ from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import (
     ValidateKwargs,
 )
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from fabricatio_core.utils import fallback_kwargs, no_default, ok
 
 from fabricatio_improve.config import improve_config
@@ -25,7 +25,7 @@ class Correct(Rating, ABC):
     """A class that provides the capability to correct objects."""
 
     async def decide_solution(
-        self, problem_solutions: ProblemSolutions, **kwargs: Unpack[BestKwargs]
+        self, problem_solutions: ProblemSolutions, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs]
     ) -> ProblemSolutions:
         """Decide the best solution from a list of problem solutions.
 
@@ -40,10 +40,10 @@ class Correct(Rating, ABC):
             logger.error(f"No solutions found in ProblemSolutions, Skip: `{problem_solutions.problem.name}`")
         if leng > 1:
             logger.info(f"{leng} solutions found in Problem `{problem_solutions.problem.name}`, select the best.")
-            problem_solutions.solutions = await self.best(problem_solutions.solutions, **kwargs)
+            problem_solutions.solutions = await self.best(problem_solutions.solutions, send_to=send_to, **kwargs)
         return problem_solutions
 
-    async def decide_improvement(self, improvement: Improvement, **kwargs: Unpack[BestKwargs]) -> Improvement:
+    async def decide_improvement(self, improvement: Improvement, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs]) -> Improvement:
         """Decide the best solution for each problem solution in an improvement.
 
         Args:
@@ -79,6 +79,7 @@ class Correct(Rating, ABC):
         obj: M,
         problem_solutions: ProblemSolutions,
         reference: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> Optional[M]:
         """Fix a troubled object based on problem solutions.
@@ -105,6 +106,7 @@ class Correct(Rating, ABC):
                     "reference": reference,
                 },
             ),
+            send_to=send_to,
             **kwargs,
         )
 
@@ -113,6 +115,7 @@ class Correct(Rating, ABC):
         input_text: str,
         problem_solutions: ProblemSolutions,
         reference: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
         """Fix a troubled string based on problem solutions.
@@ -139,6 +142,7 @@ class Correct(Rating, ABC):
                     "string_to_fix": input_text,
                 },
             ),
+            send_to=send_to,
             **kwargs,
         )
 

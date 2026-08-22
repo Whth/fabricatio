@@ -7,7 +7,7 @@ from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_checkpoint.capabilities.checkpoint import Checkpoint
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from fabricatio_core.utils import ok
 from fabricatio_diff.capabilities.diff_edit import DiffEdit
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
@@ -49,6 +49,8 @@ class Agent(
         memory: bool = False,
         top_k: int = 100,
         boost_recent: bool = True,
+        *,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> List[Any] | None:
         """Process and fulfill a request using various agent capabilities.
@@ -62,6 +64,7 @@ class Agent(
             memory (bool, optional): Whether to use memory in processing. Defaults to False.
             top_k (int, optional): Number of top memories to recall. Defaults to 100.
             boost_recent (bool, optional): Whether to boost recent memories. Defaults to True.
+            send_to (str | None, optional): Routing group for LLM calls (TASK, SMOL, TINY, SLOW, PLAN).
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for generation.
 
         Returns:
@@ -76,15 +79,15 @@ class Agent(
             - Digests the request into tasks
             - Executes the generated task list
         """
-        if (check_capable or agent_config.check_capable) and not await self.capable(request, **kwargs):  # pyright: ignore [reportCallIssue]
+        if (check_capable or agent_config.check_capable) and not await self.capable(request, send_to=send_to, **kwargs):  # pyright: ignore [reportCallIssue]
             return None
         mem = ""
         thought = ""
         if memory or agent_config.memory:
-            mem = await self.recall(request, top_k, boost_recent, **kwargs)
+            mem = await self.recall(request, top_k, boost_recent, send_to=send_to, **kwargs)
 
         if sequential_thinking or agent_config.sequential_thinking:
-            thought = (await self.thinking(request, **kwargs)).export_branch_string()
+            thought = (await self.thinking(request, send_to=send_to, **kwargs)).export_branch_string()
 
         task_list = ok(
             await self.digest(
@@ -92,6 +95,7 @@ class Agent(
                     agent_config.fulfill_prompt_template, {"request": request, "mem": mem, "thoughts": thought}
                 ),
                 ok(self.team_roster),
+                send_to=send_to,
                 **kwargs,
             )
         )

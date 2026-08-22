@@ -5,6 +5,7 @@ from typing import List, Unpack, overload
 
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 
 from fabricatio_character.models.character import CharacterCard
 
@@ -16,36 +17,48 @@ class CharacterCompose(Propose, ABC):
     async def compose_characters(
         self,
         requirements: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> CharacterCard | None:
-        """Fetch a single character matching the requirement string, or None."""
+    ) -> CharacterCard | None: ...
 
     @overload
     async def compose_characters(
         self,
         requirements: list[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> List[CharacterCard | None]:
-        """Fetch multiple characters by requirements; may include None for unmatched."""
+    ) -> List[CharacterCard | None]: ...
 
     @overload
     async def compose_characters(
         self,
         requirements: list[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> List[CharacterCard]:
-        """Fetch multiple characters; raises or filters to ensure all results are valid."""
+    ) -> List[CharacterCard]: ...
 
     @overload
     async def compose_characters(
         self,
         requirements: str | list[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
     ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None: ...
+
     async def compose_characters(
         self,
         requirements: str | list[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
     ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None:
-        """Delegate to propose() to resolve character(s) based on requirements."""
-        return await self.propose(CharacterCard, requirements, **kwargs)
+        """Delegate to propose() to resolve character(s) based on requirements.
+
+        Args:
+            requirements: A single requirement string or list of requirement strings.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
+            **kwargs: Passed through to propose().
+
+        Returns:
+            Resolved CharacterCard(s).
+        """
+        return await self.propose(CharacterCard, requirements, send_to=send_to, **kwargs)

@@ -6,6 +6,7 @@ from typing import List, Optional, Self, Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import LLMKwargs
+from fabricatio_core.rust import TASK
 from pydantic import Field
 
 from fabricatio_skill.config import skill_config
@@ -71,6 +72,7 @@ class UseSkill(UseLLM, ABC):
         self,
         question: str,
         available: Optional[List[str]] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[Skill]:
         """Use LLM to select skills relevant to a question.
@@ -95,7 +97,7 @@ class UseSkill(UseLLM, ABC):
             {"question": question, "skills": skill_summaries},
         )
 
-        response = await self.aask(prompt, **kwargs)
+        response = await self.aask(prompt, send_to=send_to, **kwargs)
         names = [n.strip().strip("*").strip('"').strip("'") for n in response.split(",") if n.strip()]
 
         matched = []
@@ -115,6 +117,7 @@ class UseSkill(UseLLM, ABC):
         self,
         question: str,
         skills: list[Skill],
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Use LLM to extract the essential parts of skills relevant to a question.
@@ -136,7 +139,7 @@ class UseSkill(UseLLM, ABC):
             {"question": question, "skills": skill_blocks},
         )
 
-        result = await self.aask(prompt, **kwargs)
+        result = await self.aask(prompt, send_to=send_to, **kwargs)
         logger.info(f"Distilled {len(skills)} skill(s) into {len(result)} chars.")
         return result
 
@@ -150,6 +153,7 @@ class UseSkill(UseLLM, ABC):
         select: bool = True,
         distill: bool = True,
         in_content: bool = False,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Progressive skill resolution pipeline, then ask LLM.
@@ -186,7 +190,7 @@ class UseSkill(UseLLM, ABC):
 
         if not selected:
             logger.warn("No skills selected. Proceeding without skill context.")
-            return await self.aask(question, **kwargs)
+            return await self.aask(question, send_to=send_to, **kwargs)
 
         # Stage 2: DISTILL
         if distill:
@@ -195,7 +199,7 @@ class UseSkill(UseLLM, ABC):
             context = "\n\n".join(s.content for s in selected)
 
         # Stage 3: RENDER — prepend context and ask
-        return await self.aask_with_context(question, context, **kwargs)
+        return await self.aask_with_context(question, context, send_to=send_to, **kwargs)
 
     # ── Level 3: Composable ──────────────────────────────────────────
 
@@ -203,6 +207,7 @@ class UseSkill(UseLLM, ABC):
         self,
         question: str,
         context: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Ask LLM with arbitrary context prepended to the question.
@@ -216,4 +221,4 @@ class UseSkill(UseLLM, ABC):
             LLM response.
         """
         enriched = f"{context}\n\n---\n\n{question}" if context else question
-        return await self.aask(enriched, **kwargs)
+        return await self.aask(enriched, send_to=send_to, **kwargs)

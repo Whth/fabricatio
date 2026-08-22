@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ListingKwargs, ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
 
 from fabricatio_plot.config import plot_config
@@ -23,7 +24,7 @@ class SynthesizeData(UseLLM, ABC):
     """
 
     async def generate_header(
-        self, requirement: str | List[str], **kwargs: Unpack[ListingKwargs[str]]
+        self, requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ListingKwargs[str]]
     ) -> List[str] | List[List[str] | None] | None:
         """Generate appropriate column headers based on the given requirement(s).
 
@@ -41,7 +42,7 @@ class SynthesizeData(UseLLM, ABC):
         rendered = TEMPLATE_MANAGER.render_template(
             plot_config.generate_header_template, [{"requirement": req} for req in requirement]
         )
-        header = await self.alist_v(rendered, value_type=str, **kwargs)
+        header = await self.alist_v(rendered, value_type=str, send_to=send_to, **kwargs)
         if header is None:
             return None
         return header[0] if was_str else header
@@ -51,6 +52,7 @@ class SynthesizeData(UseLLM, ABC):
         requirement: str,
         header: Optional[List[str]],
         rows: int = 100,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional["DataFrame"]:
         """Generate CSV-formatted synthetic data matching the specified requirement and header.
@@ -78,6 +80,7 @@ class SynthesizeData(UseLLM, ABC):
                 {"requirement": requirement, "rows": rows, "header": true_header},
             ),
             plot_config.csv_codeblock_lang,
+            send_to=send_to,
             **kwargs,
         )
         try:
@@ -96,6 +99,7 @@ class SynthesizeData(UseLLM, ABC):
         header: Optional[List[str]] = None,
         rows: int = 1000,
         batch_size: int = 100,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional["DataFrame"]:
         """Synthesize large datasets efficiently by parallel batch generation and concatenation.
@@ -128,7 +132,7 @@ class SynthesizeData(UseLLM, ABC):
         batch_results = await gather(
             *[
                 self.generate_csv_data(
-                    f"{requirement}\n\nthis is the [{i}\\{len(batch_sizes)}] batch", header, batch_rows, **kwargs
+                    f"{requirement}\n\nthis is the [{i}\\{len(batch_sizes)}] batch", header, batch_rows, send_to=send_to, **kwargs
                 )
                 for i, batch_rows in enumerate(batch_sizes)
             ]

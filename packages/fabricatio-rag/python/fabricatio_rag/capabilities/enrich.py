@@ -5,6 +5,7 @@ from typing import List, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
+from fabricatio_core.rust import TASK
 
 from fabricatio_rag.config import rag_config
 from fabricatio_rag.models.qa import EnrichmentResult
@@ -14,15 +15,18 @@ class EnrichChunkText(Propose, ABC):
     """Generate question-answer pairs from text chunks via LLM enrichment."""
 
     @overload
-    async def enrich(self, enrich_guideline: str, chunk: str) -> EnrichmentResult: ...
+    async def enrich(self, enrich_guideline: str, chunk: str, send_to: str | None = TASK) -> EnrichmentResult: ...
 
     @overload
-    async def enrich(self, enrich_guideline: str, chunk: List[str]) -> List[EnrichmentResult]: ...
+    async def enrich(
+        self, enrich_guideline: str, chunk: List[str], send_to: str | None = TASK
+    ) -> List[EnrichmentResult]: ...
 
     async def enrich(
         self,
         enrich_guideline: str,
         chunk: str | List[str],
+        send_to: str | None = TASK,
     ) -> EnrichmentResult | List[EnrichmentResult]:
         """Generate QAPairs from text chunk(s) guided by enrichment instructions.
 
@@ -30,6 +34,7 @@ class EnrichChunkText(Propose, ABC):
             enrich_guideline: Free-form NL describing what kinds of questions
                 to generate (e.g. "factual recall", "conceptual", "multi-hop").
             chunk: Single string or list of strings to enrich.
+            send_to: Routing-group variant for the LLM call (defaults to TASK).
 
         Returns:
             For a single str: an EnrichmentResult with qa_pairs for that chunk.
@@ -42,5 +47,5 @@ class EnrichChunkText(Propose, ABC):
         render_inputs = [{"enrich_guideline": enrich_guideline, "chunk": c} for c in chunks]
         requirements = TEMPLATE_MANAGER.render_template(rag_config.enrich_qa_template, render_inputs)
 
-        results = await self.propose(EnrichmentResult, requirements)
+        results = await self.propose(EnrichmentResult, requirements, send_to=send_to)
         return results[0] if was_str else results

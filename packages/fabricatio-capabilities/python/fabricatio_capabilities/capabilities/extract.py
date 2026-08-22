@@ -7,6 +7,7 @@ from fabricatio import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 
 from fabricatio_capabilities.config import capabilities_config
 
@@ -21,6 +22,7 @@ class Extract(Propose, ABC):
         source: str,
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
 
@@ -31,6 +33,7 @@ class Extract(Propose, ABC):
         source: str,
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> Optional[M]: ...
 
@@ -41,6 +44,7 @@ class Extract(Propose, ABC):
         source: List[str],
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> List[M]: ...
 
@@ -51,6 +55,7 @@ class Extract(Propose, ABC):
         source: List[str],
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
     ) -> List[Optional[M]]: ...
 
@@ -60,9 +65,16 @@ class Extract(Propose, ABC):
         source: List[str] | str,
         extract_requirement: Optional[str] = None,
         align_language: bool = True,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Optional[M]]],
     ) -> M | List[M] | List[Optional[M]] | None:
-        """Extract information from a given source to a model."""
+        """Extract information from a given source to a model.
+
+        Args:
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
+        """
         return await self.propose(
             cls,
             prompt=TEMPLATE_MANAGER.render_template(
@@ -71,5 +83,6 @@ class Extract(Propose, ABC):
                 if isinstance(source, list)
                 else {"source": source, "extract_requirement": extract_requirement, "align_language": align_language},
             ),
+            send_to=send_to,
             **kwargs,
         )

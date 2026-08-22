@@ -6,6 +6,7 @@ from typing import Unpack
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 
 from fabricatio_sandbox.config import sandbox_config
 from fabricatio_sandbox.models.sandbox import SandboxResult
@@ -43,6 +44,8 @@ class Sandbox(UseLLM, ABC):
         source: str,
         requirement: str,
         mounts: dict[str, str] | None = None,
+        *,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[SandboxResult]],
     ) -> SandboxResult:
         """Run a sandboxed edit operation driven by the LLM.
@@ -55,6 +58,7 @@ class Sandbox(UseLLM, ABC):
             source: Initial file content to place in the sandbox.
             requirement: Natural-language description of the desired change.
             mounts: Optional real-dir mounts for context.
+            send_to: Routing group for LLM calls (TASK, SMOL, TINY, SLOW, PLAN).
             **kwargs: Forwarded to ``aask_validate``.
 
         Returns:
@@ -77,6 +81,7 @@ class Sandbox(UseLLM, ABC):
                 {"source": source, "requirement": requirement},
             ),
             _validator,
+            send_to=send_to,
             **kwargs,
         )
 

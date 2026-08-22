@@ -8,6 +8,7 @@ for handling plot tasks.
 from typing import Any, Dict, Optional, Set, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_tool.capabilities.handle import Handle
 from fabricatio_tool.models.collector import ResultCollector
 from fabricatio_tool.models.tool import ToolBox
@@ -29,6 +30,7 @@ class Plot(Handle):
         requirement: str,
         data: Optional[Dict[str, Any]] = None,
         output_spec: Optional[Dict[str, str]] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> ResultCollector | None:
         """An asynchronous method that initiates a plot operation based on the given requirement and keyword arguments.
@@ -43,4 +45,4 @@ class Plot(Handle):
             ResultCollector | None: A ResultCollector instance containing the results of the plot operation,
                 or None if not applicable.
         """
-        return await self.handle(requirement, data, output_spec, **kwargs)
+        return await self.handle(requirement, data, output_spec, send_to=send_to, **kwargs)

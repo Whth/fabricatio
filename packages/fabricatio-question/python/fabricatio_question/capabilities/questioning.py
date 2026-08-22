@@ -9,6 +9,7 @@ from typing import List, Unpack
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import LLMKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
 
 from fabricatio_question.config import question_config
@@ -23,7 +24,7 @@ class Questioning(Propose):
     interactions.
     """
 
-    async def selection(self, q: str, k: int = 1, **kwargs: Unpack[LLMKwargs]) -> str | List[str]:
+    async def selection(self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]) -> str | List[str]:
         """Create an interactive selection prompt for the user.
 
         This method first uses the LLM to generate a well-structured selection question
@@ -35,6 +36,7 @@ class Questioning(Propose):
                 the interactive selection question.
             k (int, optional): The number of selections allowed. Defaults to 1.
                 If k=1, returns a single string. If k>1, returns a list of strings.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional keyword arguments passed to the LLM generation process,
                 such as model parameters, temperature, etc.
 
@@ -52,6 +54,7 @@ class Questioning(Propose):
                 TEMPLATE_MANAGER.render_template(
                     question_config.selection_template, {"q": q}
                 ),  # create the generation prompt
+                send_to=send_to,
                 **kwargs,
             ),
             "Failed to generate selection question.",
@@ -62,7 +65,7 @@ class Questioning(Propose):
 
         return await question.multiple(k)
 
-    async def selection_string(self, q: str, k: int = 1, **kwargs: Unpack[LLMKwargs]) -> str:
+    async def selection_string(self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]) -> str:
         """Generates a selection question and returns the formatted response with selected indices.
 
         This method creates a selection question using the internal propose method to generate
@@ -73,6 +76,7 @@ class Questioning(Propose):
             q (str): The prompt text used to generate the selection question.
             k (int, optional): The number of selections allowed. Defaults to 1.
                 If k=1, a single selection is made. If k>1, multiple selections are made up to k.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional keyword arguments passed to the LLM generation process.
 
         Returns:
@@ -88,6 +92,7 @@ class Questioning(Propose):
                 TEMPLATE_MANAGER.render_template(
                     question_config.selection_template, {"q": q}
                 ),  # create the generation prompt
+                send_to=send_to,
                 **kwargs,
             ),
             "Failed to generate selection question.",

@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Unpack
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from fabricatio_core.utils import no_default
 
 from fabricatio_tool.capabilities.use_tool import UseTool
@@ -29,6 +29,7 @@ class Handle(UseTool, ABC):
         data: Dict[str, Any],
         output_spec: Optional[Dict[str, str]] = None,
         last_error: Optional[ApplicationError] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[str]:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
@@ -54,7 +55,7 @@ class Handle(UseTool, ABC):
         )
         logger.debug(f"Code Drafting Question: \n{q}")
 
-        return await self.acode_string(q, "python", **kwargs)
+        return await self.acode_string(q, "python", send_to=send_to, **kwargs)
 
     async def handle_fine_grind(
         self,
@@ -63,15 +64,16 @@ class Handle(UseTool, ABC):
         output_spec: Optional[Dict[str, str]] = None,
         box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
         tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
         logger.info(f"Handling task: \n{request}")
 
-        tools = await self.gather_tools_fine_grind(request, box_choose_kwargs, tool_choose_kwargs)
+        tools = await self.gather_tools_fine_grind(request, box_choose_kwargs, tool_choose_kwargs, send_to=send_to)
         logger.info(f"Gathered {[t.name for t in tools]}")
 
-        if tools and (source := await self.draft_tool_usage_code(request, tools, data, output_spec, **kwargs)):
+        if tools and (source := await self.draft_tool_usage_code(request, tools, data, output_spec, send_to=send_to, **kwargs)):
             return await ToolExecutor(candidates=tools, data=data).execute(source)
 
         return None
@@ -81,6 +83,7 @@ class Handle(UseTool, ABC):
         request: str,
         data: Optional[Dict[str, Any]] = None,
         output_spec: Optional[Dict[str, str]] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters."""
@@ -92,5 +95,6 @@ class Handle(UseTool, ABC):
             output_spec,
             box_choose_kwargs=okwargs,
             tool_choose_kwargs=okwargs,
+            send_to=send_to,
             **kwargs,
         )

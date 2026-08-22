@@ -10,6 +10,7 @@ from typing import List, overload
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import LLMKwargs
+from fabricatio_core.rust import TASK
 from typing_extensions import Unpack
 
 from fabricatio_tagging.config import tagging_config
@@ -24,7 +25,7 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: str, requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
+        self, text: str, requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
     ) -> List[str] | None:
         """Generate tags for a single text string.
 
@@ -32,6 +33,7 @@ class Tagging(Propose):
             text: The input text to generate tags for.
             requirement: Additional requirements or constraints for tag generation.
             k: Maximum number of tags to generate (0 for no limit).
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional generation parameters.
 
         Returns:
@@ -41,7 +43,7 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
+        self, text: List[str], requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
     ) -> List[List[str]]:
         """Generate tags for multiple text strings.
 
@@ -49,6 +51,7 @@ class Tagging(Propose):
             text: A list of input texts to generate tags for.
             requirement: Additional requirements or constraints for tag generation.
             k: Maximum number of tags to generate per text (0 for no limit).
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional generation parameters.
 
         Returns:
@@ -57,7 +60,7 @@ class Tagging(Propose):
         ...
 
     async def tagging(
-        self, text: str | List[str], requirement: str = "", k: int = 0, **kwargs: Unpack[LLMKwargs]
+        self, text: str | List[str], requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
     ) -> List[List[str]] | List[str] | None:
         """Generate tags for text content.
 
@@ -70,6 +73,7 @@ class Tagging(Propose):
             requirement: Additional requirements or constraints for tag generation.
                 Defaults to empty string.
             k: Maximum number of tags to generate (0 for no limit). Defaults to 0.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional generation parameters passed to the underlying
                 AI model.
 
@@ -87,6 +91,7 @@ class Tagging(Propose):
                 ),
                 value_type=str,
                 k=k,
+                send_to=send_to,
                 **kwargs,
             )
         if isinstance(text, list):
@@ -94,7 +99,7 @@ class Tagging(Propose):
                 tagging_config.tagging_template, [{"text": t, "requirement": requirement} for t in text]
             )
 
-            tags_seq = await gather(*[self.alist_v(r, value_type=str, k=k, **kwargs) for r in rendered])
+            tags_seq = await gather(*[self.alist_v(r, value_type=str, k=k, send_to=send_to, **kwargs) for r in rendered])
 
             return [t or [] for t in tags_seq]
 

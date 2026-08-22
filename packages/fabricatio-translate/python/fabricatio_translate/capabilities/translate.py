@@ -11,7 +11,7 @@ from typing import List, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import split_into_chunks
+from fabricatio_core.rust import TASK, split_into_chunks
 from fabricatio_core.utils import ok
 
 from fabricatio_translate.config import translate_config
@@ -39,6 +39,7 @@ class Translate(UseLLM):
         text: str,
         target_language: str,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> str | None: ...
 
@@ -48,6 +49,7 @@ class Translate(UseLLM):
         text: List[str],
         target_language: str,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str] | List[str | None] | None: ...
 
@@ -56,6 +58,7 @@ class Translate(UseLLM):
         text: str | List[str],
         target_language: str,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> str | List[str] | List[str | None] | None:
         """Translate the provided text into the target language.
@@ -64,6 +67,7 @@ class Translate(UseLLM):
             text (str | List[str]): The input text or list of texts to be translated.
             target_language (str): The language into which the text should be translated.
             specification (str): The translation specification.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs (Unpack[ValidateKwargs[str]]): Additional keyword arguments for customization.
 
         Returns:
@@ -77,6 +81,7 @@ class Translate(UseLLM):
                 if isinstance(text, list)
                 else {"text": text, "target_language": target_language, "specification": specification},
             ),
+            send_to=send_to,
             **kwargs,
         )
 
@@ -87,6 +92,7 @@ class Translate(UseLLM):
         target_language: str,
         chunk_size: int = 6000,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> str | None: ...
 
@@ -97,6 +103,7 @@ class Translate(UseLLM):
         target_language: str,
         chunk_size: int = 6000,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> List[str] | List[str | None] | None: ...
 
@@ -106,6 +113,7 @@ class Translate(UseLLM):
         target_language: str,
         chunk_size: int = 6000,
         specification: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> str | List[str] | List[str | None] | None:
         """Translate the provided text into the target language in a chunked manner.
@@ -115,6 +123,7 @@ class Translate(UseLLM):
             target_language: The target language for translation.
             chunk_size: Maximum size of each text chunk.
             specification: Additional translation instructions.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional arguments for the translation.
 
         Returns:
@@ -136,6 +145,7 @@ class Translate(UseLLM):
                         c,
                         target_language,
                         specification,
+                        send_to=send_to,
                         **kwargs,
                     )
                     for c in chunked_seq

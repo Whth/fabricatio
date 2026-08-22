@@ -20,7 +20,7 @@ from abc import ABC
 from asyncio import gather
 
 from fabricatio_core.capabilities.propose import Propose
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 
 from fabricatio_character.config import character_config
 from fabricatio_character.models.mental import (
@@ -54,7 +54,7 @@ class UseMind(Propose, ABC):
 
     # -- Seeding: CharacterCard -> MentalState --
 
-    async def seed_from(self, name: str, want: str, flaw: str) -> MentalState:
+    async def seed_from(self, name: str, want: str, flaw: str, send_to: str | None = TASK) -> MentalState:
         """Seed MentalState from character description using LLM.
 
         Uses aenum_choose to determine initial MaslowLevel from want text,
@@ -64,6 +64,7 @@ class UseMind(Propose, ABC):
             name: Character name.
             want: Character's core motivation.
             flaw: Character's critical weakness/vulnerability.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
 
         Returns:
             Seeded MentalState.
@@ -73,11 +74,16 @@ class UseMind(Propose, ABC):
             f"Given this character motivation: '{want}'\nWhich need level best describes their primary drive?",
             MaslowLevel,
             k=1,
+            send_to=send_to,
         )
 
         # Determine which distortions apply via LLM judgments
         distortion_futures = {
-            dist: self.ajudge(f"Does this character flaw suggest {dist.value}?\nFlaw: '{flaw}'") for dist in Distortion
+            dist: self.ajudge(
+                f"Does this character flaw suggest {dist.value}?\nFlaw: '{flaw}'",
+                send_to=send_to,
+            )
+            for dist in Distortion
         }
 
         need_result = await need_future
@@ -158,7 +164,7 @@ class UseMind(Propose, ABC):
 
     # -- Analysis: event -> impact --
 
-    async def upon_event(self, event: str, state: MentalState) -> EventImpact:
+    async def upon_event(self, event: str, state: MentalState, send_to: str | None = TASK) -> EventImpact:
         """Analyze event using targeted LLM calls with template-rendered prompts.
 
         Decomposes analysis into focused calls:
@@ -175,6 +181,7 @@ class UseMind(Propose, ABC):
         Args:
             event: The event text to analyze.
             state: Current psychological state.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
 
         Returns:
             EventImpact with structured psychological impact analysis.
@@ -191,16 +198,16 @@ class UseMind(Propose, ABC):
 
         # 1. Judge if event threatens/fulfills any need (parallel)
         threat_judge_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_threat_analysis_template, ctx_data)
-        threat_judge_future = self.ajudge(threat_judge_prompt)
+        threat_judge_future = self.ajudge(threat_judge_prompt, send_to=send_to)
 
         fulfill_judge_prompt = TEMPLATE_MANAGER.render_template(
             character_config.mind_fulfill_analysis_template, ctx_data
         )
-        fulfill_judge_future = self.ajudge(fulfill_judge_prompt)
+        fulfill_judge_future = self.ajudge(fulfill_judge_prompt, send_to=send_to)
 
         # 2. DIAMONDS situation extraction (parallel)
         diamonds_prompt = TEMPLATE_MANAGER.render_template(character_config.mind_diamonds_template, ctx_data)
-        diamonds_future = self.propose(SituationProfile, diamonds_prompt)
+        diamonds_future = self.propose(SituationProfile, diamonds_prompt, send_to=send_to)
 
         # 3. What emotion + intensity + personality shift? (parallel)
         impact_prompt = TEMPLATE_MANAGER.render_template(
@@ -215,7 +222,7 @@ class UseMind(Propose, ABC):
                 "suffering_count": str(len(state.sufferings)),
             },
         )
-        emotion_future = self.propose(EventImpact, impact_prompt)
+        emotion_future = self.propose(EventImpact, impact_prompt, send_to=send_to)
 
         threat_judge, fulfill_judge, diamonds, emotion_result = await gather(
             threat_judge_future, fulfill_judge_future, diamonds_future, emotion_future
@@ -226,12 +233,12 @@ class UseMind(Propose, ABC):
         threat_result = None
         if threat_judge:
             select_prompt = f"Which specific Maslow need level does this event THREATEN?\nEvent: {event}"
-            threat_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1)
+            threat_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1, send_to=send_to)
 
         fulfill_result = None
         if fulfill_judge:
             select_prompt = f"Which specific Maslow need level does this event FULFILL?\nEvent: {event}"
-            fulfill_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1)
+            fulfill_result = await self.aenum_choose(select_prompt, MaslowLevel, k=1, send_to=send_to)
 
         # 5. CBT distortion engine: rule_filter -> confidence check
         from fabricatio_character.utils import is_high_confidence, top_with_confidence
@@ -256,7 +263,7 @@ class UseMind(Propose, ABC):
                     "sociality": f"{diamonds.sociality:.2f}" if diamonds else "0",
                 },
             )
-            bias_result = await self.ajudge(bias_prompt)
+            bias_result = await self.ajudge(bias_prompt, send_to=send_to)
             triggers_distortion = top_distortion if bias_result else None
 
         # 6. Suffering: create trauma for high-intensity events
@@ -271,7 +278,7 @@ class UseMind(Propose, ABC):
                     "character_name": state.mind.character_name,
                 },
             )
-            created_suffering = await self.propose(QualitativeSuffering, suffering_prompt)
+            created_suffering = await self.propose(QualitativeSuffering, suffering_prompt, send_to=send_to)
 
         threatens = threat_result[0] if threat_result else None
         fulfills = fulfill_result[0] if fulfill_result else None
@@ -338,12 +345,15 @@ class UseMind(Propose, ABC):
 
         return new_state
 
-    async def extract_style(self, character_name: str, dialogues: list[str]) -> LinguisticStyle:
+    async def extract_style(
+        self, character_name: str, dialogues: list[str], send_to: str | None = TASK
+    ) -> LinguisticStyle:
         """Extract linguistic style from character dialogues via LLM.
 
         Args:
             character_name: The character's name.
             dialogues: List of dialogue strings from the character.
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
 
         Returns:
             Extracted LinguisticStyle.
@@ -352,4 +362,4 @@ class UseMind(Propose, ABC):
             character_config.mind_style_extraction_template,
             {"character_name": character_name, "dialogues": dialogues},
         )
-        return await self.propose(LinguisticStyle, prompt)
+        return await self.propose(LinguisticStyle, prompt, send_to=send_to)

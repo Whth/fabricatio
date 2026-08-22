@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import no_default
 
 from fabricatio_tool.capabilities.handle import Handle
@@ -23,7 +24,7 @@ class HandleTask(Handle, ABC):
     """
 
     async def handle_task(
-        self, task: Task, data: Dict[str, Any], **kwargs: Unpack[ValidateKwargs[str]]
+        self, task: Task, data: Dict[str, Any], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[str]]
     ) -> Optional[ResultCollector]:
         """Asynchronously handles a task based on a given task object and parameters with enhanced control features.
 
@@ -44,5 +45,6 @@ class HandleTask(Handle, ABC):
             data,
             box_choose_kwargs=okwargs,
             tool_choose_kwargs=okwargs,
+            send_to=send_to,
             **kwargs,
         )

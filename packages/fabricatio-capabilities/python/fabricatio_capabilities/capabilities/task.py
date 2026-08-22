@@ -9,7 +9,7 @@ from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.role import Role
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from more_itertools import flatten
 
 from fabricatio_capabilities.config import capabilities_config
@@ -21,12 +21,16 @@ class ProposeTask(Propose, ABC):
     async def propose_task[T](
         self,
         prompt: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Task[T]]],
     ) -> Optional[Task[T]]:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
             prompt: The prompt text for proposing a task, which is a string that must be provided.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: The keyword arguments for the LLM (Large Language Model) usage.
 
         Returns:
@@ -36,7 +40,7 @@ class ProposeTask(Propose, ABC):
             logger.error(err := "Prompt must be provided.")
             raise ValueError(err)
 
-        return await self.propose(Task, prompt, **kwargs)
+        return await self.propose(Task, prompt, send_to=send_to, **kwargs)
 
 
 class DispatchTask(UseLLM, ABC):
@@ -46,6 +50,7 @@ class DispatchTask(UseLLM, ABC):
         self,
         task: Task[T],
         candidates: Set[Role],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> Optional[T]:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
@@ -57,6 +62,9 @@ class DispatchTask(UseLLM, ABC):
             task: The task object to be dispatched. It must support delegation.
             candidates: A mapping of identifiers to WithBriefing instances representing available delegates.
                         Each key is a unique identifier and the corresponding value contains briefing details.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Keyword arguments unpacked from ChooseKwargs, typically used for LLM configuration.
 
         Returns:
@@ -74,8 +82,10 @@ class DispatchTask(UseLLM, ABC):
                 "possible_values": list(flatten((e.collapse() for e in r.subscriptions) for r in candidates)),
             },
         )
-        task_event = await self.ageneric_string(inst, **kwargs)
+        task_event = await self.ageneric_string(inst, send_to=send_to, **kwargs)
         if task_event:
             return await task.delegate(event=task_event)
         logger.error("Failed to decide where the task should be dispatched to.")
         return None
+
+

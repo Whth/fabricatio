@@ -9,7 +9,7 @@ and batch (list of strings) input.
 from typing import List, overload
 
 from fabricatio_core.capabilities.usages import UseLLM
-from fabricatio_core.rust import TEMPLATE_MANAGER, split_into_chunks
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, split_into_chunks
 
 from fabricatio_rag.config import rag_config
 
@@ -30,6 +30,7 @@ class PreciseChunkText(UseLLM):
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
+        send_to: str | None = TASK,
     ) -> List[str]: ...
     @overload
     async def precise_chunk(
@@ -39,6 +40,7 @@ class PreciseChunkText(UseLLM):
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
+        send_to: str | None = TASK,
     ) -> List[List[str]]: ...
 
     @overload
@@ -49,6 +51,7 @@ class PreciseChunkText(UseLLM):
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
+        send_to: str | None = TASK,
     ) -> List[List[str]] | List[str]: ...
 
     async def precise_chunk(
@@ -58,6 +61,7 @@ class PreciseChunkText(UseLLM):
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
+        send_to: str | None = TASK,
     ) -> List[str] | List[List[str]]:
         """Split text into semantically coherent chunks using LLM-guided split points.
 
@@ -67,6 +71,7 @@ class PreciseChunkText(UseLLM):
             max_size: Maximum mini-chunks per output chunk.
             min_size: Minimum mini-chunks per output chunk.
             mini_chunk_size: Character size of mini-chunks (defaults to rag_config.mini_chunk_size).
+            send_to: Routing-group variant for the LLM call (defaults to TASK).
 
         Returns:
             For a single str: list of chunk strings.
@@ -100,7 +105,7 @@ class PreciseChunkText(UseLLM):
         # Phase 4: LLM determines split-point indices
         # When len(para_seq)==1 → alist_v(str, int) → List[int] | None
         # When len(para_seq)>1  → alist_v(list[str], int) → List[List[int] | None] | None
-        splits_seq = await self.alist_v(rendered, int)
+        splits_seq = await self.alist_v(rendered, int, send_to=send_to)
 
         # Phase 5: normalize splits_seq to list[list[int] | None] matching para_seq length
         if splits_seq is None:

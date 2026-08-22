@@ -10,6 +10,7 @@ from fabricatio_core import logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import no_default, ok
 from pydantic import Field
 
@@ -32,6 +33,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
     async def choose_toolboxes(
         self,
         request: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[ToolBox]],
     ) -> Optional[List[ToolBox]]:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
@@ -54,6 +56,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
             instruction=request,
             choices=list(self.toolboxes),
             is_included_fn=_is_included_fn,
+            send_to=send_to,
             **kwargs,
         )
 
@@ -61,6 +64,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         self,
         request: str,
         toolbox: ToolBox,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[Tool]],
     ) -> Optional[List[Tool]]:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
@@ -79,6 +83,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         return await self.achoose(
             instruction=request,
             choices=toolbox.tools,
+            send_to=send_to,
             **kwargs,
         )
 
@@ -87,6 +92,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         request: str,
         box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
         tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
+        send_to: str | None = TASK,
     ) -> List[Tool]:
         """Asynchronously gathers tools based on the provided request and toolbox and tool selection criteria.
 
@@ -102,14 +108,14 @@ class UseTool(UseLLM, ToolConfig, ABC):
         tool_choose_kwargs = tool_choose_kwargs or {}
 
         # Choose the toolboxes
-        chosen_toolboxes = ok(await self.choose_toolboxes(request, **box_choose_kwargs))
+        chosen_toolboxes = ok(await self.choose_toolboxes(request, send_to=send_to, **box_choose_kwargs))
         # Choose the tools
         chosen_tools = []
         for toolbox in chosen_toolboxes:
-            chosen_tools.extend(ok(await self.choose_tools(request, toolbox, **tool_choose_kwargs)))
+            chosen_tools.extend(ok(await self.choose_tools(request, toolbox, send_to=send_to, **tool_choose_kwargs)))
         return chosen_tools
 
-    async def gather_tools(self, request: str, **kwargs: Unpack[ChooseKwargs[Tool]]) -> List[Tool]:
+    async def gather_tools(self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]]) -> List[Tool]:
         """Asynchronously gathers tools based on the provided request.
 
         Args:
@@ -119,4 +125,4 @@ class UseTool(UseLLM, ToolConfig, ABC):
         Returns:
             List[Tool]: A list of tools gathered based on the provided request.
         """
-        return await self.gather_tools_fine_grind(request, ChooseKwargs(**no_default(kwargs)), kwargs)
+        return await self.gather_tools_fine_grind(request, ChooseKwargs(**no_default(kwargs)), kwargs, send_to=send_to)

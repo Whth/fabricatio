@@ -7,6 +7,7 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.role import RoleName, get_registered_role
+from fabricatio_core.rust import TASK
 from more_itertools.recipes import flatten
 
 from fabricatio_digest.config import digest_config
@@ -20,6 +21,7 @@ class Digest(Propose, ABC):
         self,
         requirement: str,
         receptions: Set[RoleName],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Optional[TaskList]]],
     ) -> Optional[TaskList]:
         """Generate a task list based on the given requirement and receptions.
@@ -30,7 +32,8 @@ class Digest(Propose, ABC):
 
         Args:
             requirement (str): A string describing the requirement to be fulfilled.
-            receptions (Set[RoleName]): A set of role names indicating the roles
+            receptions (Set[RoleName]): A set of role names indicating the roles.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs (Unpack[ValidateKwargs[Optional[TaskList]]]): Additional keyword
                                   arguments for validation and configuration.
 
@@ -51,4 +54,4 @@ class Digest(Propose, ABC):
                 "accepted_events": list(flatten(r.accept_events for r in roles)),
             },
         )
-        return await self.propose(TaskList, instruct, **kwargs)
+        return await self.propose(TaskList, instruct, send_to=send_to, **kwargs)

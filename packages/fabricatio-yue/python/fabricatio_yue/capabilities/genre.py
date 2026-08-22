@@ -6,6 +6,7 @@ from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs
+from fabricatio_core.rust import TASK
 from more_itertools import flatten
 
 from fabricatio_yue.config import yue_config
@@ -20,6 +21,7 @@ class SelectGenre(UseLLM):
         requirement: str,
         genre_classifier: str,
         genres: List[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[str] | None:
         """Select genres for a single requirement.
@@ -41,6 +43,7 @@ class SelectGenre(UseLLM):
         requirement: List[str],
         genre_classifier: str,
         genres: List[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[List[str] | None]:
         """Select genres for multiple requirements.
@@ -49,18 +52,19 @@ class SelectGenre(UseLLM):
             requirement (List[str]): List of requirement strings describing desired music styles.
             genre_classifier (str): The type or category of genres to consider.
             genres (List[str]): List of available genres to choose from.
+            send_to (str | None): Routing-group variant for the LLM call.
             **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             List[List[str] | None]: List of genre selections, where each selection is either a list of genres or None.
         """
         ...
-
     async def select_genre(
         self,
         requirement: str | List[str],
         genre_classifier: str,
         genres: List[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[str] | List[List[str] | None] | None:
         """Select appropriate music genres based on given requirements.
@@ -87,6 +91,7 @@ class SelectGenre(UseLLM):
                     {"requirement": requirement, "genre_classifier": genre_classifier, "genres": genres},
                 ),
                 value_type=str,
+                send_to=send_to,
                 **kwargs,
             )
             logger.debug(f"Selected genres for single requirement: {result}")
@@ -103,6 +108,7 @@ class SelectGenre(UseLLM):
                     ],
                 ),
                 value_type=str,
+                send_to=send_to,
                 **kwargs,
             )
             logger.debug(f"Selected genres for multiple requirements: {result}")
@@ -112,16 +118,20 @@ class SelectGenre(UseLLM):
         logger.error(error_msg)
         raise TypeError(error_msg)
 
+
+
     @overload
     async def gather_genres(
         self,
         requirements: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[str] | None:
         """Gather genres for a single requirement.
 
         Args:
             requirements (str): A single requirement string describing the desired music style.
+            send_to (str | None): Routing-group variant for the LLM call.
             **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
@@ -133,22 +143,24 @@ class SelectGenre(UseLLM):
     async def gather_genres(
         self,
         requirements: List[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[List[str] | None]:
         """Gather genres for multiple requirements.
 
         Args:
             requirements (List[str]): List of requirement strings describing desired music styles.
+            send_to (str | None): Routing-group variant for the LLM call.
             **kwargs (Unpack[ChooseKwargs[str]]): Additional validation parameters.
 
         Returns:
             List[List[str] | None]: List where each element corresponds to gathered genres for each requirement.
         """
         ...
-
     async def gather_genres(
         self,
         requirements: str | List[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
     ) -> List[str] | List[List[str] | None] | None:
         """Gather genres from all available genre categories based on requirements.
@@ -182,7 +194,7 @@ class SelectGenre(UseLLM):
 
             results = await asyncio.gather(
                 *[
-                    self.select_genre(req, genre_classifier, genres, **kwargs)
+                    self.select_genre(req, genre_classifier, genres, send_to=send_to, **kwargs)
                     for genre_classifier, genres in yue_config.genre.items()
                 ]
             )

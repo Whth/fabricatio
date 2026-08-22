@@ -9,8 +9,8 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER, json_parser
-from fabricatio_core.utils import no_default, ok, override_kwargs
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, json_parser
+from fabricatio_core.utils import no_default, ok
 from more_itertools import flatten, windowed
 from pydantic import Field, NonNegativeInt, PositiveInt, create_model
 
@@ -30,6 +30,7 @@ class Rating(Propose, ABC):
         to_rate: str | List[str],
         rating_manual: Dict[str, str],
         score_range: Tuple[float, float],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
         """Rate a given string based on a rating manual and score range.
@@ -38,6 +39,9 @@ class Rating(Propose, ABC):
             to_rate (str): The string to be rated.
             rating_manual (Dict[str, str]): A dictionary containing the rating criteria.
             score_range (Tuple[float, float]): A tuple representing the valid score range.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -78,6 +82,7 @@ class Rating(Propose, ABC):
                 )
                 for t in to_rate
             ],
+            send_to=send_to,
             **no_default(kwargs),
         )
         default = kwargs.get("default")
@@ -95,6 +100,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> Dict[str, float]: ...
 
@@ -106,6 +112,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> List[Dict[str, float]]: ...
 
@@ -116,6 +123,7 @@ class Rating(Propose, ABC):
         criteria: Set[str],
         manual: Optional[Dict[str, str]] = None,
         score_range: Tuple[float, float] = (0.0, 1.0),
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
@@ -126,45 +134,51 @@ class Rating(Propose, ABC):
             criteria (Set[str]): A set of criteria for rating.
             manual (Optional[Dict[str, str]]): A dictionary containing the rating criteria. If not provided, then this method will draft the criteria automatically.
             score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each criterion if a single string is provided,
             or a list of dictionaries with the ratings for each criterion if a sequence of strings is provided.
         """
+        okwargs = no_default(kwargs)
         manual = (
             manual
-            or await self.draft_rating_manual(topic, criteria, **no_default(kwargs))
+            or await self.draft_rating_manual(topic, criteria, send_to=send_to, **okwargs)
             or dict(zip(criteria, criteria, strict=True))
         )
 
-        return await self.rate_fine_grind(to_rate, ok(manual), score_range, **kwargs)
+        return await self.rate_fine_grind(to_rate, ok(manual), score_range, send_to=send_to, **okwargs)
 
     async def draft_rating_manual(
-        self, topic: str, criteria: Optional[Set[str]] = None, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
+        self, topic: str, criteria: Optional[Set[str]] = None, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Dict[str, str]]]
     ) -> Optional[Dict[str, str]]:
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
             topic (str): The topic for the rating manual.
             criteria (Optional[Set[str]], optional): A set of criteria for the rating manual. If not specified, then this method will draft the criteria automatically.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Dict[str, str]: A dictionary representing the drafted rating manual.
         """
+        okwargs = no_default(kwargs)
+        criteria = criteria or await self.draft_rating_criteria(topic, send_to=send_to, **okwargs)
 
+        if criteria is None:
+            logger.error(f"Failed to draft rating criteria for topic {topic}")
+            return None
         def _validator(response: str) -> Dict[str, str] | None:
             if (
                 json_data := json_parser.validate_dict(response, key_type=str, value_type=str)
             ) is not None and json_data.keys() == criteria:
                 return json_data
-            return None
-
-        criteria = criteria or await self.draft_rating_criteria(topic, **override_kwargs(dict(kwargs), default=None))
-
-        if criteria is None:
-            logger.error(f"Failed to draft rating criteria for topic {topic}")
             return None
 
         return await self.aask_validate(
@@ -178,13 +192,15 @@ class Rating(Propose, ABC):
                 )
             ),
             validator=_validator,
-            **kwargs,
+            send_to=send_to,
+            **okwargs,
         )
 
     async def draft_rating_criteria(
         self,
         topic: str,
         criteria_count: NonNegativeInt = 0,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Set[str]]],
     ) -> Optional[Set[str]]:
         """Drafts rating dimensions based on a topic.
@@ -192,6 +208,9 @@ class Rating(Propose, ABC):
         Args:
             topic (str): The topic for the rating dimensions.
             criteria_count (NonNegativeInt, optional): The number of dimensions to draft, 0 means no limit. Defaults to 0.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -212,6 +231,7 @@ class Rating(Propose, ABC):
                 if (out := json_parser.validate_list(resp, elements_type=str, length=criteria_count)) is not None
                 else out
             ),
+            send_to=send_to,
             **kwargs,
         )
 
@@ -222,6 +242,7 @@ class Rating(Propose, ABC):
         m: NonNegativeInt = 0,
         reasons_count: PositiveInt = 2,
         criteria_count: PositiveInt = 5,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[List[str]]],
     ) -> Optional[Set[str]]:
         """Asynchronously drafts a set of rating criteria based on provided examples.
@@ -235,6 +256,9 @@ class Rating(Propose, ABC):
             m (NonNegativeInt, optional): The number of examples to sample from the provided list. Defaults to 0 (no sampling).
             reasons_count (PositiveInt, optional): The number of reasons to extract from each pair of examples. Defaults to 2.
             criteria_count (PositiveInt, optional): The final number of rating criteria to draft. Defaults to 5.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for validation.
 
         Returns:
@@ -267,6 +291,7 @@ class Rating(Propose, ABC):
                     requirement=rendered_seq,
                     value_type=str,
                     k=reasons_count,
+                    send_to=send_to,
                     **kwargs,
                 )
             )
@@ -286,6 +311,7 @@ class Rating(Propose, ABC):
             validator=lambda resp: (
                 set(out) if (out := json_parser.validate_list(resp, elements_type=str, length=criteria_count)) else None
             ),
+            send_to=send_to,
             **kwargs,
         )
 
@@ -293,6 +319,7 @@ class Rating(Propose, ABC):
         self,
         topic: str,
         criteria: Set[str],
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[float]],
     ) -> Dict[str, float]:
         """Drafts rating weights for a given topic and criteria using the Klee method.
@@ -300,6 +327,9 @@ class Rating(Propose, ABC):
         Args:
             topic (str): The topic for the rating weights.
             criteria (Set[str]): A set of criteria for the rating weights.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -325,6 +355,7 @@ class Rating(Propose, ABC):
                 for pair in windows
             ],
             validator=lambda resp: out if isinstance(out := json_parser.convert(resp), float) else None,
+            send_to=send_to,
             **kwargs,
         )
         if not all(relative_weights):
@@ -335,6 +366,7 @@ class Rating(Propose, ABC):
         total = sum(weights)
         return dict(zip(criteria_seq, [w / total for w in weights], strict=True))
 
+
     async def composite_score(
         self,
         topic: str,
@@ -343,6 +375,7 @@ class Rating(Propose, ABC):
         weights: Optional[Dict[str, float]] = None,
         manual: Optional[Dict[str, str]] = None,
         approx: bool = False,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
     ) -> List[float]:
         """Calculates the composite scores for a list of items based on a given topic and criteria.
@@ -354,6 +387,9 @@ class Rating(Propose, ABC):
             weights (Optional[Dict[str, float]]): A dictionary of rating weights for each criterion. Defaults to None.
             manual (Optional[Dict[str, str]]): A dictionary of manual ratings for each item. Defaults to None.
             approx (bool): Whether to use approximate rating criteria. Defaults to False.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -363,31 +399,34 @@ class Rating(Propose, ABC):
 
         criteria = ok(
             criteria
-            or (await self.draft_rating_criteria(topic, **no_default(kwargs)) if approx else None)
-            or await self.draft_rating_criteria_from_examples(topic, to_rate, **okwargs)
+            or (await self.draft_rating_criteria(topic, send_to=send_to, **okwargs) if approx else None)
+            or await self.draft_rating_criteria_from_examples(topic, to_rate, send_to=send_to, **okwargs)
         )
-        weights = ok(weights or await self.drafting_rating_weights_klee(topic, criteria, **okwargs))
+        weights = ok(weights or await self.drafting_rating_weights_klee(topic, criteria, send_to=send_to, **okwargs))
         logger.info(f"Criteria: {criteria}\nWeights: {weights}")
-        ratings_seq = await self.rate(to_rate, topic, criteria, manual, **kwargs)
+        ratings_seq = await self.rate(to_rate, topic, criteria, manual, send_to=send_to, **okwargs)
 
         return [sum(ratings[c] * weights[c] for c in criteria) for ratings in ratings_seq]
 
     @overload
-    async def best(self, candidates: List[str], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
+    async def best(self, candidates: List[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]) -> List[str]: ...
 
     @overload
     async def best[T: Display](
-        self, candidates: List[T], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> List[T]: ...
 
     async def best[T: Display](
-        self, candidates: List[str] | List[T], k: int = 1, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: List[str] | List[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
     ) -> Optional[List[str] | List[T]]:
         """Choose the best candidates from the list of candidates based on the composite score.
 
         Args:
             k (int): The number of best candidates to choose.
             candidates (List[str]): A list of candidates to choose from.
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs (CompositeScoreKwargs): Additional keyword arguments for the composite score calculation.
 
         Returns:
@@ -402,7 +441,8 @@ class Rating(Propose, ABC):
             return candidates
         logger.info(f"Choose best {k} from {leng} candidates.")
 
+        okwargs = no_default(kwargs)
         rating_seq = await self.composite_score(
-            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], **kwargs
+            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], send_to=send_to, **okwargs
         )
         return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]  # pyright: ignore [reportReturnType]

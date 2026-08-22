@@ -8,7 +8,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from fabricatio_core.utils import no_default, ok
 
 from fabricatio_improve.config import improve_config
@@ -26,7 +26,7 @@ class Review(Rating, Propose, ABC):
     appropriate topic and criteria.
     """
 
-    async def review_task[T](self, task: Task[T], **kwargs: Unpack[ReviewKwargs[Improvement]]) -> Optional[Improvement]:
+    async def review_task[T](self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]) -> Optional[Improvement]:
         """Review a task using specified review criteria.
 
         This method analyzes a task object to identify problems and propose solutions
@@ -41,7 +41,7 @@ class Review(Rating, Propose, ABC):
             Improvement[Task[T]]: A review result containing identified problems and proposed solutions,
                 with a reference to the original task.
         """
-        return await self.review_obj(task, **kwargs)
+        return await self.review_obj(task, send_to=send_to, **kwargs)
 
     async def review_string(
         self,
@@ -49,6 +49,7 @@ class Review(Rating, Propose, ABC):
         topic: str,
         criteria: Optional[Set[str]] = None,
         rating_manual: Optional[Dict[str, str]] = None,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Review a string based on specified topic and criteria.
@@ -73,10 +74,10 @@ class Review(Rating, Propose, ABC):
         criteria = ok(
             criteria
             or (set(rating_manual.keys()) if rating_manual else None)
-            or (await self.draft_rating_criteria(topic, **okwargs)),
+            or (await self.draft_rating_criteria(topic, send_to=send_to, **okwargs)),
             " No criteria could be use.",
         )
-        manual = rating_manual or await self.draft_rating_manual(topic, criteria, **okwargs)
+        manual = rating_manual or await self.draft_rating_manual(topic, criteria, send_to=send_to, **okwargs)
 
         return await self.propose(
             Improvement,
@@ -84,11 +85,12 @@ class Review(Rating, Propose, ABC):
                 improve_config.review_string_template,
                 {"text": input_text, "topic": topic, "criteria_manual": manual},
             ),
+            send_to=send_to,
             **kwargs,
         )
 
     async def review_obj[M: (Display, WithBriefing)](
-        self, obj: M, **kwargs: Unpack[ReviewKwargs[Improvement]]
+        self, obj: M, send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
     ) -> Optional[Improvement]:
         """Review an object that implements Display or WithBriefing interface.
 
@@ -114,4 +116,4 @@ class Review(Rating, Propose, ABC):
         else:
             raise TypeError(f"Unsupported type for review: {type(obj)}")
 
-        return await self.review_string(text_to_review, **kwargs)
+        return await self.review_string(text_to_review, send_to=send_to, **kwargs)

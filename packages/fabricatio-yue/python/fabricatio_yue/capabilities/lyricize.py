@@ -6,6 +6,7 @@ from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import no_default, ok
 
 from fabricatio_yue.capabilities.genre import SelectGenre
@@ -22,7 +23,7 @@ class Lyricize(Propose, SelectGenre):
     """
 
     @overload
-    async def lyricize(self, requirement: str, **kwargs: Unpack[ValidateKwargs[Song]]) -> Song | None:
+    async def lyricize(self, requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]) -> Song | None:
         """Generate lyrics for a single requirement.
 
         Args:
@@ -35,7 +36,7 @@ class Lyricize(Propose, SelectGenre):
         ...
 
     @overload
-    async def lyricize(self, requirement: List[str], **kwargs: Unpack[ValidateKwargs[Song]]) -> List[Song | None]:
+    async def lyricize(self, requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]) -> List[Song | None]:
         """Generate lyrics for multiple requirements.
 
         Args:
@@ -48,7 +49,7 @@ class Lyricize(Propose, SelectGenre):
         ...
 
     async def lyricize(
-        self, requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Song]]
+        self, requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
     ) -> Song | List[Song | None] | None:
         """Generate lyrics based on requirements.
 
@@ -62,7 +63,7 @@ class Lyricize(Propose, SelectGenre):
         logger.debug(f"Lyricizing requirements: {requirement}")
         okwargs = no_default(kwargs)
 
-        async def lyricize_single(req: str) -> Song | None:
+        async def lyricize_single(req: str, send_to: str | None = TASK) -> Song | None:
             """Generate a song with lyrics based on a single requirement.
 
             Args:
@@ -81,17 +82,17 @@ class Lyricize(Propose, SelectGenre):
             )
             logger.debug(f"Generated prompt for lyricize: {prompt}")
 
-            return await self.propose(Song, prompt, **kwargs)
+            return await self.propose(Song, prompt, send_to=send_to, **kwargs)
 
         if isinstance(requirement, str):
             logger.debug("Processing single requirement string")
-            return await lyricize_single(requirement)
+            return await lyricize_single(requirement, send_to=send_to)
 
         if isinstance(requirement, list):
             logger.debug(f"Processing {len(requirement)} requirement strings")
             import asyncio
 
-            tasks = [lyricize_single(req) for req in requirement]
+            tasks = [lyricize_single(req, send_to=send_to) for req in requirement]
             return await asyncio.gather(*tasks)
 
         error_msg = f"Invalid requirement type: {type(requirement)}. Expected str or List[str]."

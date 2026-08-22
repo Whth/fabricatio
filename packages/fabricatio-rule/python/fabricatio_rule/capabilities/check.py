@@ -8,7 +8,7 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, detect_language
 from fabricatio_core.utils import no_default
 from fabricatio_improve.models.improve import Improvement
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
@@ -26,7 +26,7 @@ class Check(EvidentlyJudge, Propose, ABC):
     """
 
     async def draft_ruleset(
-        self, ruleset_requirement: str, rule_count: int = 0, **kwargs: Unpack[ValidateKwargs[Rule]]
+        self, ruleset_requirement: str, rule_count: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Rule]]
     ) -> Optional[RuleSet]:
         """Generate rule set based on requirement description.
 
@@ -51,6 +51,7 @@ class Check(EvidentlyJudge, Propose, ABC):
                 ),
                 value_type=str,
                 k=rule_count,
+                send_to=send_to,
                 **no_default(kwargs),
             )
             if rule_count > 1
@@ -66,6 +67,7 @@ class Check(EvidentlyJudge, Propose, ABC):
                 TEMPLATE_MANAGER.render_template(rule_config.rule_requirement_template, {"rule_requirement": r})
                 for r in rule_reqs
             ],
+            send_to=send_to,
             **kwargs,
         )
         if any(r for r in rules if r is None):
@@ -74,6 +76,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         ruleset_patch = await self.propose(
             RuleSetMetadata,
             f"{ruleset_requirement}\n\nYou should use `{detect_language(ruleset_requirement)}`!",
+            send_to=send_to,
             **no_default(kwargs),
         )
 
@@ -87,6 +90,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         input_text: str,
         rule: Rule,
         reference: str = "",
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
     ) -> Optional[Improvement]:
         """Validate text against specific rule.
@@ -108,6 +112,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         if judge := await self.evidently_judge(
             f"# Content to exam\n{input_text}\n\n# Rule Must to follow\n{rule.display()}\nDoes `Content to exam` provided above violate the `{rule.name}` provided above?"
             f"should I take some measure to fix that violation? true for I do need, false for I don't need.",
+            send_to=send_to,
             **no_default(kwargs),
         ):
             logger.info(f"Rule `{rule.name}` violated: \n{judge.display()}")
@@ -117,6 +122,7 @@ class Check(EvidentlyJudge, Propose, ABC):
                     rule_config.check_string_template,
                     {"to_check": input_text, "rule": rule.display(), "judge": judge.display(), "reference": reference},
                 ),
+                send_to=send_to,
                 **kwargs,
             )
         return None

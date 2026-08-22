@@ -7,6 +7,7 @@ from typing import Optional, Unpack
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok, wrap_in_block
 
 from fabricatio_thinking.models.thinking import Thought
@@ -21,6 +22,7 @@ class Thinking(Propose, ABC):
         question: str,
         vcs: Optional[ThoughtVCS] = None,
         max_steps: Optional[int] = 25,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Thought]],
     ) -> ThoughtVCS:
         """Perform a step-by-step thinking process to address the given question.
@@ -36,6 +38,7 @@ class Thinking(Propose, ABC):
                 version-controlled thoughts. If not provided, a new instance will be created.
             max_steps (Optional[int]): The maximum number of thinking steps to perform.
                 If not specified, an effectively infinite number of steps will be allowed.
+            send_to (str | None): Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
             **kwargs: Additional keyword arguments passed to the underlying propose method.
 
         Returns:
@@ -50,6 +53,7 @@ class Thinking(Propose, ABC):
                 await self.propose(
                     Thought,
                     f"{wrap_in_block(question, 'Question')}\n\n{wrap_in_block(vcs.export_branch_string(), 'Previous Chain of Thoughts for Question')}\n\nYou need to finish the remaining of the CoT.",
+                    send_to=send_to,
                     **kwargs,
                 ),
                 "Failed to propose thought",

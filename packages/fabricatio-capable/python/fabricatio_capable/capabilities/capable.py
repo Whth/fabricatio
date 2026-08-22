@@ -5,7 +5,7 @@ from typing import List, Optional, Set, Unpack, overload
 
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TEMPLATE_MANAGER
+from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge
 from fabricatio_judge.models.judgement import JudgeMent
 from fabricatio_tool.capabilities.use_tool import UseTool
@@ -22,41 +22,27 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
         self,
         request: str,
         toolboxes: Optional[Set[ToolBox]],
+        *,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[JudgeMent]:
-        """Processes a capability request for a single string input.
-
-        Args:
-            request: A string representing the input request.
-            toolboxes: An optional set of ToolBox objects to be used for processing the request.
-            **kwargs: Additional keyword arguments unpacked from ValidateKwargs[JudgeMent].
-
-        Returns:
-            Optional judgment result based on the processed request.
-        """
+    ) -> Optional[JudgeMent]: ...
 
     @overload
     async def capable(
         self,
         request: List[str],
         toolboxes: Optional[Set[ToolBox]],
+        *,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> List[Optional[JudgeMent]]:
-        """Processes capability requests for a list of string inputs.
-
-        Args:
-            request: A list of strings representing the input requests.
-            toolboxes: An optional set of ToolBox objects to be used for processing the requests.
-            **kwargs: Additional keyword arguments unpacked from ValidateKwargs[JudgeMent].
-
-        Returns:
-            A list of optional judgment results corresponding to each input request.
-        """
+    ) -> List[Optional[JudgeMent]]: ...
 
     async def capable(
         self,
         request: str | List[str],
         toolboxes: Optional[Set[ToolBox]],
+        *,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
     ) -> JudgeMent | List[JudgeMent] | List[JudgeMent | None] | None:
         """Processes a capability request using the provided toolboxes and additional arguments.
@@ -64,6 +50,7 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
         Args:
             request: A string or list of strings representing the input request(s).
             toolboxes: An optional set of ToolBox objects to be used for processing the request.
+            send_to: Routing group for LLM calls (TASK, SMOL, TINY, SLOW, PLAN).
             **kwargs: Additional keyword arguments unpacked from ValidateKwargs[JudgeMent].
 
         Returns:
@@ -90,5 +77,7 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
                     for r in request
                 ],
             ),
+            send_to=send_to,
             **kwargs,
         )
+

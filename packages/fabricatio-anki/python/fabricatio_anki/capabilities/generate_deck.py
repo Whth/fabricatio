@@ -6,6 +6,7 @@ from typing import List, Unpack, overload
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_core.utils import no_default, ok, override_kwargs
 
 from fabricatio_anki.config import anki_config
@@ -26,6 +27,7 @@ class GenerateDeck(Propose):
         fields: List[str],
         km: int = 0,
         kt: int = 0,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Deck]],
     ) -> Deck | None:
         """Create a deck with the given name and description.
@@ -35,6 +37,9 @@ class GenerateDeck(Propose):
             fields: List of fields to be included in the cards
             km: Number of model generation attempts
             kt: Number of template generation attempts
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Additional validation keyword arguments
 
         Returns:
@@ -47,6 +52,7 @@ class GenerateDeck(Propose):
             TEMPLATE_MANAGER.render_template(
                 anki_config.generate_anki_deck_metadata_template, {"requirement": requirement, "fields": fields}
             ),
+            send_to=send_to,
             **ov_kwargs,
         )
 
@@ -57,11 +63,12 @@ class GenerateDeck(Propose):
             ),
             value_type=str,
             k=km,
+            send_to=send_to,
             **ov_kwargs,
         )
 
         models = (
-            await self.generate_model(fields, model_generation_requirements, k=kt, **ov_kwargs)
+            await self.generate_model(fields, model_generation_requirements, k=kt, send_to=send_to, **ov_kwargs)
             if model_generation_requirements
             else None
         )
@@ -72,7 +79,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_model(
-        self, fields: List[str], requirement: str, k: int = 0, **kwargs: Unpack[ValidateKwargs[Model]]
+        self, fields: List[str], requirement: str, k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Model]]
     ) -> Model | None:
         """Overloaded version for single string requirement.
 
@@ -88,7 +95,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_model(
-        self, fields: List[str], requirement: List[str], k: int = 0, **kwargs: Unpack[ValidateKwargs[Model]]
+        self, fields: List[str], requirement: List[str], k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Model]]
     ) -> List[Model] | None:
         """Overloaded version for multiple requirements.
 
@@ -107,6 +114,7 @@ class GenerateDeck(Propose):
         fields: List[str],
         requirement: str | List[str],
         k: int = 0,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Model]],
     ) -> Model | List[Model] | None:
         """Generate one or more Anki card models.
@@ -115,6 +123,9 @@ class GenerateDeck(Propose):
             fields: Fields to be included in the model
             requirement: Requirement(s) for model generation
             k: Number of generation attempts
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Validation keyword arguments
 
         Returns:
@@ -128,6 +139,7 @@ class GenerateDeck(Propose):
                             anki_config.generate_anki_model_name_template,
                             {"fields": fields, "requirement": requirement},
                         ),
+                        send_to=send_to,
                         **override_kwargs(kwargs, defualt=None),
                     )
                 )
@@ -141,13 +153,14 @@ class GenerateDeck(Propose):
                     ),
                     value_type=str,
                     k=k,
+                    send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
                 )
             )
 
             templates = ok(
                 await self.generate_template(
-                    fields, template_generation_requirements, **override_kwargs(kwargs, defualt=None)
+                    fields, template_generation_requirements, send_to=send_to, **override_kwargs(kwargs, defualt=None)
                 )
             )
 
@@ -159,6 +172,7 @@ class GenerateDeck(Propose):
                         anki_config.generate_anki_model_name_template,
                         [{"fields": fields, "requirement": req} for req in requirement],
                     ),
+                    send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
                 )
             )
@@ -171,12 +185,13 @@ class GenerateDeck(Propose):
                     ),
                     value_type=str,
                     k=k,
+                    send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
                 )
             )
             templates_seq = await gather(
                 *[
-                    self.generate_template(fields, template_reqs, **override_kwargs(kwargs, defualt=None))
+                    self.generate_template(fields, template_reqs, send_to=send_to, **override_kwargs(kwargs, defualt=None))
                     for template_reqs in template_generation_requirements_seq
                     if template_reqs
                 ]
@@ -192,7 +207,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_template(
-        self, fields: List[str], requirement: str, **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> Template | None:
         """Overloaded version for single template generation.
 
@@ -207,7 +222,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_template(
-        self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> List[Template] | None:
         """Overloaded version for multiple template generation.
 
@@ -221,7 +236,7 @@ class GenerateDeck(Propose):
         """
 
     async def generate_template(
-        self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> Template | List[Template] | None:
         """Generate one or more card templates.
 
@@ -234,19 +249,22 @@ class GenerateDeck(Propose):
             One or more Template instances based on input type
         """
         if isinstance(requirement, str):
-            return await self._generate_single_template(fields, requirement, **kwargs)
+            return await self._generate_single_template(fields, requirement, send_to=send_to, **kwargs)
         if isinstance(requirement, list):
-            return await self._generate_multiple_templates(fields, requirement, **kwargs)
+            return await self._generate_multiple_templates(fields, requirement, send_to=send_to, **kwargs)
         raise ValueError("requirement must be a string or a list of strings")
 
     async def _generate_single_template(
-        self, fields: List[str], requirement: str, **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> Template | None:
         """Generate a single template from a string requirement.
 
         Args:
             fields: Fields used in the template
             requirement: Single requirement for template generation
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Validation keyword arguments
 
         Returns:
@@ -258,13 +276,13 @@ class GenerateDeck(Propose):
         name_rendered = TEMPLATE_MANAGER.render_template(
             anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement}
         )
-        name = ok(await self.ageneric_string(name_rendered, **okwargs))
+        name = ok(await self.ageneric_string(name_rendered, send_to=send_to, **okwargs))
         if not name:
             return None
 
         # Generate front and back sides
-        front = await self.generate_front_side(fields, requirement, **okwargs)
-        back = await self.generate_back_side(fields, requirement, **okwargs)
+        front = await self.generate_front_side(fields, requirement, send_to=send_to, **okwargs)
+        back = await self.generate_back_side(fields, requirement, send_to=send_to, **okwargs)
 
         if not front or not back:
             return None
@@ -272,13 +290,16 @@ class GenerateDeck(Propose):
         return Template(name=name, front=front, back=back)
 
     async def _generate_multiple_templates(
-        self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Template]]
+        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Template]]
     ) -> List[Template] | None:
         """Generate multiple templates from a list of requirements.
 
         Args:
             fields: Fields used in the templates
             requirement: List of requirements for template generation
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Validation keyword arguments
 
         Returns:
@@ -290,13 +311,13 @@ class GenerateDeck(Propose):
         name_rendered = TEMPLATE_MANAGER.render_template(
             anki_config.generate_anki_model_name_template, [{"fields": fields, "requirement": r} for r in requirement]
         )
-        names = ok(await self.ageneric_string(name_rendered, **okwargs))
+        names = ok(await self.ageneric_string(name_rendered, send_to=send_to, **okwargs))
         if not names:
             return None
 
         # Generate front and back sides for all requirements
-        fronts = await self.generate_front_side(fields, requirement, **okwargs)
-        backs = await self.generate_back_side(fields, requirement, **okwargs)
+        fronts = await self.generate_front_side(fields, requirement, send_to=send_to, **okwargs)
+        backs = await self.generate_back_side(fields, requirement, send_to=send_to, **okwargs)
 
         if not fronts or not backs:
             return None
@@ -314,6 +335,7 @@ class GenerateDeck(Propose):
         fields: List[str],
         requirement: str | List[str],
         template_name: str,
+        send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> Side | List[Side | None] | None:
         """Generate one or more card sides using the specified template.
@@ -322,6 +344,9 @@ class GenerateDeck(Propose):
             fields: Fields used in the side
             requirement: Requirement(s) for side generation
             template_name: Name of the template to use
+            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
+                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
+                to steer to a different model tier.
             **kwargs: Validation keyword arguments
 
         Returns:
@@ -339,7 +364,7 @@ class GenerateDeck(Propose):
 
         okwargs = no_default(kwargs)
 
-        source_code = ok(await self.acode_string(rendered, "html", **okwargs))
+        source_code = ok(await self.acode_string(rendered, "html", send_to=send_to, **okwargs))
         if not source_code:
             return None
 
@@ -349,7 +374,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_front_side(
-        self, fields: List[str], requirement: str, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | None:
         """Overloaded version for single front side generation.
 
@@ -364,7 +389,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_front_side(
-        self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> List[Side | None] | None:
         """Overloaded version for multiple front side generation.
 
@@ -378,7 +403,7 @@ class GenerateDeck(Propose):
         """
 
     async def generate_front_side(
-        self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | List[Side | None] | None:
         """Generate one or more front sides for Anki cards.
 
@@ -391,12 +416,12 @@ class GenerateDeck(Propose):
             One or more Side instances based on input type
         """
         return await self._generate_side(
-            fields, requirement, anki_config.generate_anki_card_front_side_template, **kwargs
+            fields, requirement, anki_config.generate_anki_card_front_side_template, send_to=send_to, **kwargs
         )
 
     @overload
     async def generate_back_side(
-        self, fields: List[str], requirement: str, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | None:
         """Overloaded version for single back side generation.
 
@@ -411,7 +436,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_back_side(
-        self, fields: List[str], requirement: List[str], **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> List[Side | None] | None:
         """Overloaded version for multiple back side generation.
 
@@ -425,7 +450,7 @@ class GenerateDeck(Propose):
         """
 
     async def generate_back_side(
-        self, fields: List[str], requirement: str | List[str], **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: List[str], requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | List[Side | None] | None:
         """Generate one or more back sides for Anki cards.
 
@@ -438,5 +463,5 @@ class GenerateDeck(Propose):
             One or more Side instances based on input type
         """
         return await self._generate_side(
-            fields, requirement, anki_config.generate_anki_card_back_side_template, **kwargs
+            fields, requirement, anki_config.generate_anki_card_back_side_template, send_to=send_to, **kwargs
         )

@@ -11,6 +11,7 @@ from typing import Literal
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseLLM
+from fabricatio_core.rust import TASK
 
 from fabricatio_diff.config import diff_config
 from fabricatio_diff.rust import (
@@ -192,6 +193,7 @@ class HashlineEdit(UseLLM, ABC):
         requirement: str,
         *,
         max_iterations: int | None = None,
+        send_to: str | None = TASK,
     ) -> HashlineDiffResult:
         """Iteratively apply hashline edits until `requirement` is satisfied.
 
@@ -207,6 +209,11 @@ class HashlineEdit(UseLLM, ABC):
             source: The current text to edit.
             requirement: Natural-language description of the target state.
             max_iterations: Override for `diff_config.hashline_diff_max_iterations`.
+            send_to: Routing-group variant for the edit-loop and judge LLM calls.
+                Resolved against the agent variant registry (see ``fabricatio_core.rust``).
+                Defaults to ``TASK``; pass ``SMOL``/``TINY``/``PLAN``/``SLOW`` to
+                steer to a different model tier. Both the edit loop and the judge
+                route to the same variant you pass in.
 
         Returns:
             A `HashlineDiffResult` describing the final state.
@@ -237,7 +244,7 @@ class HashlineEdit(UseLLM, ABC):
             )
 
             # 2. Get + parse response
-            resp = await self.aask(prompt)
+            resp = await self.aask(prompt, send_to=send_to)
             llm_calls += 1
             edits = self._parse_hashline_diff_response(resp)
             if edits is None:
@@ -267,7 +274,7 @@ class HashlineEdit(UseLLM, ABC):
                 diff_config.hashline_judge_template,
                 {"requirement": requirement, "content": current},
             )
-            verdict = await self.ajudge(judge_prompt)
+            verdict = await self.ajudge(judge_prompt, send_to=send_to)
             if verdict:
                 history.append(f"judge YES after {llm_calls} LLM call(s)")
                 return HashlineDiffResult(
