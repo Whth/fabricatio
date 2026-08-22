@@ -215,12 +215,12 @@ class NovelCompose(ChapterCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Broadcast the bible and compose every chapter in prefix order.
+        """Seed the bible into the running prefix and compose every chapter in prefix order.
 
         Returns:
             bool: True when every chapter composed; False on any failure.
         """
-        ctx.broadcast_settings_bible()
+        ctx.seed_bible_prefix()
         total = len(ctx.chapter_context)
         for i, chapter_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing chapter {i}/{total} '{chapter_ctx.title}'")

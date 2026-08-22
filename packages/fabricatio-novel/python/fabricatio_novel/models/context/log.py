@@ -11,8 +11,8 @@ class ContextEntry(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    kind: Literal["chapter_header", "scene_content"]
-    """What composed this block: a chapter's heading or a scene's prose."""
+    kind: Literal["chapter_header", "scene_content", "setting_bible"]
+    """What composed this block: a chapter's heading, a scene's prose, or the seeded setting bible."""
 
     title: str
     """The owning element's title."""

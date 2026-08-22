@@ -108,8 +108,7 @@ class StoryCompose(SceneCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
-        """Broadcast the bible and the story's character spans to every scene before the write."""
-        ctx.broadcast_settings_bible()
+        """Broadcast the story's character spans to every scene before the write."""
         for scene_ctx in ctx.scene_context:
             scene_ctx.set_charactor_spans(ctx.charactor_span)
 

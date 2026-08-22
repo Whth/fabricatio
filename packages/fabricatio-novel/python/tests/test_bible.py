@@ -7,7 +7,6 @@ from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.bible import BibleCompose, parse_sections
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
-from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -79,53 +78,30 @@ class TestSeriesBibleModel:
         assert bible.characters == ["Hero.", "Mentor."]
 
 
-class TestContextBibleAccess:
-    """Test suite for bible access and broadcast on contexts."""
+class TestBibleSeeding:
+    """Test suite for seeding the bible into the novel's running prefix."""
 
-    def test_access_settings_bible_raises_when_uninitialized(self) -> None:
-        """Assert the accessor raises on an uninitialized bible."""
-        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        with pytest.raises(ValueError, match="not initialized"):
-            ctx.access_settings_bible()
-
-    def test_access_settings_bible_returns_initialized_bible(self) -> None:
-        """Assert the accessor returns the initialized bible instance."""
-        bible = SeriesBible(characters=["Hero."])
-        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        ctx.set_series_bible(bible)
-        assert ctx.access_settings_bible() is bible
-
-    def test_broadcast_settings_bible_reaches_all_descendants(self) -> None:
-        """Assert broadcasting pushes the bible down the whole context chain."""
-        bible = SeriesBible(characters=["Hero."])
+    def test_seed_bible_prefix_seeds_rendered_block_once(self) -> None:
+        """Assert seeding appends one rendered setting-bible entry and is idempotent."""
         novel = NovelContext.create("The hero.", language="English")
-        chapter = ChapterContext(title="Ch1", description="The start.")
-        story = StoryContext(title="St1", description="The departure.")
-        scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        story.add_scene_context(scene)
-        chapter.add_story_context(story)
-        novel.add_chapter_context(chapter)
-        novel.set_series_bible(bible)
+        novel.set_series_bible(SeriesBible(characters=["Hero — brave protagonist."]))
 
-        novel.broadcast_settings_bible()
-        chapter.broadcast_settings_bible()
-        story.broadcast_settings_bible()
+        novel.seed_bible_prefix()
+        novel.seed_bible_prefix()
 
-        assert chapter.series_bible is bible
-        assert story.series_bible is bible
-        assert scene.series_bible is bible
+        entries = [entry for entry in novel.prefix_log.entries if entry.kind == "setting_bible"]
+        assert len(entries) == 1
+        assert entries[0].body.startswith("## Setting Bible")
+        assert "Hero — brave protagonist." in entries[0].body
 
-    def test_broadcast_settings_bible_with_uninitialized_parent_clears_children(self) -> None:
-        """Assert an uninitialized parent broadcasts None, overriding stale children."""
+    def test_seed_bible_prefix_skips_empty_and_missing_bibles(self) -> None:
+        """Assert an uninitialized or empty bible seeds nothing."""
         novel = NovelContext.create("The hero.", language="English")
-        chapter = ChapterContext(title="Ch1", description="The start.")
-        chapter.set_series_bible(SeriesBible(characters=["Stale."]))
-        novel.add_chapter_context(chapter)
-
-        novel.broadcast_settings_bible()
-
-        assert novel.series_bible is None
-        assert chapter.series_bible is None
+        novel.seed_bible_prefix()
+        assert novel.prefix_log.entries == ()
+        novel.set_series_bible(SeriesBible())
+        novel.seed_bible_prefix()
+        assert novel.prefix_log.entries == ()
 
 
 class BibleRole(LLMTestRole, NovelCompose, BibleCompose):
@@ -211,7 +187,7 @@ class TestUpdateSettingBible:
 
 
 class TestBibleConsumption:
-    """Test suite for bible context in scene prompts."""
+    """Test suite for the seeded bible reaching scene prompts through the prefix log."""
 
     def _bible(self) -> SeriesBible:
         return SeriesBible(
@@ -219,46 +195,44 @@ class TestBibleConsumption:
             background_settings=["Qi is the vital energy of the world.", "The Azure Sect rules the north."],
         )
 
-    def test_render_bible_context_empty_bible_returns_empty(self) -> None:
-        """Assert an empty bible renders no context block."""
+    def _scene_with_seeded_prefix(self) -> SceneContext:
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        novel.set_series_bible(self._bible())
+        novel.seed_bible_prefix()
+        chapter = ChapterContext(title="Ch1", description="The start.")
+        novel.add_chapter_context(chapter)
+        list(novel.iter_prefixed_contexts())
+        story = StoryContext(title="St1", description="The departure.")
+        chapter.add_story_context(story)
+        list(chapter.iter_prefixed_contexts())
+        scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        story.add_scene_context(scene)
+        scene.set_prefix_log(story.prefix_log)
+        return scene
+
+    def test_seeded_bible_reaches_scene_prefix_log(self) -> None:
+        """Assert the seeded entry rides every composition walk into the scene's prefix."""
+        scene = self._scene_with_seeded_prefix()
+        kinds = [entry.kind for entry in scene.prefix_log.entries]
+        assert kinds[0] == "setting_bible"
+        assert "Hero — brave protagonist" in scene.prefix_log.render()
+
+    async def test_seeded_bible_renders_inside_previous_content(self) -> None:
+        """Assert the bible renders within the previous-content block, not a dedicated section."""
         role = BibleRole(name="bible_role")
-        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        assert role.render_bible_context(ctx) == ""
-
-    def test_render_bible_context_renders_both_sections(self) -> None:
-        """Assert both bible sections render into the context block."""
-        role = BibleRole(name="bible_role")
-        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        ctx.set_series_bible(self._bible())
-        block = role.render_bible_context(ctx)
-        assert block.startswith("## Setting Bible")
-        assert "Hero — brave protagonist" in block
-        assert "Qi is the vital energy" in block
-        assert "The Azure Sect rules the north." in block
-
-    async def test_prepare_scene_requirement_injects_bible_after_previous_content(self) -> None:
-        """Assert the bible block follows the previous content, outside the shared static prefix."""
-        role = BibleRole(name="bible_role")
-        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        ctx.set_series_bible(self._bible())
-        ctx.set_prefix_log(
-            ContextLog(entries=(ContextEntry(kind="scene_content", title="S2", body="He walked into the dark."),))
-        )
-
-        requirement = await role.prepare_scene_requirement(ctx)
-
+        scene = self._scene_with_seeded_prefix()
+        requirement = await role.prepare_scene_requirement(scene)
         assert requirement.startswith("# Scene Writing")
         assert "## Setting Bible" in requirement
-        # the bible is not run-constant (extensions may grow it mid-run), so it must not sit
-        # inside the shared static prefix; it follows the per-scene previous content
         assert requirement.index("## Setting Bible") > requirement.index("# Previous Content")
-        assert requirement.index("He walked into the dark.") > requirement.index("# Previous Content")
+        assert requirement.index("Hero — brave protagonist") > requirement.index("# Previous Content")
+        assert requirement.index("## Setting Bible") < requirement.index("## Scene")
 
-    async def test_prepare_scene_requirement_without_bible_matches_base(self) -> None:
-        """Assert an empty bible leaves the base requirement untouched."""
+    async def test_unseeded_scene_omits_the_bible(self) -> None:
+        """Assert a scene without a seeded prefix renders no bible block."""
         role = BibleRole(name="bible_role")
-        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        requirement = await role.prepare_scene_requirement(ctx)
+        scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        requirement = await role.prepare_scene_requirement(scene)
         assert "## Setting Bible" not in requirement
         assert requirement.startswith("# Scene Writing")
 
@@ -266,8 +240,8 @@ class TestBibleConsumption:
 class TestBibleThreading:
     """Test suite for threading the bible through the composition chain."""
 
-    async def test_compose_novel_threads_bible_to_all_contexts(self) -> None:
-        """Assert the bible reaches chapter, story, and scene contexts."""
+    async def test_compose_novel_seeds_bible_into_every_scene_prefix(self) -> None:
+        """Assert a composed run leaves the seeded bible entry in every scene's prefix log."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
@@ -291,9 +265,10 @@ class TestBibleThreading:
 
         assert novel is not None
         assert novel.series_bible == bible
-        assert ctx.chapter_context[0].series_bible == bible
-        assert ctx.chapter_context[0].story_context[0].series_bible == bible
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].series_bible == bible
+        scene = ctx.chapter_context[0].story_context[0].scene_context[0]
+        kinds = [entry.kind for entry in scene.prefix_log.entries]
+        assert "setting_bible" in kinds
+        assert "Qi is vital." in scene.prefix_log.render()
 
     async def test_compose_novel_keeps_preset_bible_when_plan_is_empty(self) -> None:
         """Assert a pre-set bible survives generation when the plan proposes an empty one."""
@@ -320,16 +295,15 @@ class TestBibleThreading:
 
         assert novel is not None
         assert novel.series_bible is bible
-        assert ctx.chapter_context[0].series_bible is bible
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].series_bible is bible
+        scene = ctx.chapter_context[0].story_context[0].scene_context[0]
+        assert "Qi is vital." in scene.prefix_log.render()
 
-    async def test_compose_novel_rethreads_bible_to_prefilled_contexts(self) -> None:
-        """Assert prefilled contexts adopt the novel's bible even when they carried a stale one."""
+    async def test_compose_novel_seeds_prefilled_tree_exactly_once(self) -> None:
+        """Assert repeated composition walks over a prefilled tree never duplicate the seed."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
-        # prefilled tree: child contexts keep their default (empty) bible instances
         scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=40)
         story_ctx = StoryContext(title="St1", description="The departure.")
         story_ctx.add_scene_context(scene_ctx)
@@ -349,7 +323,6 @@ class TestBibleThreading:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        assert ctx.chapter_context[0].series_bible is bible
-        assert ctx.chapter_context[0].story_context[0].series_bible is bible
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].series_bible is bible
+        kinds = [entry.kind for entry in scene_ctx.prefix_log.entries]
+        assert kinds.count("setting_bible") == 1
         assert novel.series_bible is bible

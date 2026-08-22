@@ -162,12 +162,11 @@ class ChapterCompose(StoryCompose, ABC):
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Broadcast the bible and compose every story in prefix order.
+        """Compose every story in prefix order.
 
         Returns:
             bool: True when every story composed; False on any failure.
         """
-        ctx.broadcast_settings_bible()
         total = len(ctx.story_context)
         for i, story_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing story {i}/{total} '{story_ctx.title}'")

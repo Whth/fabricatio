@@ -68,6 +68,7 @@ class InitNovelContext(StageAction):
             ctx.set_writing_constraint(str(constraint))
         if bible_path := cxt.get("bible_path"):
             ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
+        ctx.seed_bible_prefix()
         ctx.set_rag(RagRetrieval(query=str(cxt.get("rag_query") or ""), limit=int(cxt.get("rag_limit") or 15)))
         await self.snapshot(ctx, cxt)
         return ctx
@@ -81,6 +82,8 @@ class MetadataStage(StageAction, NovelCompose):
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         planned = await self.propose_novel_metadata(novel_ctx, send_to=cxt.get("send_to", TASK))
+        if planned:
+            novel_ctx.seed_bible_prefix()
         await self.snapshot(novel_ctx, cxt)
         return planned
 
@@ -98,7 +101,7 @@ class CharactersStage(StageAction, NovelCompose):
 
 
 class ChapterPlanStage(StageAction, NovelCompose):
-    """Plan chapters, broadcast the bible, and draft per-chapter character spans."""
+    """Plan chapters and draft per-chapter character spans."""
 
     output_key: str = "chapter_plan_ok"
     stage: ClassVar[str] = "04_chapter_plans"
@@ -106,8 +109,6 @@ class ChapterPlanStage(StageAction, NovelCompose):
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
         planned = await self.plan_chapters_phase(novel_ctx, send_to=send_to)
-        if planned:
-            novel_ctx.broadcast_settings_bible()
         await self.snapshot(novel_ctx, cxt)
         return planned
 
@@ -124,7 +125,6 @@ class StoryPlanStage(StageAction, ChapterCompose):
             if not await self.plan_stories_phase(chapter, send_to=send_to):
                 await self.snapshot(novel_ctx, cxt)
                 return False
-            chapter.broadcast_settings_bible()
         await self.snapshot(novel_ctx, cxt)
         return True
 
@@ -155,7 +155,6 @@ class SceneWriteStage(StageAction, StoryCompose):
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
         for chapter in novel_ctx.iter_prefixed_contexts():
-            chapter.broadcast_settings_bible()
             for story in chapter.iter_prefixed_contexts():
                 await self.prepare_scene_write(story, send_to=send_to)
                 if not await self.compose_scenes_phase(story, send_to=send_to):

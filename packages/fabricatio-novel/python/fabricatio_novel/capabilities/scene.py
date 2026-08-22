@@ -40,13 +40,12 @@ class SceneCompose(CharacterCompose, ABC):
     def _scene_requirement_vars(self, ctx: SceneContext) -> dict[str, object]:
         """Build the scene_requirement template variables for a scene context.
 
-        Overriding capabilities (bible context, RAG) reuse these vars and add
-        their own blocks before rendering.
+        Overriding capabilities (RAG) reuse these vars and add their own
+        blocks before rendering. The setting bible arrives through the
+        seeded prefix entry, not as a dedicated template variable.
         """
         characters = ctx.dump_characters()
-        bible = ctx.series_bible
         return {
-            "bible_context": bible.as_prompt() if bible is not None and not bible.is_empty() else "",
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,

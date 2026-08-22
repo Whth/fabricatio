@@ -7,6 +7,7 @@ import pytest
 from _support import RAGRole, prefix_log
 from fabricatio_mock.models.mock_router import return_router_usage
 from fabricatio_mock.utils import install_router_usage
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -43,13 +44,20 @@ class TestRAGCompose:
         """
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
-        bible = SeriesBible(characters=["Hero", "Villain"], background_settings=["The world is cold."])
-        story.set_series_bible(bible)
+        # the bible reaches stories as a seeded prefix entry, never as a held model
+        seed = ContextEntry(
+            kind="setting_bible",
+            title="Setting Bible",
+            body=SeriesBible(characters=["Hero", "Villain"], background_settings=["The world is cold."])
+            .as_prompt()
+            .strip(),
+        )
+        story.set_prefix_log(ContextLog(entries=(seed,)))
         for title, desc in [("S1", "Leaving home."), ("S2", "A stranger appears."), ("S3", "The road.")]:
             story.add_scene_context(
-                SceneContext(title=title, description=desc, expected_word_count=50)
-                .set_writing_styles(["Dark gothic prose with terse action lines."])
-                .set_series_bible(bible)
+                SceneContext(title=title, description=desc, expected_word_count=50).set_writing_styles(
+                    ["Dark gothic prose with terse action lines."]
+                )
             )
 
         async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:

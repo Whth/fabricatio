@@ -11,6 +11,7 @@ from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.plan import NovelPlan
+from fabricatio_novel.models.series_book import SeriesBible
 
 
 class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
@@ -31,6 +32,10 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
 
     rag: RagRetrieval | None = None
     """Opt-in writing style retrieval settings; None when the run uses no RAG."""
+
+    series_bible: SeriesBible | None = None
+    """The novel's setting bible; consumed at this root only — roster proposal and the
+    seeded prefix entry that every descendant inherits through its prefix log."""
 
     def update_pre_check(self, other: NovelPlan | Self) -> Self:
         """Accept a novel plan (or another novel context) as the update source."""
@@ -94,6 +99,28 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
     def set_rag(self, rag: RagRetrieval | None) -> Self:
         """Set the opt-in writing style retrieval settings and return self."""
         self.rag = rag
+        return self
+
+    def set_series_bible(self, series_bible: SeriesBible | None) -> Self:
+        """Set the novel's setting bible and return self."""
+        self.series_bible = series_bible
+        return self
+
+    def seed_bible_prefix(self) -> Self:
+        """Seed the running prefix with the setting bible so every descendant inherits it.
+
+        The rendered block becomes the first ``setting_bible`` prefix entry; each
+        composition walk copies it into every child's prefix log, so chapter,
+        story, and scene contexts never hold the bible themselves. Idempotent:
+        empty bibles seed nothing and an existing entry is never duplicated.
+        """
+        if self.series_bible is None or self.series_bible.is_empty():
+            return self
+        if any(entry.kind == "setting_bible" for entry in self.prefix_log.entries):
+            return self
+        self.prefix_log = self.prefix_log.with_entry(
+            ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip())
+        )
         return self
 
     @classmethod

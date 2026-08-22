@@ -7,11 +7,9 @@ from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import logger
 from fabricatio_core.models.generic import JSONList, SketchedAble
-from fabricatio_core.utils import ok
 from pydantic import Field
 
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-from fabricatio_novel.models.series_book import SeriesBible
 
 
 def merge_writing_constraints(parent: str, own: str) -> str:
@@ -115,9 +113,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     """The raw novel outline; run-wide constant, copied down every creation chain so each
     planning prompt grounds on the full source text instead of compressed parent descriptions."""
 
-    series_bible: SeriesBible | None = None
-    """The novel's setting bible; uninitialized until set or broadcast down from the novel context."""
-
     prefix_log: ContextLog = Field(default_factory=ContextLog)
     """Everything composed before this element as an append-only entry log; injected by the
     parent before composition."""
@@ -130,11 +125,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
     def set_outline(self, outline: str) -> Self:
         """Set the raw novel outline carried into this element's planning prompts and return self."""
         self.outline = outline
-        return self
-
-    def set_series_bible(self, series_bible: SeriesBible | None) -> Self:
-        """Set the novel's setting bible on this element and return self."""
-        self.series_bible = series_bible
         return self
 
     def set_writing_styles(self, writing_styles: list[str]) -> Self:
@@ -165,14 +155,6 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         """Set the append-only log of everything composed before this element and return self."""
         self.prefix_log = prefix_log
         return self
-
-    def access_settings_bible(self) -> SeriesBible:
-        """Return the initialized settings bible.
-
-        Raises:
-            ValueError: if the settings bible was never initialized on this context.
-        """
-        return ok(self.series_bible, f"Settings bible is not initialized on {self.__class__.__name__}")
 
     def iter_child_contexts(self) -> Generator[C, None, None]:
         """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
@@ -212,9 +194,3 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
             child.set_prefix_log(seed)
             yield child
             seed = seed.with_entries(child.prefixed_entries())
-
-    def broadcast_settings_bible(self) -> Self:
-        """Push this context's settings bible onto every child context."""
-        for child in self.iter_child_contexts():
-            child.set_series_bible(self.series_bible)
-        return self

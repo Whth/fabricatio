@@ -1,8 +1,9 @@
-"""Setting bible capabilities: creation, update, and scene-prompt consumption.
+"""Setting bible capabilities: creation and update of the series bible.
 
 Design authority: docs/superpowers/specs/2026-08-08-novel-gen-overhaul-design.md §3,
 simplified per user directive: characters are proposed as a list of plain
-strings, one per character, as are background settings.
+strings, one per character, as are background settings. Consumption into
+scene prompts rides the seeded prefix entry, not this capability.
 """
 
 from abc import ABC
@@ -14,7 +15,6 @@ from fabricatio_core.rust import TASK, detect_language
 
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.series_book import SeriesBible
 
 _SECTIONS = ("characters", "background")
@@ -34,7 +34,7 @@ def parse_sections(sections: str | Iterable[str] | None) -> Optional[set[str]]:
 
 
 class BibleCompose(SceneCompose, ABC):
-    """Setting bible creation and scene-prompt consumption."""
+    """Setting bible creation and update."""
 
     # --- creation / update (design §3.3) ---
 
@@ -130,30 +130,3 @@ class BibleCompose(SceneCompose, ABC):
             "list[str] | None",
             await self.alist_v(requirement, str, send_to=send_to, **kwargs),
         )
-
-    # --- consumption into scene prompts (design §3.5) ---
-
-    async def prepare_scene_requirement(
-        self,
-        ctx: SceneContext,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> str:
-        """Render the scene requirement with the setting bible block after the previous content."""
-        bible_context = self.render_bible_context(ctx)
-        if not bible_context:
-            return await super().prepare_scene_requirement(ctx, **kwargs)
-        return TEMPLATE_MANAGER.render_template(
-            novel_config.scene_requirement_template,
-            {**self._scene_requirement_vars(ctx), "bible_context": bible_context},
-        )
-
-    def render_bible_context(self, ctx: SceneContext) -> str:
-        """Render the bible block for the scene prompt.
-
-        The block is not run-constant — extensions may grow it (for
-        example by adding background settings) mid-run — so it is injected
-        after the previous content, outside the shared static prefix.
-        """
-        if ctx.series_bible is None or ctx.series_bible.is_empty():
-            return ""
-        return ctx.access_settings_bible().as_prompt().strip()
