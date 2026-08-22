@@ -1,52 +1,42 @@
 // fabricatio-novel: staged pipeline with its LLM call inventory.
 // Render: dot -Tsvg pipeline.gv -o pipeline.svg
+// Templates are .hbs files under templates/built-in/ (full mapping in the README table).
 digraph pipeline {
     rankdir=TB;
+    bgcolor="white";
     fontname="serif";
-    fontsize=11;
-    nodesep=0.30;
-    ranksep=0.38;
+    pad="0.45";
+    nodesep=0.45;
+    ranksep=0.42;
+    labelloc="b";
+    label="  a stage naming a template makes those batched LLM calls; gray = pure code";
 
     node [shape=box, style="filled", fillcolor="white", color="black",
-          fontname="serif", fontsize=11, margin="0.14,0.08"];
-    edge [color="black", arrowsize=0.7, fontname="serif", fontsize=10];
+          fontname="serif", fontsize=13, margin="0.18,0.10"];
+    edge [color="black", arrowsize=0.75, fontname="serif", fontsize=11];
 
-    // inputs / outputs
-    outline [label="outline\l(+ optional bible, constraint, RAG query)\l", shape=note, fillcolor="#F2F2F2"];
-    epub    [label="EPUB / chapters/NN.txt\l", shape=note, fillcolor="#F2F2F2"];
+    // left column — novel scope
+    outline [label="outline\l(+ optional bible, constraint,\lRAG query)\l", shape=note, fillcolor="#F2F2F2"];
+    initmeta [label="01–02 Init & metadata\lnovel_metadata_requirement\l⇒ NovelPlan (title, word count,\lconstraint, bible)\l"];
+    chars    [label="03 Roster spans\lnovel_character_span\l⇒ CharacterSpan[] per character\l(skipped without a roster)\l"];
+    chapters [label="04 Chapters\lchapter_plan ⇒ ChapterPlan[]\lchapter_character_span ⇒ N−1\lboundary cards, stitched in code\l"];
 
-    // code-only stages carry a light-gray fill; LLM stages stay white
-    init     [label="01 Init\lbuild NovelContext from the outline\l", fillcolor="#E8E8E8"];
-    meta     [label="02 Metadata\lnovel_metadata_requirement.hbs ⇒ NovelPlan\l(title, description, word count,\lglobal constraint, bible)\l"];
-    chars    [label="03 Characters\lnovel_character_span.hbs ⇒ CharacterSpan[]\l(one whole-novel arc per roster character)\l"];
-    chap     [label="04 Chapter plans\lchapter_plan.hbs ⇒ ChapterPlan[]\l"];
-    chapspan [label="stitch chapter spans\lchapter_character_span.hbs ⇒ N−1 cards\lper character; endpoints pinned in code\l", fillcolor="#E8E8E8"];
-    story    [label="05 Story plans\lstory_plan.hbs ⇒ StoryPlan[]\l"];
-    storyspan[label="stitch story spans\lstory_character_span.hbs ⇒ S−1 cards\lper character; single child inherits\l", fillcolor="#E8E8E8"];
-    splan    [label="06 Scene plans\lscene_plan.hbs ⇒ ScenePlan[]\l(+ optional style-RAG retrieval)\l"];
-    prose    [label="07 Scene prose\lscene_requirement.hbs ⇒ plain prose\lthe only content-writing call\l"];
-    asm      [label="08 Assemble\lNovel.from_context\l", fillcolor="#E8E8E8"];
+    // right column — chapter scope
+    stories [label="05 Stories\lstory_plan ⇒ StoryPlan[]\lstory_character_span ⇒ S−1\lboundary cards, stitched in code\l"];
+    splan   [label="06 Scene plans\lscene_plan ⇒ ScenePlan[]\l(+ optional style-RAG retrieval)\l"];
+    prose   [label="07 Scene prose\lscene_requirement ⇒ plain prose\lthe only content-writing call\l(serial per scene)\l"];
+    asm     [label="08–09 Assemble & export\lNovel.from_context\l⇒ EPUB / chapters/NN.txt\l", fillcolor="#E8E8E8"];
 
-    outline -> init;
-    init     -> meta;
-    meta     -> chars;
-    chars    -> chap;
-    chap     -> chapspan;
-    chapspan -> story   [label=" per chapter ×C"];
-    story    -> storyspan;
-    storyspan-> splan   [label=" per story ×S"];
-    splan    -> prose   [label=" per scene, serial"];
+    outline  -> initmeta;
+    initmeta -> chars;
+    chars    -> chapters;
+    chapters -> stories [label=" per chapter ×C", constraint=false];
+    stories  -> splan;
+    splan    -> prose [label=" per story ×S"];
     prose    -> asm;
-    asm      -> epub;
 
-    // legend
-    subgraph cluster_legend {
-        label="";
-        style="rounded";
-        fontname="serif";
-        fontsize=10;
-        llm   [label="white — LLM call\l(template → typed proposal)", fontsize=10, margin="0.10,0.05"];
-        code_ [label="grey — pure code\l(stitching, allocation, assembly)", fontsize=10, fillcolor="#E8E8E8", margin="0.10,0.05"];
-        llm -> code_ [style=invis];
-    }
+    { rank=same; outline;  stories; }
+    { rank=same; initmeta; splan;   }
+    { rank=same; chars;    prose;   }
+    { rank=same; chapters; asm;     }
 }

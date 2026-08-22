@@ -69,7 +69,7 @@ current context channel; planner calls parse the reply into validated pydantic m
 while the single prose call captures raw paragraphs. Everything between calls — word-count
 allocation, character-arc stitching, prefix propagation, assembly — is deterministic code.
 
-<p align="center"><img src="./assets/pipeline.svg" alt="Staged pipeline with its LLM call inventory" width="340"></p>
+<p align="center"><img src="./assets/pipeline.svg" alt="Staged pipeline with its LLM call inventory" width="790"></p>
 
 ### LLM call inventory
 
@@ -103,7 +103,7 @@ Plans materialize into child contexts via `from_plan`; each level then passes st
 Composed prose flows back up: scene content enters the logs, and `Novel.from_context`
 aggregates the whole tree for export.
 
-<p align="center"><img src="./assets/dataflow.svg" alt="Context-tree data flow: what flows down, what flows up" width="560"></p>
+<p align="center"><img src="./assets/dataflow.svg" alt="Context-tree data flow: what flows down, what flows up" width="820"></p>
 
 ### How a scene prompt is assembled
 
@@ -111,7 +111,7 @@ The scene write is the only content-producing call, so its prompt is engineered 
 provider prefix caching: every row above `## Scene` is byte-identical across the scenes
 of a story, and divergence starts exactly at the per-scene tail.
 
-<p align="center"><img src="./assets/prompt-assembly.svg" alt="Scene prompt assembly: sources, template sections, response" width="820"></p>
+<p align="center"><img src="./assets/prompt-assembly.svg" alt="Scene prompt assembly: sources, template sections, response" width="760"></p>
 
 
 ## Key Classes

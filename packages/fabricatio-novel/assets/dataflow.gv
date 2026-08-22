@@ -4,36 +4,38 @@ digraph dataflow {
     rankdir=TB;
     bgcolor="white";
     fontname="serif";
-    fontsize=11;
-    nodesep=0.28;
-    ranksep=0.50;
+    pad="0.45";
+    nodesep=0.30;
+    ranksep=0.52;
 
     node [shape=box, style="filled", fillcolor="white", color="black",
-          fontname="serif", fontsize=11, margin="0.14,0.08"];
-    edge [color="black", arrowsize=0.7, fontname="serif", fontsize=10];
+          fontname="serif", fontsize=13, margin="0.16,0.09"];
+    edge [color="black", arrowsize=0.75, fontname="serif", fontsize=11];
 
-    novel   [label="NovelContext\loutline · language · NovelPlan · roster spans\lseries bible (seeded prefix entry)\l"];
-    chapter [label="ChapterContext[]\ltitle · description · weight → word count\laccumulated writing constraint\l"];
-    story   [label="StoryContext[]\lwriting styles (+ retrieved references)\l"];
-    scene   [label="SceneContext[]\lcast · span list (prompt-only)\lcontent — the only composed prose\l"];
+    novel   [label="NovelContext\loutline · language · NovelPlan\lroster spans · seeded series bible\l"];
+    chapter [label="ChapterContext[]\ltitle · description · weight\lword budget · constraint so far\l"];
+    story   [label="StoryContext[]\lwriting styles (+ RAG references)\l"];
+    scene   [label="SceneContext[]\lcast · span list (prompt-only)\lcontent — the composed prose\l"];
 
-    novel -> chapter [label="  seed: running prefix log\l  + chapter heading block\l  + word-count split by weight\l"];
-    chapter -> story [label="  seed: everything so far\l  + word-count split by weight\l"];
-    story -> scene  [label="  seed: everything so far\l  + broadcast character spans\l"];
+    novel   -> chapter [label="  seed: log + heading + weight split\l"];
+    chapter -> story [label="  seed: all so far + weight split\l"];
+    story   -> scene  [label="  seed: all so far + broadcast spans\l"];
 
     // downward cross-cutting mechanisms
-    node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=10];
+    node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=12, margin="0.14,0.11"];
     edge [style=dotted, arrowsize=0.55];
 
-    bible  [label="SeriesBible is rendered once into a setting_bible\lprefix entry at the root; every descendant\linherits it through its own prefix log\l", margin="0.10,0.06"];
-    constr [label="writing_constraint accumulates:\leach level keeps the parent chain verbatim\land appends its own allocation\l", margin="0.10,0.06"];
-    spans  [label="character arcs: roster fixes both endpoints;\lN−1 / S−1 boundary cards per character are\lstitched in code — chains cannot break\l", margin="0.10,0.06"];
+    bible  [label="SeriesBible renders once at the root;\ldescendants inherit it through\ltheir own prefix logs\l"];
+    constr [label="writing_constraint accumulates:\lparent chain kept verbatim,\lown allocation appended\l"];
+    spans  [label="arcs: roster fixes endpoints;\lN−1 / S−1 boundary cards per\lcharacter stitched in code\l"];
 
     bible  -> novel;
-    constr -> story;
+    constr -> chapter;
     spans  -> story;
 
     // upward aggregation
-    asm [label="Novel.from_context\l→ NovelBuilder (PyO3) ⇒ EPUB / TXT\l", fillcolor="#E8E8E8"];
-    scene -> asm [label="  composed prose appended\l  to the manuscript logs", style=solid];
+    node [style="filled", fillcolor="#E8E8E8", fontsize=13, margin="0.16,0.09"];
+    edge [style=solid, arrowsize=0.75];
+    asm [label="Novel.from_context\l→ NovelBuilder (PyO3) ⇒ EPUB / TXT\l"];
+    scene -> asm [label="  prose appended to the logs\l"];
 }

@@ -5,59 +5,58 @@ digraph assembly {
     bgcolor="white";
     fontname="serif";
     pad="0.45";
-    fontsize=11;
-    nodesep=0.30;
+    nodesep=0.26;
     ranksep=0.55;
 
     node [shape=box, style="filled", fillcolor="white", color="black",
-          fontname="serif", fontsize=10, margin="0.12,0.06"];
-    edge [color="black", arrowsize=0.65, fontname="serif", fontsize=9];
+          fontname="serif", fontsize=13, margin="0.14,0.07"];
+    edge [color="black", arrowsize=0.7, fontname="serif", fontsize=11];
+
     subgraph cluster_sources {
         label="context channel (SceneContext)";
+        labelloc="t";
         labeljust="l";
         fontname="serif";
-        fontsize=10;
+        fontsize=12;
         color="#808080";
         style="rounded";
 
-        src_prefix [label="prefix_log.render()\lchapter heading blocks, prior chapters,\lprior stories, prior scenes of this story,\lseeded setting bible\l"];
-        src_styles [label="dump_writing_styles()\linherited style directives\l(+ retrieved RAG references)\l"];
-        src_sofar  [label="scenes_log.render()\lscenes of this story written so far\l"];
-        src_scene  [label="plan fields\ltitle · description · expected word count\lscene style · writing constraint\l"];
-        src_chars  [label="dump_characters()\lstart/end state cards per character\l"];
+        src_prefix [label="prefix_log.render()\lrunning manuscript prefix:\lheadings, prior chapters,\lstories, scenes, seeded bible\l"];
+        src_styles [label="dump_writing_styles()\lstyle directives\l(+ retrieved RAG refs)\l"];
+        src_sofar  [label="scenes_log.render()\lprior scenes of this story;\lgrows after every scene —\leach result becomes\lthe next “so far”\l"];
+        src_scene  [label="plan fields — the only tail\ltitle · description · count\lscene style · constraint\l"];
+        src_chars  [label="dump_characters()\lstart/end state cards\lper character\l"];
         src_misc   [label="cast (comma list) · language\l"];
     }
 
     prompt [shape=plaintext, style="", fillcolor="white",
             label=<
-                <table border="1" cellborder="0" cellspacing="0" cellpadding="5" bgcolor="white">
-                    <tr><td align="left"><b># Scene Writing</b> — static head, language</td></tr>
+                <table border="1" cellborder="0" cellspacing="0" cellpadding="6" bgcolor="white">
+                    <tr><td align="left"><b># Scene Writing</b> — static head</td></tr>
                     <tr><td align="left"># Previous Content — prefix log</td></tr>
-                    <tr><td align="left">## Writing Styles — directives + references</td></tr>
-                    <tr><td align="left">## Story so far — this story's prior scenes</td></tr>
-                    <tr><td align="left" bgcolor="#E8E8E8">## Scene — title, description, word count, style</td></tr>
+                    <tr><td align="left">## Writing Styles — directives</td></tr>
+                    <tr><td align="left">## Story so far — prior scenes</td></tr>
+                    <tr><td align="left" bgcolor="#E8E8E8">## Scene — title, words, style</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Writing Constraint</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Characters' state arc</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Cast</td></tr>
                 </table>
             >];
 
-    llm  [label="LLM (aask)\lone call per scene\l"];
-    out  [label="plain prose paragraphs\l(no JSON, no headings)\l"];
-    scene[label="Scene\ltitle · description\lexpected_word_count · content\l"];
-    log  [label="ctx.set_content → scenes_log\lfeeds the next scene's\l“## Story so far” region\l", fillcolor="#E8E8E8"];
+    write [label="one LLM call per scene\l⇒ plain prose (no JSON)\lScene.content via set_content\l"];
+
+    // keep the outcome box directly below the prompt, not to its right
+    { rank=same; prompt; write; }
 
     src_prefix -> prompt;
     src_styles -> prompt;
     src_sofar  -> prompt;
-    src_scene  -> prompt [label=" per-scene tail"];
+    src_scene  -> prompt;
+    src_chars  -> prompt;
     src_misc   -> prompt;
-    stable [style="filled, dashed", fillcolor="#F5F5F5", fontsize=9,
-            label="stable region: every row above “## Scene” is\lbyte-identical across a story's scenes,\lso repeated prefixes hit the provider cache\l"];
-    stable -> prompt [style=dotted, arrowsize=0.5];
 
-    prompt -> llm;
-    llm -> out;
-    out -> scene;
-    scene -> log;
+    prompt -> write [constraint=false];
+
+    labelloc="b";
+    label="  gray rows = per-scene tail; white rows are byte-identical across a story's scenes,\l  so repeated prefixes hit the provider cache";
 }
