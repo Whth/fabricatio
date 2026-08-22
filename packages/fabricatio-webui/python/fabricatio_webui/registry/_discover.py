@@ -22,7 +22,8 @@ def _action_module_names() -> Iterator[str]:
         root_name = f"{pkg}.actions"
         try:
             root = importlib.import_module(root_name)
-        except Exception:  # noqa: BLE001 — missing optional extras must not kill discovery
+        except Exception as exc:  # noqa: BLE001 — missing optional extras must not kill discovery
+            logger.debug(f"Skipped action package {root_name!r}: {exc!r}")
             continue
         yield root_name
         path = getattr(root, "__path__", None)

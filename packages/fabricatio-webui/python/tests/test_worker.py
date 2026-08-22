@@ -359,6 +359,7 @@ class TestWorkerConfigForwarding:
 
     @staticmethod
     def test_cli_source_forwards_config_kwargs() -> None:
+        """The CLI source must forward queue/history knobs to the worker constructor."""
         import inspect
 
         from fabricatio_webui import cli

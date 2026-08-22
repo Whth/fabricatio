@@ -171,7 +171,7 @@ def build_blueprints() -> Dict[str, Any]:
             }
         )
 
-    fingerprint = hashlib.sha1(json.dumps(blueprints, sort_keys=True, default=str).encode()).hexdigest()[:8]
+    fingerprint = hashlib.sha256(json.dumps(blueprints, sort_keys=True, default=str).encode()).hexdigest()[:8]
     return {
         "version": "1.0",
         "blueprints_version": fingerprint,

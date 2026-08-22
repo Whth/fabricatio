@@ -340,6 +340,38 @@ def _instantiate_action(
         raise
 
 
+def _inject_wired_values(
+    instance: Action,
+    cxt: Dict[str, Any],
+    outputs: Dict[str, Any],
+    wired: Tuple[Tuple[str, str, str], ...],
+    node_id: str,
+    class_name: str,
+) -> None:
+    """Apply wired edge values onto the executing instance and body context.
+
+    Wired edge values are explicit field assignments: applied unconditionally
+    (bodies read ``self.<field>``), regardless of ctx_override, and injected
+    into the body context.  The only sources are node outputs.  The
+    CONTEXT_PORT_NAME handle is a display-only wire (whole-context dataflow
+    drawn by the blueprint generator): the framework already passes the shared
+    context, so injecting the predecessor's output under that name would
+    clobber the real context.
+    """
+    for src_id, source_handle, tgt_handle in wired:
+        if tgt_handle == CONTEXT_PORT_NAME:
+            continue
+        found, value = _wired_value(outputs, node_id, src_id, source_handle, tgt_handle)
+        if not found:
+            continue
+        cxt[tgt_handle] = value
+        if tgt_handle in type(instance).model_fields:
+            try:
+                setattr(instance, tgt_handle, value)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug(f"Could not set wired field {tgt_handle!r} on {class_name!r}: {exc!r}")
+
+
 def _make_instrumented(
     real_cls: Type[Action],
     node_id: str,
@@ -364,27 +396,7 @@ def _make_instrumented(
                 outputs = task.extra_init_context.setdefault(_OUTPUTS_KEY, {})
                 execution_id = task.extra_init_context.get(_EXECUTION_ID_KEY)
 
-            # Wired edge values are explicit field assignments: applied
-            # unconditionally (bodies read ``self.<field>``), regardless of
-            # ctx_override, and injected into the body context.  The only
-            # sources are node outputs.  The CONTEXT_PORT_NAME handle is a
-            # display-only wire (whole-context dataflow drawn by the
-            # blueprint generator): the framework already passes the shared
-            # context, so injecting the predecessor's output under that name
-            # would clobber the real context.
-            for src_id, source_handle, tgt_handle in wired:
-                if tgt_handle == CONTEXT_PORT_NAME:
-                    continue
-                found, value = _wired_value(outputs, node_id, src_id, source_handle, tgt_handle)
-                if not found:
-                    continue
-                cxt[tgt_handle] = value
-                if tgt_handle in type(self).model_fields:
-                    try:
-                        setattr(self, tgt_handle, value)
-                    except Exception as exc:  # noqa: BLE001
-                        logger.debug(f"Could not set wired field {tgt_handle!r} on {class_name!r}: {exc!r}")
-
+            _inject_wired_values(self, cxt, outputs, wired, node_id, class_name)
             await _emit(
                 execution_id,
                 "node_start",

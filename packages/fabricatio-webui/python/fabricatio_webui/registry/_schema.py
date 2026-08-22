@@ -2,59 +2,78 @@
 
 from pathlib import Path
 from types import UnionType
-from typing import Annotated, Any, Dict, Literal, Union, get_args, get_origin
+from typing import Annotated, Any, Dict, Literal, Tuple, Union, get_args, get_origin
 
 from pydantic.fields import FieldInfo
+
+
+def _union_port_type(args: Tuple[Any, ...]) -> str:
+    """Render a union's port type: a single member unwraps to ``T?``, multi stays wildcard."""
+    non_none = [a for a in args if a is not type(None)]
+    if len(non_none) == 1:
+        return f"{_type_to_port_type(non_none[0])}?"
+    if non_none:
+        # Multi-member union (e.g. str | Path): the registry cannot
+        # enumerate members — keep the wildcard so any output fits.
+        return "Union"
+    return "None"
+
+
+def _plain_port_type(ann: Any) -> str:
+    """Render a plain (non-generic) annotation's port type."""
+    if isinstance(ann, type):
+        if issubclass(ann, Path):
+            return "Path"
+        if hasattr(ann, "__name__"):
+            return ann.__name__
+    return str(ann)
 
 
 def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
     """Convert a Python type annotation into a frontend-friendly string."""
     origin = get_origin(ann)
 
-    if origin is not None:
-        origin_name = getattr(origin, "__name__", str(origin))
-        args = get_args(ann)
+    if origin is None:
+        return _plain_port_type(ann)
 
-        if origin is type(None) or origin is None:
-            return "None"
+    origin_name = getattr(origin, "__name__", str(origin))
+    args = get_args(ann)
 
-        if origin in (Union, UnionType) and args:
-            non_none = [a for a in args if a is not type(None)]
-            if len(non_none) == 1:
-                return f"{_type_to_port_type(non_none[0])}?"
-            if non_none:
-                # Multi-member union (e.g. str | Path): the registry cannot
-                # enumerate members — keep the wildcard so any output fits.
-                return "Union"
-            return "None"
-
-        if origin is Annotated and args:
-            return _type_to_port_type(args[0])
-
-        if origin_name in ("list", "List"):
-            if args:
-                inner_str = _type_to_port_type(args[0])
-                return f"List[{inner_str}]"
-            return "List"
-
-        if origin_name == "Literal":
-            return "Literal"
-
-        # generic aliases e.g. Task[T]
-        return origin_name
-
-    # Plain type
-    if isinstance(ann, type):
-        if issubclass(ann, Path):
-            return "Path"
-        if hasattr(ann, "__name__"):
-            return ann.__name__
-        return str(ann)
-
-    return str(ann)
+    if origin is type(None):
+        return "None"
+    if origin in (Union, UnionType) and args:
+        return _union_port_type(args)
+    if origin is Annotated and args:
+        return _type_to_port_type(args[0])
+    if origin_name in ("list", "List"):
+        if args:
+            return f"List[{_type_to_port_type(args[0])}]"
+        return "List"
+    if origin_name == "Literal":
+        return "Literal"
+    # generic aliases e.g. Task[T]
+    return origin_name
 
 
-def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:  # noqa: C901, PLR0911
+def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> Dict[str, Any] | None:
+    """Widget hint for a bare (non-generic) annotation; ``None`` when unhandled."""
+    if not isinstance(ann, type):
+        return None
+    # bool must be tested before int (it subclasses int).
+    if issubclass(ann, bool):
+        return {"widget": "toggle"}
+    if issubclass(ann, (int, float)):
+        step = 1 if issubclass(ann, int) else 0.1
+        return {"widget": "number", "step": step}
+    if issubclass(ann, Path):
+        return {"widget": "text", "placeholder": "/path/to/file"}
+    if issubclass(ann, str):
+        long_default = has_default and isinstance(default, str) and len(default) > 120
+        return {"widget": "textarea" if long_default else "text"}
+    return None
+
+
+def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:
     """Map a field annotation to a frontend widget hint (see spec §2.3).
 
     Returns ``{"widget": ...}`` plus optional constraints. The port's own
@@ -91,22 +110,8 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:  
     if origin is not None and getattr(origin, "__name__", "") in ("dict", "Dict"):
         return {"widget": "json"}
 
-    if isinstance(ann, type):
-        if issubclass(ann, bool):
-            return {"widget": "toggle"}
-        if issubclass(ann, int):
-            return {"widget": "number", "step": 1}
-        if issubclass(ann, float):
-            return {"widget": "number", "step": 0.1}
-        if issubclass(ann, Path):
-            return {"widget": "text", "placeholder": "/path/to/file"}
-        if issubclass(ann, str):
-            if has_default and isinstance(default, str) and len(default) > 120:
-                return {"widget": "textarea"}
-            return {"widget": "text"}
-
-    # Anything else / unresolvable
-    return {"widget": "json"}
+    # Bare-type mapping first; anything unresolvable falls back to JSON.
+    return _widget_for_bare_type(ann, has_default, default) or {"widget": "json"}
 
 
 def _apply_number_constraints(hint: Dict[str, Any], ann: Any) -> None:

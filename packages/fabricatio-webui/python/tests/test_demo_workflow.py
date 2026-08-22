@@ -7,6 +7,7 @@ ports, and an actual offline execution through the real dispatch path.
 
 import asyncio
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 from fabricatio_core.models.task import Task
@@ -31,7 +32,7 @@ def _clear_plan_cache() -> Generator[None, None, None]:
     _compile_workflow_plan.cache_clear()
 
 
-def _demo_blueprint():
+def _demo_blueprint() -> dict[str, Any]:
     """Return the Hello Fabricatio blueprint entry, failing loudly when absent."""
     bp = next((b for b in build_blueprints()["blueprints"] if b["id"] == DEMO_BLUEPRINT_ID), None)
     assert bp is not None, f"{DEMO_BLUEPRINT_ID} not found in the blueprint catalog"
