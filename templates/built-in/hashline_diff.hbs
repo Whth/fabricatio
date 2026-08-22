@@ -1,0 +1,58 @@
+{{block source "Source (with line:hash anchors)"}}
+{{block requirement "Edit Requirement"}}
+{{block last_error "Feedback from the previous attempt (treat as a hint to recover)"}}
+You must edit the `Source` to satisfy the `Edit Requirement`.
+Each line in the source is tagged as `LINE:HASH|content`. Use the `LINE:HASH`
+prefix as the anchor for any edit you emit.
+
+Emit ONE OR MORE fenced op blocks. Each block is applied in order. Do not
+explain, narrate, or add prose outside the blocks.
+
+Op kinds (choose the minimal one that satisfies the requirement):
+
+1. `<<<<SET <LINE:HASH>` / `SET<<<<`
+   Replace exactly the line at `<LINE:HASH>` with the body.
+
+   Example:
+   <<<<SET 3:7c
+       print(msg)
+   SET<<<<
+
+2. `<<<<RANGE <start_LINE:HASH> <end_LINE:HASH>` / `RANGE<<<<`
+   Replace the inclusive line range from `<start_LINE:HASH>` to
+   `<end_LINE:HASH>` with the body. To replace a single line, give the
+   same anchor twice.
+
+   Example:
+   <<<<RANGE 2:b2 2:b2
+       msg = f"Hi, {name}"
+   RANGE<<<<
+
+3. `<<<<INSERT_AFTER <LINE:HASH>` / `INSERT_AFTER<<<<`
+   Insert the body verbatim as new lines immediately after `<LINE:HASH>`.
+   The body must be non-empty.
+
+   Example:
+   <<<<INSERT_AFTER 4:91
+   greet("everyone")
+   INSERT_AFTER<<<<
+
+4. `<<<<REPLACE` / `REPLACE<<<<`  (or `<<<<REPLACE ALL` / `REPLACE<<<<`)
+   Fuzzy whitespace-insensitive text substitution. The body is
+   `<old_text>\n<new_text>`. Use this only when none of the above
+   anchor-based ops can target the change cleanly.
+
+   Example:
+   <<<<REPLACE
+   foo(  )
+   foo(x)
+   REPLACE<<<<
+
+Constraints:
+- Every anchor you reference MUST appear unchanged in the `Source` block.
+  If you cannot find a matching anchor, stop and report the issue rather
+  than guessing.
+- Preserve leading whitespace exactly as it appears in the source.
+- If `Feedback from the previous attempt` contains an `Apply failed: ...`
+  message, the previous anchors or content were rejected. Re-read the
+  current `Source` carefully and re-emit a corrected block list.
