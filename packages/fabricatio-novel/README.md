@@ -61,6 +61,59 @@ whole-tree JSON snapshot after every stage so any wrong result is traceable:
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
 entries from LanceDB once per story and renders them raw into the scene prompts.
 
+## Data Flow & Prompt Assembly
+
+The pipeline follows one principle: **every LLM touchpoint is a template plus named
+context variables, and nothing else**. Each stage renders a Handlebars template from the
+current context channel; planner calls parse the reply into validated pydantic models,
+while the single prose call captures raw paragraphs. Everything between calls — word-count
+allocation, character-arc stitching, prefix propagation, assembly — is deterministic code.
+
+<p align="center"><img src="./assets/pipeline.svg" alt="Staged pipeline with its LLM call inventory" width="340"></p>
+
+### LLM call inventory
+
+| Stage | Template · prompted with | Yields |
+|---|---|---|
+| Metadata | `novel_metadata_requirement` ← `outline`, `language`, `constraint` | `NovelPlan` (adopted onto the root) |
+| Roster spans | `novel_character_span` ← bible prompt block, title, description | `CharacterSpan[]` — skipped without a roster |
+| Chapter plans | `chapter_plan` ← outline, novel fields, word count, styles, constraint, characters | `ChapterPlan[]` |
+| Chapter boundaries | `chapter_character_span` ← roster spans, chapter titles/descriptions | N−1 boundary cards per character |
+| Story plans | `story_plan` ← chapter fields, styles, constraint, characters, cast | `StoryPlan[]` |
+| Story boundaries | `story_character_span` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
+| Scene plans | `scene_plan` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
+| Scene prose | `scene_requirement` ← 11 variables, see below | plain prose → `Scene.content` |
+
+Templates live in `templates/built-in/` and are selectable through the
+[Configuration](#configuration) keys below.
+
+### What flows down the tree
+
+Plans materialize into child contexts via `from_plan`; each level then passes state down:
+
+- **Running manuscript** — an append-only `ContextLog`; every walk seeds each child with
+  exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)
+- **Setting bible** — rendered once at the root into a `setting_bible` prefix entry;
+  every descendant inherits it through its own log
+- **Word budget** — each level splits its `expected_word_count` among children by plan weight
+- **Writing constraint** — accumulated verbatim down the chain
+- **Character arcs** — the roster fixes both endpoints; intermediate boundary cards are
+  proposed per level and stitched in code; scenes receive the finished span list read-only
+
+Composed prose flows back up: scene content enters the logs, and `Novel.from_context`
+aggregates the whole tree for export.
+
+<p align="center"><img src="./assets/dataflow.svg" alt="Context-tree data flow: what flows down, what flows up" width="560"></p>
+
+### How a scene prompt is assembled
+
+The scene write is the only content-producing call, so its prompt is engineered for
+provider prefix caching: every row above `## Scene` is byte-identical across the scenes
+of a story, and divergence starts exactly at the per-scene tail.
+
+<p align="center"><img src="./assets/prompt-assembly.svg" alt="Scene prompt assembly: sources, template sections, response" width="820"></p>
+
+
 ## Key Classes
 
 ### Context channels
@@ -73,7 +126,7 @@ entries from LanceDB once per story and renders them raw into the scene prompts.
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
 | `CharacterSpan` | Start + end `CharacterCard`; `derive_child_spans` stitches boundary cards |
 | `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
-| `SeriesBible` | `characters` roster string + `background_settings` fact list; broadcast down |
+| `SeriesBible` | `characters` name list + `background_settings` fact list; rendered once into a `setting_bible` prefix entry at the root |
 
 Every channel carries its running manuscript as an **append-only `ContextLog`**: composed
 blocks enter as frozen `ContextEntry` records, parents seed children with pure log snapshots,
@@ -151,9 +204,9 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `scene_plan_template` | `str` | `"built-in/scene_plan"` | template used to plan the scenes of a story. |
 | `scene_requirement_template` | `str` | `"built-in/scene_requirement"` | template used to write a single scene in full prose. |
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
-| `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a single string. |
+| `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a list of plain strings, one character per item. |
 | `setting_bible_background_template` | `str` | `"built-in/setting_bible_background"` | template used to propose the bible's background settings as a list of strings. |
-| `setting_bible_context_template` | `str` | `"built-in/setting_bible_context"` | template used to render the bible block injected into scene prompts. |
+| `setting_bible_context_template` | `str` | `"built-in/setting_bible_context"` | template that renders the bible into the block seeded into the running manuscript prefix. |
 | `setting_bible_export_template` | `str` | `"built-in/setting_bible_export"` | template used to render the bible as a human-readable markdown document. |
 | `writing_style_as_prompt_template` | `str` | `"built-in/writing_style_as_prompt"` | template used to render writing style documents as prompts. |
 | `enriched_as_prompt_template` | `str` | `"built-in/enriched_as_prompt"` | template used to render enriched reference documents as prompts. |

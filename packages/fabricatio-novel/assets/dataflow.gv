@@ -1,0 +1,39 @@
+// fabricatio-novel: what flows down the context tree, and what flows back up.
+// Render: dot -Tsvg dataflow.gv -o dataflow.svg
+digraph dataflow {
+    rankdir=TB;
+    bgcolor="white";
+    fontname="serif";
+    fontsize=11;
+    nodesep=0.28;
+    ranksep=0.50;
+
+    node [shape=box, style="filled", fillcolor="white", color="black",
+          fontname="serif", fontsize=11, margin="0.14,0.08"];
+    edge [color="black", arrowsize=0.7, fontname="serif", fontsize=10];
+
+    novel   [label="NovelContext\loutline · language · NovelPlan · roster spans\lseries bible (seeded prefix entry)\l"];
+    chapter [label="ChapterContext[]\ltitle · description · weight → word count\laccumulated writing constraint\l"];
+    story   [label="StoryContext[]\lwriting styles (+ retrieved references)\l"];
+    scene   [label="SceneContext[]\lcast · span list (prompt-only)\lcontent — the only composed prose\l"];
+
+    novel -> chapter [label="  seed: running prefix log\l  + chapter heading block\l  + word-count split by weight\l"];
+    chapter -> story [label="  seed: everything so far\l  + word-count split by weight\l"];
+    story -> scene  [label="  seed: everything so far\l  + broadcast character spans\l"];
+
+    // downward cross-cutting mechanisms
+    node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=10];
+    edge [style=dotted, arrowsize=0.55];
+
+    bible  [label="SeriesBible is rendered once into a setting_bible\lprefix entry at the root; every descendant\linherits it through its own prefix log\l", margin="0.10,0.06"];
+    constr [label="writing_constraint accumulates:\leach level keeps the parent chain verbatim\land appends its own allocation\l", margin="0.10,0.06"];
+    spans  [label="character arcs: roster fixes both endpoints;\lN−1 / S−1 boundary cards per character are\lstitched in code — chains cannot break\l", margin="0.10,0.06"];
+
+    bible  -> novel;
+    constr -> story;
+    spans  -> story;
+
+    // upward aggregation
+    asm [label="Novel.from_context\l→ NovelBuilder (PyO3) ⇒ EPUB / TXT\l", fillcolor="#E8E8E8"];
+    scene -> asm [label="  composed prose appended\l  to the manuscript logs", style=solid];
+}

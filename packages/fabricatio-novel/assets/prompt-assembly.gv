@@ -1,0 +1,63 @@
+// fabricatio-novel: how one scene write prompt is assembled, and what comes back.
+// Render: dot -Tsvg prompt-assembly.gv -o prompt-assembly.svg
+digraph assembly {
+    rankdir=LR;
+    bgcolor="white";
+    fontname="serif";
+    pad="0.45";
+    fontsize=11;
+    nodesep=0.30;
+    ranksep=0.55;
+
+    node [shape=box, style="filled", fillcolor="white", color="black",
+          fontname="serif", fontsize=10, margin="0.12,0.06"];
+    edge [color="black", arrowsize=0.65, fontname="serif", fontsize=9];
+    subgraph cluster_sources {
+        label="context channel (SceneContext)";
+        labeljust="l";
+        fontname="serif";
+        fontsize=10;
+        color="#808080";
+        style="rounded";
+
+        src_prefix [label="prefix_log.render()\lchapter heading blocks, prior chapters,\lprior stories, prior scenes of this story,\lseeded setting bible\l"];
+        src_styles [label="dump_writing_styles()\linherited style directives\l(+ retrieved RAG references)\l"];
+        src_sofar  [label="scenes_log.render()\lscenes of this story written so far\l"];
+        src_scene  [label="plan fields\ltitle · description · expected word count\lscene style · writing constraint\l"];
+        src_chars  [label="dump_characters()\lstart/end state cards per character\l"];
+        src_misc   [label="cast (comma list) · language\l"];
+    }
+
+    prompt [shape=plaintext, style="", fillcolor="white",
+            label=<
+                <table border="1" cellborder="0" cellspacing="0" cellpadding="5" bgcolor="white">
+                    <tr><td align="left"><b># Scene Writing</b> — static head, language</td></tr>
+                    <tr><td align="left"># Previous Content — prefix log</td></tr>
+                    <tr><td align="left">## Writing Styles — directives + references</td></tr>
+                    <tr><td align="left">## Story so far — this story's prior scenes</td></tr>
+                    <tr><td align="left" bgcolor="#E8E8E8">## Scene — title, description, word count, style</td></tr>
+                    <tr><td align="left" bgcolor="#E8E8E8">## Writing Constraint</td></tr>
+                    <tr><td align="left" bgcolor="#E8E8E8">## Characters' state arc</td></tr>
+                    <tr><td align="left" bgcolor="#E8E8E8">## Cast</td></tr>
+                </table>
+            >];
+
+    llm  [label="LLM (aask)\lone call per scene\l"];
+    out  [label="plain prose paragraphs\l(no JSON, no headings)\l"];
+    scene[label="Scene\ltitle · description\lexpected_word_count · content\l"];
+    log  [label="ctx.set_content → scenes_log\lfeeds the next scene's\l“## Story so far” region\l", fillcolor="#E8E8E8"];
+
+    src_prefix -> prompt;
+    src_styles -> prompt;
+    src_sofar  -> prompt;
+    src_scene  -> prompt [label=" per-scene tail"];
+    src_misc   -> prompt;
+    stable [style="filled, dashed", fillcolor="#F5F5F5", fontsize=9,
+            label="stable region: every row above “## Scene” is\lbyte-identical across a story's scenes,\lso repeated prefixes hit the provider cache\l"];
+    stable -> prompt [style=dotted, arrowsize=0.5];
+
+    prompt -> llm;
+    llm -> out;
+    out -> scene;
+    scene -> log;
+}
