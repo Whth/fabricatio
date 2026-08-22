@@ -47,3 +47,18 @@ export function groupConfigFields(
     fields: byGroup.get(name)!,
   }))
 }
+
+/**
+ * Per-field hover text: name · type, optional marker, registry doc, default.
+ * Rendered via the native `title` attribute so it survives the zoomed/
+ * transformed VueFlow pane (a CSS tooltip would scale and clip with it).
+ */
+export function fieldTooltip(f: PortDefinition): string {
+  const lines = [`${f.name}: ${f.type}${f.optional ? ' · optional' : ''}`]
+  if (f.description) lines.push(f.description)
+  if (f.default !== undefined && f.default !== null && f.default !== '') {
+    const v = typeof f.default === 'string' ? f.default : JSON.stringify(f.default)
+    lines.push(`default: ${v}`)
+  }
+  return lines.join('\n')
+}

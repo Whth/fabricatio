@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PortDefinition } from '@/types/api'
-
+import { fieldTooltip } from '@/utils/argGroups'
 const props = defineProps<{
   field: PortDefinition
   modelValue: unknown
@@ -10,6 +10,9 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
 
 const widget = computed(() => props.field.widget ?? 'text')
+
+/** Hover info for the whole field row (label + control). */
+const tip = computed(() => fieldTooltip(props.field))
 
 function onInput(e: Event) {
   const el = e.target as HTMLInputElement | HTMLTextAreaElement
@@ -38,8 +41,8 @@ const stringValue = computed(() =>
 </script>
 
 <template>
-  <label class="node-widget" :class="{ disabled: disabled }">
-    <span class="widget-label" :title="field.name">{{ field.name }}</span>
+  <label class="node-widget" :class="{ disabled: disabled }" :title="tip">
+    <span class="widget-label">{{ field.name }}</span>
 
     <!-- Toggle / Switch -->
     <label v-if="widget === 'toggle'" class="toggle-switch">

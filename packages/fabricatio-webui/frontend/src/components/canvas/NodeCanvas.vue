@@ -14,7 +14,6 @@ import type { FabricatioNodeData } from '@/stores/workflow'
 import { Crosshair } from '@lucide/vue'
 import ComfyNode from './ComfyNode.vue'
 import AddNodeMenu from './AddNodeMenu.vue'
-import NodeHoverCard from './NodeHoverCard.vue'
 import NodeInspector from './NodeInspector.vue'
 import CommandPalette from '@/components/chrome/CommandPalette.vue'
 import ActionSourceDialog from '@/components/chrome/ActionSourceDialog.vue'
@@ -36,37 +35,7 @@ const dragPreview = ref<NodeTypeDefinition | null>(null)
 const isDragOver = ref(false)
 const lastConnectionError = ref<string | null>(null)
 const sourceViewer = ref<{ nodeType: string } | null>(null)
-// ── Node hover card + right-side inspector ─────────────────────────────────
-/** Node currently hovered (id), or null. */
-const hoveredNodeId = ref<string | null>(null)
-/** Viewport coords of the hover event — anchors the info card. */
-const hoverPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
-let hoverHideTimer: ReturnType<typeof setTimeout> | null = null
-
-function onNodeHover(nodeId: string | null, event?: MouseEvent | Touch | TouchEvent) {
-  if (hoverHideTimer) {
-    clearTimeout(hoverHideTimer)
-    hoverHideTimer = null
-  }
-  if (nodeId === null) {
-    // Small grace period so moving across gaps/ports does not flicker.
-    hoverHideTimer = setTimeout(() => {
-      hoveredNodeId.value = null
-    }, 120)
-    return
-  }
-  const ev = event as { clientX?: number; clientY?: number } | undefined
-  if (ev && typeof ev.clientX === 'number' && typeof ev.clientY === 'number') {
-    hoverPos.value = { x: ev.clientX, y: ev.clientY }
-  }
-  hoveredNodeId.value = nodeId
-}
-
-/** Hovered node (never the selected one — the inspector covers it). */
-const hoveredNode = computed(() => {
-  if (!hoveredNodeId.value || hoveredNodeId.value === wfStore.selectedNodeId) return null
-  return wfStore.nodes.find((n) => n.id === hoveredNodeId.value) ?? null
-})
+// ── Right-side inspector for the selected node ─────────────────────────────
 
 /** id → title map for wiring-source display in the inspector. */
 const nodeTitles = computed(() =>
@@ -383,10 +352,7 @@ function onDrop(ev: DragEvent) {
       :default-edge-options="{ type: 'smoothstep', animated: false }"
       :snap-to-grid="uiStore.settings.snapToGrid"
       :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
-      :min-zoom="0.1"
       @node-click="onNodeClick"
-      @node-mouse-enter="({ node, event }: NodeMouseEvent) => onNodeHover(node.id, event)"
-      @node-mouse-leave="() => onNodeHover(null)"
       @pane-click="onPaneClick"
       @pane-context-menu="onPaneContextMenu"
       @pane-dblclick="onPaneDblClick"
@@ -403,8 +369,6 @@ function onDrop(ev: DragEvent) {
       />
     </VueFlow>
 
-    <!-- Lightweight hover info card (pointer-events: none) -->
-    <NodeHoverCard :node="hoveredNode" :pos="hoverPos" />
 
     <!-- Right-side detailed inspector for the selected node -->
     <NodeInspector

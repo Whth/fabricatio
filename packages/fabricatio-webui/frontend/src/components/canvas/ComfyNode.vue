@@ -6,7 +6,7 @@ import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 import { categoryColor } from '@/utils/categoryColors'
 import { useOutputPreview } from '@/composables/useOutputPreview'
-import { groupConfigFields, type ArgGroup } from '@/utils/argGroups'
+import { fieldTooltip, groupConfigFields, type ArgGroup } from '@/utils/argGroups'
 import NodeWidget from './NodeWidget.vue'
 
 const props = defineProps<{ id: string; data: any }>()
@@ -60,6 +60,11 @@ function wiredPort(field: string): string {
   return edge.sourceHandle && edge.sourceHandle !== 'default'
     ? edge.sourceHandle
     : 'output'
+}
+
+/** Hover text for a wired field row: field doc plus who feeds it. */
+function wiredTip(f: PortDefinition): string {
+  return `${fieldTooltip(f)}\n\nValue from ${wiredSource(f.name)}`
 }
 
 /** Disconnect the edge feeding this field, restoring manual editing. */
@@ -208,7 +213,7 @@ const statusLabel = computed(() => {
             :model-value="fieldValue(f)"
             @update:model-value="updateField(f, $event)"
           />
-          <span v-else class="wired-field" :title="`Value from ${wiredSource(f.name)}`">
+          <span v-else class="wired-field" :title="wiredTip(f)">
             <span class="wired-label">{{ f.name }}</span>
             <span class="wired-controls">
               <span class="wired-chip">← {{ wiredPort(f.name) }}</span>
@@ -234,14 +239,14 @@ const statusLabel = computed(() => {
           class="port-handle port-handle-inline"
           :class="{ hollow: p.optional }"
         />
-        <span class="port-name">{{ p.name }}</span>
+        <span class="port-name" :title="fieldTooltip(p)">{{ p.name }}</span>
       </div>
     </div>
 
       <!-- Output ports -->
       <div class="port-col outputs">
         <div v-for="p in data.outputPorts" :key="p.name" class="port-row port-row-io">
-          <span class="port-name">{{ p.name }}</span>
+          <span class="port-name" :title="fieldTooltip(p)">{{ p.name }}</span>
           <button
             v-if="hasOutput(p.name)"
             class="output-dot"
