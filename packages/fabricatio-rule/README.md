@@ -104,17 +104,26 @@ An `Action` (mixing in `FromMapping`) that gathers multiple `RuleSet` instances 
 
 ## Configuration
 
-```python
-from fabricatio_rule.config import rule_config
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.rule]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.rule]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__RULE__<FIELD_UPPER>` environment variables.
 
-@dataclass
-class RuleConfig:
-    ruleset_requirement_breakdown_template: str  # template for breaking down requirements
-    rule_requirement_template: str               # template for proposing individual rules
-    check_string_template: str                   # template for check strings
+```toml
+[ext.rule]
+ruleset_requirement_breakdown_template = "built-in/ruleset_requirement_breakdown"
+rule_requirement_template = "built-in/rule_requirement"
+check_string_template = "built-in/check_string"
 ```
 
-Loaded via `fabricatio-core`'s `CONFIG.load("rule", RuleConfig)`. Customize template names at runtime to swap prompt strategies.
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `ruleset_requirement_breakdown_template` | `str` | `"built-in/ruleset_requirement_breakdown"` | The name of the ruleset requirement breakdown template which will be used to breakdown a ruleset requirement. |
+| `rule_requirement_template` | `str` | `"built-in/rule_requirement"` | The name of the rule requirement template which will be used to generate a rule requirement. |
+| `check_string_template` | `str` | `"built-in/check_string"` | The name of the check string template which will be used to check a string. |
+
+Access at runtime: `from fabricatio_rule.config import rule_config`.
 
 ## Usage
 

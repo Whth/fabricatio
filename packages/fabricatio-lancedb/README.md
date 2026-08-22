@@ -41,35 +41,25 @@ pip install fabricatio[full]
 
 ## Configuration
 
-Configure the LanceDB database URI and default table name via environment,
-`.env`, `fabricatio.toml`, or `pyproject.toml`:
-
-```dotenv
-FABRICATIO_LANCEDB__DATABASE_URI=./lance.db
-FABRICATIO_LANCEDB__DEFAULT_TABLE_NAME=my_docs
-```
-
-In `fabricatio.toml`:
+All options below are read through the fabricatio configuration chain (see the
+Configuration Guide at ../../docs/source/configuration.rst). Set them under the
+`[ext.lancedb]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.lancedb]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__LANCEDB__<FIELD_UPPER>` environment variables.
 
 ```toml
-[lancedb]
+# fabricatio.toml
+[ext.lancedb]
 database_uri = "./lance.db"
-default_table_name = "my_docs"
+default_table_name = "default"
 ```
 
-The config fields:
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `database_uri` | `str` | `"./lance.db"` | LanceDB connection URI (local path or S3 `s3://bucket/path`) |
+| `default_table_name` | `str` | `"default"` | Table name used when none is specified |
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `database_uri` | `"./lance.db"` | LanceDB connection URI (local path or S3 `s3://bucket/path`) |
-| `default_table_name` | `"default"` | Table name used when none is specified |
-
-Access at runtime:
-
-```python
-from fabricatio_lancedb.config import lancedb_config
-print(lancedb_config.database_uri)
-```
+Access at runtime: `from fabricatio_lancedb.config import lancedb_config`.
 
 ## Usage
 
@@ -250,7 +240,7 @@ Each LanceDB table uses this Arrow schema:
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `item` | `Utf8` | no | Primary key (UUID v7) |
-| `timestamp` | `Time64(µs)` | no | Insertion timestamp |
+| `timestamp` | `Time64(us)` | no | Insertion timestamp |
 | `vector` | `FixedSizeList(Float32, ndim)` | no | Embedding vector |
 | `content` | `Utf8` | no | Document text |
 | `metadata` | `Utf8` | yes | JSON-serialized metadata |

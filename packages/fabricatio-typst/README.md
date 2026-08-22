@@ -265,15 +265,27 @@ ttm string "The formula $\int_0^\infty e^{-x} dx$ is useful."
 
 ## Configuration
 
-`TypstConfig` exposes tunable settings via the Fabricatio config system:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.typst]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.typst]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TYPST__<FIELD_UPPER>` environment variables.
 
-```python
-from fabricatio_typst.config import typst_config
-
-typst_config.paragraph_sep         # "// - - -"
-typst_config.article_wrapper       # "// =-=-=-=-=-=-=-=-=-="
-typst_config.chap_summary_template # "built-in/chap_summary"
+```toml
+[ext.typst]
+chap_summary_template = "built-in/chap_summary"
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `chap_summary_template` | `str` | `"built-in/chap_summary"` | The name of the chap summary template which will be used to generate a chapter summary. |
+| `research_content_summary_template` | `str` | `"built-in/research_content_summary"` | The name of the research content summary template which will be used to generate a summary of research content. |
+| `paragraph_sep` | `str` | `"// - - -"` | The separator used to separate paragraphs. |
+| `article_wrapper` | `str` | `"// =-=-=-=-=-=-=-=-=-="` | The wrapper used to wrap an article. |
+| `extract_essence_template` | `str` | `"built-in/extract_essence"` | The name of the extract essence template which will be used to extract the essence of a text. |
+| `generate_outline_template` | `str` | `"built-in/generate_outline"` | The name of the generate outline template which will be used to generate an outline. |
+
+Access at runtime: `from fabricatio_typst.config import typst_config`.
 
 ## License
 

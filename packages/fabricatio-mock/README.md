@@ -87,7 +87,7 @@ async def test_greeting_bad(expected):
 All `return_*_router_usage` functions return a `list[str]` ready to unpack into `install_router_usage`.
 
 | Function | Description |
-|---|---|
+:|---|---|
 | `return_router_usage(*values, default=, padding=)` | Plain string responses. `default` defaults to the last value; `padding` (default 10) appends extra copies for retry safety. |
 | `return_json_router_usage(*jsons, default=, padding=)` | Wraps each string in a ` ```json ` code block. |
 | `return_code_router_usage(*codes, lang=, default=, padding=)` | Wraps each string in a fenced code block with the given `lang`. |
@@ -141,7 +141,7 @@ role = LLMTestRole.with_bio(name="tester")
 ```
 
 | Class | Bases | Purpose |
-|---|---|---|
+:|---|---|---|
 | `LLMTestRole` | `Role`, `UseLLM` | Role with LLM calling capability; `llm_send_to` targets the dummy LLM group. |
 | `ProposeTestRole` | `LLMTestRole`, `Propose` | Extends `LLMTestRole` with the `Propose` capability. |
 
@@ -150,7 +150,7 @@ role = LLMTestRole.with_bio(name="tester")
 ## Helper Utilities
 
 | Function | Description |
-|---|---|
+:|---|---|
 | `install_router_usage(*responses, group=)` | Context manager: configures the router singleton with dummy LLM responses. Restorable by the caller after `with` block exit. |
 | `setup_dummy_responses(*responses, group=)` | Same as above but not a context manager — permanent until the next call. |
 | `code_block(content, lang)` | Wraps `content` in a fenced code block: ` ```{lang}\n{content}\n``` `. |
@@ -207,7 +207,7 @@ with install_dummy_reranks(*rankings):
 ### Pad Functions
 
 | Function | Description |
-|---|---|
+:|---|---|
 | `pad_embeddings(*embeddings, default=, padding=)` | Pads embedding vectors with copies of the default (defaults to last value) for DummyModel safety. |
 | `pad_rankings(*rankings, default=, padding=)` | Pads ranking tuples with copies of the default (defaults to last value) for DummyModel safety. |
 
@@ -235,12 +235,19 @@ expected — for example, during retries from `max_validations` or batched calls
 
 ## Configuration
 
-```python
-from fabricatio_mock.config import mock_config
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.mock]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.mock]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__MOCK__<FIELD_UPPER>` environment variables.
 
-# mock_config is a frozen dataclass loaded via CONFIG.load("mock", MockConfig).
-# Extend MockConfig in your own code to add mock-specific settings.
+```toml
+[ext.mock]
 ```
+
+The schema currently defines no options and is reserved for future use.
+
+Access at runtime: `from fabricatio_mock.config import mock_config`.
 
 ---
 

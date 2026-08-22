@@ -14,7 +14,7 @@ An extension of fabricatio.
 
 ---
 
-## 📦 Installation
+## Installation
 
 
 This package is part of the `fabricatio` monorepo and can be installed as an optional dependency:
@@ -35,7 +35,7 @@ pip install fabricatio[full]
 # uv pip install fabricatio[full]
 ```
 
-## 🔍 Overview
+## Overview
 
 Provides essential tools for:
 
@@ -43,18 +43,41 @@ Provides essential tools for:
 
 
 
-## 🧩 Key Features
+## Key Features
 
 ...
 
+## Configuration
 
-## 🔗 Dependencies
+All options below are read through the fabricatio configuration chain (see the
+Configuration Guide at ../../docs/source/configuration.rst). Set them under the
+`[ext.skill]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.skill]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__SKILL__<FIELD_UPPER>` environment variables.
+
+```
+# fabricatio.toml
+[ext.skill]
+select_skills_template = "built-in/select_skills"
+distill_skills_template = "built-in/distill_skills"
+default_skill_dirs = ["skills", "extra/skills"]
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `select_skills_template` | `str` | `"built-in/select_skills"` | Template name for the LLM prompt that selects relevant skills from a question. |
+| `distill_skills_template` | `str` | `"built-in/distill_skills"` | Template name for the LLM prompt that distills skill content to its essence. |
+| `default_skill_dirs` | `List[str]` | `["skills", "extra/skills"]` | Default directories to scan for skill files. |
+
+Access at runtime: `from fabricatio_skill.config import skill_config`.
+
+## Dependencies
 
 Core dependencies:
 
 - `fabricatio-core` - Core interfaces and utilities
 ...
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.

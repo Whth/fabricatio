@@ -100,11 +100,43 @@ prompt = dump_card(hero, villain)
 
 ## Configuration
 
-| Setting | Default | Description |
-|---|---|---|
-| `render_character_card_template` | `"built-in/render_character_card"` | Template name used when rendering a card as a prompt |
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.character]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.character]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__CHARACTER__<FIELD_UPPER>` environment variables.
 
-Access via `fabricatio_character.config.character_config`, loaded through Fabricatio's `CONFIG` system.
+```toml
+[ext.character]
+mind_personality_high = 70.0
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `render_character_card_template` | `str` | `"built-in/render_character_card"` | Template to use for rendering character cards. |
+| `mind_system_prompt_template` | `str` | `"built-in/mind_system_prompt"` | Handlebars template for as_prompt() system prompt rendering. |
+| `mind_threat_analysis_template` | `str` | `"built-in/mind_threat_analysis"` | Template for 'which need is threatened' LLM call. |
+| `mind_fulfill_analysis_template` | `str` | `"built-in/mind_fulfill_analysis"` | Template for 'which need is fulfilled' LLM call. |
+| `mind_bias_judgment_template` | `str` | `"built-in/mind_bias_judgment"` | Template for cognitive distortion judgment LLM call. |
+| `mind_impact_analysis_template` | `str` | `"built-in/mind_impact_analysis"` | Template for emotion/intensity/personality_shift LLM call. |
+| `mind_personality_high` | `float` | `70.0` | BigFive score above this = 'high' trait. |
+| `mind_personality_low` | `float` | `30.0` | BigFive score below this = 'low' trait. |
+| `mind_emotion_intensity_high` | `float` | `70.0` | Emotion intensity above this triggers high-arousal behavior. |
+| `mind_emotion_intensity_mid` | `float` | `40.0` | Emotion intensity above this triggers mild emotional coloring. |
+| `mind_satisfaction_threshold` | `int` | `3` | Accumulated positive events needed to rise one Maslow level. |
+| `mind_age_brackets` | `Tuple[Tuple[int, float], ...]` | `(see config.py)` | Age brackets and their personality shift multipliers. |
+| `mind_need_focus` | `Dict[MaslowLevel, str]` | `(see config.py)` | Maslow level -> behavioral description for prompt injection. |
+| `mind_bias_examples` | `Dict[Distortion, str]` | `(see config.py)` | Cognitive distortion -> example internal monologue. |
+| `mind_personality_rules` | `Dict[PersonalityFlag, str]` | `(see config.py)` | Personality flag key -> behavioral description for prompt injection. |
+| `mind_emotion_somatic_map` | `Dict[Emotion, Tuple[SomaticState, SomaticState]]` | `(see config.py)` | Emotion keyword -> (high_intensity_body, low_intensity_body) mapping. |
+| `mind_diamonds_template` | `str` | `"built-in/mind_diamonds_analysis"` | Template for DIAMONDS 8-dim situation extraction. |
+| `mind_diamonds_distortion_boost` | `Dict[SituationDimension, Dict[Distortion, float]]` | `(see config.py)` | DIAMONDS dimension -> {distortion: score_boost} mapping for rule_filter. |
+| `mind_cbt_confidence_threshold` | `float` | `70.0` | If rule_filter top distortion score > this, use rule result directly; else full LLM. |
+| `mind_suffering_intensity_threshold` | `float` | `80.0` | Emotion intensity above this triggers suffering creation. |
+| `mind_suffering_template` | `str` | `"built-in/mind_suffering_analysis"` | Template for LLM-generated suffering narrative. |
+| `mind_style_extraction_template` | `str` | `"built-in/mind_style_extraction"` | Template for extracting linguistic style from dialogues. |
+
+Access at runtime: `from fabricatio_character.config import character_config`.
 
 ---
 

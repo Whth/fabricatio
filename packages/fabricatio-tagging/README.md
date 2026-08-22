@@ -115,18 +115,22 @@ The `requirement` parameter provides natural-language guidance to the LLM (e.g. 
 
 ## Configuration
 
-The default template `"built-in/tagging"` is registered by `fabricatio-core`. Override it by loading a custom template and updating the config:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.tagging]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.tagging]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TAGGING__<FIELD_UPPER>` environment variables.
 
-```python
-from fabricatio_core import TEMPLATE_MANAGER
-from fabricatio_tagging.config import tagging_config
-
-# Register a custom Handlebars template
-TEMPLATE_MANAGER.register_template("my-tags", "Generate {{k}} tags for: {{text}}. {{requirement}}")
-
-# Point config at it
-object.__setattr__(tagging_config, "tagging_template", "my-tags")
+```toml
+[ext.tagging]
+tagging_template = "built-in/tagging"
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `tagging_template` | `str` | `"built-in/tagging"` | The template to use for tagging. |
+
+Access at runtime: `from fabricatio_tagging.config import tagging_config`.
 
 ## Dependencies
 

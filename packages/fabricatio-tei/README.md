@@ -22,6 +22,20 @@ pip install fabricatio[tei]
 uv pip install fabricatio[tei]
 ```
 
+## Configuration
+
+The schema currently defines no options and is reserved for future use. Set
+them under the `[ext.tei]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.tei]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TEI__<FIELD_UPPER>` environment variables.
+
+```
+# fabricatio.toml
+[ext.tei]
+```
+
+Access at runtime: `from fabricatio_tei.config import tei_config`.
+
 ## Key Components
 
 ### Provider Registration (`add_tei`)
@@ -52,21 +66,12 @@ class TeiRole(LLMTestRole, Tei):
     """Test role combining LLM testing with TEI capabilities."""
 ```
 
-### `TeiConfig`
-
-Dataclass loaded from Fabricatio's configuration system under the `"tei"` section. Extend with fields as needed
-for your deployment.
-
-```python
-from fabricatio_tei.config import tei_config
-```
-
 ## Supported Endpoints
 
 | Route | Endpoint | Use Case |
 |---|---|---|
-| `/embed` | POST with `{"inputs": "text"}` | Generate embeddings for text inputs |
-| `/rerank` | POST with `{"query": "...", "texts": [...]}` | Rerank documents by relevance to a query |
+| `/embed` | POST with {"inputs": "text"} | Generate embeddings for text inputs |
+| `/rerank` | POST with {"query": "...", "texts": [...]} | Rerank documents by relevance to a query |
 
 The TEI provider implements both `EmbeddingModel` and `RerankerModel` from the `thryd` crate, making it
 compatible with any Fabricatio workflow that consumes these traits.

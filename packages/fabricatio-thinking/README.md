@@ -54,11 +54,21 @@ lightweight VCS written in Rust.
 |------|-------------|
 | `ThoughtVCS` | In-memory version control for thought chains. Each branch is an ordered list of commits. |
 
-### Configuration
+## Configuration
 
-| Name | Description |
-|------|-------------|
-| `ThinkingConfig` | Frozen dataclass loaded via `fabricatio_core.CONFIG.load("thinking", …)`. |
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.thinking]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.thinking]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__THINKING__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.thinking]
+```
+
+The `ThinkingConfig` schema currently defines no options and is reserved for future use.
+
+Access at runtime: `from fabricatio_thinking.config import thinking_config`.
 
 ## Usage
 

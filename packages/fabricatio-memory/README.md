@@ -171,9 +171,31 @@ note = await agent.sremember(
 )
 # note is None — weather isn't personal info
 ```
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.memory]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.memory]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__MEMORY__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.memory]
+memory_store_root = "~/.fabricatio-memory"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `memory_record_template` | `str` | `"built-in/memory_record"` | Template for recording memory. |
+| `memory_recall_template` | `str` | `"built-in/memory_recall"` | Template for recalling memory. |
+| `sremember_template` | `str` | `"built-in/sremember"` | Template for selective remembering. |
+| `memory_store_root` | `Path` | `~/.fabricatio-memory` | Root directory for memory store. |
+| `writer_buffer_size` | `int` | `50000000` | Buffer size for memory store writer. In bytes. |
+| `cache_size` | `int` | `10` | Cache size for memory store. |
+
+Access at runtime: `from fabricatio_memory.config import memory_config`.
 
 ## Dependencies
-
 - `fabricatio-core` — core interfaces, configuration, template management
 - Optional: `fabricatio-judge` — required by `SelectiveRemember` for conditional recording
 

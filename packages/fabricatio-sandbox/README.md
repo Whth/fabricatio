@@ -47,6 +47,25 @@ Provides essential tools for:
 
 ...
 
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.sandbox]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.sandbox]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__SANDBOX__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.sandbox]
+sandbox_template = "built-in/sandbox"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `sandbox_template` | `str` | `"built-in/sandbox"` | Template name for LLM sandbox prompts. |
+| `mounts` | `dict[str, str]` | `{}` | Default mount mapping ``{"/virtual": "/real/path", ...}``. |
+
+Access at runtime: `from fabricatio_sandbox.config import sandbox_config`.
 
 ## 🔗 Dependencies
 

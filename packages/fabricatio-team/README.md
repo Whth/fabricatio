@@ -104,14 +104,21 @@ planner = TeamPlanner()
 tasks = await planner.cooperative_digest("Build the authentication module")
 ```
 
-### Configuration
+## Configuration
 
-`TeamConfig` is an empty frozen dataclass registered under the `"team"` key in Fabricatio's configuration
-system. Extend it to add team-level settings (e.g. max members, timeout).
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.team]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.team]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TEAM__<FIELD_UPPER>` environment variables.
 
-```python
-from fabricatio_team.config import team_config
+```toml
+[ext.team]
 ```
+
+The `TeamConfig` schema currently defines no options and is reserved for future use.
+
+Access at runtime: `from fabricatio_team.config import team_config`.
 
 ## Package Structure
 

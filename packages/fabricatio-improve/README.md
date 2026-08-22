@@ -57,13 +57,28 @@ uv pip install fabricatio[full]
 | `ReviewKwargs` | `Review` | Review parameters including required `topic`, optional `criteria` set, and `rating_manual` dict. |
 | `CorrectKwargs` | `Correct` | Correction parameters including the `improvement` to apply. |
 
-### Configuration
+## Configuration
 
-`ImproveConfig` (loaded via `fabricatio_core.CONFIG`) exposes configurable template names:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.improve]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.improve]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__IMPROVE__<FIELD_UPPER>` environment variables.
 
-- `review_string_template` — template for review operations
-- `fix_troubled_string_template` — template for string correction
-- `fix_troubled_obj_template` — template for object correction
+```toml
+[ext.improve]
+review_string_template = "built-in/review_string"
+fix_troubled_string_template = "built-in/fix_troubled_string"
+fix_troubled_obj_template = "built-in/fix_troubled_obj"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `review_string_template` | `str` | `"built-in/review_string"` | The name of the review string template which will be used to review a string. |
+| `fix_troubled_string_template` | `str` | `"built-in/fix_troubled_string"` | The name of the fix troubled string template which will be used to fix a troubled string. |
+| `fix_troubled_obj_template` | `str` | `"built-in/fix_troubled_obj"` | The name of the fix troubled object template which will be used to fix a troubled object. |
+
+Access at runtime: `from fabricatio_improve.config import improve_config`.
 
 ## Usage
 

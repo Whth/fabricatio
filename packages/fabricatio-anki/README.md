@@ -53,7 +53,7 @@ deck_project/
 ## Rust Functions (`fabricatio_anki.rust`)
 
 | Function | Description |
-|---|---|
+:|---|---|
 | `compile_deck(path, output)` | Compile a deck project into an `.apkg` file. |
 | `create_deck_project(path, deck_name?, description?, author?, model_name?, fields?)` | Scaffold a new deck project with sample templates and data. |
 | `save_metadata(dir_path, name, data)` | Write a Python dict as YAML into a project directory. |
@@ -113,7 +113,30 @@ result = await action.execute()
 
 ## Configuration
 
-`AnkiConfig` (loaded from Fabricatio's config system under the `anki` key) controls which templates are used during generation. Each field names a `built-in/…` template in the template manager. Override via configuration to swap in custom generation prompts.
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.anki]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.anki]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__ANKI__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.anki]
+generate_anki_card_front_side_template = "built-in/generate_anki_card_front_side"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `generate_anki_card_front_side_template` | `str` | `"built-in/generate_anki_card_front_side"` | The template name used for generating the front side of Anki cards. |
+| `generate_anki_card_back_side_template` | `str` | `"built-in/generate_anki_card_back_side"` | The template name used for generating the back side of Anki cards. |
+| `generate_anki_card_template_template` | `str` | `"built-in/generate_anki_card_template"` | The template name used for generating Anki card types. |
+| `generate_anki_model_name_template` | `str` | `"built-in/generate_anki_model_name"` | The template name used for generating Anki model names. |
+| `generate_anki_card_template_generation_requirements_template` | `str` | `"built-in/generate_anki_card_template_generation_requirements"` | The template name used for generating Anki card template generation requirements. |
+| `generate_anki_deck_metadata_template` | `str` | `"built-in/generate_anki_deck_metadata"` | The template name used for generating Anki deck metadata. |
+| `generate_anki_model_generation_requirements_template` | `str` | `"built-in/generate_anki_model_generation_requirements"` | The template name used for generating Anki model generation requirements. |
+| `topic_analysis_assemble_template` | `str` | `"built-in/topic_analysis_assemble"` | The template name used for assembling topic analysis. |
+| `generate_topic_analysis_template` | `str` | `"built-in/generate_topic_analysis"` | The template name used for generating analysis. |
+
+Access at runtime: `from fabricatio_anki.config import anki_config`.
 
 ## Usage Example
 

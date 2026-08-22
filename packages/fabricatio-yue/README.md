@@ -121,11 +121,25 @@ Optional CLI extras: `questionary`, `typer`.
 
 ## Configuration
 
-Settings are loaded via `fabricatio_yue.config.yue_config` (an instance of `YueConfig`). Key options:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.yue]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.yue]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__YUE__<FIELD_UPPER>` environment variables.
 
-- `segment_types` — list of valid section types (default: `["verse", "chorus", "bridge", "intro", "outro", "solo", "beat", "end"]`)
-- `genre` — dict mapping category to list of genres, loaded from `top_200_tags.json`
-- `lyricize_template`, `select_genre_template`, `song_save_template` — template names for LLM prompts
+```toml
+[ext.yue]
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `segment_types` | `List[str]` | `["verse", "chorus", "bridge", "intro", "outro", "solo", "beat", "end"]` | List of valid segment types for music composition. |
+| `genre` | `Dict[str, List[str]]` | `(see config.py)` | Dictionary mapping genre categories to lists of specific genres. |
+| `lyricize_template` | `str` | `"built-in/lyricize"` | Template name for lyric generation. |
+| `select_genre_template` | `str` | `"built-in/select_genre"` | Template name for genre selection. |
+| `song_save_template` | `str` | `"built-in/song_save"` | Template name for saving a song. |
+
+Access at runtime: `from fabricatio_yue.config import yue_config`.
 
 ## License
 

@@ -58,14 +58,26 @@ A `SketchedAble` model representing an interactive selection prompt. Generated b
 | `async ask_retain(candidates, value_mapping) -> List[V]` | Overload that maps retained choices back through `value_mapping`. |
 | `async ask_edit(text_seq: List[str]) -> List[str]` | Prompts the user to edit each string sequentially; only non-empty edits are returned. |
 
-### Configuration
+## Configuration
 
-`fabricatio_question.config.question_config` — a `QuestionConfig` dataclass with template names used during question generation:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.question]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.question]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__QUESTION__<FIELD_UPPER>` environment variables.
 
-| Field | Default | Description |
-|---|---|---|
-| `selection_template` | `"built-in/selection"` | Template for generating the `SelectionQuestion` prompt. |
-| `selection_display_template` | `"built-in/selection_display"` | Template for rendering `selection_string` output. |
+```toml
+[ext.question]
+selection_template = "built-in/selection"
+selection_display_template = "built-in/selection_display"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `selection_template` | `str` | `"built-in/selection"` | Template name for selection question |
+| `selection_display_template` | `str` | `"built-in/selection_display"` | Template name for selection display. |
+
+Access at runtime: `from fabricatio_question.config import question_config`.
 
 ## Usage
 

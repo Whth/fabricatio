@@ -37,30 +37,24 @@ uv pip install fabricatio[comfyui]
 
 ## Configuration
 
-Configure the ComfyUI server URL via environment, `.env`, `fabricatio.toml`, or
-`pyproject.toml`:
-
-```dotenv
-FABRICATIO_COMFYUI__BASE_URL=http://127.0.0.1:8188
-FABRICATIO_COMFYUI__TIMEOUT=300
-```
-
-Or in `fabricatio.toml`:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.comfyui]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.comfyui]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__COMFYUI__<FIELD_UPPER>` environment variables.
 
 ```toml
-[comfyui]
+[ext.comfyui]
 base_url = "http://127.0.0.1:8188"
-timeout = 300
+timeout = 300.0
 ```
 
-The config dataclass supports two fields:
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
+| `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 
-| Field       | Default                 | Description                                  |
-|-------------|-------------------------|----------------------------------------------|
-| `base_url`  | `http://127.0.0.1:8188` | ComfyUI server base URL                      |
-| `timeout`   | `300.0`                 | Request timeout in seconds                   |
-
-Access config at runtime: `from fabricatio_comfyui import comfyui_config`
+Access at runtime: `from fabricatio_comfyui.config import comfyui_config`.
 
 ## Usage
 

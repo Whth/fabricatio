@@ -60,20 +60,26 @@ Pydantic model representing a sequence of tasks that aim to satisfy an `ultimate
 | `execute(parallel=None)` | Run the task sequence, respecting hooks and the parallel flag. |
 | `explain()` | Render a human-readable explanation via template. |
 
-### `DigestConfig`
+## Configuration
 
-Dataclass loaded from `fabricatio-core` configuration under the `digest` namespace.
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.digest]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.digest]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__DIGEST__<FIELD_UPPER>` environment variables.
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `digest_template` | `"built-in/digest"` | Template used to build the proposal prompt. |
-| `task_list_explain_template` | `"built-in/task_list_explain"` | Template used by `TaskList.explain()`. |
-
-Access the global instance:
-
-```python
-from fabricatio_digest.config import digest_config
+```toml
+[ext.digest]
+digest_template = "built-in/digest"
+task_list_explain_template = "built-in/task_list_explain"
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `digest_template` | `str` | `"built-in/digest"` | Template name for digest |
+| `task_list_explain_template` | `str` | `"built-in/task_list_explain"` | Template name for task list explain. |
+
+Access at runtime: `from fabricatio_digest.config import digest_config`.
 
 ## Dependencies
 

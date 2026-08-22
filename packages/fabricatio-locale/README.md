@@ -29,7 +29,7 @@ uv pip install fabricatio[locale]
 ### Rust-backed (PyO3)
 
 | Symbol | Description |
-|---|---|
+:|---|---|
 | `Msg(id, txt)` | Immutable message object: `id` is the msgid, `txt` is the translated msgstr. |
 | `read_pofile(path)` | Parses a `.po` file and returns `list[Msg]`. |
 | `update_pofile(path, messages)` | Writes a sequence of `Msg` back to a `.po` file. |
@@ -39,21 +39,30 @@ These are available as `from fabricatio_locale.rust import Msg, read_pofile, upd
 ### Capability
 
 | Class | Description |
-|---|---|
+:|---|---|
 | `Localize` | Extends `Translate`. Provides `async localize(msgs: list[Msg], **kwargs) -> list[Msg]` — translates message texts while preserving IDs. |
 
 ### Action
 
 | Class | Description |
-|---|---|
+:|---|---|
 | `LocalizePoFile` | An executable action combining `Localize` with PO file I/O. Fields: `pofile` (source path), `target_lang` (language code), `output_path` (defaults to overwriting input). Calling `execute()` reads, localizes, and writes the file. |
 
-### Configuration
+## Configuration
 
-```python
-from fabricatio_locale.config import locale_config
-# LocaleConfig is a frozen dataclass loaded from Fabricatio's configuration system.
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.locale]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.locale]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__LOCALE__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.locale]
 ```
+
+The schema currently defines no options and is reserved for future use.
+
+Access at runtime: `from fabricatio_locale.config import locale_config`.
 
 ## Usage
 

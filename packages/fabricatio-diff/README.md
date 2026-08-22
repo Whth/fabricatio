@@ -90,19 +90,32 @@ result = await agent.diff_edit(source_text, "rename variable x to count")
 | `apply_replace(content, old, new, all=False)` | Simple text substitution |
 | `apply_replace_lines(content, start, end, text)` | Replace a range between two anchors |
 
-### Configuration
+## Configuration
 
-```python
-from fabricatio_diff.config import DiffConfig
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.diff]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.diff]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__DIFF__<FIELD_UPPER>` environment variables.
 
-# Match precision threshold (1.0 = exact, lower = fuzzier)
-diff_config.match_precision = 0.85
-
-# Prompt template for diff generation
-diff_config.diff_template = "my/custom/template"
+```toml
+[ext.diff]
+match_precision = 1.0
+diff_template = "built-in/diff"
+hashline_diff_template = "built-in/hashline_diff"
+hashline_judge_template = "built-in/hashline_judge"
+hashline_diff_max_iterations = 5
 ```
 
-The `DiffConfig` dataclass is loaded from the global Fabricatio configuration system under the `"diff"` key.
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `match_precision` | `float` | `1.0` | Precision threshold for matching. |
+| `diff_template` | `str` | `"built-in/diff"` | Template string for diff output. |
+| `hashline_diff_template` | `str` | `"built-in/hashline_diff"` | Template for the LLM-driven hashline edit loop (self-correcting). |
+| `hashline_judge_template` | `str` | `"built-in/hashline_judge"` | Template for the YES/NO satisfaction judge inside the hashline edit loop. |
+| `hashline_diff_max_iterations` | `int` | `5` | Maximum LLM iterations for the hashline edit loop before giving up. |
+
+Access at runtime: `from fabricatio_diff.config import diff_config`.
 
 ## Dependencies
 

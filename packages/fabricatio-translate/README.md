@@ -88,13 +88,24 @@ result = fill_empty(["a", "b", "c"], ["translated_a", None, None])
 Both methods accept a `specification` string for style, tone, or terminology
 instructions passed to the LLM template.
 
-### Configuration
+## Configuration
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `translate_template` | `"built-in/translate"` | Template key used for translation rendering |
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.translate]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.translate]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TRANSLATE__<FIELD_UPPER>` environment variables.
 
-Access at runtime: `from fabricatio_translate import translate_config`
+```toml
+[ext.translate]
+translate_template = "built-in/translate"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `translate_template` | `str` | `"built-in/translate"` | The template to use for translation. |
+
+Access at runtime: `from fabricatio_translate.config import translate_config`.
 
 ### Kwargs types
 

@@ -124,17 +124,24 @@ ckpt workspaces
 
 ## Configuration
 
-Configuration is loaded through `fabricatio-core`'s config system under the `"checkpoint"` key:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.checkpoint]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.checkpoint]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__CHECKPOINT__<FIELD_UPPER>` environment variables.
 
-- `checkpoint_dir` — directory for shadow repositories (default: `~/.fabricatio-checkpoint`)
-- `cache_size` — max cached `CheckPointStore` instances in memory (default: `100`)
-
-```python
-from fabricatio_checkpoint.config import checkpoint_config
-
-checkpoint_config.checkpoint_dir = Path("/custom/checkpoint/path")
-checkpoint_config.cache_size = 50
+```toml
+[ext.checkpoint]
+checkpoint_dir = "~/.fabricatio-checkpoint"
+cache_size = 100
 ```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `checkpoint_dir` | `Path` | `~/.fabricatio-checkpoint` | Directory to store checkpoints. Aka the shadow repositories. |
+| `cache_size` | `int` | `100` | Maximum number of checkpoints to keep in memory. |
+
+Access at runtime: `from fabricatio_checkpoint.config import checkpoint_config`.
 
 ## Dependencies
 

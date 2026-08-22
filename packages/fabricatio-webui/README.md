@@ -203,20 +203,32 @@ Server → client:
 | `status` | `{ queue_length, running_count }` | emitted on enqueue/dequeue |
 | `llm_token` | `{ execution_id, node_id, token, timestamp? }` | receive path implemented end-to-end but nothing emits it yet (future work) |
 
-### Configuration
+## Configuration
 
-`WebuiConfig` is a frozen dataclass loaded from Fabricatio's configuration system:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.webui]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.webui]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__WEBUI__<FIELD_UPPER>` environment variables.
 
-```python
-from fabricatio_webui.config import webui_config
+```toml
+[ext.webui]
+addr = "127.0.0.1:9846"
+queue_max = 64
 ```
 
-Fields: `addr`, `frontend_dir`, `allowed_origins`, `queue_max`, `history_max`,
-`persist_workflows`. The worker receives `queue_max` / `history_max`; the Rust
-side honors `persist_workflows`.
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `addr` | `str` | `"127.0.0.1:9846"` | — |
+| `frontend_dir` | `str` | `""` | empty = use bundled www |
+| `allowed_origins` | `tuple[str, ...]` | `("http://localhost:*", "http://127.0.0.1:*")` | — |
+| `queue_max` | `int` | `64` | — |
+| `history_max` | `int` | `256` | — |
+| `persist_workflows` | `bool` | `True` | — |
+
+Access at runtime: `from fabricatio_webui.config import webui_config`.
 
 ## Dependencies
-
 - `fabricatio-core` — core interfaces and configuration
 - `axum` + `tokio` + `tower-http` (Rust) — HTTP server and middleware
 - `typer` (optional, for CLI) — `fc-webui` command

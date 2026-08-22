@@ -67,18 +67,30 @@ result = await agent.fulfill(
 )
 ```
 
-### `AgentConfig` (`fabricatio_agent.config`)
+## Configuration
 
-Dataclass controlling agent behavior, loaded from the Fabricatio configuration system:
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.agent]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.agent]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__AGENT__<FIELD_UPPER>` environment variables.
 
-| Field | Default | Description |
-|---|---|---|
-| `memory` | `False` | Enable memory recall globally |
-| `sequential_thinking` | `False` | Enable sequential thinking globally |
-| `check_capable` | `False` | Check capabilities before every request |
-| `fulfill_prompt_template` | `"built-in/fulfill_prompt"` | Template used for request digestion |
+```toml
+[ext.agent]
+memory = false
+sequential_thinking = false
+check_capable = false
+fulfill_prompt_template = "built-in/fulfill_prompt"
+```
 
-Values set on `AgentConfig` act as defaults; the `fulfill()` method accepts per-call overrides.
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `memory` | `bool` | `False` | Whether to use memory. |
+| `sequential_thinking` | `bool` | `False` | Whether to think sequentially. |
+| `check_capable` | `bool` | `False` | Whether to check if the agent is capable of performing the task. |
+| `fulfill_prompt_template` | `str` | `"built-in/fulfill_prompt"` | The prompt template to use for fulfill. |
+
+Access at runtime: `from fabricatio_agent.config import agent_config`.
 
 ### Actions (`fabricatio_agent.actions.code`)
 

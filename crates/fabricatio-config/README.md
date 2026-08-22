@@ -36,32 +36,37 @@ This crate handles configuration management for the entire Fabricatio project, l
 
 ```rust
 Config {
-    // LLM configuration with comprehensive settings
+    // Completion request defaults
     llm: LLMConfig,
-    
-    // Embedding model configuration  
+
+    // Named model tiers resolved via resolve_llm_variant()
+    agent: Agent,
+
+    // Embedding request defaults
     embedding: EmbeddingConfig,
-    
-    // Reranker model configuration
+
+    // Reranker request defaults
     reranker: RerankerConfig,
-    
-    // Debug and logging settings
+
+    // Logging settings
     debug: DebugConfig,
-    
-    // Template management configuration
+
+    // Core template names (default to built-in/<name>)
     templates: TemplateConfig,
+
+    // Template discovery/loading
     template_manager: TemplateManagerConfig,
-    
-    // Request routing and load balancing
+
+    // Providers, deployments, cache, retries
     routing: RoutingConfig,
-    
-    // General application settings
+
+    // Global behavior flags
     general: GeneralConfig,
-    
-    // Event emitter configuration
+
+    // Event emitter settings
     emitter: EmitterConfig,
-    
-    // Extension configuration store
+
+    // Per-subpackage extension store (populated from [ext.<key>] tables)
     ext: HashMap<String, Value>,
 }
 ```
@@ -70,17 +75,30 @@ Config {
 
 ```rust
 LLMConfig {
-    api_endpoint: Option<String>,          // Valid URL for API service
-    api_key: Option<SecretStr>,            // Secure authentication token
-    timeout: Option<u64>,                  // Minimum 1 second
-    max_retries: Option<u32>,              // Minimum 1 retry
-    model: Option<String>,                 // Model identifier
+    send_to: Option<String>,               // Default routing group or agent variant
+    no_cache: Option<bool>,                // Bypass the response cache
     temperature: Option<f32>,              // Range 0.0-2.0
-    stop_sign: Option<Vec<String>>,        // Token generation stop sequences
-    top_p: Option<f32>,                    // Nucleus sampling (0.0-1.0)
-    stream: bool,                          // Streaming responses
-    max_tokens: Option<u32>,               // Minimum 1 token
-    // ... and more settings
+    top_p: Option<f32>,                    // Range 0.0-1.0
+    stream: bool,                          // Streaming responses (default false)
+    max_completion_tokens: Option<u32>,    // Must be >= 1 if set
+    presence_penalty: Option<f32>,         // Range -2.0-2.0
+    frequency_penalty: Option<f32>,        // Range -2.0-2.0
+    effort: Option<String>,                // Reasoning effort for models that support it
+}
+```
+
+### Agent Configuration (Agent)
+
+Maps model variant slots to routing groups; `resolve_llm_variant()` looks a
+variant name up here and passes any non-variant string through unchanged.
+
+```rust
+Agent {
+    tiny: Option<String>,   // Trivial jobs: classification, checks, short rewrites
+    smol: Option<String>,   // Lightweight, low-context work
+    task: Option<String>,   // Routine workhorse: drafting, extraction
+    slow: Option<String>,   // Heavy reasoning, long context
+    plan: Option<String>,   // Planning, quality-critical synthesis
 }
 ```
 
@@ -88,9 +106,10 @@ LLMConfig {
 
 ```rust
 EmbeddingConfig {
-    send_to: Option<String>,          // Default routing group for embedding requests
-    no_cache: Option<bool>,           // Disable response caching for embeddings
-    ndim: Option<u32>,                // Dimensionality of output embedding vectors
+    send_to: Option<String>,           // Default routing group for embedding requests
+    no_cache: Option<bool>,            // Disable response caching for embeddings
+    ndim: Option<u32>,                 // Dimensionality of output embedding vectors
+    max_batch_emb_size: Option<usize>, // Split larger batches into parallel API calls
 }
 ```
 
@@ -102,6 +121,10 @@ RerankerConfig {
     no_cache: Option<bool>,           // Disable response caching for reranker
 }
 ```
+
+The remaining sections (`debug`, `templates`, `template_manager`, `routing`,
+`general`, `emitter`) are documented in the project's configuration guide at
+`docs/source/configuration.rst`.
 
 ## Usage
 
@@ -146,32 +169,44 @@ dynamic_config = config.load("my_section", MyPythonClass)
 
 ```bash
 # Set configuration via environment variables
-export FABRICATIO_LLM__API_ENDPOINT="https://api.openai.com"
-export FABRICATIO_LLM__API_KEY="your-api-key-here"
-export FABRICATIO_LLM__MODEL="gpt-4"
+export FABRICATIO_LLM__SEND_TO="base"
+export FABRICATIO_LLM__TEMPERATURE="0.7"
+export FABRICATIO_LLM__MAX_COMPLETION_TOKENS="16000"
 export FABRICATIO_DEBUG__LOG_LEVEL="DEBUG"
+
+# Extension packages are configured under EXT__<KEY>__<FIELD>
+export FABRICATIO_EXT__COMFYUI__BASE_URL="http://127.0.0.1:8188"
 ```
 
 ### TOML Configuration File
 
 ```toml
 # fabricatio.toml
-[llm]
-api_endpoint = "https://api.openai.com"
-api_key = "your-api-key-here"
-model = "gpt-4"
-temperature = 0.7
-timeout = 30
-max_retries = 3
-
 [debug]
 log_level = "INFO"
-log_dir = "/var/log/fabricatio"
-rotation = "daily"
+
+[llm]
+send_to = "base"
+temperature = 0.7
+max_completion_tokens = 16000
+stream = false
+
+[routing]
+providers = [
+    { ptype = "OpenAICompatible", key = "sk-...", name = "mm", base_url = "https://api.example.com/v1/" }
+]
+completion_deployments = [
+    { id = "mm/gpt-4o-mini", group = 'base', tpm = 100_000, rpm = 1000 }
+]
+cache_database_path = ".cache.db"
 
 [templates]
-task_briefing_template = "task_briefing.hbs"
-dependencies_template = "dependencies.hbs"
+task_briefing_template = "built-in/task_briefing"
+dependencies_template = "built-in/dependencies"
+
+[ext.comfyui]          # extension package configuration
+base_url = "http://127.0.0.1:8188"
+timeout = 300.0
 ```
 
 ## Configuration Loading Priority

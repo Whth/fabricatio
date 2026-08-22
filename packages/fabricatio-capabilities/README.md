@@ -76,15 +76,51 @@ fabricatio_capabilities/
 | `AsPrompt` | Converts a model instance into an LLM prompt string. |
 | `WordCount` | Mixin providing word count tracking for models. |
 
-### Configuration
-
-`CapabilitiesConfig` (accessible as `capabilities_config`) holds template name defaults for all capability operations: extraction, dispatch, rating, criteria drafting, and ordering.
 
 ### Kwargs Types
 
 `CompositeScoreKwargs`, `BestKwargs`, `OrderStringKwargs`, `ReferencedKwargs[T]` — TypedDicts that extend `ValidateKwargs` with capability-specific parameters (topic, criteria, weights, manual, reference).
 
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.capabilities]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.capabilities]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__CAPABILITIES__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.capabilities]
+extract_template = "built-in/extract"
+as_prompt_template = "built-in/as_prompt"
+dispatch_task_template = "built-in/dispatch_task"
+rate_fine_grind_template = "built-in/rate_fine_grind"
+draft_rating_manual_template = "built-in/draft_rating_manual"
+draft_rating_criteria_template = "built-in/draft_rating_criteria"
+extract_reasons_from_examples_template = "built-in/extract_reasons_from_examples"
+extract_criteria_from_reasons_template = "built-in/extract_criteria_from_reasons"
+draft_rating_weights_klee_template = "built-in/draft_rating_weights_klee"
+order_string_template = "built-in/order_string"
+order_briefed_template = "built-in/order_briefed"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `extract_template` | `str` | `"built-in/extract"` | The name of the extract template which will be used to extract model from string. |
+| `as_prompt_template` | `str` | `"built-in/as_prompt"` | The name of the as prompt template which will be used to convert a string to a prompt. |
+| `dispatch_task_template` | `str` | `"built-in/dispatch_task"` | The name of the dispatch task template which will be used to dispatch a task. |
+| `rate_fine_grind_template` | `str` | `"built-in/rate_fine_grind"` | The name of the rate fine grind template which will be used to rate fine grind. |
+| `draft_rating_manual_template` | `str` | `"built-in/draft_rating_manual"` | The name of the draft rating manual template which will be used to draft rating manual. |
+| `draft_rating_criteria_template` | `str` | `"built-in/draft_rating_criteria"` | The name of the draft rating criteria template which will be used to draft rating criteria. |
+| `extract_reasons_from_examples_template` | `str` | `"built-in/extract_reasons_from_examples"` | The name of the extract reasons from examples template which will be used to extract reasons from examples. |
+| `extract_criteria_from_reasons_template` | `str` | `"built-in/extract_criteria_from_reasons"` | The name of the extract criteria from reasons template which will be used to extract criteria from reasons. |
+| `draft_rating_weights_klee_template` | `str` | `"built-in/draft_rating_weights_klee"` | The name of the draft rating weights klee template which will be used to draft rating weights with Klee method. |
+| `order_string_template` | `str` | `"built-in/order_string"` | The name of the order string template which will be used to order string. |
+| `order_briefed_template` | `str` | `"built-in/order_briefed"` | The name of the order briefed template which will be used to order briefed. |
+
+
 ## Usage
+
 
 ### Structured Extraction
 

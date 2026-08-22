@@ -91,18 +91,26 @@ for req, judgement in zip(requests, results):
     print(f"{req}: {verdict}")
 ```
 
-### Configuration
-
-Override the default template via configuration:
-
-```python
-from fabricatio_capable.config import capable_config
-# capable_config.capable_template is "built-in/capable" by default
-# Register a custom template under a different name and set it:
-# capable_config = CapableConfig(capable_template="my_custom_capable")
-```
 
 ---
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.capable]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.capable]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__CAPABLE__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.capable]
+capable_template = "built-in/capable"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `capable_template` | `str` | `"built-in/capable"` | Template for checking whether a capability is capable of fulfilling a request. |
+
+Access at runtime: `from fabricatio_capable.config import capable_config`.
 
 ## Dependencies
 

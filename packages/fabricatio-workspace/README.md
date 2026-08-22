@@ -2,7 +2,7 @@
 
 [MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-workspace)
-[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-workspace)](https://pypi.org/project/fabricatio-workspace)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-workspace)](https://pypi.org/project/fabricatio-workspace/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-workspace/week)](https://pepy.tech/projects/fabricatio-workspace)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-workspace)](https://pepy.tech/projects/fabricatio-workspace)
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
@@ -57,9 +57,19 @@ path = ws.fork("/path/to/repo", "/tmp/feature-42", "feature/42", base_branch="ma
 oid = ws.commit(path, "Add new feature", files=["src/module.py"])
 ```
 
-### `WorkspaceConfig` / `workspace_config`
+## Configuration
 
-Loaded from the Fabricatio config system (`fabricatio_core.CONFIG.load("workspace", ...)`). An extensible frozen dataclass for workspace-level configuration.
+The schema currently defines no options and is reserved for future use. Set
+them under the `[ext.workspace]` table in `fabricatio.toml`, equivalently
+under `[tool.fabricatio.ext.workspace]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__WORKSPACE__<FIELD_UPPER>` environment variables.
+
+```
+# fabricatio.toml
+[ext.workspace]
+```
+
+Access at runtime: `from fabricatio_workspace.config import workspace_config`.
 
 ## Usage Example
 

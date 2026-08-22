@@ -147,6 +147,27 @@ await action.execute(task)
 - `pandas` — DataFrame manipulation
 - Optional: `openpyxl` (Excel I/O), `pyarrow` (Parquet I/O)
 
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+[Configuration Guide](../../docs/source/configuration.rst)). Set them under the
+`[ext.plot]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.plot]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__PLOT__<FIELD_UPPER>` environment variables.
+
+```toml
+[ext.plot]
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `generate_header_template` | `str` | `"built-in/generate_header"` | Template for generating header. |
+| `generate_csv_data_template` | `str` | `"built-in/generate_csv_data"` | Template for generating CSV data. |
+| `csv_sep` | `str` | `","` | Separator for CSV files. |
+| `csv_codeblock_lang` | `str` | `"csv"` | Language for CSV code blocks. |
+
+Access at runtime: `from fabricatio_plot.config import plot_config`.
+
 ## License
 
 MIT — see [LICENSE](LICENSE)

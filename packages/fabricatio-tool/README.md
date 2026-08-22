@@ -2,7 +2,7 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Python Versions](https://img.shields.io/pypi/pyversions/fabricatio-tool)
-[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-tool)](https://pypi.org/project/fabricatio-tool)
+[![PyPI Version](https://img.shields.io/pypi/v/fabricatio-tool)](https://pypi.org/project/fabricatio-tool/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-tool/week)](https://pepy.tech/projects/fabricatio-tool)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-tool)](https://pepy.tech/projects/fabricatio-tool)
 [![Bindings: PyO3](https://img.shields.io/badge/bindings-pyo3-green)](https://github.com/PyO3/pyo3)
@@ -40,7 +40,7 @@ The package also includes built-in filesystem tools, MCP (Model Context Protocol
 | `ToolBox` | A named collection of related `Tool` instances |
 | `ToolExecutor` | Runs LLM-generated code that invokes tools; validates imports and calls |
 | `ResultCollector` | Key-value container for tool execution results and errors |
-| `Handle` / `HandleTask` | Mixin classes that wire tool discovery → code generation → execution |
+| `Handle` / `HandleTask` | Mixin classes that wire tool discovery, code generation, and execution |
 
 ## Key classes and functions
 
@@ -63,12 +63,6 @@ The package also includes built-in filesystem tools, MCP (Model Context Protocol
 - **`UseTool`** — LLM-driven selection: `choose_toolboxes(request)`, `choose_tools(request)`, `gather_tools(request)`, `gather_tools_fine_grind(request)`.
 - **`Handle`** — `draft_tool_usage_code(request, tools, data)` generates Python code via LLM. `handle(request, data)` and `handle_fine_grind(request, data)` run the full pipeline.
 - **`HandleTask`** — extends `Handle` with `handle_task(task, data)` for Fabricatio `Task` objects.
-
-### `fabricatio_tool.config`
-
-- **`ToolConfig`** — configuration model: `check_modules`, `check_imports`, `check_calls` (whitelist/blacklist), `mcp_servers`, `confirm_on_ops`, `logging_on_ops`.
-- **`CheckConfigModel(targets, mode)`** — whitelist or blacklist mode for validation.
-- **`tool_config`** — singleton instance loaded from Fabricatio config.
 
 ### `fabricatio_tool.fs`
 
@@ -101,6 +95,49 @@ Filesystem utilities callable as tools:
 ### `fabricatio_tool.toolboxes`
 
 - **`fs_toolbox`** — pre-built `ToolBox` containing all filesystem tools listed above.
+
+## Configuration
+
+All options below are read through the fabricatio configuration chain (see the
+Configuration Guide at ../../docs/source/configuration.rst). Set them under the
+`[ext.tool]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.tool]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__TOOL__<FIELD_UPPER>` environment variables.
+
+```toml
+# fabricatio.toml
+[ext.tool]
+draft_tool_usage_code_template = "built-in/draft_tool_usage_code"
+confirm_on_ops = true
+logging_on_ops = true
+error_key = "__error__"
+```
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `draft_tool_usage_code_template` | `str` | `"built-in/draft_tool_usage_code"` | The name of the draft tool usage code template which will be used to draft tool usage code. |
+| `check_modules` | `CheckConfigModel` | `(see config.py)` | Modules that are forbidden/allowed to be imported. |
+| `check_imports` | `CheckConfigModel` | `(see config.py)` | Imports that are forbidden/allowed to be used. |
+| `check_calls` | `CheckConfigModel` | `(see config.py)` | Calls that are forbidden/allowed to be used. |
+| `mcp_servers` | `Dict[str, ServiceConfig]` | `{}` | MCP servers that are allowed to be used. |
+| `confirm_on_ops` | `bool` | `True` | Whether to confirm operations before executing them. |
+| `logging_on_ops` | `bool` | `True` | Whether to log operations before executing them. |
+| `error_key` | `str` | `"__error__"` | The key to use for error reporting. |
+
+`CheckConfigModel` fields:
+
+- `targets: Set[str]` — set of strings to check; default `set()`
+- `mode: Literal["whitelist", "blacklist"]` — check mode; default `"whitelist"`
+
+`ServiceConfig` fields:
+
+- `type: Literal["stdio", "sse", "stream", "worker"]` — transport protocol; default `"stdio"`
+- `command: Optional[str]` — execution command for stdio-type services
+- `url: Optional[str]` — endpoint URL for SSE/stream/worker-type services
+- `args: List[str]` — command-line arguments for stdio services
+- `env: Dict[str, JsonValue]` — environment variables for the service process
+
+Access at runtime: `from fabricatio_tool.config import tool_config`.
 
 ## Usage example
 

@@ -31,18 +31,28 @@ pip install fabricatio[full]
 
 ## Configuration
 
-Milvus settings are loaded from the Fabricatio config system under the `milvus` namespace:
+All options below are read through the fabricatio configuration chain (see the
+Configuration Guide at ../../docs/source/configuration.rst). Set them under the
+`[ext.milvus]` table in `fabricatio.toml`, equivalently under
+`[tool.fabricatio.ext.milvus]` in `pyproject.toml`, or via
+`FABRICATIO_EXT__MILVUS__<FIELD_UPPER>` environment variables.
 
-```python
-from fabricatio_milvus.config import milvus_config
-
-# milvus_config.milvus_uri       → str | None
-# milvus_config.milvus_timeout   → float | None
-# milvus_config.milvus_token     → SecretStr | None
-# milvus_config.milvus_dimensions → int | None
+```toml
+# fabricatio.toml
+[ext.milvus]
+milvus_uri = "http://localhost:19530"
+milvus_timeout = 10.0
+milvus_dimensions = 1536
 ```
 
-These can also be set per-instance via `MilvusScopedConfig` (pydantic model with the same fields).
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `milvus_uri` | `Optional[str]` | `None` | The URI of the Milvus server. |
+| `milvus_timeout` | `Optional[float]` | `None` | The timeout of the Milvus server in seconds. |
+| `milvus_token` | `Optional[SecretStr]` | `None` | The token for Milvus authentication. |
+| `milvus_dimensions` | `Optional[int]` | `None` | The dimensions for Milvus vectors. |
+
+Access at runtime: `from fabricatio_milvus.config import milvus_config`.
 
 ## Key Components
 
@@ -101,9 +111,9 @@ await action.execute(to_inject=docs)
 
 - `fabricatio-core` — core interfaces, config, and utilities
 - `fabricatio-rag` — RAG abstractions (`RAG`, document models)
-- `pymilvus` (≥2.5.4) — Milvus Python SDK
-- `pydantic` (≥2.7.1) — data validation and schema generation
-- `more-itertools` (≥10.8.0) — additional itertools
+- `pymilvus` (>=2.5.4) — Milvus Python SDK
+- `pydantic` (>=2.7.1) — data validation and schema generation
+- `more-itertools` (>=10.8.0) — additional itertools
 
 ## License
 
