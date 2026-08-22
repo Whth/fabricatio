@@ -34,9 +34,9 @@ class TestOutputKey:
     @staticmethod
     def test_explicit_output_key() -> None:
         """Uses the class's explicit output_key for the port name."""
-        from fabricatio_novel.actions.novel import DumpEpubStage
+        from fabricatio_novel.actions.novel import DumpNovelStage
 
-        assert _output_key(DumpEpubStage) == "task_output"
+        assert _output_key(DumpNovelStage) == "task_output"
 
     @staticmethod
     def test_falls_back_to_class_lower() -> None:
@@ -191,12 +191,12 @@ class TestDebugNovelWorkflowStructure:
 
     @staticmethod
     def test_first_and_last_stages() -> None:
-        """Pipeline starts at InitNovelContext and ends at DumpEpubStage."""
+        """Pipeline starts at InitNovelContext and ends at DumpNovelStage."""
         bp = _get_blueprint(build_blueprints(), "novel-debug-novel")
         assert bp is not None
         nodes = bp["workflow"]["nodes"]
         assert nodes[0]["type"] == "InitNovelContext"
-        assert nodes[-1]["type"] == "DumpEpubStage"
+        assert nodes[-1]["type"] == "DumpNovelStage"
 
 
 class TestBlueprintGraphConnectivity:
