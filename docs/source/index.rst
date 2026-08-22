@@ -21,6 +21,7 @@ fabricatio documentation
    rust-crates
    usage
    workflow-patterns
+   novel-hooks
 
 .. toctree::
    :maxdepth: 1
