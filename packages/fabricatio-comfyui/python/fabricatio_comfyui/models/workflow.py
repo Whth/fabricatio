@@ -7,22 +7,16 @@ container + CRUD + serialization) and the ``*Ops`` ABCs
 lives in its own module; this file just wires them together through nominal
 multiple inheritance.
 
-Load from exported API-format JSON or build from scratch::
+Load from a bundled template or build from scratch::
 
-    wf = Workflow.from_file("demo.json")
+    wf = Workflow.from_template("default")
     wf.set_positive_prompt("masterpiece, best quality")
-    wf.set_checkpoint("v1-5-pruned-emaonly.safetensors")
+    wf.set_resolution(width=1024, height=1024)
 
-    # Serialize for client.queue_prompt()
     data = wf.to_api()
-
-    # Build from scratch
-    wf = Workflow.new()
-    ckpt = wf.add("CheckpointLoaderSimple", inputs={"ckpt_name": "model.safetensors"})
-    empty = wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
-    pos = wf.add("CLIPTextEncode", inputs={"text": "a cat"})
-    pos.connect("clip", ckpt, 1)
 """
+
+from pathlib import Path
 
 from fabricatio_comfyui.models.workflow_core import (
     RESOLUTION_SELECTOR_ASPECT_RATIOS,
@@ -54,11 +48,19 @@ __all__ = [
 
 
 class Workflow(WorkflowCore, LoaderOps, PromptOps, SamplerOps, ResolutionOps):
-    """ComfyUI workflow graph: core container + typed node-family setters.
+    """ComfyUI workflow graph: core container + typed node-family setters."""
 
-    Composed through nominal multiple inheritance — no plugin registry, no
-    ``hasattr``, no runtime dispatch.  ``WorkflowCore`` provides the concrete
-    implementations of :class:`WorkflowAccess`'s abstract helpers, so the
-    ``*Ops`` mixins resolve ``_resolve`` / ``_require_node`` / ``by_type``
-    through the MRO.
-    """
+    @classmethod
+    def from_template(cls, name: str) -> "Workflow":
+        """Load a bundled workflow by *name* (the stem of a ``.json`` file under :mod:`fabricatio_comfyui.workflows`).
+
+        Raises:
+            FileNotFoundError: when no matching bundled template exists.
+        """
+        # Walk up from this file: workflow.py lives at <pkg>/models/, so
+        # parent.parent is the package root, where `workflows/<name>.json`
+        # lives next to the bundled default.
+
+        pkg_root = Path(__file__).resolve().parent.parent
+        path = pkg_root / "workflows" / f"{name}.json"
+        return cls.from_file(path)

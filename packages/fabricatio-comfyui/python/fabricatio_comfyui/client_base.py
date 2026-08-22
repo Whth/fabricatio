@@ -6,10 +6,10 @@ this ABC — never on the concrete :class:`ComfyuiHTTPClient` — so that
 tests and alternate backends can be wired in through regular inheritance
 rather than ``hasattr`` / ``Protocol`` duck-typing.
 
-The ABC owns only the *interface*: typed API wrappers, the async lifecycle
-(``__aenter__`` / ``__aexit__`` / ``aclose``), and the concurrent image
-download helper.  Workflow *orchestration* (queue → poll → download as a
-single call) is deliberately absent — it lives on the capability mixin.
+The ABC owns only the *interface*: typed API wrappers, the async
+lifecycle (``__aenter__`` / ``__aexit__`` / ``aclose``), and the concurrent
+image download helper.  Workflow *orchestration* (queue → poll → download
+as a single call) is deliberately absent — it lives on the capability mixin.
 """
 
 from abc import ABC, abstractmethod
@@ -29,7 +29,7 @@ from fabricatio_comfyui.models.kwargs_types import (
     UploadKwargs,
     ViewImageKwargs,
 )
-from fabricatio_comfyui.models.workflow import Workflow, WorkflowDict
+from fabricatio_comfyui.models.workflow import Workflow
 
 __all__ = ["ComfyuiClientBase"]
 
@@ -66,10 +66,18 @@ class ComfyuiClientBase(ABC):
     @abstractmethod
     async def queue_prompt(
         self,
-        workflow: WorkflowDict | Workflow,
+        workflow: Workflow,
         **kwargs: Unpack[QueueKwargs],
     ) -> PromptResponse:
-        """Submit a workflow for execution via ``POST /prompt``."""
+        """Submit a bundled workflow for execution via ``POST /prompt``.
+
+        The caller owns *workflow* — typically obtained via
+        :meth:`fabricatio_comfyui.models.workflow.Workflow.default` or
+        :meth:`fabricatio_comfyui.models.workflow.Workflow.from_template`.
+        Raw API-format dicts are no longer accepted at the public surface:
+        the package narrows input to fully-typed ``Workflow`` instances so
+        callers cannot inject unchecked workflow graphs.
+        """
 
     @abstractmethod
     async def get_queue_info(self) -> QueueInfo:

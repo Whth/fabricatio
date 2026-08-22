@@ -22,7 +22,6 @@ from math import sqrt
 from pathlib import Path
 from typing import Any, Self
 
-from fabricatio_core.utils import ok
 from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
@@ -64,9 +63,8 @@ class FrameAspect(StrEnum):
     literal-dimension fallback path (workflows without a
     ``ResolutionSelector`` node).
 
-    Values are kept in lockstep with :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`
-    via the module-level ``assert`` below; edits to one without the other will
-    raise ``AssertionError`` at import.
+    :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS` is *derived* from the member
+    values, so the token set and the enum cannot drift apart.
     """
 
     SQUARE = "1:1 (Square)"
@@ -82,30 +80,15 @@ class FrameAspect(StrEnum):
     def ratio(self) -> tuple[int, int]:
         """Numeric (width, height) ratio for this aspect token.
 
-        Used to derive literal pixel dimensions from a target megapixel count
-        for workflows that drive ``EmptyLatentImage.width/height`` directly
-        rather than through a ``ResolutionSelector`` node.
+        Parsed straight from the member value (``"16:9 (Widescreen)"`` ->
+        ``(16, 9)``), so the numeric ratio can never drift from the token
+        ComfyUI receives.  Used to derive literal pixel dimensions from a
+        target megapixel count for workflows that drive
+        ``EmptyLatentImage.width/height`` directly rather than through a
+        ``ResolutionSelector`` node.
         """
-        ratio: tuple[int, int] | None = None
-        match self:
-            case FrameAspect.SQUARE:
-                ratio = (1, 1)
-            case FrameAspect.PHOTO:
-                ratio = (3, 2)
-            case FrameAspect.PORTRAIT_PHOTO:
-                ratio = (2, 3)
-            case FrameAspect.PORTRAIT_STANDARD:
-                ratio = (3, 4)
-            case FrameAspect.STANDARD:
-                ratio = (4, 3)
-            case FrameAspect.WIDESCREEN_PORTRAIT:
-                ratio = (9, 16)
-            case FrameAspect.WIDESCREEN:
-                ratio = (16, 9)
-            case FrameAspect.ULTRAWIDE:
-                ratio = (21, 9)
-
-        return ok(ratio)
+        width_token, height_token = self.value.split(" ", 1)[0].split(":")
+        return int(width_token), int(height_token)
 
     def to_dimensions(self, megapixels: float) -> tuple[int, int]:
         """Return aligned literal pixel dimensions for ``megapixels``.
@@ -122,18 +105,8 @@ class FrameAspect(StrEnum):
         return max(64, width_rounded), max(64, height_rounded)
 
 
-RESOLUTION_SELECTOR_ASPECT_RATIOS: frozenset[str] = frozenset(
-    {
-        FrameAspect.SQUARE,
-        FrameAspect.PORTRAIT_PHOTO,
-        FrameAspect.PHOTO,
-        FrameAspect.PORTRAIT_STANDARD,
-        FrameAspect.STANDARD,
-        FrameAspect.WIDESCREEN_PORTRAIT,
-        FrameAspect.WIDESCREEN,
-        FrameAspect.ULTRAWIDE,
-    }
-)
+RESOLUTION_SELECTOR_ASPECT_RATIOS: frozenset[str] = frozenset(member.value for member in FrameAspect)
+"""The exact aspect-ratio token set the ``ResolutionSelector`` node accepts (derived from :class:`FrameAspect`)."""
 
 
 # ------------------------------------------------------------------

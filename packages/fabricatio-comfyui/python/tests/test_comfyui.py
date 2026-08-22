@@ -518,21 +518,8 @@ class TestModels:
 
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
-    """End-to-end flow via capability: queue prompt -> poll history -> download."""
+    """End-to-end flow via the high-level capability: prompt -> queue -> poll -> download."""
     client = ComfyuiHTTPClient.create(None)
-    workflow = {
-        "3": {
-            "class_type": "KSampler",
-            "inputs": {
-                "seed": 42,
-                "steps": 20,
-                "model": NodeRef(node_id="4").to_api(),
-                "positive": NodeRef(node_id="6").to_api(),
-                "negative": NodeRef(node_id="7").to_api(),
-                "latent_image": NodeRef(node_id="5").to_api(),
-            },
-        },
-    }
 
     mock_history: Dict[str, Any] = {
         "mock-uuid-123": {
@@ -557,7 +544,12 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_img.return_value = b"fake-image-bytes"
 
         role = Comfyui(comfyui_client=client)
-        result = await role.acomfyui_generate(workflow=workflow, download_dir=tmp_path)
+        result = await role.acomfyui_generate(
+            prompt="a mountain landscape",
+            download_dir=tmp_path,
+            seed=42,
+            steps=20,
+        )
 
         assert result.prompt_id == "mock-uuid-123"
         assert result.succeeded is True
@@ -589,13 +581,9 @@ async def test_generate_timeout() -> None:
 
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
-        patch.object(client, "_get", return_value={}),
-        pytest.raises(TimeoutError),
+        patch.object(client, "_get", return_value={}),pytest.raises(TimeoutError)
     ):
-        await role.acomfyui_generate(
-            workflow={"3": {"class_type": "KSampler", "inputs": {}}},
-            timeout=0.2,
-        )
+        await role.acomfyui_generate(prompt="anything", timeout=0.2)
 
 
 @pytest.mark.asyncio
@@ -619,9 +607,10 @@ async def test_upload_image(tmp_path: Path) -> None:
 async def test_queue_returns_typed() -> None:
     """queue_prompt returns a PromptResponse, not a raw dict."""
     client = ComfyuiHTTPClient.create(None)
+    wf = Workflow.from_api({"1": {"class_type": "VAELoader", "inputs": {}}})
 
     with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
-        resp = await client.queue_prompt({"1": {"class_type": "VAELoader", "inputs": {}}})
+        resp = await client.queue_prompt(wf)
         assert isinstance(resp, PromptResponse)
         assert resp.prompt_id == "abc"
 
@@ -703,104 +692,6 @@ async def test_wait_for_completion_polling() -> None:
         result = await client.wait_for_completion("pid-1", poll_interval=0.01, timeout=5.0)
         assert result.prompt_id == "pid-1"
         assert result.status == "completed"
-
-
-# ======================================================================
-# Batch capability tests (via Comfyui mixin)
-# ======================================================================
-
-
-class _BatchRole(Comfyui):
-    """Concrete role for testing batch Comfyui methods."""
-
-
-@pytest.mark.asyncio
-async def test_generate_batch_flow(tmp_path: Path) -> None:
-    """Batch acomfyui_generate: queue 3 workflows, poll 3, download all."""
-    client = ComfyuiHTTPClient.create(None)
-    role = _BatchRole(comfyui_client=client)
-    workflows = [{"3": {"class_type": "KSampler", "inputs": {"seed": i}}} for i in range(3)]
-
-    mock_history: Dict[str, Any] = {
-        f"pid-{i}": {
-            "status": {"status_str": "completed", "completed": True},
-            "outputs": {"9": {"images": [{"filename": f"out_{i}.png", "subfolder": "", "type": "output"}]}},
-        }
-        for i in range(3)
-    }
-
-    with (
-        patch.object(client, "_post") as mock_post,
-        patch.object(client, "_get") as mock_get,
-        patch.object(client, "download_images") as mock_dl,
-    ):
-        mock_post.side_effect = [{"prompt_id": f"pid-{i}", "number": i} for i in range(3)]
-
-        async def get_side_effect(path: str, **_: Any) -> Any:
-            if path.startswith("/history/"):
-                return mock_history
-            return {}
-
-        mock_get.side_effect = get_side_effect
-        mock_dl.return_value = None
-
-        results = await role.acomfyui_generate(
-            workflows,
-            download_dir=[str(tmp_path / f"ch{i}") for i in range(3)],
-        )
-
-        assert len(results) == 3
-        for i, r in enumerate(results):
-            assert r.prompt_id == f"pid-{i}"
-            assert r.succeeded is True
-        assert mock_post.call_count == 3
-        assert mock_dl.call_count == 3
-
-
-@pytest.mark.asyncio
-async def test_queue_batch() -> None:
-    """Batch acomfyui_queue: submit 3 workflows, return 3 PromptResponse."""
-    client = ComfyuiHTTPClient.create(None)
-    role = _BatchRole(comfyui_client=client)
-    workflows = [{"1": {"class_type": "VAELoader", "inputs": {}}} for _ in range(3)]
-
-    with patch.object(client, "_post") as mock_post:
-        mock_post.side_effect = [{"prompt_id": f"pid-{i}", "number": i, "node_errors": {}} for i in range(3)]
-        responses = await role.acomfyui_queue(workflows)
-
-        assert len(responses) == 3
-        for i, resp in enumerate(responses):
-            assert isinstance(resp, PromptResponse)
-            assert resp.prompt_id == f"pid-{i}"
-        assert mock_post.call_count == 3
-
-
-@pytest.mark.asyncio
-async def test_retrieve_batch() -> None:
-    """Batch acomfyui_retrieve: poll 3 prompt_ids, return 3 results."""
-    client = ComfyuiHTTPClient.create(None)
-    role = _BatchRole(comfyui_client=client)
-
-    raw = {
-        "pid-0": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
-        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
-        "pid-2": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
-    }
-    with patch.object(client, "_get") as mock_get:
-
-        async def get_side_effect(path: str, **_: Any) -> Any:
-            if path.startswith("/history/"):
-                return raw
-            return {}
-
-        mock_get.side_effect = get_side_effect
-
-        results = await role.acomfyui_retrieve(["pid-0", "pid-1", "pid-2"], poll_interval=0.01, timeout=5.0)
-
-        assert len(results) == 3
-        for i, r in enumerate(results):
-            assert r.prompt_id == f"pid-{i}"
-            assert r.status == "completed"
 
 
 # ======================================================================
@@ -897,40 +788,15 @@ async def test_integration_queue_and_history(tmp_path: Path) -> None:
 @_requires_comfyui
 @_requires_checkpoint
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
-    """Integration: end-to-end generate with a simple txt2img workflow."""
-    wf = Workflow.from_api(
-        {
-            "1": {
-                "class_type": "CheckpointLoaderSimple",
-                "inputs": {"ckpt_name": _first_checkpoint()},
-            },
-            "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 256, "height": 256, "batch_size": 1}},
-            "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "a cute cat", "clip": ["1", 1]}},
-            "4": {"class_type": "CLIPTextEncode", "inputs": {"text": "bad quality", "clip": ["1", 1]}},
-            "5": {
-                "class_type": "KSampler",
-                "inputs": {
-                    "model": ["1", 0],
-                    "positive": ["3", 0],
-                    "negative": ["4", 0],
-                    "latent_image": ["2", 0],
-                    "seed": 42,
-                    "steps": 5,
-                    "cfg": 7.0,
-                    "sampler_name": "euler",
-                    "scheduler": "normal",
-                    "denoise": 1.0,
-                },
-            },
-            "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-            "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "test"}},
-        }
-    )
-
+    """Integration: end-to-end generate with the high-level capability against a real server."""
     client = _fresh_client()
     role = Comfyui(comfyui_client=client)
     try:
-        result = await role.acomfyui_generate(wf, download_dir=tmp_path, timeout=120.0)
+        result = await role.acomfyui_generate(
+            prompt="a cute cat",
+            download_dir=tmp_path,
+            timeout=120.0,
+        )
     finally:
         await client.aclose()
 

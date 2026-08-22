@@ -1,19 +1,21 @@
 """Concrete ComfyUI HTTP client.
 
 :class:`ComfyuiHTTPClient` is the sole implementation of
-:class:`ComfyuiClientBase`.  It owns the ``httpx.AsyncClient`` lifecycle and
-all REST endpoints.  Construct it via :meth:`create` and manage it as an
-async context manager (``async with client:``) so the connection pool is
-always closed::
+:class:`ComfyuiClientBase`.  It owns the ``httpx.AsyncClient`` lifecycle
+and all REST endpoints.  Construct it via :meth:`create` and manage it
+as an async context manager (``async with client:``) so the connection
+pool is always closed::
 
     async with ComfyuiHTTPClient.create() as client:
+        wf = Workflow.default()
+        wf.set_positive_prompt("a mountain landscape")
         resp = await client.queue_prompt(wf)
         result = await client.wait_for_completion(resp.prompt_id)
 
-No ``@lru_cache`` — each :meth:`create` call returns a fresh client with its
-own connection pool, so long-running apps no longer leak connections and
-each event loop gets its own pool (fixing the ``RuntimeError: Event loop is
-closed`` that plagued pytest-asyncio).
+No ``@lru_cache`` — each :meth:`create` call returns a fresh client with
+its own connection pool, so long-running apps no longer leak connections
+and each event loop gets its own pool (fixing the
+``RuntimeError: Event loop is closed`` that plagued pytest-asyncio).
 """
 
 import asyncio
@@ -27,6 +29,7 @@ from fabricatio_comfyui.client_base import ComfyuiClientBase
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.models.comfyui import (
     ComfyuiExecutionResult,
+    ComfyuiOutputImage,
     HistoryEntry,
     PromptRequest,
     PromptResponse,
@@ -40,7 +43,7 @@ from fabricatio_comfyui.models.kwargs_types import (
     UploadKwargs,
     ViewImageKwargs,
 )
-from fabricatio_comfyui.models.workflow import Workflow, WorkflowDict
+from fabricatio_comfyui.models.workflow import Workflow
 from fabricatio_comfyui.utils import build_result
 
 __all__ = ["ComfyuiHTTPClient"]
@@ -105,12 +108,23 @@ class ComfyuiHTTPClient(ComfyuiClientBase):
         path: str,
         *,
         json_data: dict[str, Any] | None = None,
-        data: bytes | None = None,
+        body: bytes | None = None,
         files: dict[str, Any] | None = None,
         timeout: float | None = None,
     ) -> dict[str, Any]:
-        """Send a POST request and return the JSON response."""
-        resp = await self.source.post(path, json=json_data, data=data, files=files, timeout=timeout)
+        """Send a POST request and return the JSON response.
+
+        *json_data*, *body*, and *files* are mutually exclusive content
+        shapes; the caller picks exactly one.  ``body`` is forwarded via
+        httpx's ``content=`` parameter (raw request body).
+        """
+        resp = await self.source.post(
+            path,
+            json=json_data,
+            content=body,
+            files=files,
+            timeout=timeout,
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -148,13 +162,12 @@ class ComfyuiHTTPClient(ComfyuiClientBase):
 
     async def queue_prompt(
         self,
-        workflow: WorkflowDict | Workflow,
+        workflow: Workflow,
         **kwargs: Unpack[QueueKwargs],
     ) -> PromptResponse:
-        """Submit a workflow for execution via ``POST /prompt``."""
+        """Submit a bundled workflow for execution via ``POST /prompt``."""
         front = kwargs.get("front", False)
-        wf = workflow.to_api() if isinstance(workflow, Workflow) else workflow
-        req = PromptRequest(prompt=wf, client_id=self.client_id, front=front)
+        req = PromptRequest(prompt=workflow.to_api(), client_id=self.client_id, front=front)
         data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
         return PromptResponse.from_raw(data)
 
@@ -209,10 +222,11 @@ class ComfyuiHTTPClient(ComfyuiClientBase):
         poll_interval = kwargs.get("poll_interval", 1.0)
         timeout = kwargs.get("timeout")
         effective_timeout = timeout or comfyui_config.timeout
-        deadline = asyncio.get_event_loop().time() + effective_timeout
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + effective_timeout
 
         while True:
-            if asyncio.get_event_loop().time() > deadline:
+            if loop.time() > deadline:
                 raise TimeoutError(f"ComfyUI prompt {prompt_id} timed out after {effective_timeout}s")
 
             entry = await self.get_history(prompt_id)
@@ -226,7 +240,7 @@ class ComfyuiHTTPClient(ComfyuiClientBase):
         dst = Path(download_dir)
         dst.mkdir(parents=True, exist_ok=True)
 
-        async def _fetch(img: Any) -> None:
+        async def _fetch(img: ComfyuiOutputImage) -> None:
             data = await self.get_image(filename=img.filename, subfolder=img.subfolder, image_type=img.type)
             (dst / img.filename).write_bytes(data)
 
