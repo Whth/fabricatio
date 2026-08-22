@@ -28,6 +28,7 @@ class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
 
     document_model: Optional[Type[D]] = None
     limit: int = 15
+    dedup_cos_threshold: float | None = 0.95
     table_name: str = field(default_factory=lambda: lancedb_config.default_table_name)
 
 
@@ -68,11 +69,15 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
 
         if isinstance(query, str):
             search_vec = await self.vectorize(query)
-            searched = await table.search_document(search_vec, limit=conf.limit)
+            searched = await table.search_document(
+                search_vec, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold
+            )
             return [doc_model.from_raw(s) for s in searched]
 
         search_vec = await self.vectorize(query)
-        searched = await asyncio.gather(*[table.search_document(v, limit=conf.limit) for v in search_vec])
+        searched = await asyncio.gather(
+            *[table.search_document(v, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold) for v in search_vec]
+        )
         return [doc_model.from_raw(s) for s in flatten(searched)]
 
     async def rebuild_index(self, table_name: str | None = None) -> Self:

@@ -20,13 +20,16 @@ class SearchedDocument:
     """
     @property
     def id(self) -> builtins.str:
-        r"""Unique identifier for the document, typically generated as a UUID string."""
+        r"""Unique identifier for the document, typically generated as a UUID string.
+        """
     @property
     def content(self) -> builtins.str:
-        r"""The textual content of the document that was searched and matched."""
+        r"""The textual content of the document that was searched and matched.
+        """
     @property
     def timestamp(self) -> builtins.int:
-        r"""Timestamp indicating when the document was created or last updated."""
+        r"""Timestamp indicating when the document was created or last updated.
+        """
     @property
     def metadata(self) -> typing.Optional[builtins.str]:
         r"""Optional metadata associated with the document, stored as a JSON string.
@@ -57,12 +60,14 @@ class StoreDocument:
     def __new__(
         cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[builtins.str]
     ) -> StoreDocument:
-        r"""Create a new Document instance."""
+        r"""Create a new Document instance.
+        """
     @staticmethod
     def with_metadata(
         content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[dict]
     ) -> StoreDocument:
-        r"""Create a new Document instance with metadata dict."""
+        r"""Create a new Document instance with metadata dict.
+        """
 
 @typing.final
 class VectorStoreService:
@@ -74,43 +79,54 @@ class VectorStoreService:
     """
     @staticmethod
     def connect(uri: builtins.str) -> typing.Awaitable[typing.Self]:
-        r"""Connect to a lancedb instance."""
+        r"""Connect to a lancedb instance
+        """
     def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create a table."""
+        r"""Create a table
+        """
     def open_table(self, table_name: builtins.str) -> typing.Awaitable[VectorStoreTable]:
-        r"""Open a table."""
+        r"""Open a table
+        """
     def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create or open a table."""
+        r"""Create or open a table
+        """
 
 @typing.final
 class VectorStoreTable:
     def add_documents(
-        self, documents: list[StoreDocument], rebuild_index: builtins.bool = True
+        self, documents: typing.Sequence[StoreDocument], rebuild_index: builtins.bool = True
     ) -> typing.Awaitable[builtins.list[builtins.str]]:
         r"""Adds multiple documents to the vector store.
 
         Args:
             documents: A list of StoreDocument objects to be added to the store.
-            rebuild_index: If True (default), rebuild the vector index after adding. Set to False for bulk inserts.
+            rebuild_index: If true (default), rebuild the vector index after adding. Set to false for bulk inserts.
 
         Returns:
             An awaitable that resolves to a list of document IDs.
         """
-
     def rebuild_index(self) -> typing.Awaitable[None]:
         r"""Rebuilds the vector index on the table.
 
-        Useful after bulk inserts with ``rebuild_index=False``.
+        Useful after bulk inserts with `rebuild_index=False`.
         No-op if the table has fewer than 256 rows (minimum for PQ training).
         """
     def search_document(
-        self, embedding: typing.Sequence[builtins.float], limit: builtins.int
+        self,
+        embedding: typing.Sequence[builtins.float],
+        limit: builtins.int,
+        dedup_threshold: typing.Optional[builtins.float] = None,
     ) -> typing.Awaitable[builtins.list[SearchedDocument]]:
         r"""Searches for documents similar to the given embedding vector.
 
         Args:
             embedding: A vector representing the query embedding for similarity search.
             limit: The maximum number of similar documents to return.
+            dedup_threshold: Optional cosine similarity threshold for semantic deduplication.
+                When set, extra candidates are fetched and greedily filtered in nearest-first
+                order: a document is dropped once its cosine similarity with an already kept
+                document reaches this threshold, so up to `limit` semantically distinct
+                documents are returned.
 
         Returns:
             An awaitable that resolves to a list of SearchedDocument objects.

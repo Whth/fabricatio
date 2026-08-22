@@ -165,7 +165,7 @@ table = await service.open_table("production_docs")
 | Method | Signature | Returns | Description |
 |--------|-----------|---------|-------------|
 | `add_documents` | `(documents: list[StoreDocument], rebuild_index: bool = True) -> Awaitable[list[str]]` | Document IDs | Insert documents; set `rebuild_index=False` for bulk inserts |
-| `search_document` | `(embedding: list[float], limit: int) -> Awaitable[list[SearchedDocument]]` | Search results | Nearest-neighbor vector search |
+| `search_document` | `(embedding: list[float], limit: int, dedup_threshold: float \| None = None) -> Awaitable[list[SearchedDocument]]` | Search results | Nearest-neighbor vector search; with `dedup_threshold`, near-duplicates (cosine similarity ≥ threshold vs. an already-kept result) are dropped and replaced by deeper candidates |
 | `rebuild_index` | `() -> Awaitable[None]` | None | Rebuild the vector index (no-op if <256 rows) |
 
 #### StoreDocument
@@ -222,6 +222,7 @@ Dataclass config for `afetch_document`:
 | `table_name` | `lancedb_config.default_table_name` | Source table |
 | `document_model` | `None` (required) | Document model class for deserialization |
 | `limit` | `15` | Max results returned |
+| `dedup_cos_threshold` | `0.95` | Cosine similarity at which a candidate is treated as a duplicate of an already-selected result; `None` disables deduplication |
 
 #### LancedbDocumentModel
 

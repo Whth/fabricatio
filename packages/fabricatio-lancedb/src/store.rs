@@ -9,10 +9,10 @@ use arrow_array::types::*;
 use arrow_array::RecordBatch;
 use error_mapping::AsPyErr;
 use futures_util::TryStreamExt;
-use lancedb::Table;
 use lancedb::arrow::arrow_schema::*;
 use lancedb::index::Index;
 use lancedb::query::{ExecutableQuery, QueryBase, Select};
+use lancedb::Table;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -48,6 +48,10 @@ type DataContainers = (
     Vec<ContentText>,
     Vec<Option<JsonString>>,
 );
+
+/// Candidate oversampling factor applied when cosine deduplication is enabled: this many
+/// nearest rows are fetched per requested result so filtering can still fill `limit`.
+const DEDUP_OVERSAMPLE_FACTOR: usize = 4;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(set_all, get_all, from_py_object)]
@@ -374,6 +378,70 @@ impl VectorStoreTable {
         let metadata_seq: Vec<Option<JsonString>> = vec![];
         Ok((id_seq, timestamp_seq, vector_seq, content_seq, metadata_seq))
     }
+
+    /// Greedily filters rows in nearest-first order, dropping any document whose cosine
+    /// similarity with an already-kept document reaches `threshold`, until `limit`
+    /// documents are kept or the candidates run out.
+    fn dedup_by_cosine(
+        rows: Vec<(SearchedDocument, Option<Vector>)>,
+        limit: usize,
+        threshold: f32,
+    ) -> Vec<SearchedDocument> {
+        let mut kept_docs: Vec<SearchedDocument> = Vec::with_capacity(limit);
+        let mut kept_vectors: Vec<Vector> = Vec::new();
+
+        for (doc, vector) in rows {
+            if kept_docs.len() >= limit {
+                break;
+            }
+            match vector {
+                // Rows without a comparable vector cannot be judged duplicates.
+                None => kept_docs.push(doc),
+                Some(vector) => {
+                    if !kept_vectors
+                        .iter()
+                        .any(|kept| utils::cosine_similarity(kept, &vector) >= threshold)
+                    {
+                        kept_vectors.push(vector);
+                        kept_docs.push(doc);
+                    }
+                }
+            }
+        }
+
+        kept_docs
+    }
+
+    /// Extracts the row's vector column value, returning `None` when the column is absent
+    /// from the projection or the cell is null.
+    fn extract_vector_column(batch: &RecordBatch, row_idx: usize) -> PyResult<Option<Vector>> {
+        let Some(column) = batch.column_by_name(VECTOR_FIELD_NAME) else {
+            return Ok(None);
+        };
+        let Some(list) = column.as_any().downcast_ref::<FixedSizeListArray>() else {
+            return Err(PyValueError::new_err(format!(
+                "Column '{}' is not of expected type: FixedSizeList",
+                VECTOR_FIELD_NAME
+            )));
+        };
+
+        if list.is_null(row_idx) {
+            return Ok(None);
+        }
+
+        Ok(Some(
+            list.value(row_idx)
+                .as_primitive_opt::<Float32Type>()
+                .ok_or_else(|| {
+                    PyValueError::new_err(format!(
+                        "Column '{}' inner values are not of expected type: Float32",
+                        VECTOR_FIELD_NAME
+                    ))
+                })?
+                .values()
+                .to_vec(),
+        ))
+    }
 }
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
@@ -434,11 +502,17 @@ impl VectorStoreTable {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[builtins.list[SearchedDocument]]", imports = ("typing", "builtins"))
     )]
+    #[pyo3(signature = (embedding, limit, dedup_threshold=None))]
     /// Searches for documents similar to the given embedding vector.
     ///
     /// Args:
     ///     embedding: A vector representing the query embedding for similarity search.
     ///     limit: The maximum number of similar documents to return.
+    ///     dedup_threshold: Optional cosine similarity threshold for semantic deduplication.
+    ///         When set, extra candidates are fetched and greedily filtered in nearest-first
+    ///         order: a document is dropped once its cosine similarity with an already kept
+    ///         document reaches this threshold, so up to `limit` semantically distinct
+    ///         documents are returned.
     ///
     /// Returns:
     ///     An awaitable that resolves to a list of SearchedDocument objects.
@@ -447,21 +521,34 @@ impl VectorStoreTable {
         python: Python<'a>,
         embedding: Vector,
         limit: usize,
+        dedup_threshold: Option<f32>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let table = self.table.clone();
 
         future_into_py(python, async move {
+            let dedup = dedup_threshold.is_some();
+            let fetch_limit = if dedup {
+                limit.saturating_mul(DEDUP_OVERSAMPLE_FACTOR)
+            } else {
+                limit
+            };
+
+            let mut columns = vec![
+                ID_FIELD_NAME.to_string(),
+                TIMESTAMP_FIELD_NAME.to_string(),
+                CONTENT_FIELD_NAME.to_string(),
+                METADATA_FIELD_NAME.to_string(),
+            ];
+            if dedup {
+                columns.push(VECTOR_FIELD_NAME.to_string());
+            }
+
             let a = table
                 .query()
                 .nearest_to(embedding)
                 .into_pyresult()?
-                .limit(limit)
-                .select(Select::Columns(vec![
-                    ID_FIELD_NAME.to_string(),
-                    TIMESTAMP_FIELD_NAME.to_string(),
-                    CONTENT_FIELD_NAME.to_string(),
-                    METADATA_FIELD_NAME.to_string(),
-                ]))
+                .limit(fetch_limit)
+                .select(Select::Columns(columns))
                 .execute()
                 .await
                 .into_pyresult()?
@@ -469,14 +556,20 @@ impl VectorStoreTable {
                 .await
                 .into_pyresult()?;
 
-            let mut results = Vec::new();
+            let mut rows: Vec<(SearchedDocument, Option<Vector>)> = Vec::new();
             for batch in a {
                 for i in 0..batch.num_rows() {
-                    results.push(SearchedDocument::from_record_batch_row(&batch, i)?);
+                    rows.push((
+                        SearchedDocument::from_record_batch_row(&batch, i)?,
+                        Self::extract_vector_column(&batch, i)?,
+                    ));
                 }
             }
 
-            Ok(results)
+            Ok(match dedup_threshold {
+                None => rows.into_iter().map(|(doc, _)| doc).collect::<Vec<_>>(),
+                Some(threshold) => Self::dedup_by_cosine(rows, limit, threshold),
+            })
         })
     }
 }

@@ -1,5 +1,6 @@
 """Tests for fabricatio-lancedb Rust-backed vector store operations and RAG capabilities."""
 
+import math
 import uuid
 from collections.abc import Sequence
 from typing import Any, Self
@@ -7,6 +8,9 @@ from typing import Any, Self
 import pytest
 from fabricatio_core.capabilities.usages import UseEmbedding
 from fabricatio_core.utils import ok
+from fabricatio_lancedb.capabilities import lancedb as lancedb_capabilities
+from fabricatio_lancedb.capabilities.lancedb import LancedbFetchRAGConfig, LancedbRAG
+from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
 from fabricatio_lancedb.rust import (
     SearchedDocument,
     StoreDocument,
@@ -321,6 +325,69 @@ class TestSearchDocument:
 
 
 # ---------------------------------------------------------------------------
+# VectorStoreTable - search_document cosine deduplication
+# ---------------------------------------------------------------------------
+
+
+def _dedup_docs() -> list[StoreDocument]:
+    """Build documents whose vectors form known cosine-similarity pairs."""
+    sin_09 = math.sqrt(1.0 - 0.9 * 0.9)
+    vectors = {
+        "a": [1.0, 0.0, 0.0, 0.0],
+        "a-dupe": [1.0, 0.0, 0.0, 0.0],  # cos 1.0 with "a"
+        "b-near": [0.9, sin_09, 0.0, 0.0],  # cos ~0.9 with "a"
+        "c": [0.0, 1.0, 0.0, 0.0],
+        "d": [0.0, 0.0, 1.0, 0.0],
+        "e": [0.0, 0.0, 0.0, 1.0],
+        "f": [0.7071067811865476, 0.7071067811865476, 0.0, 0.0],
+    }
+    return [StoreDocument(content=name, vector=list(vec), metadata=None) for name, vec in vectors.items()]
+
+
+class TestSearchDedup:
+    """Tests for cosine-similarity deduplication in search_document."""
+
+    async def test_dedup_drops_near_identical(self, table: VectorStoreTable) -> None:
+        """Documents at or above the cosine threshold are dropped in favour of the nearest twin."""
+        await table.add_documents(_dedup_docs())
+        results = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=10, dedup_threshold=0.95)
+        contents = {doc.content for doc in results}
+        assert "a" in contents
+        assert "a-dupe" not in contents
+
+    async def test_dedup_threshold_granularity(self, table: VectorStoreTable) -> None:
+        """A ~0.9-cosine neighbour survives a 0.95 threshold but not a 0.85 one."""
+        await table.add_documents(_dedup_docs())
+        loose = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=10, dedup_threshold=0.95)
+        strict = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=10, dedup_threshold=0.85)
+        assert "b-near" in {doc.content for doc in loose}
+        assert "b-near" not in {doc.content for doc in strict}
+
+    async def test_no_threshold_keeps_duplicates(self, table: VectorStoreTable) -> None:
+        """Without a threshold the search returns every nearest row, duplicates included."""
+        await table.add_documents(_dedup_docs())
+        results = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=10)
+        contents = {doc.content for doc in results}
+        assert {"a", "a-dupe"} <= contents
+
+    async def test_dedup_backfills_to_limit(self, table: VectorStoreTable) -> None:
+        """Dropped duplicates are replaced by distinct candidates from deeper in the result list."""
+        await table.add_documents(_dedup_docs())
+        results = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=6, dedup_threshold=0.95)
+        contents = [doc.content for doc in results]
+        assert len(contents) == 6
+        assert len(set(contents)) == 6
+        assert "a-dupe" not in contents
+
+    async def test_dedup_respects_limit(self, table: VectorStoreTable) -> None:
+        """Deduplicated output never exceeds the requested limit."""
+        await table.add_documents(_dedup_docs())
+        results = await table.search_document([0.9, 0.1, 0.0, 0.0], limit=2, dedup_threshold=0.95)
+        assert len(results) == 2
+        assert len({doc.content for doc in results}) == 2
+
+
+# ---------------------------------------------------------------------------
 # SearchedDocument
 # ---------------------------------------------------------------------------
 
@@ -509,3 +576,73 @@ class TestRAGEndToEnd:
 
         assert len(results) == 1
         assert results[0].content == "hello world"
+
+
+class RecordingTable:
+    """Wraps a real table while recording search_document arguments."""
+
+    def __init__(self, inner: VectorStoreTable) -> None:
+        """Wrap ``inner`` and start with empty call recordings."""
+        self.inner = inner
+        self.limits: list[int] = []
+        self.thresholds: list[float | None] = []
+
+    async def search_document(
+        self, embedding: list[float], limit: int, dedup_threshold: float | None = None
+    ) -> list[SearchedDocument]:
+        """Record the call arguments, then delegate to the wrapped table."""
+        self.limits.append(limit)
+        self.thresholds.append(dedup_threshold)
+        return await self.inner.search_document(embedding, limit=limit, dedup_threshold=dedup_threshold)
+
+
+class RecordingService:
+    """Service stub returning a fixed recording table from open_table."""
+
+    def __init__(self, table: RecordingTable) -> None:
+        """Serve ``table`` from every open_table call."""
+        self.table = table
+
+    async def open_table(self, table_name: str) -> RecordingTable:
+        """Return the recording table regardless of the requested name."""
+        return self.table
+
+
+class DedupThreadRole(LancedbRAG):
+    """LancedbRAG role routed to the mock embedding group."""
+
+    embedding_send_to: str | None = "embedding"
+
+
+class TestFetchConfigDedup:
+    """Tests for the dedup_cos_threshold config field and its threading into search_document."""
+
+    def test_default_threshold_enabled(self) -> None:
+        """Deduplication is enabled by default at 0.95 cosine similarity."""
+        assert LancedbFetchRAGConfig.default().dedup_cos_threshold == 0.95
+
+    def test_threshold_can_be_disabled(self) -> None:
+        """Setting the threshold to None opts out of deduplication entirely."""
+        conf = LancedbFetchRAGConfig(dedup_cos_threshold=None)
+        assert conf.dedup_cos_threshold is None
+
+    async def test_afetch_threads_threshold_into_search(
+        self, table: VectorStoreTable, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """afetch_document forwards the configured threshold and limit to every search call."""
+        await table.add_documents(_dedup_docs())
+        recording = RecordingTable(table)
+
+        async def fake_get_service() -> RecordingService:
+            """Return the recording service in place of the cached one."""
+            return RecordingService(recording)
+
+        monkeypatch.setattr(lancedb_capabilities, "get_service", fake_get_service)
+        conf = LancedbFetchRAGConfig(document_model=LancedbDocumentModel, limit=5, dedup_cos_threshold=0.9)
+        role = DedupThreadRole()
+
+        with install_dummy_embeddings([0.9, 0.1, 0.0, 0.0]):
+            await role.afetch_document("query", config=conf)
+
+        assert recording.limits == [5]
+        assert recording.thresholds == [0.9]
