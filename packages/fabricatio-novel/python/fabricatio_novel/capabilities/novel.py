@@ -1,9 +1,9 @@
 """Novel composition capabilities: planning chapters and composing novels."""
 
 from abc import ABC
-from typing import Callable, Sequence, Unpack
+from typing import Unpack
 
-from fabricatio_character.models.character import CharacterCard, CharacterCardBoundaries
+from fabricatio_character.models.character import CharacterCardBoundaries
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
@@ -12,11 +12,10 @@ from fabricatio_core.utils import ok
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import (
-    CharacterSpan,
     CharacterSpans,
-    derive_child_spans,
     merge_writing_constraints,
     merge_writing_styles,
+    stitch_boundaries,
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
@@ -169,7 +168,7 @@ class NovelCompose(ChapterCompose, ABC):
                 **kwargs,
             )
         )
-        self._stitch_boundaries(
+        stitch_boundaries(
             ctx.charactor_span,
             ctx.chapter_context,
             lambda chapter_ctx: chapter_ctx.charactor_span,
@@ -177,35 +176,6 @@ class NovelCompose(ChapterCompose, ABC):
             len(ctx.chapter_context) - 1,
             "chapter",
         )
-
-    def _stitch_boundaries[C](
-        self,
-        parent_spans: list[CharacterSpan],
-        children: Sequence[C],
-        spans_accessor: Callable[[C], list[CharacterSpan]],
-        proposed: list[list[CharacterCard]],
-        expected_boundaries: int,
-        level: str,
-    ) -> None:
-        """Stitch one child span per element from the parent spans and proposed boundaries.
-
-        For every roster character the parent span opens the first child and
-        closes the last; the proposed boundary cards are the intermediate
-        states. A character whose boundary count does not match the expected
-        number is skipped so a malformed proposal never yields a broken
-        chain.
-        """
-        for char_index, parent_span in enumerate(parent_spans):
-            boundaries = proposed[char_index] if char_index < len(proposed) else []
-            if len(boundaries) != expected_boundaries:
-                logger.warn(
-                    f"Expected {expected_boundaries} {level} boundary card(s) for '{parent_span.start.name}'"
-                    f" but got {len(boundaries)}; skipping"
-                )
-                continue
-            for child, span in zip(children, derive_child_spans(parent_span, boundaries), strict=True):
-                spans_accessor(child).append(span)
-        logger.debug(f"Stitched {level} spans from boundary cards")
 
     async def plan_chapters_phase(
         self,

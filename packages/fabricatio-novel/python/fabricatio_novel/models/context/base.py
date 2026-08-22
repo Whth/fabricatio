@@ -1,10 +1,11 @@
 """Base context machinery: character spans and shared channel element behavior."""
 
 from abc import ABC, abstractmethod
-from typing import Generator, Self, final
+from typing import Callable, Generator, Self, Sequence, final
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
+from fabricatio_core import logger
 from fabricatio_core.models.generic import JSONList, SketchedAble
 from fabricatio_core.utils import ok
 from pydantic import Field
@@ -51,6 +52,35 @@ def derive_child_spans(parent: CharacterSpan, boundaries: list[CharacterCard]) -
     """
     chain = [parent.start, *boundaries, parent.end]
     return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
+
+
+def stitch_boundaries[C](
+    parent_spans: list[CharacterSpan],
+    children: Sequence[C],
+    spans_accessor: Callable[[C], list[CharacterSpan]],
+    proposed: list[list[CharacterCard]],
+    expected_boundaries: int,
+    level: str,
+) -> None:
+    """Stitch one child span per element from the parent spans and proposed boundaries.
+
+    For every roster character the parent span opens the first child and
+    closes the last; the proposed boundary cards are the intermediate
+    states. A character whose boundary count does not match the expected
+    number is skipped so a malformed proposal never yields a broken
+    chain.
+    """
+    for char_index, parent_span in enumerate(parent_spans):
+        boundaries = proposed[char_index] if char_index < len(proposed) else []
+        if len(boundaries) != expected_boundaries:
+            logger.warn(
+                f"Expected {expected_boundaries} {level} boundary card(s) for '{parent_span.start.name}'"
+                f" but got {len(boundaries)}; skipping"
+            )
+            continue
+        for child, span in zip(children, derive_child_spans(parent_span, boundaries), strict=True):
+            spans_accessor(child).append(span)
+    logger.debug(f"Stitched {level} spans from boundary cards")
 
 
 class CharacterSpans(JSONList[CharacterSpan]):
