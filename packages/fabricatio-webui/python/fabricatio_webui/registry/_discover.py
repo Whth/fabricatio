@@ -1,31 +1,35 @@
 """Action subclass discovery and MRO traversal."""
 
-import contextlib
+import importlib
+import pkgutil
 from collections import deque
-from typing import List, Set, Type
+from typing import Iterator, Set, Type
 
+from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 
-_ACTION_MODULE_CANDIDATES: List[str] = [
-    "fabricatio_actions.actions",
-    "fabricatio_actions.actions.output",
-    "fabricatio_actions.actions.fs",
-    "fabricatio_novel.actions.novel",
-    "fabricatio_novel.actions.novel_mental",
-    "fabricatio_novel.actions.novel_rag",
-    "fabricatio_novel.actions.enrich",
-    "fabricatio_novel.actions.illustration",
-    "fabricatio_anki.actions",
-    "fabricatio_typst.actions",
-    "fabricatio_typst.actions.article",
-    "fabricatio_typst.actions.article_rag",
-    "fabricatio_comfyui.actions",
-    "fabricatio_capabilities.actions",
-    "fabricatio_improve.actions",
-    "fabricatio_question.actions",
-    "fabricatio_rule.actions",
-    "fabricatio_webui.actions",
-]
+from fabricatio_webui.discovery import installed_fabricatio_packages
+
+
+def _action_module_names() -> Iterator[str]:
+    """Yield every ``<pkg>.actions[.<sub>]`` module across installed packages.
+
+    Every installed ``fabricatio_*`` distribution contributes its whole
+    ``actions`` subtree, so ecosystem packages are picked up without any
+    hardcoded module list.
+    """
+    for pkg in installed_fabricatio_packages():
+        root_name = f"{pkg}.actions"
+        try:
+            root = importlib.import_module(root_name)
+        except Exception:  # noqa: BLE001 — missing optional extras must not kill discovery
+            continue
+        yield root_name
+        path = getattr(root, "__path__", None)
+        if path is None:
+            continue
+        for info in pkgutil.walk_packages(path, prefix=f"{root_name}."):
+            yield info.name
 
 
 def _concrete_action_subclasses() -> Set[Type[Action]]:
@@ -63,7 +67,9 @@ def _concrete_action_subclasses() -> Set[Type[Action]]:
 
 
 def _discover_action_modules() -> None:
-    """Try to import known action modules so __subclasses__() can find them."""
-    for mod_name in _ACTION_MODULE_CANDIDATES:
-        with contextlib.suppress(ImportError):
+    """Import every ecosystem action module so ``__subclasses__()`` sees them."""
+    for mod_name in _action_module_names():
+        try:
             __import__(mod_name)
+        except Exception as exc:  # noqa: BLE001 — one broken third-party module must not kill boot
+            logger.debug(f"Skipped action module {mod_name!r}: {exc!r}")

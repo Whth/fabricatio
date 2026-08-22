@@ -130,8 +130,11 @@ A **board** is the top-level saved document (`format_version: 2`) holding:
 - **actions** — optional board-level custom Action definitions (emitted as
   Python subclasses by the code generator).
 
-Package-defined blueprints (from `fabricatio-novel`, `fabricatio-typst`, …) are
-served via `GET /api/blueprints` and offered in the sidebar for one-click board
+Blueprints are collected at startup from the `workflows` subpackage of **every
+installed `fabricatio-*` package** (the node catalog's actions likewise, from
+each package's `actions` tree), so installing another ecosystem package is
+enough for its content to appear — no configuration. They are served via
+`GET /api/blueprints` and offered in the sidebar for one-click board
 seeding. The introspected node catalog — every registered `Action` subclass with
 its typed ports, config fields, widget hints, MRO groups, source code, and an
 8-hex schema fingerprint — comes from `GET /api/nodes`. Boards are CRUD-managed

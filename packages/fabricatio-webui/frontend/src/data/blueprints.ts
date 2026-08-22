@@ -1,8 +1,8 @@
 /**
  * Blueprint sidebar — loaded from /api/blueprints at runtime.
- * Blueprint objects are derived from WorkFlow objects defined in
- * fabricatio_webui.workflows (the no-LLM demo), fabricatio_novel.workflows,
- * and fabricatio_typst.workflows.
+ * Blueprint objects are derived from WorkFlow objects collected across every
+ * installed fabricatio-* package's workflows subpackage (discovered at
+ * service startup; fabricatio_webui's no-LLM demo is pinned first).
  */
 
 import type { BlueprintJSON, WorkflowJSON } from '@/types/api'

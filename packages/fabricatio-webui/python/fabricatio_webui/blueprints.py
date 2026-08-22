@@ -10,6 +10,7 @@ from typing import Any, Dict, Iterator, List, Tuple, Type
 from fabricatio_core.models.action import Action, WorkFlow
 from pydantic.fields import FieldInfo
 
+from fabricatio_webui.discovery import installed_fabricatio_packages
 from fabricatio_webui.registry import (
     CONTEXT_PORT_NAME,
     _consumes_context,
@@ -17,9 +18,9 @@ from fabricatio_webui.registry import (
     _required_execute_params,
 )
 
-#: Packages whose ``workflows`` subpackage is introspected for blueprints.
-#: ``fabricatio_webui`` first: its no-LLM "Hello Fabricatio" demo tops the rail.
-_WORKFLOW_PACKAGES: List[str] = ["fabricatio_webui", "fabricatio_novel", "fabricatio_typst"]
+#: Workflow sources are discovered dynamically: every installed
+#: ``fabricatio_*`` package's ``workflows`` subpackage is scanned, with
+#: ``fabricatio_webui`` pinned first so the no-LLM demo tops the rail.
 
 #: Action infrastructure fields that never become node config.
 _INFRA_FIELDS = {"name", "description", "output_key"}
@@ -44,7 +45,7 @@ def _output_key(cls: Type[Action]) -> str:
 
 
 def _iter_workflow_modules() -> Iterator[Any]:
-    for pkg in _WORKFLOW_PACKAGES:
+    for pkg in installed_fabricatio_packages():
         try:
             top = importlib.import_module(f"{pkg}.workflows")
         except ImportError:

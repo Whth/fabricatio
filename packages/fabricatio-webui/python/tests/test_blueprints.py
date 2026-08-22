@@ -57,10 +57,15 @@ class TestCollectWorkflows:
 
     @staticmethod
     def test_categories_are_known() -> None:
-        """Every discovered workflow category is a known blueprint source."""
+        """Every discovered workflow category is a known blueprint source.
+
+        Sources are dynamic (every installed ``fabricatio_*`` package), so
+        this set grows as ecosystem packages gain workflows — currently
+        webui (the demo), comfyui, novel, and typst.
+        """
         pairs = list(_collect_workflows())
         cats = {cat for cat, _ in pairs}
-        assert cats <= {"webui", "novel", "typst"}
+        assert cats <= {"webui", "comfyui", "novel", "typst"}
 
     @staticmethod
     def test_novel_workflows_present() -> None:

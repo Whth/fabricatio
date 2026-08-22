@@ -23,7 +23,6 @@ from fabricatio_webui.registry._build import (
 from fabricatio_webui.registry._category import _derive_category, _mro_class_names
 from fabricatio_webui.registry._constants import _RUNTIME_PLUMBING, CONTEXT_PORT_NAME, EXCLUDED_FIELDS
 from fabricatio_webui.registry._discover import (
-    _ACTION_MODULE_CANDIDATES,
     _concrete_action_subclasses,
     _discover_action_modules,
 )
@@ -44,7 +43,6 @@ from fabricatio_webui.registry._schema import (
 __all__ = [
     "CONTEXT_PORT_NAME",
     "EXCLUDED_FIELDS",
-    "_ACTION_MODULE_CANDIDATES",
     "_RUNTIME_PLUMBING",
     "_annotation_to_schema",
     "_apply_number_constraints",
