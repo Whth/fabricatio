@@ -40,6 +40,23 @@ This serves the SPA at `http://127.0.0.1:9846`. Use `--frontend-dir` / `-d` to p
 fc-webui --addr 0.0.0.0:3000 --frontend-dir ./dist
 ```
 
+### Run something in under a minute (no LLM required)
+
+The **Hello Fabricatio** blueprint is a pure-Python two-step pipeline that needs
+no LLM, no API keys, and no configuration:
+
+1. On the board canvas, drag **webui → Hello Fabricatio** from the blueprint
+   rail onto a role (create one first via right-click → *Add role*).
+2. Double-click the role card to open the workflow: a `TextStats` node wired
+   into a `SummarizeStats` node.
+3. Press `Ctrl+Enter`, keep the namespace (`hello-fabricatio`), and put your
+   text in **Extra init context**: `{"text": "hello fabricatio"}`.
+4. Run — the console streams `node_start/done` events and the task result is
+   the summary line, e.g. `[demo] chars: 16, words: 2, lines: 1`.
+
+Every other shipped blueprint (novel/typst pipelines) drives real LLM calls and
+requires configured credentials before it can run.
+
 ## API
 
 All functionality is exposed through the Rust-backed Python module `fabricatio_webui.rust`.

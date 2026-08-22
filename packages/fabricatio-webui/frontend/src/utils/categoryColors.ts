@@ -11,6 +11,7 @@ export const CATEGORY_COLOR: Record<string, string> = {
   data: 'var(--cat-data)',
   character: 'var(--cat-character)',
   anki: 'var(--cat-anki)',
+  webui: 'var(--cat-webui)',
   general: FALLBACK,
 }
 

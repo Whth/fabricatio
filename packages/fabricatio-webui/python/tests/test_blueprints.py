@@ -56,11 +56,11 @@ class TestCollectWorkflows:
         assert all(isinstance(cat, str) and hasattr(wf, "name") for cat, wf in pairs)
 
     @staticmethod
-    def test_categories_are_novel_or_typst() -> None:
-        """Every discovered workflow category is either novel or typst."""
+    def test_categories_are_known() -> None:
+        """Every discovered workflow category is a known blueprint source."""
         pairs = list(_collect_workflows())
         cats = {cat for cat, _ in pairs}
-        assert cats <= {"novel", "typst"}
+        assert cats <= {"webui", "novel", "typst"}
 
     @staticmethod
     def test_novel_workflows_present() -> None:

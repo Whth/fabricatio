@@ -18,7 +18,8 @@ from fabricatio_webui.registry import (
 )
 
 #: Packages whose ``workflows`` subpackage is introspected for blueprints.
-_WORKFLOW_PACKAGES: List[str] = ["fabricatio_novel", "fabricatio_typst"]
+#: ``fabricatio_webui`` first: its no-LLM "Hello Fabricatio" demo tops the rail.
+_WORKFLOW_PACKAGES: List[str] = ["fabricatio_webui", "fabricatio_novel", "fabricatio_typst"]
 
 #: Action infrastructure fields that never become node config.
 _INFRA_FIELDS = {"name", "description", "output_key"}

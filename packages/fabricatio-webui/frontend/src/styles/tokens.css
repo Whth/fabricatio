@@ -135,6 +135,7 @@
   --cat-character: #e9755b;
   --cat-anki: #f0883e;
   --cat-general: #8895a7;
+  --cat-webui: #4ec9b0;
 
   /* ── Shadows ───────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
@@ -196,6 +197,7 @@
   --cat-character: #c2410c;
   --cat-anki: #ea580c;
   --cat-general: #64748b;
+  --cat-webui: #0d9488;
 
   /* ── Shadows ───────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);

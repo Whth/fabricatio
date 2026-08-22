@@ -24,6 +24,7 @@ _ACTION_MODULE_CANDIDATES: List[str] = [
     "fabricatio_improve.actions",
     "fabricatio_question.actions",
     "fabricatio_rule.actions",
+    "fabricatio_webui.actions",
 ]
 
 
