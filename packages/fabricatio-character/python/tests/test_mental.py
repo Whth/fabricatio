@@ -370,6 +370,10 @@ class _MockMind(UseMind):
     llm_send_to: str = DUMMY_LLM_GROUP
     llm_no_cache: bool = True
 
+    def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
+        """Pin LLM routing to the dummy group, ignoring explicit ``send_to``."""
+        return self.llm_send_to or DUMMY_LLM_GROUP
+
 
 class TestSeedFrom:
     """Tests for UseMind.seed_from initialization."""
@@ -549,6 +553,10 @@ class _MockMindForDiamonds(UseMind):
 
     llm_send_to: str = DUMMY_LLM_GROUP
     llm_no_cache: bool = True
+
+    def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
+        """Pin LLM routing to the dummy group, ignoring explicit ``send_to``."""
+        return self.llm_send_to or DUMMY_LLM_GROUP
 
 
 class TestUponEventDiamonds:
