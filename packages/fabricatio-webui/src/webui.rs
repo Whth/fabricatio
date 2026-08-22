@@ -101,7 +101,9 @@ fn start_service<'a>(
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
     let state = Arc::new(AppState::new(data_dir));
-    state.persist_workflows.store(persist_workflows, Ordering::Relaxed);
+    state
+        .persist_workflows
+        .store(persist_workflows, Ordering::Relaxed);
     if let Ok(mut reg) = state.node_registry.write() {
         *reg = registry;
     }
