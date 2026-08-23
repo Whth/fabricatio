@@ -37,15 +37,95 @@ pip install fabricatio[full]
 
 ## Overview
 
-Provides essential tools for:
-
-...
-
-
+A text-based skill system for fabricatio agents. Skills are plain markdown files
+(YAML frontmatter `name`/`description`/`tags` + markdown body) that inject
+just-in-time, task-relevant context into LLM prompts through **progressive
+disclosure**: cheap metadata first, LLM-powered selection next, distilled
+essence last — never the full corpus.
 
 ## Key Features
 
-...
+- **Markdown-native skills** — author skills as `.md` files with YAML frontmatter; no schema lock-in beyond three metadata keys.
+- **Three-level pipeline** — Level 1 (Rust): free file scanning (`scan_skills`) and keyword search (`search_skills`); Level 2 (Python): LLM-powered relevance selection (`select_skills`) and essence distillation (`distill_skills`); Level 3: the composed `use_skill` pipeline (select → distill → ask).
+- **Progressive disclosure dial** — every call trades fidelity for tokens via `select=` / `distill=` / forced `names=`.
+- **Lightweight composition** — heavy `Skill` objects live in a process-wide `SkillRegistry`; your roles/actions carry only a list of name handles.
+- **Rust-backed performance** — parsing, lookup, and keyword matching are PyO3 (`fabricatio_skill.rust`).
+
+## Usage
+
+### 1. Author skill files
+
+Drop markdown files into a skill directory (default roots: `skills/`, `extra/skills/`):
+
+```markdown
+---
+name: rust-async
+description: How to write async Rust with tokio correctly
+tags: [rust, async]
+---
+Markdown body with the actual instructions...
+```
+
+### 2. Load them
+
+```python
+from fabricatio_skill import scan_skills
+
+skills = scan_skills("skills")   # parse all .md files → Skill objects
+```
+
+### 3. Compose the capability onto an Action (aligned style)
+
+In the fabricatio philosophy you never script capabilities imperatively — mix
+`UseSkill` into an `Action`, register the skill names at composition time, and
+run the pipeline inside `_execute` behind a `Role` / `Event` / `WorkFlow`:
+
+```python
+from fabricatio_core import Action, Event, Role, WorkFlow
+from fabricatio_skill import UseSkill, scan_skills
+
+
+class AnswerWithSkills(Action, UseSkill):
+    """Answer the task briefing through progressive skill resolution."""
+
+    output_key: str = "task_output"
+
+    async def _execute(self, task_input: str, **_) -> str:
+        return await self.use_skill(task_input)   # select → distill → ask
+
+
+skills = scan_skills("skills")
+AnswerWithSkills.skill_names = [s.name for s in skills]
+
+role = (
+    Role.with_bio(name="skilled", description="answers using the skill library")
+    .subscribe(
+        Event.quick_instantiate("ask"),
+        WorkFlow(name="skill_qa", steps=(AnswerWithSkills,)),
+    )
+    .dispatch()
+)
+# then dispatch a Task whose briefing is the question to Event "ask"
+```
+
+### 4. Tune the disclosure level per call
+
+`use_skill()` is the progressive-disclosure dial:
+
+| Call | Behavior |
+|---|---|
+| `await self.use_skill(q)` | Full pipeline: LLM selects relevant skills, then distills their essence into the prompt (2 extra LLM calls). |
+| `await self.use_skill(q, names=["rust-async"])` | Force specific skills — skips LLM selection. |
+| `await self.use_skill(q, distill=False)` | Inject full bodies of selected skills — no compression call. |
+| `await self.use_skill(q, select=False, distill=False)` | Disclose all registered skills verbatim. |
+
+For finer control, step through the levels manually:
+
+```python
+picked = await agent.select_skills(question)             # LLM relevance over metadata
+essence = await agent.distill_skills(question, picked)   # LLM compression of bodies
+answer = await agent.aask_with_context(question, essence)
+```
 
 ## Configuration
 
