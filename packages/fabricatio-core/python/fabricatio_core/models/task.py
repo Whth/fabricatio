@@ -5,7 +5,7 @@ It includes methods to manage the task's lifecycle, such as starting, finishing,
 
 from asyncio import Queue, run
 from functools import cached_property
-from typing import Any, Dict, List, Optional, Self, Union
+from typing import Any, Self
 
 from pydantic import Field, PrivateAttr
 
@@ -14,16 +14,16 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import ProposedAble, WithBriefing, WithDependency
 from fabricatio_core.rust import CONFIG, TEMPLATE_MANAGER, Event, TaskStatus
 
-type NameSpace = Union[str, List[str]]
+type NameSpace = str | list[str]
 
 
 class Task[T](WithBriefing, ProposedAble, WithDependency):
     """A class representing a task with status management and output handling."""
 
-    goals: List[str] = Field(default_factory=list)
+    goals: list[str] = Field(default_factory=list)
     """Objectives the task aims to achieve."""
 
-    dependencies: List[str] = Field(default_factory=list)
+    dependencies: list[str] = Field(default_factory=list)
     """File paths necessarily needed to read or write to complete the task. Do add path(s) needed!"""
 
     description: str = Field(default="")
@@ -32,7 +32,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     name: str = Field(...)
     """Concise and descriptive name of the task."""
 
-    send_to: List[str] = Field(default_factory=list)
+    send_to: list[str] = Field(default_factory=list)
     """List of namespace path components used to construct the target task queue.
 
     The full queue path is formed as: `<component1>::<component2>::...::*::Pending`.
@@ -50,11 +50,11 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
     _status: TaskStatus = PrivateAttr(default=TaskStatus.Pending)
     """The status of the task."""
 
-    _extra_init_context: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    _extra_init_context: dict[str, Any] = PrivateAttr(default_factory=dict)
     """Extra initialization context for the task, which is designed to override the one of the Workflow."""
 
     @property
-    def extra_init_context(self) -> Dict[str, Any]:
+    def extra_init_context(self) -> dict[str, Any]:
         """Extra initialization context for the task, which is designed to override the one of the Workflow."""
         return self._extra_init_context
 
@@ -107,7 +107,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         self.description += f"\n{description}"
         return self
 
-    def update_task(self, *, goal: Optional[List[str] | str] = None, description: Optional[str] = None) -> Self:
+    def update_task(self, *, goal: list[str] | str | None = None, description: str | None = None) -> Self:
         """Update the goal and description of the task.
 
         Args:
@@ -287,7 +287,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         await EMITTER.emit(self.failed_label, self)
         return self
 
-    def publish(self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None) -> Self:
+    def publish(self, new_namespace: NameSpace | None = None, *, event: NameSpace | None = None) -> Self:
         """Publish the task to the event bus.
 
         Args:
@@ -308,9 +308,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         EMITTER.emit_future(label, self)
         return self
 
-    async def delegate(
-        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
-    ) -> T | None:
+    async def delegate(self, new_namespace: NameSpace | None = None, *, event: NameSpace | None = None) -> T | None:
         """Delegate the task to the event.
 
         Args:
@@ -331,9 +329,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         EMITTER.emit_future(label, self)
         return await self.get_output()
 
-    def delegate_blocking(
-        self, new_namespace: Optional[NameSpace] = None, *, event: Optional[NameSpace] = None
-    ) -> T | None:
+    def delegate_blocking(self, new_namespace: NameSpace | None = None, *, event: NameSpace | None = None) -> T | None:
         """Delegate the task to the event in a blocking manner.
 
         Args:
@@ -352,7 +348,7 @@ class Task[T](WithBriefing, ProposedAble, WithDependency):
         Returns:
             str: The briefing of the task.
         """
-        data: Dict[str, Any] = self.model_dump()
+        data: dict[str, Any] = self.model_dump()
 
         return TEMPLATE_MANAGER.render_template(
             CONFIG.templates.task_briefing_template,

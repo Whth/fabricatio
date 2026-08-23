@@ -4,7 +4,7 @@ This module contains unit tests for LLM-related functionality within the Role cl
 specifically focusing on methods that interact with the UseLLM capability.
 """
 
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -111,7 +111,7 @@ async def test_aask_validate[T](
     ret_value: str,
     question_input: str | list[str],
     validator: Callable[[str], T | None],
-    default: Optional[T],
+    default: T | None,
     max_validations: int,
     role_with_llm: LLMTestRole,
 ) -> None:
@@ -183,7 +183,7 @@ async def test_amapping_kv(
     ret_value: str,
     requirement: str,
     k: int,
-    expected_result: Optional[Dict[str, str]],
+    expected_result: dict[str, str] | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the amapping_kv method with different scenarios.
@@ -228,7 +228,7 @@ async def test_alist_v(
     ret_value: str,
     requirement: str,
     k: int,
-    expected_result: Optional[List[str]],
+    expected_result: list[str] | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the alist_v method with different scenarios.
@@ -273,9 +273,9 @@ async def test_alist_v(
 async def test_alist_v_with_requirement_list(
     mock_router: list[str],
     ret_value: str,
-    requirement_list: List[str],
+    requirement_list: list[str],
     k: int,
-    expected_result: Optional[List[str]],
+    expected_result: list[str] | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the alist_v method with a list of requirements.
@@ -311,7 +311,7 @@ async def test_apathstr(
     mock_router: list[str],
     ret_value: str,
     requirement: str,
-    expected_result: Optional[List[str]],
+    expected_result: list[str] | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the apathstr method with different scenarios.
@@ -346,7 +346,7 @@ async def test_awhich_pathstr(
     mock_router: list[str],
     ret_value: str,
     requirement: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the awhich_pathstr method with different scenarios.
@@ -380,8 +380,8 @@ async def test_awhich_pathstr(
 async def test_ageneric_string(
     mock_router: list[str],
     ret_value: str,
-    requirement: str | List[str],
-    expected_result: Optional[str | List[str]],
+    requirement: str | list[str],
+    expected_result: str | list[str] | None,
     role_with_llm: LLMTestRole,
 ) -> None:
     """Test the ageneric_string method with different scenarios.

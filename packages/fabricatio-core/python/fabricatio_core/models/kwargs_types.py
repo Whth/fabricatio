@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Dict, List, Optional, Type, TypedDict
+from typing import TypedDict
 
 
 class RouteKwargs(TypedDict, total=False):
@@ -47,13 +47,13 @@ class LLMKwargs(RouteKwargs, total=False):
     """
 
     stream: bool
-    effort: Optional[str]
-    temperature: Optional[float]
-    top_p: Optional[float]
-    max_completion_tokens: Optional[int]
-    presence_penalty: Optional[float]
-    frequency_penalty: Optional[float]
-    images: Optional[List[bytes]]
+    effort: str | None
+    temperature: float | None
+    top_p: float | None
+    max_completion_tokens: int | None
+    presence_penalty: float | None
+    frequency_penalty: float | None
+    images: list[bytes] | None
 
 
 class ValidateKwargs[T](LLMKwargs, total=False):
@@ -63,11 +63,11 @@ class ValidateKwargs[T](LLMKwargs, total=False):
     such as limiting the number of validation attempts.
     """
 
-    default: Optional[T]
+    default: T | None
     max_validations: int
 
 
-class MappingKwargs[K: int | str | bool, V: int | str | bool | float](ValidateKwargs[Dict[K, V]], total=False):
+class MappingKwargs[K: int | str | bool, V: int | str | bool | float](ValidateKwargs[dict[K, V]], total=False):
     """Arguments for mapping operations.
 
     Extends RouteKwargs with parameters for mapping operations,
@@ -75,11 +75,11 @@ class MappingKwargs[K: int | str | bool, V: int | str | bool | float](ValidateKw
     """
 
     k: int
-    key_type: Type[K]
-    value_type: Type[V]
+    key_type: type[K]
+    value_type: type[V]
 
 
-class ChooseKwargs[T](ValidateKwargs[List[T]], total=False):
+class ChooseKwargs[T](ValidateKwargs[list[T]], total=False):
     """Arguments for selection operations.
 
     Extends LLMKwargs with parameters for selecting among options,
@@ -96,4 +96,4 @@ class ListingKwargs[T: int | str | bool | float](ChooseKwargs[T], total=False):
 class ListValueKwargs[T: int | str | bool | float](ChooseKwargs[T], total=False):
     """Arguments for operations that return a list of typed values."""
 
-    value_type: Type[T]
+    value_type: type[T]

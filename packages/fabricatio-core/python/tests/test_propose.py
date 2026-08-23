@@ -1,7 +1,5 @@
 """Test propose method."""
 
-from typing import List
-
 import pytest
 from fabricatio_core import Task
 from fabricatio_core.models.generic import SketchedAble
@@ -16,7 +14,7 @@ class MockModel(SketchedAble):
 
     attr1: str
     attr2: int
-    attr: List[str]
+    attr: list[str]
 
 
 @pytest.fixture

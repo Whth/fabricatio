@@ -1,6 +1,7 @@
 """Module that contains the Role class for managing workflows and their event registrations."""
 
-from typing import Any, Callable, Dict, List, Optional, Self, Set, TypedDict, Union, Unpack, overload
+from collections.abc import Callable
+from typing import Any, Self, TypedDict, Union, Unpack, overload
 
 from pydantic import ConfigDict, Field, PrivateAttr
 
@@ -13,7 +14,7 @@ from fabricatio_core.rust import Event
 type RoleName = str
 type EventPattern = str
 
-ROLE_REGISTRY: Dict[RoleName, "Role"] = {}
+ROLE_REGISTRY: dict[RoleName, "Role"] = {}
 
 
 class Role(WithBriefing):
@@ -29,7 +30,7 @@ class Role(WithBriefing):
     description: str = ""
     """A brief description of the role's responsibilities and capabilities."""
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(default_factory=dict, frozen=True)
+    subscriptions: dict[EventPattern, WorkFlow] = Field(default_factory=dict, frozen=True)
     """A dictionary of event-workflow pairs."""
 
     _dispatched: bool = PrivateAttr(default=False)
@@ -38,7 +39,7 @@ class Role(WithBriefing):
     @classmethod
     def new(
         cls,
-        subscriptions: Dict[EventPattern, WorkFlow],
+        subscriptions: dict[EventPattern, WorkFlow],
         /,
         name: RoleName,
         description: str = "",
@@ -60,7 +61,7 @@ class Role(WithBriefing):
         return cls.new({}, name=name, description=description)
 
     @classmethod
-    def with_subscriptions(cls, subscriptions: Dict[EventPattern, WorkFlow], name: RoleName) -> Self:
+    def with_subscriptions(cls, subscriptions: dict[EventPattern, WorkFlow], name: RoleName) -> Self:
         """Create a new Role with subscription specified only."""
         return cls.new(subscriptions, name=name)
 
@@ -78,7 +79,7 @@ class Role(WithBriefing):
         return f"{base}\nEvent Mapping:\n{abilities}"
 
     @property
-    def accept_events(self) -> List[str]:
+    def accept_events(self) -> list[str]:
         """Get the set of events that the role accepts.
 
         Returns:
@@ -94,7 +95,7 @@ class Role(WithBriefing):
     def configure(self, /, **kwargs) -> Self: ...
     @overload
     def configure(self, fn: Callable[[Self], None]) -> Self: ...
-    def configure(self, fn: Optional[Callable[[Self], None]] = None, /, **kwargs) -> Self:
+    def configure(self, fn: Callable[[Self], None] | None = None, /, **kwargs) -> Self:
         """Configure the role."""
         if fn:
             fn(self)
@@ -223,10 +224,10 @@ def get_registered_role(role_name: RoleName) -> Role: ...
 
 
 @overload
-def get_registered_role(role_name: Set[RoleName]) -> List[Role]: ...
+def get_registered_role(role_name: set[RoleName]) -> list[Role]: ...
 
 
-def get_registered_role(role_name: RoleName | Set[RoleName]) -> Role | List[Role]:
+def get_registered_role(role_name: RoleName | set[RoleName]) -> Role | list[Role]:
     """Get a registered role by name."""
     return ROLE_REGISTRY[role_name] if isinstance(role_name, str) else [ROLE_REGISTRY[r] for r in role_name]
 

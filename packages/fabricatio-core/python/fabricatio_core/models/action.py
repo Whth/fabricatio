@@ -12,7 +12,8 @@ Classes:
 import traceback
 from abc import ABC, abstractmethod
 from asyncio import Queue, create_task
-from typing import Any, ClassVar, Dict, Generator, Self, Sequence, Tuple, Type, Union, final
+from collections.abc import Generator, Sequence
+from typing import Any, ClassVar, Self, Union, final
 
 from pydantic import Field, PrivateAttr
 
@@ -68,7 +69,7 @@ class Action(WithBriefing, ABC):
         pass
 
     @final
-    async def act(self, cxt: Dict[str, Any]) -> Dict[str, Any]:
+    async def act(self, cxt: dict[str, Any]) -> dict[str, Any]:
         """Execute action and update context.
 
         Args:
@@ -103,13 +104,13 @@ class WorkFlow(WithBriefing):
     description: str = ""
     """The description of the workflow, which describes the workflow's purpose and requirements."""
 
-    _context: Queue[Dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
+    _context: Queue[dict[str, Any]] = PrivateAttr(default_factory=lambda: Queue(maxsize=1))
     """Queue for storing the workflow execution context."""
 
-    _instances: Tuple[Action, ...] = PrivateAttr(default_factory=tuple)
+    _instances: tuple[Action, ...] = PrivateAttr(default_factory=tuple)
     """Instantiated action objects to be executed in this workflow."""
 
-    steps: Sequence[Union[Type[Action], Action]] = Field(frozen=True)
+    steps: Sequence[type[Action] | Action] = Field(frozen=True)
     """The sequence of actions to be executed, can be action classes or instances."""
 
     task_input_key: ClassVar[str] = INPUT_KEY
@@ -118,17 +119,17 @@ class WorkFlow(WithBriefing):
     task_output_key: ClassVar[str] = OUTPUT_KEY
     """Key used to extract the final result from the context dictionary."""
 
-    extra_init_context: Dict[str, Any] = Field(default_factory=dict, frozen=True)
+    extra_init_context: dict[str, Any] = Field(default_factory=dict, frozen=True)
     """Additional initial context values to be included at workflow start."""
 
     @classmethod
-    def set_task_input_key(cls, input_key: str) -> Type[Self]:
+    def set_task_input_key(cls, input_key: str) -> type[Self]:
         """Set the task input key for the workflow."""
         cls.task_input_key = input_key
         return cls
 
     @classmethod
-    def set_task_output_key(cls, output_key: str) -> Type[Self]:
+    def set_task_output_key(cls, output_key: str) -> type[Self]:
         """Set the task output key for the workflow."""
         cls.task_output_key = output_key
         return cls
@@ -148,7 +149,7 @@ class WorkFlow(WithBriefing):
         """Iterate over action instances."""
         yield from self._instances
 
-    def override_action_variable(self, action: Action, ctx: Dict[str, Any]) -> Self:
+    def override_action_variable(self, action: Action, ctx: dict[str, Any]) -> Self:
         """Override action variable with context values."""
         if action.ctx_override:
             for k, v in ctx.items():

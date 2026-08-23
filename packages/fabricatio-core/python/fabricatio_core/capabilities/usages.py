@@ -14,8 +14,9 @@ embedding generation, and tool selection workflows.
 import traceback
 from abc import ABC
 from asyncio import gather
+from collections.abc import Callable
 from enum import IntEnum, StrEnum
-from typing import Callable, Dict, List, Optional, Set, Tuple, Type, Unpack, cast, overload
+from typing import Unpack, cast, overload
 
 from more_itertools import duplicates_everseen
 from pydantic import NonNegativeInt, PositiveInt, ValidationError
@@ -44,26 +45,26 @@ class UseLLM(LLMScopedConfig, ABC):
     @overload
     async def aask(
         self,
-        question: List[str],
-        send_to: Optional[str] = None,
+        question: list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[str]: ...
+    ) -> list[str]: ...
 
     @overload
     async def aask(
         self,
         question: str,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> str: ...
 
     @logging_exec_time
     async def aask(
         self,
-        question: str | List[str],
-        send_to: Optional[str] = None,
+        question: str | list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> str | List[str]:
+    ) -> str | list[str]:
         """Asynchronously asks the language model a question and returns the response content.
 
         Args:
@@ -86,20 +87,20 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> T: ...
 
     @overload
     async def aask_validate[T](
         self,
-        question: List[str],
+        question: list[str],
         validator: Callable[[str], T | None],
         default: T = ...,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[T]: ...
+    ) -> list[T]: ...
 
     @overload
     async def aask_validate[T](
@@ -108,41 +109,41 @@ class UseLLM(LLMScopedConfig, ABC):
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Optional[T]: ...
+    ) -> T | None: ...
 
     @overload
     async def aask_validate[T](
         self,
-        question: List[str],
+        question: list[str],
         validator: Callable[[str], T | None],
         default: None = None,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[Optional[T]]: ...
+    ) -> list[T | None]: ...
 
     @overload
     async def aask_validate[T](
         self,
-        question: str | List[str],
+        question: str | list[str],
         validator: Callable[[str], T | None],
-        default: Optional[T] = None,
+        default: T | None = None,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> T | List[Optional[T]] | List[T] | None: ...
+    ) -> T | list[T | None] | list[T] | None: ...
 
     async def aask_validate[T](
         self,
-        question: str | List[str],
+        question: str | list[str],
         validator: Callable[[str], T | None],
-        default: Optional[T] = None,
+        default: T | None = None,
         max_validations: PositiveInt = 3,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[LLMKwargs],
-    ) -> T | List[Optional[T]] | List[T] | None:
+    ) -> T | list[T | None] | list[T] | None:
         """Asynchronously asks a question and validates the response using a given validator.
 
         Args:
@@ -157,7 +158,7 @@ class UseLLM(LLMScopedConfig, ABC):
             Optional[T] | List[T | None] | List[T] | T: The validated response.
         """
 
-        async def _inner(q: str) -> Optional[T]:
+        async def _inner(q: str) -> T | None:
             _kw = kwargs
             for lap in range(max_validations):
                 try:
@@ -182,33 +183,33 @@ class UseLLM(LLMScopedConfig, ABC):
     async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
         requirement: str,
-        key_type: Type[K],
-        value_type: Type[V],
+        key_type: type[K],
+        value_type: type[V],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
-    ) -> Optional[Dict[K, V]]: ...
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[dict[K, V]]],
+    ) -> dict[K, V] | None: ...
 
     @overload
     async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
-        requirement: List[str],
-        key_type: Type[K],
-        value_type: Type[V],
+        requirement: list[str],
+        key_type: type[K],
+        value_type: type[V],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
-    ) -> List[Optional[Dict[K, V]]] | None: ...
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[dict[K, V]]],
+    ) -> list[dict[K, V] | None] | None: ...
 
     async def amapping_kv[K: int | str | bool, V: int | float | str | bool](
         self,
-        requirement: str | List[str],
-        key_type: Type[K],
-        value_type: Type[V],
+        requirement: str | list[str],
+        key_type: type[K],
+        value_type: type[V],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
-    ) -> Dict[K, V] | List[Optional[Dict[K, V]]] | None:
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[dict[K, V]]],
+    ) -> dict[K, V] | list[dict[K, V] | None] | None:
         """Asynchronously maps a requirement to a key-value dictionary via LLM.
 
         Supports arbitrary key/value types through `key_type` and `value_type` parameters.
@@ -238,30 +239,30 @@ class UseLLM(LLMScopedConfig, ABC):
     async def alist_v[T: int | str | bool | float](
         self,
         requirement: str,
-        value_type: Type[T],
+        value_type: type[T],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> List[T] | None: ...
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
+    ) -> list[T] | None: ...
 
     @overload
     async def alist_v[T: int | str | bool | float](
         self,
-        requirement: List[str],
-        value_type: Type[T],
+        requirement: list[str],
+        value_type: type[T],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> List[List[T] | None] | None: ...
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
+    ) -> list[list[T] | None] | None: ...
 
     async def alist_v[T: int | str | bool | float](
         self,
-        requirement: str | List[str],
-        value_type: Type[T],
+        requirement: str | list[str],
+        value_type: type[T],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> List[T] | List[List[T] | None] | None:
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
+    ) -> list[T] | list[list[T] | None] | None:
         """Asynchronously generates a list of values based on a given requirement.
 
         Args:
@@ -281,9 +282,9 @@ class UseLLM(LLMScopedConfig, ABC):
     async def apathstr(
         self,
         requirement: str,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Asynchronously generates a list of path strings based on a given requirement.
 
         Args:
@@ -307,9 +308,9 @@ class UseLLM(LLMScopedConfig, ABC):
     async def awhich_pathstr(
         self,
         requirement: str,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
-    ) -> Optional[str]:
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[str]]],
+    ) -> str | None:
         """Asynchronously generates a single path string based on a given requirement.
 
         Args:
@@ -334,24 +335,24 @@ class UseLLM(LLMScopedConfig, ABC):
     async def ageneric_string(
         self,
         requirement: str,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[str]: ...
+    ) -> str | None: ...
 
     @overload
     async def ageneric_string(
         self,
-        requirement: List[str],
-        send_to: Optional[str] = None,
+        requirement: list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[List[Optional[str]]]: ...
+    ) -> list[str | None] | None: ...
 
     async def ageneric_string(
         self,
-        requirement: str | List[str],
-        send_to: Optional[str] = None,
+        requirement: str | list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> str | List[str | None] | None:
+    ) -> str | list[str | None] | None:
         """Asynchronously generates a generic string based on a given requirement.
 
         Args:
@@ -370,27 +371,27 @@ class UseLLM(LLMScopedConfig, ABC):
     async def acode_string(
         self,
         requirement: str,
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
+        code_language: str | None = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[str]: ...
+    ) -> str | None: ...
 
     @overload
     async def acode_string(
         self,
-        requirement: List[str],
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
+        requirement: list[str],
+        code_language: str | None = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[Optional[str]]: ...
+    ) -> list[str | None]: ...
 
     async def acode_string(
         self,
-        requirement: str | List[str],
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
+        requirement: str | list[str],
+        code_language: str | None = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> str | List[str | None] | None:
+    ) -> str | list[str | None] | None:
         """Asynchronously generates code strings based on given requirements and code language.
 
         Args:
@@ -416,27 +417,27 @@ class UseLLM(LLMScopedConfig, ABC):
     async def acode_snippets(
         self,
         requirement: str,
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
-    ) -> Optional[List[CodeSnippet]]: ...
+        code_language: str | None = None,
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[CodeSnippet]]],
+    ) -> list[CodeSnippet] | None: ...
 
     @overload
     async def acode_snippets(
         self,
-        requirement: List[str],
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
-    ) -> List[List[CodeSnippet] | None] | None: ...
+        requirement: list[str],
+        code_language: str | None = None,
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[CodeSnippet]]],
+    ) -> list[list[CodeSnippet] | None] | None: ...
 
     async def acode_snippets(
         self,
-        requirement: str | List[str],
-        code_language: Optional[str] = None,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[CodeSnippet]]],
-    ) -> List[CodeSnippet] | List[List[CodeSnippet] | None] | None:
+        requirement: str | list[str],
+        code_language: str | None = None,
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[CodeSnippet]]],
+    ) -> list[CodeSnippet] | list[list[CodeSnippet] | None] | None:
         """Asynchronously generates code snippets based on given requirements and code language.
 
         Args:
@@ -462,12 +463,12 @@ class UseLLM(LLMScopedConfig, ABC):
     async def achoose[T: WithBriefing](
         self,
         instruction: str,
-        choices: List[T],
+        choices: list[T],
         k: NonNegativeInt = 0,
-        is_included_fn: Optional[Callable[[Set[str], T], bool]] = None,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
-    ) -> Optional[List[T]]:
+        is_included_fn: Callable[[set[str], T], bool] | None = None,
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
+    ) -> list[T] | None:
         """Asynchronously executes a multi-choice decision-making process, generating a prompt based on the instruction and options, and validates the returned selection results.
 
         Args:
@@ -483,7 +484,7 @@ class UseLLM(LLMScopedConfig, ABC):
         """
         from fabricatio_core.rust import json_parser
 
-        def _is_included_fn(query: Set[str], choice: T) -> bool:
+        def _is_included_fn(query: set[str], choice: T) -> bool:
             return choice.name in query
 
         is_included_fn = _is_included_fn if is_included_fn is None else is_included_fn
@@ -503,7 +504,7 @@ class UseLLM(LLMScopedConfig, ABC):
 
         logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
-        def _validate(response: str) -> List[T] | None:
+        def _validate(response: str) -> list[T] | None:
             q = json_parser.validate_set(response, elements_type=str, length=k)
 
             if q is None:
@@ -517,7 +518,7 @@ class UseLLM(LLMScopedConfig, ABC):
             return final_ret
 
         return cast(
-            "List[T]",
+            "list[T]",
             await self.aask_validate(
                 question=prompt,
                 validator=_validate,
@@ -529,11 +530,11 @@ class UseLLM(LLMScopedConfig, ABC):
     async def aenum_choose[E: (StrEnum, IntEnum)](
         self,
         instruction: str,
-        enum_type: Type[E],
+        enum_type: type[E],
         k: NonNegativeInt = 0,
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[E]]],
-    ) -> Optional[List[E]]:
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[E]]],
+    ) -> list[E] | None:
         """Asynchronously selects enum members from the given enum type based on the instruction.
 
         Mimics :meth:`achoose` but operates on ``StrEnum`` / ``IntEnum`` members instead of
@@ -566,7 +567,7 @@ class UseLLM(LLMScopedConfig, ABC):
 
         logger.debug(f"Start choosing between {names} with prompt: \n{prompt}")
 
-        def _validate(response: str) -> List[E] | None:
+        def _validate(response: str) -> list[E] | None:
             q = json_parser.validate_set(response, elements_type=str, length=k)
 
             if q is None:
@@ -581,7 +582,7 @@ class UseLLM(LLMScopedConfig, ABC):
             return final_ret
 
         return cast(
-            "List[E]",
+            "list[E]",
             await self.aask_validate(
                 question=prompt,
                 validator=_validate,
@@ -593,9 +594,9 @@ class UseLLM(LLMScopedConfig, ABC):
     async def apick[T: WithBriefing](
         self,
         instruction: str,
-        choices: List[T],
-        send_to: Optional[str] = None,
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
+        choices: list[T],
+        send_to: str | None = None,
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
     ) -> T:
         """Asynchronously picks a single choice from a list of options using AI validation.
 
@@ -627,28 +628,28 @@ class UseLLM(LLMScopedConfig, ABC):
         prompt: str,
         affirm_case: str = "",
         deny_case: str = "",
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
-    ) -> Optional[bool]: ...
+    ) -> bool | None: ...
 
     @overload
     async def ajudge(
         self,
-        prompt: List[str],
+        prompt: list[str],
         affirm_case: str = "",
         deny_case: str = "",
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
-    ) -> List[Optional[bool]] | None: ...
+    ) -> list[bool | None] | None: ...
 
     async def ajudge(
         self,
-        prompt: str | List[str],
+        prompt: str | list[str],
         affirm_case: str = "",
         deny_case: str = "",
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[bool]],
-    ) -> Optional[bool] | List[Optional[bool]]:
+    ) -> bool | list[bool | None] | None:
         """Asynchronously judges a prompt using AI validation.
 
         Args:
@@ -679,19 +680,19 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
     """
 
     @overload
-    async def vectorize(self, input_text: List[str], **kwargs: Unpack[EmbeddingKwargs]) -> List[List[float]]: ...
+    async def vectorize(self, input_text: list[str], **kwargs: Unpack[EmbeddingKwargs]) -> list[list[float]]: ...
 
     @overload
-    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> List[float]: ...
+    async def vectorize(self, input_text: str, **kwargs: Unpack[EmbeddingKwargs]) -> list[float]: ...
 
     @overload
     async def vectorize(
-        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> List[List[float]] | List[float]: ...
+        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> list[list[float]] | list[float]: ...
 
     async def vectorize(
-        self, input_text: List[str] | str, **kwargs: Unpack[EmbeddingKwargs]
-    ) -> List[List[float]] | List[float]:
+        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+    ) -> list[list[float]] | list[float]:
         """Asynchronously generates vector embeddings for the given input text.
 
         Args:
@@ -717,8 +718,8 @@ class UseReranker(RerankerScopedConfig, ABC):
     """A class for reranking documents using a reranker model."""
 
     async def arank(
-        self, query: str, documents: List[str], **kwargs: Unpack[RerankerKwargs]
-    ) -> List[Tuple[int, float]]:
+        self, query: str, documents: list[str], **kwargs: Unpack[RerankerKwargs]
+    ) -> list[tuple[int, float]]:
         """Reranks a list of documents based on their relevance to the query.
 
         Args:

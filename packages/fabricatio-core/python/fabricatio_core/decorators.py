@@ -1,9 +1,10 @@
 """Decorators for Fabricatio."""
 
+from collections.abc import Callable, Coroutine, Sequence
 from functools import wraps
 from inspect import iscoroutinefunction, signature
 from shutil import which
-from typing import Callable, Coroutine, Optional, Sequence, overload
+from typing import overload
 
 from fabricatio_core.journal import logger
 from fabricatio_core.utils import cfg
@@ -64,7 +65,7 @@ def cfg_on_async[**P, R](
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: Optional[str], homepage: Optional[str] = None
+    bin_name: str, install_tip: str | None, homepage: str | None = None
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 

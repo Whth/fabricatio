@@ -1,16 +1,10 @@
 """A collection of utility functions for the fabricatio package."""
 
+from collections.abc import Generator, Iterable, Sequence
 from enum import IntEnum, StrEnum
 from typing import (
     Any,
-    Dict,
-    Generator,
-    Iterable,
     Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
     Unpack,
     cast,
     overload,
@@ -28,7 +22,7 @@ def override_kwargs[T: ValidateKwargs](kwargs: T, **overrides: Unpack[T]) -> T: 
 def override_kwargs[T: LLMKwargs](kwargs: T, **overrides: Unpack[T]) -> T: ...
 
 
-def override_kwargs[T: Dict[str, Any]](kwargs: T, **overrides: Unpack[T]) -> T:
+def override_kwargs[T: dict[str, Any]](kwargs: T, **overrides: Unpack[T]) -> T:
     """Override the values in kwargs with the provided overrides."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update(overrides)
@@ -39,7 +33,7 @@ def override_kwargs[T: Dict[str, Any]](kwargs: T, **overrides: Unpack[T]) -> T:
 def fallback_kwargs[T: ValidateKwargs](kwargs: T, **fallbacks: Unpack[T]) -> T: ...
 
 
-def fallback_kwargs[T: Dict[str, Any]](kwargs: T, **fallbacks: Unpack[T]) -> T:
+def fallback_kwargs[T: dict[str, Any]](kwargs: T, **fallbacks: Unpack[T]) -> T:
     """Fallback the values in kwargs with the provided fallbacks."""
     new_kwargs = dict(kwargs.items())
     new_kwargs.update({k: v for k, v in fallbacks.items() if k not in new_kwargs})
@@ -57,7 +51,7 @@ def no_default[T](kwargs: ValidateKwargs[T]) -> ValidateKwargs[None]:
     return change_default(kwargs, default=None)
 
 
-def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
+def ok[T](val: T | None, msg: str = "Value is None") -> T:
     """Check if a value is None and raise a ValueError with the provided message if it is.
 
     Args:
@@ -72,7 +66,7 @@ def ok[T](val: Optional[T], msg: str = "Value is None") -> T:
     return val
 
 
-def cfg(feats: Sequence[str], pkg_name: Optional[str] = None) -> None:
+def cfg(feats: Sequence[str], pkg_name: str | None = None) -> None:
     """Configure the package based on the provided manifest and features.
 
     If any module in `manifest` is missing, raises ModuleNotFoundError with
@@ -96,7 +90,7 @@ def cfg(feats: Sequence[str], pkg_name: Optional[str] = None) -> None:
         raise ModuleNotFoundError(build_install_msg(feats, pkg_name))
 
 
-def build_install_msg(feats: Iterable[str], pkg: Optional[str] = None) -> str:
+def build_install_msg(feats: Iterable[str], pkg: str | None = None) -> str:
     """Builds an installation message for missing modules with pip and uv commands.
 
     Args:
@@ -168,18 +162,16 @@ def get_source_pkgname(depth: int = 2) -> str:
 
 
 @overload
-def first_available[T](iterable: Iterable[Optional[T]]) -> T: ...
+def first_available[T](iterable: Iterable[T | None]) -> T: ...
+
+
+@overload
+def first_available[T](iterable: Iterable[T | None], *, raise_exception: Literal[True, False] = False) -> T | None: ...
 
 
 @overload
 def first_available[T](
-    iterable: Iterable[Optional[T]], *, raise_exception: Literal[True, False] = False
-) -> T | None: ...
-
-
-@overload
-def first_available[T](
-    iterable: Iterable[Optional[T]],
+    iterable: Iterable[T | None],
     msg: str = "No available item found in the iterable.",
     *,
     raise_exception: Literal[True, False] = True,
@@ -187,7 +179,7 @@ def first_available[T](
 
 
 def first_available[T](
-    iterable: Iterable[Optional[T]],
+    iterable: Iterable[T | None],
     msg: str = "No available item found in the iterable.",
     *,
     raise_exception: Literal[True, False] = True,
@@ -227,14 +219,14 @@ def first_available[T](
 
 
 @overload
-def iter_enum(enum_type: Type[StrEnum]) -> Generator[Tuple[str, str], None, None]: ...
+def iter_enum(enum_type: type[StrEnum]) -> Generator[tuple[str, str], None, None]: ...
 
 
 @overload
-def iter_enum(enum_type: Type[IntEnum]) -> Generator[Tuple[str, int], None, None]: ...
+def iter_enum(enum_type: type[IntEnum]) -> Generator[tuple[str, int], None, None]: ...
 
 
-def iter_enum(enum_type: Type[StrEnum] | Type[IntEnum]) -> Generator[Tuple[str, str] | Tuple[str, int], None, None]:
+def iter_enum(enum_type: type[StrEnum] | type[IntEnum]) -> Generator[tuple[str, str] | tuple[str, int], None, None]:
     """Iterates over an enum type and yields its members as tuples."""
     yield from ((k, v.value) for (k, v) in enum_type.__members__.items())
 

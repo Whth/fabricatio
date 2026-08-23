@@ -4,7 +4,8 @@ import asyncio
 from asyncio import as_completed
 from asyncio.tasks import Task
 from collections import defaultdict
-from typing import TYPE_CHECKING, Callable, Coroutine, Dict, List, Self, Tuple
+from collections.abc import Callable, Coroutine
+from typing import TYPE_CHECKING, Self
 
 from fabricatio_core.rust import CONFIG
 
@@ -35,9 +36,9 @@ class EventEmitter[T]:
         """
         self.sep = sep
         # Stores handlers for exact event matches (key: event name, value: list of callbacks)
-        self._handlers: Dict[str, List[Callback[T]]] = defaultdict(list)
+        self._handlers: dict[str, list[Callback[T]]] = defaultdict(list)
         # Stores handlers for wildcard event patterns (key: pattern tuple, value: list of callbacks)
-        self._wildcard_handlers: Dict[Tuple[str, ...], List[Callback[T]]] = defaultdict(list)
+        self._wildcard_handlers: dict[tuple[str, ...], list[Callback[T]]] = defaultdict(list)
 
     def on(self, pattern: str, callback: Callback[T]) -> Self:
         """Registers an event handler for a specific pattern.
@@ -86,12 +87,12 @@ class EventEmitter[T]:
             self._handlers.pop(pattern)
         return self
 
-    def _gather_exact_handlers(self, event_parts: List[str]) -> List[Callback[T]]:
+    def _gather_exact_handlers(self, event_parts: list[str]) -> list[Callback[T]]:
         """Gathers all exact handlers that match the given event parts."""
         event_name = self.sep.join(event_parts)
         return self._handlers.get(event_name, [])
 
-    def _gather_wildcard_handlers(self, event_parts: List[str]) -> List[Callback[T]]:
+    def _gather_wildcard_handlers(self, event_parts: list[str]) -> list[Callback[T]]:
         """Gathers all wildcard handlers that match the given event parts."""
         matching_handlers = []
         event_tuple = tuple(event_parts)
@@ -120,7 +121,7 @@ class EventEmitter[T]:
             will wait for all handlers to complete before returning.
         """
         parts = event.split(self.sep)
-        callbacks: List[Callback[T]] = []
+        callbacks: list[Callback[T]] = []
 
         # Gather exact match handlers
         callbacks.extend(self._gather_exact_handlers(parts))

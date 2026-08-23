@@ -1,9 +1,10 @@
 """This module defines generic classes for models in the Fabricatio library, providing a foundation for various model functionalities."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable
 from functools import cached_property
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Self, Set, Type, Union, Unpack, final, overload
+from typing import Any, Self, Union, Unpack, final, overload
 
 import orjson
 from pydantic import (
@@ -144,10 +145,10 @@ class WithDependency(Base, ABC):
     This class includes methods to manage file dependencies required for reading or writing.
     """
 
-    dependencies: List[str] = Field(default_factory=list)
+    dependencies: list[str] = Field(default_factory=list)
     """The file dependencies which is needed to read or write to meet a specific requirement, a list of file paths."""
 
-    def add_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
+    def add_dependency[P: str | Path](self, dependency: P | list[P]) -> Self:
         """Add a file dependency to the task.
 
         Args:
@@ -161,7 +162,7 @@ class WithDependency(Base, ABC):
         self.dependencies.extend(Path(d).as_posix() for d in dependency)
         return self
 
-    def remove_dependency[P: str | Path](self, dependency: P | List[P]) -> Self:
+    def remove_dependency[P: str | Path](self, dependency: P | list[P]) -> Self:
         """Remove a file dependency from the task.
 
         Args:
@@ -185,7 +186,7 @@ class WithDependency(Base, ABC):
         self.dependencies.clear()
         return self
 
-    def override_dependencies[P: str | Path](self, dependencies: List[P] | P) -> Self:
+    def override_dependencies[P: str | Path](self, dependencies: list[P] | P) -> Self:
         """Override the file dependencies of the task.
 
         Args:
@@ -261,7 +262,7 @@ class ScopedConfig(Base, ABC):
     """Configuration holder with hierarchical fallback mechanism."""
 
     @final
-    def fallback_to(self, other: Union["ScopedConfig", Any], exclude: Optional[Set[str]] = None) -> Self:
+    def fallback_to(self, other: Union["ScopedConfig", Any], exclude: set[str] | None = None) -> Self:
         """Merge configuration values with fallback priority.
 
         Copies non-null values from 'other' to self where current values are None.
@@ -301,7 +302,7 @@ class ScopedConfig(Base, ABC):
     def hold_to(
         self,
         others: Union["ScopedConfig", Any] | Iterable[Union["ScopedConfig", Any]],
-        exclude: Optional[Set[str]] = None,
+        exclude: set[str] | None = None,
     ) -> Self:
         """Propagate non-null values to other configurations.
 
@@ -325,16 +326,16 @@ class ScopedConfig(Base, ABC):
 class EmbeddingScopedConfig(ScopedConfig):
     """Configuration for embedding-related settings."""
 
-    embedding_send_to: Optional[str] = None
+    embedding_send_to: str | None = None
     """The LLM model name."""
 
     embedding_no_cache: bool = False
     """Whether to disable caching for embeddings."""
 
-    embedding_ndim: Optional[int] = None
+    embedding_ndim: int | None = None
     """The dimensionality of the output embeddings. Must match between search and store."""
 
-    embedding_max_batch_emb_size: Optional[int] = None
+    embedding_max_batch_emb_size: int | None = None
     """Maximum number of texts per batch. When exceeded, texts are chunked and fanned out in parallel.
     Defaults to 10 when not set in config or kwargs."""
 
@@ -366,15 +367,13 @@ class EmbeddingScopedConfig(ScopedConfig):
 class RerankerScopedConfig(ScopedConfig):
     """Configuration for reranker-related settings."""
 
-    reranker_send_to: Optional[str] = None
+    reranker_send_to: str | None = None
     """The group name of which the requests will be sent."""
 
-    reranker_no_cache: Optional[bool] = None
+    reranker_no_cache: bool | None = None
     """Whether to disable caching for the reranker."""
 
-    def _resolve_reranker_params(
-        self, send_to: Optional[str] = None, no_cache: Optional[bool] = None, **_
-    ) -> RerankerKwargs:
+    def _resolve_reranker_params(self, send_to: str | None = None, no_cache: bool | None = None, **_) -> RerankerKwargs:
         return RerankerKwargs(
             send_to=ok(
                 send_to or self.reranker_send_to or CONFIG.reranker.send_to,
@@ -390,36 +389,36 @@ class RerankerScopedConfig(ScopedConfig):
 class LLMScopedConfig(ScopedConfig):
     """Configuration for LLM-related settings."""
 
-    llm_send_to: Optional[str] = None
+    llm_send_to: str | None = None
     """The group name of which the requests will be sent."""
 
-    llm_top_p: Optional[NonNegativeFloat] = None
+    llm_top_p: NonNegativeFloat | None = None
     """The top p of the LLM model."""
 
-    llm_temperature: Optional[NonNegativeFloat] = None
+    llm_temperature: NonNegativeFloat | None = None
     """The temperature of the LLM model."""
 
-    llm_stream: Optional[bool] = None
+    llm_stream: bool | None = None
     """Whether to stream the LLM model's response."""
 
-    llm_max_completion_tokens: Optional[PositiveInt] = None
+    llm_max_completion_tokens: PositiveInt | None = None
     """The maximum number of tokens to generate."""
 
-    llm_presence_penalty: Optional[PositiveFloat] = None
+    llm_presence_penalty: PositiveFloat | None = None
     """The presence penalty of the LLM model."""
 
-    llm_frequency_penalty: Optional[PositiveFloat] = None
+    llm_frequency_penalty: PositiveFloat | None = None
     """The frequency penalty of the LLM model."""
 
-    llm_no_cache: Optional[bool] = None
+    llm_no_cache: bool | None = None
     """Whether to disable caching for the LLM model."""
 
-    llm_effort: Optional[str] = None
+    llm_effort: str | None = None
     """The reasoning effort level for models that support it (e.g. o1, o3)."""
 
     def _resolve_completion_send_to(
         self,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
     ) -> str:
         """Resolve ``send_to`` to a router group name with variant-slot precedence.
 
@@ -439,15 +438,15 @@ class LLMScopedConfig(ScopedConfig):
     def _resolve_completion_params(  # noqa: PLR0913
         self,
         *,
-        stream: Optional[bool] = None,
-        temperature: Optional[float] = None,
-        top_p: Optional[float] = None,
-        max_completion_tokens: Optional[int] = None,
-        presence_penalty: Optional[float] = None,
-        frequency_penalty: Optional[float] = None,
-        effort: Optional[str] = None,
-        no_cache: Optional[bool] = None,
-        images: Optional[List[bytes]] = None,
+        stream: bool | None = None,
+        temperature: float | None = None,
+        top_p: float | None = None,
+        max_completion_tokens: int | None = None,
+        presence_penalty: float | None = None,
+        frequency_penalty: float | None = None,
+        effort: str | None = None,
+        no_cache: bool | None = None,
+        images: list[bytes] | None = None,
         **_,
     ) -> LLMKwargs:
         """Resolve LLM completion parameters from kwargs, instance defaults, and CONFIG."""
@@ -481,9 +480,9 @@ class LLMScopedConfig(ScopedConfig):
 
     def _resolve_mapping_kv_params[K, V](
         self,
-        key_type: Type[K],
-        value_type: Type[V],
-        **kwargs: Unpack[ValidateKwargs[Dict[K, V]]],
+        key_type: type[K],
+        value_type: type[V],
+        **kwargs: Unpack[ValidateKwargs[dict[K, V]]],
     ) -> MappingKwargs[K, V]:
         """Resolve mapping key-value parameters from kwargs, instance defaults, and CONFIG.
 
@@ -500,8 +499,8 @@ class LLMScopedConfig(ScopedConfig):
 
     def _resolve_listing_v_params[T: int | str | bool | float](
         self,
-        value_type: Type[T],
-        **kwargs: Unpack[ValidateKwargs[List[T]]],
+        value_type: type[T],
+        **kwargs: Unpack[ValidateKwargs[list[T]]],
     ) -> ListValueKwargs[T]:
         """Resolve listing value parameters from kwargs, instance defaults, and CONFIG.
 
@@ -559,17 +558,17 @@ class CreateJsonObjPrompt(WithFormatedJsonSchema, ABC):
 
     @classmethod
     @overload
-    def create_json_prompt(cls, requirement: List[str]) -> List[str]: ...
+    def create_json_prompt(cls, requirement: list[str]) -> list[str]: ...
 
     @classmethod
     @overload
     def create_json_prompt(cls, requirement: str) -> str: ...
 
     @overload
-    def create_json_prompt(self, requirement: str | List[str]) -> str | List[str]: ...
+    def create_json_prompt(self, requirement: str | list[str]) -> str | list[str]: ...
 
     @classmethod
-    def create_json_prompt(cls, requirement: str | List[str]) -> str | List[str]:
+    def create_json_prompt(cls, requirement: str | list[str]) -> str | list[str]:
         """Create the prompt for creating a JSON object with given requirement.
 
         Args:

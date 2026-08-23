@@ -1,7 +1,7 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import List, Optional, Type, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.generic import ProposedAble
@@ -14,55 +14,55 @@ class Propose(UseLLM, ABC):
     @overload
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
-        prompt: List[str],
-        send_to: Optional[str] = None,
+        cls: type[M],
+        prompt: list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> List[Optional[M]]: ...
+    ) -> list[M | None]: ...
 
     @overload
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
-        prompt: List[str],
-        send_to: Optional[str] = None,
+        cls: type[M],
+        prompt: list[str],
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> List[M]: ...
+    ) -> list[M]: ...
 
     @overload
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
+        cls: type[M],
         prompt: str,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> Optional[M]: ...
+    ) -> M | None: ...
 
     @overload
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
+        cls: type[M],
         prompt: str,
-        send_to: Optional[str] = None,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[M]],
     ) -> M: ...
 
     @overload
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
-        prompt: List[str] | str,
-        send_to: Optional[str] = None,
+        cls: type[M],
+        prompt: list[str] | str,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> M | List[Optional[M]] | List[M] | None: ...
+    ) -> M | list[M | None] | list[M] | None: ...
 
     async def propose[M: ProposedAble](
         self,
-        cls: Type[M],
-        prompt: List[str] | str,
-        send_to: Optional[str] = None,
+        cls: type[M],
+        prompt: list[str] | str,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> M | List[Optional[M]] | List[M] | None:
+    ) -> M | list[M | None] | list[M] | None:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
