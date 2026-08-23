@@ -9,15 +9,15 @@ fully typed and the LLM-facing parameter set auditable.
 
 Each instance holds its own :class:`ComfyuiClientBase` (lazily created
 from :class:`ComfyuiHTTPClient`), so tests and alternate backends can
-inject a client through the ``comfyui_client`` constructor argument — no
-``@lru_cache`` global, no ``hasattr`` sniffing.
+inject a client via :meth:`with_comfyui_client` — no ``@lru_cache``
+global, no ``hasattr`` sniffing.
 
 Predicate-verb methods (``acomfyui_*``) follow the same naming convention
 as :class:`fabricatio_core.capabilities.usages.UseLLM` — ``a`` prefix +
 domain verb.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from fabricatio_core.journal import logger
 
@@ -48,11 +48,14 @@ class Comfyui:
     to release the connection pool when the mixin is no longer needed.
     """
 
-    _comfyui_client: "ComfyuiClientBase | None"
+    _comfyui_client: "ComfyuiClientBase | None" = None
 
-    def __init__(self, comfyui_client: "ComfyuiClientBase | None" = None) -> None:
-        """Optionally inject a pre-built client; otherwise created lazily."""
-        self._comfyui_client = comfyui_client
+    @classmethod
+    def with_comfyui_client(cls, comfyui_client: "ComfyuiClientBase") -> Self:
+        """Create an instance bound to a pre-built client (tests / alternate backends)."""
+        instance = cls()
+        instance._comfyui_client = comfyui_client
+        return instance
 
     @property
     def comfyui_client(self) -> "ComfyuiClientBase":

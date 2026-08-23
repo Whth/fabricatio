@@ -19,6 +19,7 @@ and each event loop gets its own pool (fixing the
 """
 
 import asyncio
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self, Unpack
 
@@ -49,6 +50,7 @@ from fabricatio_comfyui.utils import build_result
 __all__ = ["ComfyuiHTTPClient"]
 
 
+@dataclass
 class ComfyuiHTTPClient(ComfyuiClientBase):
     """Async HTTP client for the ComfyUI REST API.
 
@@ -59,10 +61,6 @@ class ComfyuiHTTPClient(ComfyuiClientBase):
     """
 
     source: httpx.AsyncClient
-
-    def __init__(self, source: httpx.AsyncClient) -> None:
-        """Wrap an existing ``httpx.AsyncClient``."""
-        self.source = source
 
     @classmethod
     def create(cls, base_url: str | None = None) -> Self:
