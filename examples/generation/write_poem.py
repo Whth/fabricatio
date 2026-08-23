@@ -1,6 +1,6 @@
 """Example of a poem writing program using fabricatio."""
 
-from typing import Any, Optional
+from typing import Any
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import UseLLM
@@ -10,7 +10,7 @@ class WritePoem(Action, UseLLM):
     """Action that generates a poem."""
 
     output_key: str = "task_output"
-    llm_stream: Optional[bool] = False
+    llm_stream: bool | None = False
 
     async def _execute(self, task_input: Task[str], **_) -> Any:
         logger.info(f"Generating poem about \n{task_input.briefing}")

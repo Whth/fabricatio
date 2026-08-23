@@ -2,7 +2,6 @@
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as BaseRole
@@ -15,7 +14,7 @@ from fabricatio_typst.rust import BibManager
 MAX_TOKEN = 64000
 
 
-def _reader(path: str) -> Optional[str]:
+def _reader(path: str) -> str | None:
     """Read and preprocess an article file for extraction. Strips the References section (both English and Chinese headers), checks token count against MAX_TOKEN limit to skip files that would exceed LLM context windows, and returns the cleaned text."""
     string = Path(path).read_text(encoding="utf-8")
     string = string.split("References\n")[0]

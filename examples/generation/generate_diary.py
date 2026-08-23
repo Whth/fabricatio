@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import datetime
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
@@ -27,8 +27,7 @@ class WriteDiary(Action, UseLLM):
         task_input.goals.extend(
             [
                 "write a Internship Diary according to the given commit messages",
-                "the diary should include the main dev target of the day, and the exact content"
-                ", and make a summary of the day, what have been learned, and what had felt",
+                "the diary should include the main dev target of the day, and the exact content, and make a summary of the day, what have been learned, and what had felt",
                 "diary should be written in markdown format, and using Chinese to write",
                 "write dev target and exact content under the heading names `# 实习主要项目和内容`",
                 "write summary under the heading names `# 主要收获和总结`",
@@ -54,10 +53,10 @@ class WriteDiary(Action, UseLLM):
 class DumpText(Action, Handle):
     """Dump the text to a file."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
+    toolboxes: set[ToolBox] = Field(default_factory=lambda: {toolboxes.fs_toolbox})
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: Task, dump_text: str, **_: Any) -> Optional[str]:
+    async def _execute(self, task_input: Task, dump_text: str, **_: Any) -> str | None:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
             goal=["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
@@ -75,7 +74,7 @@ class DumpText(Action, Handle):
 class Coder(RoleBase, ProposeTask):
     """A role that can write a diary according to the given commit messages in json format."""
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: dict[EventPattern, WorkFlow] = Field(
         default={
             Event.quick_instantiate("doc").collapse(): WorkFlow(
                 name="write documentation", steps=(WriteDiary, DumpText)

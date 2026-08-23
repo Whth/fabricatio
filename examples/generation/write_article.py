@@ -2,7 +2,6 @@
 
 import asyncio
 from pathlib import Path
-from typing import List, Optional
 
 import typer
 from fabricatio import Event, Task, WorkFlow, logger
@@ -106,7 +105,7 @@ app = Typer()
 @app.command()
 def consult(
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-    tei_endpoint: Optional[str] = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
+    tei_endpoint: str | None = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
 ) -> None:
     """Consult an article based on a given article outline."""
     _ = asyncio.run(
@@ -213,7 +212,7 @@ def write(
 @app.command()
 def suma(
     article_path: Path = typer.Option(Path("article.typ"), "-a", "--article-path", help="Path to the article file."),
-    skip_chapters: List[str] = typer.Option([], "-s", "--skip-chapters", help="Chapters to skip."),
+    skip_chapters: list[str] = typer.Option([], "-s", "--skip-chapters", help="Chapters to skip."),
     suma_title: str = typer.Option("Chapter Summary", "-t", "--suma-title", help="Title of the chapter summary."),
     summary_word_count: int = typer.Option(220, "-w", "--word-count", help="Word count for the summary."),
 ) -> None:

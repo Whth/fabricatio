@@ -4,7 +4,6 @@ This demonstrates fabricatio's diff editing feature by correcting common writing
 in a Chinese student essay while preserving the original content structure and meaning.
 """
 
-from typing import Optional
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import DiffEdit
@@ -31,9 +30,9 @@ class TweakEssay(Action, DiffEdit):
         essay: The input essay text to be corrected, optional until execution.
     """
 
-    essay: Optional[str] = None
+    essay: str | None = None
 
-    async def _execute(self, essay: Optional[str], **cxt) -> str:
+    async def _execute(self, essay: str | None, **cxt) -> str:
         """Executes the essay correction process.
 
         Args:

@@ -1,7 +1,7 @@
 """Demonstrate the HandleTask capability — how Fabricatio can not just generate content but also handle side effects like writing files, managing toolboxes, and supporting task cancellation."""
 
 import asyncio
-from typing import Any, Set
+from typing import Any
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
@@ -28,7 +28,7 @@ class WriteCode(Action, UseLLM):
 class DumpText(Action, HandleTask):
     """Dump the text to a file."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
+    toolboxes: set[ToolBox] = Field(default_factory=lambda: {fs_toolbox})
     output_key: str = "task_output"
 
     save_key: str = "save_path"

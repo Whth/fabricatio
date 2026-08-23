@@ -1,7 +1,6 @@
 """Demonstrate the Rating capability — how Fabricatio can decompose a vague request ("what should I eat?") into structured rating criteria, rate each option, and produce composite scores and rankings."""
 
 import asyncio
-from typing import Dict, List, Set
 
 from fabricatio import Action, Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
@@ -19,7 +18,7 @@ class Rate(Action, Rating):
 
     output_key: str = "task_output"
 
-    async def _execute(self, to_rate: List[str], rate_topic: str, criteria: Set[str], **_) -> List[Dict[str, float]]:
+    async def _execute(self, to_rate: list[str], rate_topic: str, criteria: set[str], **_) -> list[dict[str, float]]:
         logger.info(f"Rating the: \n{to_rate}")
         return await self.rate(
             to_rate,
@@ -33,8 +32,8 @@ class WhatToRate(Action):
 
     output_key: str = "to_rate"
 
-    async def _execute(self, task_input: Task, rate_topic: str, **_) -> List[str]:
-        def _validate(resp: str) -> List[str] | None:
+    async def _execute(self, task_input: Task, rate_topic: str, **_) -> list[str]:
+        def _validate(resp: str) -> list[str] | None:
             return json_parser.validate_list(resp, str)
 
         return await self.aask_validate(
@@ -52,7 +51,7 @@ class MakeCriteria(Action, Rating):
 
     output_key: str = "criteria"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> Set[str]:
+    async def _execute(self, rate_topic: str, to_rate: list[str], **_) -> set[str]:
         criteria = await self.draft_rating_criteria_from_examples(rate_topic, to_rate)
         logger.info(f"Criteria: \n{criteria}")
         return set(criteria)
@@ -63,7 +62,7 @@ class MakeCompositeScore(Action, Rating):
 
     output_key: str = "task_output"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> List[float]:
+    async def _execute(self, rate_topic: str, to_rate: list[str], **_) -> list[float]:
         return await self.composite_score(
             rate_topic,
             to_rate,
@@ -75,7 +74,7 @@ class Best(Action, Rating):
 
     output_key: str = "task_output"
 
-    async def _execute(self, rate_topic: str, to_rate: List[str], **_) -> str:
+    async def _execute(self, rate_topic: str, to_rate: list[str], **_) -> str:
         return (await self.best(to_rate, topic=rate_topic)).pop(0)
 
 
