@@ -1,6 +1,6 @@
 """ArticleEssence: Semantic fingerprint of academic paper for structured analysis."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fabricatio_capabilities.models.generic import PersistentAble
 from fabricatio_core.models.generic import SketchedAble, Vectorizable
@@ -45,10 +45,10 @@ class Figure(BaseModel):
 class Highlightings(BaseModel):
     """Technical component aggregator."""
 
-    highlighted_equations: List[Equation]
+    highlighted_equations: list[Equation]
     """Equations that highlight the article's core contributions"""
 
-    highlighted_figures: List[Figure]
+    highlighted_figures: list[Figure]
     """key figures requiring:
     1. Framework overview
     2. Quantitative results
@@ -64,10 +64,10 @@ class ArticleEssence(SketchedAble, PersistentAble, Vectorizable):
     title: str
     """Exact title of the original article."""
 
-    authors: List[str]
+    authors: list[str]
     """Original author full names as they appear in the source document."""
 
-    keywords: List[str]
+    keywords: list[str]
     """Original keywords as they appear in the source document."""
 
     publication_year: int
@@ -79,21 +79,21 @@ class ArticleEssence(SketchedAble, PersistentAble, Vectorizable):
     abstract: str
     """Abstract text in the original language."""
 
-    core_contributions: List[str]
+    core_contributions: list[str]
     """Technical contributions using CRediT taxonomy verbs."""
 
-    technical_novelty: List[str]
+    technical_novelty: list[str]
     """Patent-style claims with technical specificity."""
 
-    research_problems: List[str]
+    research_problems: list[str]
     """Problem statements as how/why questions."""
 
-    limitations: List[str]
+    limitations: list[str]
     """Technical limitations analysis."""
 
     bibtex_cite_key: str
     """Bibtex cite key of the original article."""
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
     """Optional metadata for vector DB storage."""
 
     @property
@@ -101,7 +101,7 @@ class ArticleEssence(SketchedAble, PersistentAble, Vectorizable):
         """Serialized JSON content for storage."""
         return self.compact()
 
-    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
         return self.model_dump()
 
     def _prepare_vectorization_inner(self) -> str:

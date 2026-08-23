@@ -6,10 +6,11 @@ cfg(["lancedb"])
 
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from itertools import groupby
 from pathlib import Path
-from typing import ClassVar, Dict, List, Optional, Self, Sequence, Unpack
+from typing import ClassVar, Self, Unpack
 
 from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.journal import logger
@@ -31,9 +32,9 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
 
     etc_word: ClassVar[str] = "等"
     and_word: ClassVar[str] = "与"
-    _cite_number: Optional[int] = None
+    _cite_number: int | None = None
 
-    head_split: ClassVar[List[str]] = [
+    head_split: ClassVar[list[str]] = [
         "引 言",
         "引言",
         "绪 论",
@@ -42,7 +43,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
         "INTRODUCTION",
         "Introduction",
     ]
-    tail_split: ClassVar[List[str]] = [
+    tail_split: ClassVar[list[str]] = [
         "参 考 文 献",
         "参  考  文  献",
         "参考文献",
@@ -56,7 +57,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
 
     year: int
     """The year of the article"""
-    authors: List[str] = Field(default_factory=list)
+    authors: list[str] = Field(default_factory=list)
     """The authors of the article"""
     article_title: str
     """The title of the article"""
@@ -75,8 +76,8 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
 
     @classmethod
     def from_file[P: str | Path](
-        cls, path: P | List[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
-    ) -> List[Self]:
+        cls, path: P | list[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+    ) -> list[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
             result = list(flatten(cls._from_file_inner(p, bib_mgr, **kwargs) for p in path))
@@ -86,7 +87,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
         return cls._from_file_inner(path, bib_mgr, **kwargs)
 
     @classmethod
-    def _from_file_inner(cls, path: str | Path, bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]) -> List[Self]:
+    def _from_file_inner(cls, path: str | Path, bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]) -> list[Self]:
         path = Path(path)
 
         title_seg = path.stem.split(" - ").pop()
@@ -150,7 +151,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
         return re.sub(r"\[[\d\s,\\~–-]+]", "", string)
 
     @property
-    def auther_lastnames(self) -> List[str]:
+    def auther_lastnames(self) -> list[str]:
         """Get the last name of the authors."""
         return [n.split()[-1] for n in self.authors]
 
@@ -206,7 +207,7 @@ class ArticleEssenceStorable(_ArticleEssence, LancedbDocumentModel[StoreDocument
 class CitationManager(AsPrompt):
     """Citation manager."""
 
-    article_chunks: List[ArticleChunk] = field(default_factory=list)
+    article_chunks: list[ArticleChunk] = field(default_factory=list)
     """Article chunks."""
 
     pat: str = r"(\[\[([\d\s,-]*)]])"
@@ -217,7 +218,7 @@ class CitationManager(AsPrompt):
     """Separator for abbreviated citation numbers."""
 
     def update_chunks(
-        self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
+        self, article_chunks: list[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
     ) -> Self:
         """Update article chunks."""
         self.article_chunks.clear()
@@ -234,7 +235,7 @@ class CitationManager(AsPrompt):
         self.article_chunks.clear()
         return self
 
-    def add_chunks(self, article_chunks: List[ArticleChunk], set_cite_number: bool = True, dedup: bool = True) -> Self:
+    def add_chunks(self, article_chunks: list[ArticleChunk], set_cite_number: bool = True, dedup: bool = True) -> Self:
         """Add article chunks."""
         self.article_chunks.extend(article_chunks)
         if dedup:
@@ -246,16 +247,13 @@ class CitationManager(AsPrompt):
 
     def set_cite_number_all(self) -> Self:
         """Set citation numbers for all article chunks."""
-        number_mapping = {a.bibtex_cite_key: 0 for a in self.article_chunks}
-
-        for i, k in enumerate(number_mapping.keys()):
-            number_mapping[k] = i
+        number_mapping = {k: i for i, k in enumerate(dict.fromkeys(a.bibtex_cite_key for a in self.article_chunks))}
 
         for a in self.article_chunks:
             a.update_cite_number(number_mapping[a.bibtex_cite_key])
         return self
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
+    def _as_prompt_inner(self) -> dict[str, str]:
         """Generate prompt inner representation."""
         seg = []
         for k, g_iter in groupby(self.article_chunks, key=lambda a: a.bibtex_cite_key):
@@ -296,24 +294,24 @@ class CitationManager(AsPrompt):
         """Get the citation coverage in the string."""
         return self.citation_count(string) / len(self.article_chunks)
 
-    def decode_expr(self, string: str) -> List[int]:
+    def decode_expr(self, string: str) -> list[int]:
         """Decode citation expression into a list of integers."""
         if self.abbr_sep in string:
             start, end = string.split(self.abbr_sep)
             return list(range(int(start), int(end) + 1))
         return [int(string)]
 
-    def convert_to_numeric_notations(self, string: str) -> List[str]:
+    def convert_to_numeric_notations(self, string: str) -> list[str]:
         """Convert citation string into numeric notations."""
         return [s.strip() for s in string.split(self.sep)]
 
-    def deduplicate_citation(self, citation_seq: List[int]) -> List[int]:
+    def deduplicate_citation(self, citation_seq: list[int]) -> list[int]:
         """Deduplicate citation sequence."""
         chunk_seq = [a for a in self.article_chunks if a.cite_number in citation_seq]
         deduped = unique(chunk_seq, lambda a: a.bibtex_cite_key)
         return [a.cite_number for a in deduped]
 
-    def unpack_cite_seq(self, citation_seq: List[int]) -> str:
+    def unpack_cite_seq(self, citation_seq: list[int]) -> str:
         """Unpack citation sequence into a string."""
         chunk_seq = {a.bibtex_cite_key: a for a in self.article_chunks if a.cite_number in citation_seq}
         return "".join(a.as_typst_cite() for a in chunk_seq.values())

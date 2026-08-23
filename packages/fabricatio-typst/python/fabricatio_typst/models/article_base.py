@@ -1,8 +1,9 @@
 """Hierarchical article outline base classes (section → chapter → article)."""
 
 from abc import ABC
+from collections.abc import Generator
 from pathlib import Path
-from typing import ClassVar, Generator, List, Optional, Self, Tuple, Type
+from typing import ClassVar, Self
 
 from fabricatio_capabilities.models.generic import (
     AsPrompt,
@@ -78,10 +79,10 @@ class SubSectionBase(ArticleOutlineBase):
 class SectionBase[T: SubSectionBase](ArticleOutlineBase):
     """Base class for article sections and subsections."""
 
-    subsections: List[T]
+    subsections: list[T]
     """Subsections of the section. Contains at least one subsection. You can also add more as needed."""
 
-    child_type: ClassVar[Type[SubSectionBase]]
+    child_type: ClassVar[type[SubSectionBase]]
 
     def to_typst_code(self) -> str:
         """Converts the section into a Typst formatted code snippet.
@@ -147,9 +148,9 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
 class ChapterBase[T: SectionBase](ArticleOutlineBase):
     """Base class for article chapters."""
 
-    sections: List[T]
+    sections: list[T]
     """Sections of the chapter. Contains at least one section. You can also add more as needed."""
-    child_type: ClassVar[Type[SectionBase]]
+    child_type: ClassVar[type[SectionBase]]
 
     def to_typst_code(self) -> str:
         """Converts the chapter into a Typst formatted code snippet for rendering."""
@@ -214,10 +215,10 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
 
     description: str = Field(alias="elaboration")
 
-    chapters: List[T]
+    chapters: list[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""
 
-    child_type: ClassVar[Type[ChapterBase]]
+    child_type: ClassVar[type[ChapterBase]]
 
     @property
     def language(self) -> str:
@@ -265,19 +266,19 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
                 yield sec
                 yield from sec.subsections
 
-    def iter_sections(self) -> Generator[Tuple[ChapterBase, SectionBase], None, None]:
+    def iter_sections(self) -> Generator[tuple[ChapterBase, SectionBase], None, None]:
         """Iterates through all sections in the article."""
         for chap in self.chapters:
             for sec in chap.sections:
                 yield chap, sec
 
-    def iter_subsections(self) -> Generator[Tuple[ChapterBase, SectionBase, SubSectionBase], None, None]:
+    def iter_subsections(self) -> Generator[tuple[ChapterBase, SectionBase, SubSectionBase], None, None]:
         """Iterates through all subsections in the article."""
         for chap, sec in self.iter_sections():
             for subsec in sec.subsections:
                 yield chap, sec, subsec
 
-    def find_introspected(self) -> Optional[Tuple[ArticleOutlineBase, str]]:
+    def find_introspected(self) -> tuple[ArticleOutlineBase, str] | None:
         """Finds the first introspected component in the article structure."""
         summary = ""
         for component in self.iter_dfs_rev():
@@ -286,7 +287,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
                 return component, summary
         return None
 
-    def gather_introspected(self) -> Optional[str]:
+    def gather_introspected(self) -> str | None:
         """Gathers all introspected components in the article structure."""
         return "\n".join([i for component in self.chapters if (i := component.introspect())])
 
@@ -359,7 +360,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         return self
 
     @classmethod
-    def from_article_file[S: "ArticleBase"](cls: Type[S], file: str | Path, title: str = "") -> S:
+    def from_article_file[S: "ArticleBase"](cls: type[S], file: str | Path, title: str = "") -> S:
         """Load article from file."""
         file = Path(file)
         string = Path(file).read_text(encoding="utf-8")

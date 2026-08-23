@@ -6,7 +6,7 @@ cfg(["lancedb"])
 
 from asyncio import gather
 from pathlib import Path
-from typing import ClassVar, List, Optional
+from typing import ClassVar
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.decorators import cfg_on_async
@@ -81,8 +81,8 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        table_name: Optional[str] = None,
-        supervisor: Optional[bool] = None,
+        table_name: str | None = None,
+        supervisor: bool | None = None,
         **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline)
@@ -251,7 +251,7 @@ class ArticleConsultRAG(Action, CitationLancedbRAG):
     """The request for the rag model."""
 
     @cfg_on_async(feats=["qa"])
-    async def _execute(self, table_name: Optional[str] = None, **cxt) -> int:
+    async def _execute(self, table_name: str | None = None, **cxt) -> int:
 
         from questionary import confirm, text
         from rich import print as r_print
@@ -301,7 +301,7 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
     output_key: str = "rag_tweaked_article"
     """The key used to store the output of the action."""
 
-    ruleset: Optional[RuleSet] = None
+    ruleset: RuleSet | None = None
     """The ruleset to be used for censoring the article."""
 
     ref_limit: int = 30
@@ -311,7 +311,7 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
         self,
         article: Article,
         table_name: str = "article_essence",
-        twk_rag_ruleset: Optional[RuleSet] = None,
+        twk_rag_ruleset: RuleSet | None = None,
         parallel: bool = False,
         **cxt,
     ) -> Article:
@@ -383,19 +383,19 @@ class ChunkArticle(Action):
 
     output_key: str = "article_chunks"
     """The key used to store the output of the action."""
-    max_chunk_size: Optional[int] = None
+    max_chunk_size: int | None = None
     """The maximum size of each chunk."""
-    max_overlapping_rate: Optional[float] = None
+    max_overlapping_rate: float | None = None
     """The maximum overlapping rate between chunks."""
 
     async def _execute(
         self,
         article_path: str | Path,
         bib_manager: BibManager,
-        max_chunk_size: Optional[int] = None,
-        max_overlapping_rate: Optional[float] = None,
+        max_chunk_size: int | None = None,
+        max_overlapping_rate: float | None = None,
         **_,
-    ) -> List[ArticleChunk]:
+    ) -> list[ArticleChunk]:
         return ArticleChunk.from_file(
             article_path,
             bib_manager,

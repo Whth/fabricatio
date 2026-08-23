@@ -2,7 +2,7 @@
 
 from abc import ABC
 from enum import StrEnum
-from typing import List, Optional, Self, Tuple
+from typing import Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, Language, SketchedAble, Titled
@@ -21,7 +21,7 @@ class ReferringType(StrEnum):
     SUBSECTION = "subsection"
 
 
-type RefKey = Tuple[str, Optional[str], Optional[str]]
+type RefKey = tuple[str, str | None, str | None]
 
 
 class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
@@ -34,7 +34,7 @@ class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
 
     title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
 
-    aims: List[str]
+    aims: list[str]
     """List of writing aims of the research component in academic style."""
 
     _unstructured_body: str = ""

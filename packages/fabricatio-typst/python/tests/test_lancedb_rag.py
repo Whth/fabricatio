@@ -4,7 +4,7 @@ Covers model roundtrip (prepare_insertion), CitationManager dedup,
 and CitationLancedbRAG.clued_search with mocked LLM + embedding router.
 """
 
-from typing import TYPE_CHECKING, Any, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -33,7 +33,7 @@ def sample_chunk() -> ArticleChunk:
 
 
 @pytest.fixture
-def sample_chunks() -> List[ArticleChunk]:
+def sample_chunks() -> list[ArticleChunk]:
     """Multiple chunks from two distinct articles."""
     return [
         ArticleChunk(
@@ -61,7 +61,7 @@ def sample_chunks() -> List[ArticleChunk]:
 
 
 @pytest.fixture
-def populated_cm(sample_chunks: List[ArticleChunk]) -> CitationManager:
+def populated_cm(sample_chunks: list[ArticleChunk]) -> CitationManager:
     """CitationManager pre-populated with sample chunks."""
     cm = CitationManager()
     cm.add_chunks(sample_chunks, set_cite_number=True, dedup=True)
@@ -167,7 +167,7 @@ class TestCitationManager:
         cm = CitationManager()
         assert cm.get_dedup_key_set() == set()
 
-    def test_dedup_on_add_chunks(self, sample_chunks: List[ArticleChunk]) -> None:
+    def test_dedup_on_add_chunks(self, sample_chunks: list[ArticleChunk]) -> None:
         """add_chunks deduplicates by content hash when dedup=True."""
         cm = CitationManager()
         cm.add_chunks(sample_chunks, dedup=True)
@@ -179,7 +179,7 @@ class TestCitationManager:
         # duplicates by content hash).
         assert len(cm.article_chunks) <= 3
 
-    def test_no_dedup_when_false(self, sample_chunks: List[ArticleChunk]) -> None:
+    def test_no_dedup_when_false(self, sample_chunks: list[ArticleChunk]) -> None:
         """add_chunks with dedup=False keeps duplicates."""
         cm = CitationManager()
         cm.add_chunks(sample_chunks, dedup=False)
@@ -187,7 +187,7 @@ class TestCitationManager:
         cm.add_chunks(sample_chunks, dedup=False)
         assert len(cm.article_chunks) == first_len * 2
 
-    def test_set_cite_number_all(self, sample_chunks: List[ArticleChunk]) -> None:
+    def test_set_cite_number_all(self, sample_chunks: list[ArticleChunk]) -> None:
         """set_cite_number_all assigns unique numbers per bibtex_cite_key."""
         cm = CitationManager()
         cm.add_chunks(sample_chunks, set_cite_number=True)
@@ -217,19 +217,19 @@ class TestCitationManager:
 class MockCitationLancedbRAG(LLMTestRole, CitationLancedbRAG):
     """Test double that overrides afetch_document and arefined_query to avoid real LanceDB/LLM calls."""
 
-    canned_chunks: ClassVar[List[ArticleChunk]] = []
+    canned_chunks: ClassVar[list[ArticleChunk]] = []
     retrieve_calls: int = 0
 
     async def afetch_document(
         self,
         query: Any,  # type: ignore[annotation-unchecked]
         config: Any = None,  # type: ignore[annotation-unchecked]
-    ) -> List[ArticleChunk]:
+    ) -> list[ArticleChunk]:
         """Return canned chunks, tracking call count."""
         self.retrieve_calls += 1
         return list(self.canned_chunks)
 
-    async def arefined_query(self, question: str, **kwargs: Any) -> List[str]:
+    async def arefined_query(self, question: str, **kwargs: Any) -> list[str]:
         """Return a canned refined query — no LLM call needed."""
         return ["mock refined query"]
 
@@ -241,7 +241,7 @@ class MockDedupCitationLancedbRAG(MockCitationLancedbRAG):
         self,
         query: Any,  # type: ignore[annotation-unchecked]
         config: Any = None,  # type: ignore[annotation-unchecked]
-    ) -> List[ArticleChunk]:
+    ) -> list[ArticleChunk]:
         self.retrieve_calls += 1
         return [
             ArticleChunk(
@@ -258,7 +258,7 @@ class TestCitationLancedbRAG:
     """Integration-style tests for clued_search using mock router."""
 
     @pytest.fixture
-    def canned_chunks(self) -> List[ArticleChunk]:
+    def canned_chunks(self) -> list[ArticleChunk]:
         """Chunks returned by the mock afetch_document."""
         return [
             ArticleChunk(
@@ -278,7 +278,7 @@ class TestCitationLancedbRAG:
         ]
 
     @pytest.mark.asyncio
-    async def test_clued_search_basic_flow(self, canned_chunks: List[ArticleChunk]) -> None:
+    async def test_clued_search_basic_flow(self, canned_chunks: list[ArticleChunk]) -> None:
         """clued_search runs the search loop with mocked afetch_document + arefined_query."""
         role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks
@@ -324,7 +324,7 @@ class TestCitationLancedbRAG:
         assert keys_after == keys_before
 
     @pytest.mark.asyncio
-    async def test_clued_search_max_capacity(self, canned_chunks: List[ArticleChunk]) -> None:
+    async def test_clued_search_max_capacity(self, canned_chunks: list[ArticleChunk]) -> None:
         """When max_capacity is exceeded, chunks are truncated."""
         role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks * 10
@@ -339,7 +339,7 @@ class TestCitationLancedbRAG:
         assert len(result.article_chunks) <= 3
 
     @pytest.mark.asyncio
-    async def test_clued_search_empty_citation_manager(self, canned_chunks: List[ArticleChunk]) -> None:
+    async def test_clued_search_empty_citation_manager(self, canned_chunks: list[ArticleChunk]) -> None:
         """clued_search works starting from an empty CitationManager."""
         role = MockCitationLancedbRAG(name="citation-rag")
         MockCitationLancedbRAG.canned_chunks = canned_chunks

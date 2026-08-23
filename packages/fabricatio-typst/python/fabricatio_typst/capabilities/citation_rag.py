@@ -5,7 +5,6 @@ from fabricatio_core.utils import cfg
 cfg(["lancedb"])
 
 from abc import ABC
-from typing import Optional, Set
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ListingKwargs
@@ -26,11 +25,11 @@ class CitationSearchConfig(RAGConfigBase):
     """Multiplier to increase accepted-chunk limit each round."""
     base_accepted: int = 12
     """Initial per-query result limit."""
-    refinery_kwargs: Optional[ListingKwargs[str]] = None
+    refinery_kwargs: ListingKwargs[str] | None = None
     """Keyword arguments forwarded to arefined_query."""
-    result_per_query: Optional[int] = None
+    result_per_query: int | None = None
     """Override for the LancedbFetchRAGConfig limit field."""
-    table_name: Optional[str] = None
+    table_name: str | None = None
     """Override for the LancedbFetchRAGConfig table_name field."""
 
 
@@ -81,7 +80,7 @@ class CitationLancedbRAG(LancedbRAG, ABC):
             refs = await self.afetch_document(ref_q, conf)
 
             # Client-side dedup: exclude already-held citations
-            held_keys: Set[str] = cm.get_dedup_key_set()
+            held_keys: set[str] = cm.get_dedup_key_set()
             if held_keys:
                 refs = [r for r in refs if r.bibtex_cite_key not in held_keys]
 

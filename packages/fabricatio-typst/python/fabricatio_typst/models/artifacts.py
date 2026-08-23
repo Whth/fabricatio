@@ -13,7 +13,7 @@ class ArticleArtifacts(BaseModel):
     with a single flat container that every pipeline stage can read and write.
     """
 
-    briefing: Optional[str] = Field(default=None)
+    briefing: str | None = Field(default=None)
     proposal: Optional["ArticleProposal"] = Field(default=None)  # noqa: F821
     outline: Optional["ArticleOutline"] = Field(default=None)  # noqa: F821
 

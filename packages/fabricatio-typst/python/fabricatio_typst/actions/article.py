@@ -1,8 +1,9 @@
 """Actions for transmitting tasks to targets."""
 
 from asyncio import gather
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, ClassVar, List, Optional, TypedDict, Unpack
+from typing import ClassVar, TypedDict, Unpack
 
 from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.capabilities.propose import Propose
@@ -44,9 +45,9 @@ class ExtractArticleEssence(Action, Propose):
     async def _execute(
         self,
         task_input: Task,
-        reader: Callable[[str], Optional[str]] = lambda p: Path(p).read_text(encoding="utf-8"),
+        reader: Callable[[str], str | None] = lambda p: Path(p).read_text(encoding="utf-8"),
         **_,
-    ) -> List[ArticleEssence]:
+    ) -> list[ArticleEssence]:
         if not task_input.dependencies:
             logger.info(err := "Task not approved, since no dependencies are provided.")
             raise RuntimeError(err)
@@ -78,9 +79,9 @@ class FixArticleEssence(Action):
     async def _execute(
         self,
         bib_mgr: BibManager,
-        article_essence: List[ArticleEssence],
+        article_essence: list[ArticleEssence],
         **_,
-    ) -> List[ArticleEssence]:
+    ) -> list[ArticleEssence]:
         out = []
         count = 0
         for a in article_essence:
@@ -107,11 +108,11 @@ class GenerateArticleProposal(Action, Propose):
 
     async def _execute(
         self,
-        task_input: Optional[Task] = None,
-        article_briefing: Optional[str] = None,
-        article_briefing_path: Optional[str] = None,
+        task_input: Task | None = None,
+        article_briefing: str | None = None,
+        article_briefing_path: str | None = None,
         **_,
-    ) -> Optional[ArticleProposal]:
+    ) -> ArticleProposal | None:
         if article_briefing is None and article_briefing_path is None and task_input is None:
             logger.error("Task not approved, since all inputs are None.")
             return None
@@ -147,15 +148,15 @@ class GenerateInitialOutline(Action, Extract, Correct):
     supervisor: bool = False
     """Whether to use the supervisor to fix the outline."""
 
-    extract_kwargs: ValidateKwargs[Optional[ArticleOutline]] = Field(default_factory=ValidateKwargs)
+    extract_kwargs: ValidateKwargs[ArticleOutline | None] = Field(default_factory=ValidateKwargs)
     """The kwargs to extract the outline."""
 
     async def _execute(
         self,
         article_proposal: ArticleProposal,
-        supervisor: Optional[bool] = None,
+        supervisor: bool | None = None,
         **_,
-    ) -> Optional[ArticleOutline]:
+    ) -> ArticleOutline | None:
         raw_outline = await self.aask(
             TEMPLATE_MANAGER.render_template(
                 typst_config.generate_outline_template,
@@ -208,17 +209,17 @@ class FixIntrospectedErrors(Action, Censor):
     output_key: str = "introspected_errors_fixed_outline"
     """The key of the output data."""
 
-    ruleset: Optional[RuleSet] = None
+    ruleset: RuleSet | None = None
     """The ruleset to use to fix the introspected errors."""
-    max_error_count: Optional[int] = None
+    max_error_count: int | None = None
     """The maximum number of errors to fix."""
 
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        intro_fix_ruleset: Optional[RuleSet] = None,
+        intro_fix_ruleset: RuleSet | None = None,
         **_,
-    ) -> Optional[ArticleOutline]:
+    ) -> ArticleOutline | None:
         counter = 0
         origin = article_outline
         while pack := article_outline.gather_introspected():
@@ -248,14 +249,14 @@ class GenerateArticle(Action, Censor):
 
     output_key: str = "article"
     """The key of the output data."""
-    ruleset: Optional[RuleSet] = None
+    ruleset: RuleSet | None = None
 
     async def _execute(
         self,
         article_outline: ArticleOutline,
-        article_gen_ruleset: Optional[RuleSet] = None,
+        article_gen_ruleset: RuleSet | None = None,
         **_,
-    ) -> Optional[Article]:
+    ) -> Article | None:
         article: Article = Article.from_outline(ok(article_outline, "Article outline not specified."))
 
         await gather(
@@ -297,7 +298,7 @@ class WriteChapterSummary(Action, UseLLM):
     summary_title: str = "Chapter Summary"
     """The title to be used for the generated chapter summary section."""
 
-    skip_chapters: List[str] = Field(default_factory=list)
+    skip_chapters: list[str] = Field(default_factory=list)
     """A list of chapter titles to skip during summary generation."""
 
     async def _execute(self, article_path: Path, **cxt) -> Article:
@@ -428,7 +429,7 @@ class CompileKwargs(TypedDict, total=False):
 
     format: str
     ppi: float
-    pdf_standards: List[str]
+    pdf_standards: list[str]
     sys_inputs: dict[str, str]
 
 
@@ -505,7 +506,7 @@ class CompileArticle(Action):
     async def _execute(
         self,
         article_path: Path,
-        output_path: Optional[Path] = None,
+        output_path: Path | None = None,
         **kwargs: Unpack[CompileKwargs],
     ) -> Path:
         """Compile an article's `.typ` file to the configured output format.

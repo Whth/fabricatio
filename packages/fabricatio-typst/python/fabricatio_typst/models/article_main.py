@@ -1,6 +1,7 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
-from typing import ClassVar, Dict, Generator, List, Self, Tuple, Type, override
+from collections.abc import Generator
+from typing import ClassVar, Self, override
 
 from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, WordCount
 from fabricatio_core.decorators import cfg_on_async
@@ -43,7 +44,7 @@ class Paragraph(SketchedAble, WordCount, Described):
         description=Described.model_fields["description"].description,
     )
 
-    aims: List[str]
+    aims: list[str]
     """Specific communicative objectives for this paragraph's content."""
 
     content: str
@@ -67,7 +68,7 @@ class ArticleParagraphSequencePatch(SequencePatch[Paragraph]):
 class ArticleSubsection(SubSectionBase):
     """Atomic argumentative unit with technical specificity."""
 
-    paragraphs: List[Paragraph]
+    paragraphs: list[Paragraph]
     """List of Paragraph objects containing the content of the subsection."""
 
     _max_word_count_deviation: float = 0.3
@@ -127,13 +128,13 @@ class ArticleSubsection(SubSectionBase):
 class ArticleSection(SectionBase[ArticleSubsection]):
     """Atomic argumentative unit with high-level specificity."""
 
-    child_type: ClassVar[Type[SubSectionBase]] = ArticleSubsection
+    child_type: ClassVar[type[SubSectionBase]] = ArticleSubsection
 
 
 class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
-    child_type: ClassVar[Type[SectionBase]] = ArticleSection
+    child_type: ClassVar[type[SectionBase]] = ArticleSection
 
 
 class Article(
@@ -149,10 +150,10 @@ class Article(
     artifacts: ArticleArtifacts = Field(default_factory=ArticleArtifacts)
     """Shared pipeline artifacts (briefing, proposal, outline)."""
 
-    child_type: ClassVar[Type[ChapterBase]] = ArticleChapter
+    child_type: ClassVar[type[ChapterBase]] = ArticleChapter
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
-        out: Dict[str, str] = {"Original Article": self.display()}
+    def _as_prompt_inner(self) -> dict[str, str]:
+        out: dict[str, str] = {"Original Article": self.display()}
         if self.artifacts.briefing:
             out["Original Article Briefing"] = self.artifacts.briefing
         if self.artifacts.proposal:
@@ -176,7 +177,7 @@ class Article(
         return self
 
     @override
-    def iter_subsections(self) -> Generator[Tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
+    def iter_subsections(self) -> Generator[tuple[ArticleChapter, ArticleSection, ArticleSubsection], None, None]:
         return super().iter_subsections()  # pyright: ignore [reportReturnType]
 
     def extract_outline(self) -> ArticleOutline:
@@ -192,14 +193,10 @@ class Article(
             # Iterate through each section in the chapter
             for section in chapter.sections:
                 # Create an empty list to hold subsection outlines
-                subsections = []
-
-                # Iterate through each subsection in the section
-                for subsection in section.subsections:
-                    # Create a subsection outline and add it to the list
-                    subsections.append(
-                        ArticleSubsectionOutline(**subsection.model_dump(exclude={"paragraphs"}, by_alias=True))
-                    )
+                subsections = [
+                    ArticleSubsectionOutline(**subsection.model_dump(exclude={"paragraphs"}, by_alias=True))
+                    for subsection in section.subsections
+                ]
 
                 # Create a section outline and add it to the list
                 sections.append(
