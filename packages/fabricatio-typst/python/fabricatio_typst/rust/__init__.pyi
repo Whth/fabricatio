@@ -22,17 +22,17 @@ __all__ = [
 class BibManager:
     def __new__(cls, path: builtins.str) -> BibManager:
         r"""Create a new BibManager instance."""
-    def get_cite_key_by_title(self, title: builtins.str) -> typing.Optional[builtins.str]:
+    def get_cite_key_by_title(self, title: builtins.str) -> builtins.str | None:
         r"""Find the cite key of an article with given title."""
-    def get_cite_key_by_title_fuzzy(self, title: builtins.str) -> typing.Optional[builtins.str]: ...
-    def get_cite_key_fuzzy(self, query: builtins.str) -> typing.Optional[builtins.str]:
+    def get_cite_key_by_title_fuzzy(self, title: builtins.str) -> builtins.str | None: ...
+    def get_cite_key_fuzzy(self, query: builtins.str) -> builtins.str | None:
         r"""Find the corresponding cite key of an article with given query string using fuzzy matcher."""
     def list_titles(self, is_verbatim: builtins.bool = False) -> builtins.list[builtins.str]: ...
-    def get_author_by_key(self, key: builtins.str) -> typing.Optional[builtins.list[builtins.str]]: ...
-    def get_year_by_key(self, key: builtins.str) -> typing.Optional[builtins.int]: ...
-    def get_abstract_by_key(self, key: builtins.str) -> typing.Optional[builtins.str]: ...
-    def get_title_by_key(self, key: builtins.str) -> typing.Optional[builtins.str]: ...
-    def get_field_by_key(self, key: builtins.str, field: builtins.str) -> typing.Optional[builtins.str]: ...
+    def get_author_by_key(self, key: builtins.str) -> builtins.list[builtins.str] | None: ...
+    def get_year_by_key(self, key: builtins.str) -> builtins.int | None: ...
+    def get_abstract_by_key(self, key: builtins.str) -> builtins.str | None: ...
+    def get_title_by_key(self, key: builtins.str) -> builtins.str | None: ...
+    def get_field_by_key(self, key: builtins.str, field: builtins.str) -> builtins.str | None: ...
 
 def comment(string: builtins.str) -> builtins.str:
     r"""Adds comment prefix `//` to each line of the string.
@@ -56,7 +56,7 @@ def convert_all_tex_math(string: builtins.str) -> builtins.str:
         A PyResult containing the string with converted math expressions.
     """
 
-def extract_body(string: builtins.str, wrapper: builtins.str) -> typing.Optional[builtins.str]:
+def extract_body(string: builtins.str, wrapper: builtins.str) -> builtins.str | None:
     r"""Extracts the body content enclosed by exactly two wrapper strings.
 
     Args:
@@ -94,9 +94,7 @@ def fix_misplaced_labels(string: builtins.str) -> builtins.str:
         A string with misplaced labels moved outside display math blocks.
     """
 
-def replace_thesis_body(
-    string: builtins.str, wrapper: builtins.str, new_body: builtins.str
-) -> typing.Optional[builtins.str]:
+def replace_thesis_body(string: builtins.str, wrapper: builtins.str, new_body: builtins.str) -> builtins.str | None:
     r"""Replaces the body content enclosed by two wrapper strings.
 
     Args:
@@ -108,7 +106,7 @@ def replace_thesis_body(
         The string with the body replaced, or None if wrapper not found.
     """
 
-def split_out_metadata(string: builtins.str) -> tuple[typing.Optional[typing.Any], builtins.str]:
+def split_out_metadata(string: builtins.str) -> tuple[typing.Any | None, builtins.str]:
     r"""Splits metadata (YAML front matter) from a Typst document string.
 
     Extracts leading comment lines as YAML metadata and returns the remaining content.

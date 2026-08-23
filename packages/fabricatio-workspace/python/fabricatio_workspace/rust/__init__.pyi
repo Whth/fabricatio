@@ -14,7 +14,7 @@ __all__ = [
 def commit(
     worktree_path: builtins.str | os.PathLike | pathlib.Path,
     msg: builtins.str,
-    files: typing.Optional[typing.Sequence[builtins.str]] = None,
+    files: typing.Sequence[builtins.str] | None = None,
 ) -> builtins.str:
     r"""Commits changes in a specific worktree with optional file selection.
 
@@ -51,7 +51,7 @@ def fork(
     repo_path: builtins.str | os.PathLike | pathlib.Path,
     to: builtins.str | os.PathLike | pathlib.Path,
     branch_name: builtins.str,
-    base_branch: typing.Optional[builtins.str] = None,
+    base_branch: builtins.str | None = None,
     exist_ok: builtins.bool = False,
 ) -> pathlib.Path:
     r"""Forks a new Git worktree with safety checks and automatic cleanup.

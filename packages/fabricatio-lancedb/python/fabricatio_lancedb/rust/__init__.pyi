@@ -28,7 +28,7 @@ class SearchedDocument:
     def timestamp(self) -> builtins.int:
         r"""Timestamp indicating when the document was created or last updated."""
     @property
-    def metadata(self) -> typing.Optional[builtins.str]:
+    def metadata(self) -> builtins.str | None:
         r"""Optional metadata associated with the document, stored as a JSON string.
 
         This can include additional contextual information about the document.
@@ -51,16 +51,16 @@ class StoreDocument:
     @vector.setter
     def vector(self, value: typing.Sequence[builtins.float]) -> None: ...
     @property
-    def metadata(self) -> typing.Optional[builtins.str]: ...
+    def metadata(self) -> builtins.str | None: ...
     @metadata.setter
-    def metadata(self, value: typing.Optional[builtins.str]) -> None: ...
+    def metadata(self, value: builtins.str | None) -> None: ...
     def __new__(
-        cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[builtins.str]
+        cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: builtins.str | None
     ) -> StoreDocument:
         r"""Create a new Document instance."""
     @staticmethod
     def with_metadata(
-        content: builtins.str, vector: typing.Sequence[builtins.float], metadata: typing.Optional[dict]
+        content: builtins.str, vector: typing.Sequence[builtins.float], metadata: dict | None
     ) -> StoreDocument:
         r"""Create a new Document instance with metadata dict."""
 
@@ -106,7 +106,7 @@ class VectorStoreTable:
         self,
         embedding: typing.Sequence[builtins.float],
         limit: builtins.int,
-        dedup_threshold: typing.Optional[builtins.float] = None,
+        dedup_threshold: builtins.float | None = None,
     ) -> typing.Awaitable[builtins.list[SearchedDocument]]:
         r"""Searches for documents similar to the given embedding vector.
 

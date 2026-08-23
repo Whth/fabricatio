@@ -159,7 +159,7 @@ class MemoryStore:
         Raises:
             Exception: If there is an error committing the changes.
         """
-    def get_memory(self, uuid: builtins.str, write: builtins.bool = False) -> typing.Optional[Memory]:
+    def get_memory(self, uuid: builtins.str, write: builtins.bool = False) -> Memory | None:
         r"""Retrieves a memory by its ID and updates its access count.
 
         Args:
@@ -175,9 +175,9 @@ class MemoryStore:
     def update_memory(
         self,
         uuid: builtins.str,
-        content: typing.Optional[builtins.str] = None,
-        importance: typing.Optional[builtins.int] = None,
-        tags: typing.Optional[typing.Sequence[builtins.str]] = None,
+        content: builtins.str | None = None,
+        importance: builtins.int | None = None,
+        tags: typing.Sequence[builtins.str] | None = None,
         write: builtins.bool = False,
     ) -> builtins.bool:
         r"""Updates an existing memory's content, importance, or tags.

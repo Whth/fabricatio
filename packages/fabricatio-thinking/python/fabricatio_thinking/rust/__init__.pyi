@@ -21,9 +21,9 @@ class ThoughtVCS:
         content: builtins.str,
         serial: builtins.int,
         estimated: builtins.int,
-        branch: typing.Optional[builtins.str] = None,
+        branch: builtins.str | None = None,
         insert: builtins.bool = True,
-    ) -> typing.Optional[builtins.int]:
+    ) -> builtins.int | None:
         r"""Commits new content to a branch, creating the branch if necessary.
 
         Args:
@@ -36,9 +36,7 @@ class ThoughtVCS:
         Returns:
             Some(new_commit_count) if the commit was added, or None otherwise.
         """
-    def revise(
-        self, content: builtins.str, serial: builtins.int, branch: typing.Optional[builtins.str]
-    ) -> typing.Optional[builtins.int]:
+    def revise(self, content: builtins.str, serial: builtins.int, branch: builtins.str | None) -> builtins.int | None:
         r"""Revises the content of an existing commit in a branch.
 
         Args:
@@ -49,7 +47,7 @@ class ThoughtVCS:
         Returns:
             Some(serial) if the commit was revised, or None otherwise.
         """
-    def checkout(self, branch: builtins.str, serial: builtins.int) -> typing.Optional[builtins.str]:
+    def checkout(self, branch: builtins.str, serial: builtins.int) -> builtins.str | None:
         r"""Checks out a branch at a specific commit serial, truncating it to that point.
 
         Args:
@@ -59,7 +57,7 @@ class ThoughtVCS:
         Returns:
             Some(branch_name) if the checkout was successful, or None otherwise.
         """
-    def export_branch(self, branch: typing.Optional[builtins.str] = None) -> builtins.list[builtins.str]:
+    def export_branch(self, branch: builtins.str | None = None) -> builtins.list[builtins.str]:
         r"""Exports the list of commits for a given branch.
 
         This function retrieves all commits associated with the specified branch.
@@ -73,7 +71,7 @@ class ThoughtVCS:
             A vector of strings where each string represents a commit in the branch.
             If the branch does not exist, an empty vector is returned.
         """
-    def export_branch_string(self, branch: typing.Optional[builtins.str] = None) -> builtins.str:
+    def export_branch_string(self, branch: builtins.str | None = None) -> builtins.str:
         r"""Exports the list of commits as a formatted string.
 
         Args:

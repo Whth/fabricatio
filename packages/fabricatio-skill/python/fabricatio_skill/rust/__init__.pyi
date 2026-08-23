@@ -67,7 +67,7 @@ class SkillRegistry:
         r"""Remove skills by name. Returns count removed."""
     def clear(self) -> None:
         r"""Remove all registered skills."""
-    def get(self, name: builtins.str) -> typing.Optional[Skill]:
+    def get(self, name: builtins.str) -> Skill | None:
         r"""Return a skill by exact name, or ``None``."""
     def get_many(self, names: typing.Sequence[builtins.str]) -> builtins.list[Skill]:
         r"""Return skills for the given names, silently skipping missing."""
@@ -78,7 +78,7 @@ class SkillRegistry:
     def __contains__(self, name: builtins.str) -> builtins.bool: ...
     def __len__(self) -> builtins.int: ...
 
-def get_skill(name: builtins.str, skills: typing.Sequence[Skill]) -> typing.Optional[Skill]:
+def get_skill(name: builtins.str, skills: typing.Sequence[Skill]) -> Skill | None:
     r"""Get a skill by exact name.
 
     Args:

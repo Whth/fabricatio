@@ -109,11 +109,11 @@ def compile_deck(
 
 def create_deck_project(
     path: builtins.str | os.PathLike | pathlib.Path,
-    deck_name: typing.Optional[builtins.str],
-    deck_description: typing.Optional[builtins.str],
-    author: typing.Optional[builtins.str],
-    model_name: typing.Optional[builtins.str],
-    fields: typing.Optional[typing.Sequence[builtins.str]],
+    deck_name: builtins.str | None,
+    deck_description: builtins.str | None,
+    author: builtins.str | None,
+    model_name: builtins.str | None,
+    fields: typing.Sequence[builtins.str] | None,
 ) -> None:
     r"""Create a new Anki deck project template with the specified configuration.
 
@@ -284,7 +284,7 @@ def save_template(
     dir_path: builtins.str | os.PathLike | pathlib.Path,
     front: builtins.str,
     back: builtins.str,
-    css: typing.Optional[builtins.str] = None,
+    css: builtins.str | None = None,
 ) -> None:
     r"""Save card type template files (front.html, back.html, and optional style.css) to a directory.
 

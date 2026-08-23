@@ -90,9 +90,7 @@ class MCPManager:
         Returns:
             An awaitable that resolves to True if connected, False otherwise.
         """
-    def call_tool(
-        self, client_id: builtins.str, tool_name: builtins.str, arguments: typing.Optional[dict]
-    ) -> typing.Any:
+    def call_tool(self, client_id: builtins.str, tool_name: builtins.str, arguments: dict | None) -> typing.Any:
         r"""Executes a tool on a client and returns the result.
 
         Args:
@@ -198,14 +196,14 @@ class ToolMetaData:
 
 def gather_violations(
     source: builtins.str,
-    modules: typing.Optional[CheckConfig] = None,
-    imports: typing.Optional[CheckConfig] = None,
-    calls: typing.Optional[CheckConfig] = None,
+    modules: CheckConfig | None = None,
+    imports: CheckConfig | None = None,
+    calls: CheckConfig | None = None,
 ) -> builtins.list[builtins.str]:
     r"""Gathers violations in the provided source code based on the given configuration."""
 
 def treeview(
-    directory: typing.Optional[builtins.str | os.PathLike | pathlib.Path] = None, max_depth: builtins.int = 10
+    directory: builtins.str | os.PathLike | pathlib.Path | None = None, max_depth: builtins.int = 10
 ) -> builtins.str:
     r"""Generates a tree-like string representation of a directory structure.
 

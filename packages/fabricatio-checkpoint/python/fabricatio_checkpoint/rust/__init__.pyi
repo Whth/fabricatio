@@ -21,7 +21,7 @@ class CheckPointStore:
     @property
     def workspace(self) -> pathlib.Path:
         r"""The worktree directory being tracked."""
-    def save(self, commit_msg: typing.Optional[builtins.str] = None) -> builtins.str:
+    def save(self, commit_msg: builtins.str | None = None) -> builtins.str:
         r"""Saves the current state of the worktree as a new commit.
 
         This method stages all changes in the worktree directory and creates a new commit
