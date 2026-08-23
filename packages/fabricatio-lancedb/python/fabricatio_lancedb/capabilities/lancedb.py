@@ -1,9 +1,8 @@
 """This module contains the capabilities for the lancedb."""
 
 import asyncio
-from collections.abc import Iterable
 from dataclasses import field
-from typing import Self
+from typing import TYPE_CHECKING, Self
 
 from fabricatio_core import CONFIG
 from fabricatio_core.utils import first_available, ok
@@ -13,6 +12,9 @@ from more_itertools import chunked, flatten
 from fabricatio_lancedb.config import lancedb_config
 from fabricatio_lancedb.inited_service import get_service
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class LancedbAddRAGConfig(RAGConfigBase):

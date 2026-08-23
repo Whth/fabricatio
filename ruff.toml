@@ -35,7 +35,12 @@ select = [
     "ISC", # flake8-implicit-str-concat
     "G", # flake8-logging-format
     "TID", # flake8-tidy-imports
-    "RSE", # flake8-raise
+    "FA", # flake8-future-annotations
+    "FLY", # flynt
+    "ICN", # flake8-import-conventions
+    "TC", # flake8-type-checking
+    "TD", # flake8-todos
+    "FIX", # flake8-fixme
     "PTH", # flake8-use-pathlib
     "PLC", # convention
     "PLE", # error
