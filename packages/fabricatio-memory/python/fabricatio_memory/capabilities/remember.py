@@ -108,7 +108,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
             call_kwargs = fallback_kwargs(kwargs, **self.memory_llm)
         return await self.aask(
             TEMPLATE_MANAGER.render_template(
-                memory_config.memory_recall_template, {"query": query, "mem_seq": [mem.to_dict() for mem in mem_seq]}
+                memory_config.memory_recall_template, {"query": query, "mem_seq": [mem.to_dict() for mem in mem_seq]},
             ),
             **call_kwargs,
         )

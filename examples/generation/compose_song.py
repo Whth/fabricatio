@@ -18,5 +18,5 @@ generated_song: Song = ok(
         "chorus about perseverance. Include bridge section with introspective lyrics.",
         output="here",
     )
-    .delegate_blocking(ns)
+    .delegate_blocking(ns),
 )

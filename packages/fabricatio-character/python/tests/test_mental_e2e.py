@@ -155,7 +155,7 @@ class TestHamletScenario:
                 what_was_lost="father",
                 the_void="no guiding figure, orphaned in purpose",
                 how_it_changed_me="became obsessed with mortality and revenge",
-            )
+            ),
         )
 
         prompt = _mind.as_prompt(state)
@@ -221,7 +221,7 @@ class TestMaslowDynamics:
             needs=NeedState(
                 current_level=MaslowLevel.ESTEEM,
                 satisfied=[MaslowLevel.PHYSIOLOGICAL, MaslowLevel.SAFETY, MaslowLevel.BELONGING],
-            )
+            ),
         )
         state = _mind.after_impact(EventImpact(threatens_need=MaslowLevel.SAFETY), state)
 

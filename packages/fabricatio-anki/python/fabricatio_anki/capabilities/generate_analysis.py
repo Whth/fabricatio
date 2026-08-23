@@ -23,16 +23,16 @@ class GenerateAnalysis(Propose):
 
     @overload
     async def generate_analysis(
-        self, topic: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
+        self, topic: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]],
     ) -> TopicAnalysis | None: ...
 
     @overload
     async def generate_analysis(
-        self, topic: list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
+        self, topic: list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]],
     ) -> list[TopicAnalysis | None] | None: ...
 
     async def generate_analysis(
-        self, topic: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
+        self, topic: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]],
     ) -> TopicAnalysis | list[TopicAnalysis | None] | list[TopicAnalysis] | None:
         """Generates an analysis for the given topic(s) using a template-based approach.
 

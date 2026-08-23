@@ -27,7 +27,7 @@ class Review(Rating, Propose, ABC):
     """
 
     async def review_task[T](
-        self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
+        self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]],
     ) -> Improvement | None:
         """Review a task using specified review criteria.
 
@@ -98,7 +98,7 @@ class Review(Rating, Propose, ABC):
         )
 
     async def review_obj[M: (Display, WithBriefing)](
-        self, obj: M, send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
+        self, obj: M, send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]],
     ) -> Improvement | None:
         """Review an object that implements Display or WithBriefing interface.
 

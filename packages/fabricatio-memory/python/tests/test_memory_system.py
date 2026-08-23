@@ -219,7 +219,7 @@ def test_search_by_tags(
     ],
 )
 def test_get_memories_by_importance(
-    store: MemoryStore, memories: list[tuple[str, int, list[str]]], min_importance: int, expected_count: int
+    store: MemoryStore, memories: list[tuple[str, int, list[str]]], min_importance: int, expected_count: int,
 ) -> None:
     """Test retrieving memories by minimum importance threshold."""
     for content, importance, tags in memories:
@@ -255,7 +255,7 @@ def test_get_recent_memories(store: MemoryStore) -> None:
     ],
 )
 def test_get_frequently_accessed(
-    store: MemoryStore, content: str, importance: int, tags: list[str], access_count: int, top_k: int
+    store: MemoryStore, content: str, importance: int, tags: list[str], access_count: int, top_k: int,
 ) -> None:
     """Test retrieving most frequently accessed memories."""
     freq_id = store.add_memory(content, importance, tags)
@@ -297,7 +297,7 @@ def test_count_memories(store: MemoryStore, memories: list[tuple[str, int, list[
     ],
 )
 def test_get_memory_stats(
-    store: MemoryStore, memories: list[tuple[str, int, list[str]]], expected_avg_importance: tuple[int, int]
+    store: MemoryStore, memories: list[tuple[str, int, list[str]]], expected_avg_importance: tuple[int, int],
 ) -> None:
     """Test generating memory statistics."""
     for content, importance, tags in memories:

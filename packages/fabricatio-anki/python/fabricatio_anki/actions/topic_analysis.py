@@ -66,8 +66,8 @@ class AppendTopicAnalysis(Action, GenerateAnalysis):
                 [
                     f"{','.join(fieldnames)}\n{','.join(row.values())}\n"  # Reconstructing line from values
                     for row in rows
-                ]
-            )
+                ],
+            ),
         )
 
         # Append analysis results to each row

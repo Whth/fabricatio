@@ -67,7 +67,7 @@ def test_create_empty_dataframe_mismatched_dtypes() -> None:
 def test_add_computed_column(sample_dataframe: pd.DataFrame) -> None:
     """Test adding a computed column using expression."""
     df = dt.add_computed_column(
-        sample_dataframe, new_column="total_price", expression="price * quantity * (1 - discount)"
+        sample_dataframe, new_column="total_price", expression="price * quantity * (1 - discount)",
     )
     assert "total_price" in df.columns
     assert df["total_price"].iloc[0] == pytest.approx(900.0)  # 100 * 10 * (1-0.1)

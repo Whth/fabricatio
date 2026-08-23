@@ -76,7 +76,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
 
     @classmethod
     def from_file[P: str | Path](
-        cls, path: P | list[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs]
+        cls, path: P | list[P], bib_mgr: BibManager, **kwargs: Unpack[ChunkKwargs],
     ) -> list[Self]:
         """Load the article chunks from the file."""
         if isinstance(path, list):
@@ -107,7 +107,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
         result = [
             cls(content=c, year=year, authors=authors, article_title=article_title, bibtex_cite_key=key)
             for c in split_into_chunks(
-                cls.purge_numeric_citation(cls.strip(Path(path).read_text(encoding="utf-8"))), **kwargs
+                cls.purge_numeric_citation(cls.strip(Path(path).read_text(encoding="utf-8"))), **kwargs,
             )
         ]
 
@@ -124,7 +124,7 @@ class ArticleChunk(LancedbDocumentModel[StoreDocument, SearchedDocument]):
             string = split.join(parts[1:]) if len(parts) > 1 else parts[0]
             break
         logger.debug(
-            f"String length after head strip: {(stripped_len := len(string))}, decreased by {(d := original - stripped_len)}"
+            f"String length after head strip: {(stripped_len := len(string))}, decreased by {(d := original - stripped_len)}",
         )
         if not d:
             logger.warn("No decrease at head strip, which is might be abnormal.")
@@ -218,7 +218,7 @@ class CitationManager(AsPrompt):
     """Separator for abbreviated citation numbers."""
 
     def update_chunks(
-        self, article_chunks: list[ArticleChunk], set_cite_number: bool = True, dedup: bool = True
+        self, article_chunks: list[ArticleChunk], set_cite_number: bool = True, dedup: bool = True,
     ) -> Self:
         """Update article chunks."""
         self.article_chunks.clear()

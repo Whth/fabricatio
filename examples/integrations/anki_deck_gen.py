@@ -66,7 +66,7 @@ deck: Deck = ok(
         req=requirement,
         output="here",
     )
-    .delegate_blocking(ns)
+    .delegate_blocking(ns),
 )
 
 compile_deck("here", f"{deck.name}.apkg")
@@ -76,14 +76,14 @@ logger.info(f"Compiled deck saved to {deck.name}.apkg")
 csv_output_path = ok(
     Task(name="analyze topics")
     .update_init_context(csv_file="topics.csv", output_file="topics_analyzed.csv")
-    .delegate_blocking(ns2)
+    .delegate_blocking(ns2),
 )
 
 
 deck_with_analysis: Deck = ok(
     Task(name="gen deck with analysis")
     .update_init_context(source=csv_output_path, req=requirement, output="reformed")
-    .delegate_blocking(ns)
+    .delegate_blocking(ns),
 )
 
 compile_deck("here", f"{deck_with_analysis.name}.apkg")

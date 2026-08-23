@@ -113,7 +113,7 @@ class Role(WithBriefing):
         if event_string in self.subscriptions:
             logger.warn(
                 f"Event `{event_string}` is already registered with workflow "
-                f"`{self.subscriptions[event_string].name}`. It will be overwritten by `{workflow.name}`."
+                f"`{self.subscriptions[event_string].name}`. It will be overwritten by `{workflow.name}`.",
             )
         self.subscriptions[event_string] = workflow
         return self
@@ -186,13 +186,13 @@ class Role(WithBriefing):
             elif issubclass(self.__class__, ScopedConfig):
                 logger.debug(
                     f"Workflow `{workflow.name}` is not a ScopedConfig, but role `{self.name}` is. "
-                    "Applying role configuration to workflow steps."
+                    "Applying role configuration to workflow steps.",
                 )
                 self.hold_to(workflow.steps, EXCLUDED_FIELDS)  # pyright: ignore [reportAttributeAccessIssue]
             else:
                 logger.debug(
                     f"Neither role nor workflow `{workflow.name}` is a ScopedConfig. "
-                    "Skipping configuration resolution for this workflow."
+                    "Skipping configuration resolution for this workflow.",
                 )
                 continue
         return self
@@ -233,6 +233,6 @@ def get_registered_role(role_name: RoleName | set[RoleName]) -> Role | list[Role
 
 
 EXCLUDED_FIELDS = set(
-    list(Role.model_fields.keys()) + list(WorkFlow.model_fields.keys()) + list(Action.model_fields.keys())
+    list(Role.model_fields.keys()) + list(WorkFlow.model_fields.keys()) + list(Action.model_fields.keys()),
 )
 """The set of fields that should not be resolved during configuration resolution."""

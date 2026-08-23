@@ -82,7 +82,7 @@ def _extract_output_ports(cls: type[Action]) -> list[dict[str, Any]]:
             "type": "Any",
             "optional": False,
             "description": f"Output from {cls.__name__}",
-        }
+        },
     ]
 
 

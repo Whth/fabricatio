@@ -92,12 +92,12 @@ class Agent(
         task_list = ok(
             await self.digest(
                 TEMPLATE_MANAGER.render_template(
-                    agent_config.fulfill_prompt_template, {"request": request, "mem": mem, "thoughts": thought}
+                    agent_config.fulfill_prompt_template, {"request": request, "mem": mem, "thoughts": thought},
                 ),
                 ok(self.team_roster),
                 send_to=send_to,
                 **kwargs,
-            )
+            ),
         )
         task_list.add_before_exec_hook(lambda: self.save_checkpoint(f"{request[:50]}..."))
 

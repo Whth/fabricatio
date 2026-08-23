@@ -74,7 +74,7 @@ class GatherRuleset(Action, FromMapping):
         not_found = next((t for t in self.to_gather if t not in cxt), None)
         if not_found:
             raise ValueError(
-                f"Not all required keys found in context: {self.to_gather}|`{not_found}` not found in context."
+                f"Not all required keys found in context: {self.to_gather}|`{not_found}` not found in context.",
             )
 
         # Fix for invalid RuleSet check

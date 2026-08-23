@@ -76,7 +76,7 @@ class TestNovelPlan:
                 "description": "The hero sets out.",
                 "weight": 1.0,
                 "writing_constraint": "Keep first person during the road journey.",
-            }
+            },
         ]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_constraint": ""}]
         scene_plans_json = [
@@ -85,7 +85,7 @@ class TestNovelPlan:
                 "description": "Leaving home.",
                 "weight": 1.0,
                 "writing_constraint": "Stay in the protagonist's head; no head-hopping.",
-            }
+            },
         ]
         responses = return_mixed_router_usage(
             Value(meta, "model"),
@@ -127,7 +127,7 @@ class TestNovelPlan:
         ctx = NovelContext.create("The hero.", language="English")
         meta = NovelPlan(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
         with install_router_usage(
-            *return_model_json_router_usage(meta)[:1], "not valid json", "still not json", "nope"
+            *return_model_json_router_usage(meta)[:1], "not valid json", "still not json", "nope",
         ):
             novel = await role.compose_novel(ctx)
         assert novel is None
@@ -175,7 +175,7 @@ class TestWordCountAllocation:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=400, series_bible=SeriesBible()
+            title="The Search", description="A hero searching.", expected_word_count=400, series_bible=SeriesBible(),
         )
         chapter_plans_json = [
             {"title": "Ch1", "description": "The start.", "weight": 3.0},
@@ -193,7 +193,7 @@ class TestWordCountAllocation:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("B."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 

@@ -77,7 +77,7 @@ class ProblemSolutions(SketchedAble):
 
         """Interactively edit the problem description."""
         self.problem = Problem.model_validate_strings(
-            await text("Please edit the problem below:", default=self.problem.display()).ask_async()
+            await text("Please edit the problem below:", default=self.problem.display()).ask_async(),
         )
         return self
 
@@ -96,7 +96,7 @@ class ProblemSolutions(SketchedAble):
         """Get the final solution."""
         if not always_use_first and not self.decided():
             logger.error(
-                f"There is {len(self.solutions)} solutions for problem {self.problem.name}, please decide which solution is eventually adopted."
+                f"There is {len(self.solutions)} solutions for problem {self.problem.name}, please decide which solution is eventually adopted.",
             )
             return None
         return self.solutions[0]

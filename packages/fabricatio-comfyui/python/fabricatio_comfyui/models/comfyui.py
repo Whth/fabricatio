@@ -201,7 +201,7 @@ class ComfyuiOutputImage(BaseModel):
                 "filename": self.filename,
                 "subfolder": self.subfolder,
                 "type": self.type,
-            }
+            },
         )
 
 

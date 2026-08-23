@@ -24,7 +24,7 @@ class SynthesizeData(UseLLM, ABC):
     """
 
     async def generate_header(
-        self, requirement: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ListingKwargs[str]]
+        self, requirement: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ListingKwargs[str]],
     ) -> list[str] | list[list[str] | None] | None:
         """Generate appropriate column headers based on the given requirement(s).
 
@@ -43,7 +43,7 @@ class SynthesizeData(UseLLM, ABC):
         if was_str:
             requirement = [requirement]
         rendered = TEMPLATE_MANAGER.render_template(
-            plot_config.generate_header_template, [{"requirement": req} for req in requirement]
+            plot_config.generate_header_template, [{"requirement": req} for req in requirement],
         )
         header = await self.alist_v(rendered, value_type=str, send_to=send_to, **kwargs)
         if header is None:
@@ -146,7 +146,7 @@ class SynthesizeData(UseLLM, ABC):
                     **kwargs,
                 )
                 for i, batch_rows in enumerate(batch_sizes)
-            ]
+            ],
         )
 
         # Filter out None results with warning

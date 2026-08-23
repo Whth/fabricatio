@@ -21,7 +21,7 @@ async def main() -> None:
     )
 
     code = await role.aask(
-        "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation, you should using derive mode of clap."
+        "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation, you should using derive mode of clap.",
     )
 
     logger.info(f"Code: \n{code}")

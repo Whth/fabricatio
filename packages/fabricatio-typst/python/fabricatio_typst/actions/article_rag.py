@@ -96,7 +96,7 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
                 *[
                     self._inner(article, article_outline, chap, sec, subsec)
                     for chap, sec, subsec in article.iter_subsections()
-                ]
+                ],
             )
         return article.convert_tex()
 
@@ -156,7 +156,7 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
         return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def extract_new_subsec(
-        self, subsec: ArticleSubsection, raw_paras: str, cm: CitationManager
+        self, subsec: ArticleSubsection, raw_paras: str, cm: CitationManager,
     ) -> ArticleSubsection:
         """Extract the new subsec."""
         new_subsec = ok(
@@ -198,7 +198,7 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
             f"You SHALL use `{article.language}` as writing language.\n{extra_instruction}\n"
             f"Do not use numbered list to display the outcome, you should regard you are writing the main text of the thesis.\n"
             f"You should not copy others' works from the references directly on to my thesis, we can only harness the conclusion they have drawn.\n"
-            f"No extra explanation is allowed."
+            f"No extra explanation is allowed.",
         )
 
     async def search_database(
@@ -362,8 +362,8 @@ class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
         """
         refind_q = ok(
             await self.arefined_query(
-                f"{article.artifacts.access_outline().as_prompt()}\n# Subsection requiring reference enhancement\n{subsec.display()}\n"
-            )
+                f"{article.artifacts.access_outline().as_prompt()}\n# Subsection requiring reference enhancement\n{subsec.display()}\n",
+            ),
         )
         conf = LancedbFetchRAGConfig(document_model=ArticleEssence, limit=self.ref_limit)
         refs = await self.afetch_document(refind_q, conf)
@@ -401,7 +401,7 @@ class ChunkArticle(Action):
             bib_manager,
             max_chunk_size=ok(max_chunk_size or self.max_chunk_size, "No max_chunk_size provided!"),
             max_overlapping_rate=ok(
-                max_overlapping_rate or self.max_overlapping_rate, "No max_overlapping_rate provided!"
+                max_overlapping_rate or self.max_overlapping_rate, "No max_overlapping_rate provided!",
             ),
         )
 

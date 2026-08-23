@@ -201,7 +201,7 @@ class UseMind(Propose, ABC):
         threat_judge_future = self.ajudge(threat_judge_prompt, send_to=send_to)
 
         fulfill_judge_prompt = TEMPLATE_MANAGER.render_template(
-            character_config.mind_fulfill_analysis_template, ctx_data
+            character_config.mind_fulfill_analysis_template, ctx_data,
         )
         fulfill_judge_future = self.ajudge(fulfill_judge_prompt, send_to=send_to)
 
@@ -225,7 +225,7 @@ class UseMind(Propose, ABC):
         emotion_future = self.propose(EventImpact, impact_prompt, send_to=send_to)
 
         threat_judge, fulfill_judge, diamonds, emotion_result = await gather(
-            threat_judge_future, fulfill_judge_future, diamonds_future, emotion_future
+            threat_judge_future, fulfill_judge_future, diamonds_future, emotion_future,
         )
 
         # 4. Select specific need level only if judge affirmed
@@ -346,7 +346,7 @@ class UseMind(Propose, ABC):
         return new_state
 
     async def extract_style(
-        self, character_name: str, dialogues: list[str], send_to: str | None = TASK
+        self, character_name: str, dialogues: list[str], send_to: str | None = TASK,
     ) -> LinguisticStyle:
         """Extract linguistic style from character dialogues via LLM.
 

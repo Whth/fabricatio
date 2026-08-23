@@ -552,7 +552,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
         "mock-uuid-123": {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
-        }
+        },
     }
 
     with (
@@ -666,7 +666,7 @@ async def test_get_history_returns_typed() -> None:
         "pid-1": {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {"9": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}},
-        }
+        },
     }
     with patch.object(client, "_get", return_value=raw):
         entry = await client.get_history("pid-1")
@@ -714,7 +714,7 @@ async def test_wait_for_completion_polling() -> None:
         "pid-1": {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {},
-        }
+        },
     }
     with patch.object(client, "_get", return_value=raw):
         result = await client.wait_for_completion("pid-1", poll_interval=0.01, timeout=5.0)
@@ -754,7 +754,7 @@ def _first_checkpoint() -> str | None:
 
 _requires_comfyui = pytest.mark.skipif(not _comfyui_available(), reason="ComfyUI server not running")
 _requires_checkpoint = pytest.mark.skipif(
-    _first_checkpoint() is None, reason="No checkpoints installed on ComfyUI server"
+    _first_checkpoint() is None, reason="No checkpoints installed on ComfyUI server",
 )
 
 
@@ -800,7 +800,7 @@ async def test_integration_queue_and_history(tmp_path: Path) -> None:
             },
             "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
             "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "test"}},
-        }
+        },
     )
 
     async with _fresh_client() as client:

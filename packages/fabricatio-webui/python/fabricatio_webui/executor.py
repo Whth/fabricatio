@@ -305,7 +305,7 @@ def _wired_value(
     if source_handle.startswith("field:"):
         logger.warn(
             f"Node {node_id}: field-source edge {src_id!r}.{source_handle!r} is unsupported "
-            f"(fields are inputs only); skipping field {tgt_handle!r}."
+            f"(fields are inputs only); skipping field {tgt_handle!r}.",
         )
         return False, None
     if src_id not in outputs:
@@ -483,7 +483,7 @@ def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
             instance = _instantiate_action(cls, node_plan.config, node_plan.wired)
         except Exception as exc:  # noqa: BLE001
             logger.error(
-                f"Failed to instantiate {node_plan.action_class.__name__!r} for node {node_id!r}: {exc!r}; skipping."
+                f"Failed to instantiate {node_plan.action_class.__name__!r} for node {node_id!r}: {exc!r}; skipping.",
             )
             continue
         # Empty output_key actions still publish their result under the
@@ -550,13 +550,13 @@ def build_roles_from_boards(boards: list[dict[str, Any]]) -> list[Role]:
                     plan = _compile_workflow_plan(_registry_version(), _workflow_plan_key(wf_json))
                 except Exception as exc:  # noqa: BLE001 — e.g. a cycle
                     logger.error(
-                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} failed to compile: {exc!r}"
+                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} failed to compile: {exc!r}",
                     )
                     continue
                 pattern = _subscription_pattern(str(wf_json.get("namespace") or wf_json.get("name") or ""))
                 if not pattern:
                     logger.warn(
-                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} has no namespace; not subscribable."
+                        f"Workflow {wf_json.get('name', '?')} in role {role_name!r} has no namespace; not subscribable.",
                     )
                     continue
                 subscriptions[pattern] = _build_workflow(plan)

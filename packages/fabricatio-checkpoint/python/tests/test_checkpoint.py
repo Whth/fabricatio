@@ -36,7 +36,7 @@ def test_save(role: CheckpointRole, tmp_worktree_dir: Path) -> None:
     """Test saving a checkpoint."""
     tmp_worktree_dir.joinpath("test.txt").write_text("hello world")
     assert role.save_checkpoint("test1") == role.save_checkpoint(
-        "test2"
+        "test2",
     )  # two consecutive checkpoints should have the same id
 
 

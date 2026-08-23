@@ -64,7 +64,7 @@ def sample_ruleset(sample_rule: Rule) -> RuleSet:
         RuleSet: Sample ruleset instance
     """
     return RuleSet(
-        name="Content Guidelines", description="Guidelines for appropriate content", rules=[sample_rule], language="en"
+        name="Content Guidelines", description="Guidelines for appropriate content", rules=[sample_rule], language="en",
     )
 
 
@@ -76,7 +76,7 @@ def sample_improvement() -> Improvement:
         Improvement: Sample improvement instance
     """
     problem = Problem(
-        cause="Content contains inappropriate language", name="Profanity Issue", severity_level=7, location="Line 5"
+        cause="Content contains inappropriate language", name="Profanity Issue", severity_level=7, location="Line 5",
     )
     solution = Solution(
         mechanism="Replace profane words with appropriate alternatives",
@@ -119,7 +119,7 @@ class TestDraftRuleset:
 
     @pytest.mark.asyncio
     async def test_draft_ruleset_success(
-        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata
+        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata,
     ) -> None:
         """Test successful ruleset drafting.
 
@@ -142,7 +142,7 @@ class TestDraftRuleset:
 
     @pytest.mark.asyncio
     async def test_draft_ruleset_single_rule(
-        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata
+        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata,
     ) -> None:
         """Test drafting ruleset with single rule.
 
@@ -181,7 +181,7 @@ class TestCheckStringAgainstRule:
 
     @pytest.mark.asyncio
     async def test_check_string_violation_found(
-        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement
+        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement,
     ) -> None:
         """Test checking string that violates a rule.
 
@@ -227,7 +227,7 @@ class TestCheckStringAgainstRule:
 
     @pytest.mark.asyncio
     async def test_check_string_with_reference(
-        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement
+        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement,
     ) -> None:
         """Test checking string with reference text.
 
@@ -254,7 +254,7 @@ class TestCheckObjAgainstRule:
 
     @pytest.mark.asyncio
     async def test_check_display_obj_violation(
-        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement
+        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement,
     ) -> None:
         """Test checking Display object that violates a rule.
 
@@ -276,7 +276,7 @@ class TestCheckObjAgainstRule:
 
     @pytest.mark.asyncio
     async def test_check_briefing_obj_violation(
-        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement
+        self, check_role: CheckRole, sample_rule: Rule, sample_judgment: JudgeMent, sample_improvement: Improvement,
     ) -> None:
         """Test checking WithBriefing object that violates a rule.
 
@@ -378,7 +378,7 @@ class TestCheckString:
         """
         input_text = "This is perfectly appropriate content"
         false_judgment = JudgeMent(
-            issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False
+            issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False,
         )
 
         responses = return_model_json_router_usage(false_judgment)
@@ -459,7 +459,7 @@ class TestCheckObj:
         """
         obj = MockDisplayObject(content="This is appropriate object content")
         false_judgment = JudgeMent(
-            issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False
+            issue_to_judge="Check", affirm_evidence=[], deny_evidence=["No issues found"], final_judgement=False,
         )
 
         responses = return_model_json_router_usage(false_judgment)
@@ -531,7 +531,7 @@ class TestEdgeCases:
 
     @pytest.mark.asyncio
     async def test_draft_ruleset_zero_rules(
-        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata
+        self, check_role: CheckRole, sample_rule: Rule, ruleset_metadata: RuleSetMetadata,
     ) -> None:
         """Test drafting ruleset with zero rule count.
 

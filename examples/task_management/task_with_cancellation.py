@@ -37,8 +37,8 @@ class DumpText(Action, HandleTask):
         logger.debug(f"Dumping text: \n{dump_text}")
         collector = ok(
             await self.handle(
-                task_input.briefing, {"text_to_dump": dump_text}, {self.save_key: "the pathstr of the written file"}
-            )
+                task_input.briefing, {"text_to_dump": dump_text}, {self.save_key: "the pathstr of the written file"},
+            ),
         )
 
         return collector.take(self.save_key, str)
@@ -99,16 +99,16 @@ async def main() -> None:
 
     proposed_task: Task[str] = ok(
         await role.propose_task(
-            "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder."
-        )
+            "i want you to write a cli app implemented with python , which can calculate the sum to a given n, all write to a single file names `cli.py`, put it in `output` folder.",
+        ),
     )
     path = ok(await proposed_task.delegate("coding"))
     logger.info(f"Code Path: {path}")
 
     proposed_task = ok(
         await role.propose_task(
-            f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too."
-        )
+            f"write Readme.md file for the code, source file {path},save it in `README.md`,which is in the `output` folder, too.",
+        ),
     )
     proposed_task.override_dependencies(path)
     doc = await proposed_task.delegate("doc")

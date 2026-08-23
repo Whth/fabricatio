@@ -103,7 +103,7 @@ class VoteJudgeRole(LLMTestRole, VoteJudge):
             0.5: {"temperature": 0.5},
             0.7: {"temperature": 0.7},
             0.9: {"temperature": 0.9},
-        }
+        },
     )
     vote_pass_threshold: float | None = 0.5  # Default threshold
 

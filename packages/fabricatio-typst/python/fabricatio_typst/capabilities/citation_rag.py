@@ -53,7 +53,7 @@ class CitationLancedbRAG(LancedbRAG, ABC):
             raise ValueError("max_round should be greater than 0")
         if cnf.max_round == 1:
             logger.warn(
-                "max_round should be greater than 1, otherwise it behaves nothing different from `self.afetch_document`"
+                "max_round should be greater than 1, otherwise it behaves nothing different from `self.afetch_document`",
             )
 
         refinery_kwargs = cnf.refinery_kwargs or {}

@@ -126,7 +126,7 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
             *[
                 gather(*[self.evidently_judge(p, **override_kwargs(kw, **kwargs)) for kw in self.vote_llm.values()])
                 for p in prompt
-            ]
+            ],
         )
         passes = []
         for judgments in judgments_list:

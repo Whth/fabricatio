@@ -31,7 +31,7 @@ class ProposeObj(Action, Propose):
 Role.with_bio(name="talker").subscribe(
     Event.quick_instantiate("talk"),
     WorkFlow(name="talk", steps=(ProposeObj, PersistentAll(persist_dir="persis"))).update_init_context(
-        briefing=Path("briefing.txt").read_text(encoding="utf-8")
+        briefing=Path("briefing.txt").read_text(encoding="utf-8"),
     ),
 )
 

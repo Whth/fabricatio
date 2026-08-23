@@ -65,7 +65,7 @@ def cfg_on_async[**P, R](
 
 
 def depend_on_external_cmd[**P, R](
-    bin_name: str, install_tip: str | None, homepage: str | None = None
+    bin_name: str, install_tip: str | None, homepage: str | None = None,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """Decorator to check for the presence of an external command.
 

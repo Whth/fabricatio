@@ -16,7 +16,7 @@ class YueConfig(BaseModel):
     model_config = ConfigDict(use_attribute_docstrings=True)
 
     segment_types: list[str] = Field(
-        default_factory=lambda: ["verse", "chorus", "bridge", "intro", "outro", "solo", "beat", "end"]
+        default_factory=lambda: ["verse", "chorus", "bridge", "intro", "outro", "solo", "beat", "end"],
     )
     """List of valid segment types for music composition."""
 

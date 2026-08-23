@@ -92,7 +92,7 @@ class Song(SketchedAble, WithBriefing):
         logger.info(f"Saving song to {file_path.as_posix()}")
 
         out = TEMPLATE_MANAGER.render_template(
-            yue_config.song_save_template, {"duration": self.duration, **self.model_dump()}
+            yue_config.song_save_template, {"duration": self.duration, **self.model_dump()},
         )
         logger.debug(f"Song content:\n{out}")
         Path(file_path).write_text(out, encoding="utf-8", errors="ignore", newline="\n")

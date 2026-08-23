@@ -73,13 +73,13 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         if isinstance(query, str):
             search_vec = await self.vectorize(query)
             searched = await table.search_document(
-                search_vec, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold
+                search_vec, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold,
             )
             return [doc_model.from_raw(s) for s in searched]
 
         search_vec = await self.vectorize(query)
         searched = await asyncio.gather(
-            *[table.search_document(v, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold) for v in search_vec]
+            *[table.search_document(v, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold) for v in search_vec],
         )
         return [doc_model.from_raw(s) for s in flatten(searched)]
 

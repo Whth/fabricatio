@@ -121,10 +121,10 @@ class GenerateArticleProposal(Action, Propose):
             ok(
                 article_briefing_path
                 or await self.awhich_pathstr(
-                    f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing."
+                    f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing.",
                 ),
                 "Could not find the path of file to read.",
-            )
+            ),
         ).read_text(encoding="utf-8")
 
         logger.info("Start generating the proposal.")
@@ -161,7 +161,7 @@ class GenerateInitialOutline(Action, Extract, Correct):
             TEMPLATE_MANAGER.render_template(
                 typst_config.generate_outline_template,
                 {"proposal": article_proposal.as_prompt(), "language": article_proposal.language},
-            )
+            ),
         )
 
         if supervisor or (supervisor is None and self.supervisor):
@@ -172,11 +172,11 @@ class GenerateInitialOutline(Action, Extract, Correct):
                 raw_imp = await text("Enter the improvement:").ask_async()
 
                 imp = ok(
-                    await self.propose(Improvement, f"{wrap_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}")
+                    await self.propose(Improvement, f"{wrap_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}"),
                 )
                 raw_outline = (
                     await self.correct_string(
-                        raw_outline, imp, wrap_in_block(article_proposal.as_prompt(), "Article Proposal")
+                        raw_outline, imp, wrap_in_block(article_proposal.as_prompt(), "Article Proposal"),
                     )
                 ) or raw_outline
                 r_print(raw_outline)
@@ -317,7 +317,7 @@ class WriteChapterSummary(Action, UseLLM):
             else:
                 # Log c warning for each chapter skipped due to lack of sections
                 logger.warn(
-                    f"Chapter '{chapter_candidate.title}' has no sections and will be skipped for summary generation."
+                    f"Chapter '{chapter_candidate.title}' has no sections and will be skipped for summary generation.",
                 )
 
         chaps = retained_chapters  # Update chaps to only include chapters with sections
@@ -347,7 +347,7 @@ class WriteChapterSummary(Action, UseLLM):
                             }
                             for c in chaps
                         ],
-                    )
+                    ),
                 )
             )
         ]
@@ -405,7 +405,7 @@ class WriteResearchContentSummary(Action, UseLLM):
                     "summary_word_count": self.summary_word_count,
                     "paragraph_count": self.paragraph_count,
                 },
-            )
+            ),
         )
         logger.info(f"{self.summary_title}|Wordcount: {word_count(suma)}|Expected: {self.summary_word_count}\n{suma}")
 

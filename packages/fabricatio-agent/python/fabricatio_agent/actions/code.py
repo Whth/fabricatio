@@ -31,7 +31,7 @@ class WriteCode(Action, Agent):
             await self.acode_snippets(
                 f"current directory tree:\n{treeview()}\n\n{task_input.assembled_prompt}",
                 code_language=self.coding_language,
-            )
+            ),
         )
 
         for c in c_seq:

@@ -122,7 +122,7 @@ class NovelCompose(ChapterCompose, ABC):
                 ),
                 send_to=send_to,
                 **kwargs,
-            )
+            ),
         )
         ctx.set_charactor_spans(spans.root)
         logger.info(f"Proposed {len(ctx.charactor_span)} novel character span(s)")
@@ -166,7 +166,7 @@ class NovelCompose(ChapterCompose, ABC):
                 ),
                 send_to=send_to,
                 **kwargs,
-            )
+            ),
         )
         stitch_boundaries(
             ctx.charactor_span,
@@ -202,8 +202,8 @@ class NovelCompose(ChapterCompose, ABC):
                     .set_rag(ctx.rag)
                     .set_writing_styles(merge_writing_styles(ctx.writing_styles, chapter_plan.writing_style))
                     .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint)
-                    )
+                        merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint),
+                    ),
                 )
             logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
         await self.draft_chapter_spans(ctx, send_to, **kwargs)
@@ -233,7 +233,7 @@ class NovelCompose(ChapterCompose, ABC):
         """Materialize the composed context tree as a Novel."""
         novel = Novel.from_context(ctx)
         logger.info(
-            f"Novel '{novel.title}' composed ({len(novel.chapter)} chapter(s), word count satisfaction: {novel.satisfy_ratio()}"
+            f"Novel '{novel.title}' composed ({len(novel.chapter)} chapter(s), word count satisfaction: {novel.satisfy_ratio()}",
         )
         return novel
 

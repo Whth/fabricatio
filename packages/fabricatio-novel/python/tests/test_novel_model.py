@@ -94,7 +94,7 @@ class TestNovelContext:
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
-            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100, series_bible=SeriesBible())
+            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100, series_bible=SeriesBible()),
         )
 
         assert scene.title == "S1"

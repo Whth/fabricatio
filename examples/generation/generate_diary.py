@@ -31,12 +31,12 @@ class WriteDiary(Action, UseLLM):
                 "diary should be written in markdown format, and using Chinese to write",
                 "write dev target and exact content under the heading names `# 实习主要项目和内容`",
                 "write summary under the heading names `# 主要收获和总结`",
-            ]
+            ],
         )
 
         # 2025-02-22 format
         json_data = task_input.read_dependency(reader=safe_json_read)
-        seq = sorted(json_data.items(), key=lambda x: datetime.strptime(x[0], "%Y-%m-%d"))
+        seq = sorted(json_data.items(), key=lambda x: datetime.strptime(x[0], "%Y-%m-%d").astimezone())
 
         res = await self.aask(
             [
@@ -59,11 +59,11 @@ class DumpText(Action, Handle):
     async def _execute(self, task_input: Task, dump_text: str, **_: Any) -> str | None:
         logger.debug(f"Dumping text: \n{dump_text}")
         task_input.update_task(
-            goal=["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"]
+            goal=["dump the text contained in `text_to_dump` to a file", "only return the path of the written file"],
         )
 
         resc = await self.handle_fine_grind(
-            task_input.assembled_prompt, {"text_to_dump": dump_text}, {"written_file_path": "path of the written file"}
+            task_input.assembled_prompt, {"text_to_dump": dump_text}, {"written_file_path": "path of the written file"},
         )
         if resc:
             return resc.take("written_file_path")
@@ -77,9 +77,9 @@ class Coder(RoleBase, ProposeTask):
     subscriptions: dict[EventPattern, WorkFlow] = Field(
         default={
             Event.quick_instantiate("doc").collapse(): WorkFlow(
-                name="write documentation", steps=(WriteDiary, DumpText)
+                name="write documentation", steps=(WriteDiary, DumpText),
             ),
-        }
+        },
     )
 
 
@@ -92,7 +92,7 @@ async def main() -> None:
             "Write a diary according to the given commit messages in json format. and dump to `diary.md` at `output` dir,"
             "In the json the key is the day in which the commit messages in value was committed,"
             "you need to separately write diary for each day.",
-        )
+        ),
     )
     task.override_dependencies("./commits.json")
     await task.move_to("doc").delegate()

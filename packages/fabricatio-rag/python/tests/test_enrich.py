@@ -31,7 +31,7 @@ class TestEnrichSingleChunk:
             qa_pairs=[
                 QAPair(question="What is X?", answer="X is ..."),
                 QAPair(question="Why Y?", answer="Because ..."),
-            ]
+            ],
         )
         role = _make_role()
         # Unique chunk per test → unique question hash → fresh LLM cache.
@@ -67,7 +67,7 @@ class TestEnrichBatch:
             qa_pairs=[
                 QAPair(question="Batch Q?", answer="Batch A"),
                 QAPair(question="Batch Q2?", answer="Batch A2"),
-            ]
+            ],
         )
         role = _make_role()
         # Each chunk is unique so the LLM response cache does not collide

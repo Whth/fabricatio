@@ -78,7 +78,7 @@ async def test_localize_parametrized(
 
         # Check that IDs are preserved and texts are translated correctly
         for i, (original_msg, result_msg, expected_txt) in enumerate(
-            zip(messages, result, expected_texts, strict=True)
+            zip(messages, result, expected_texts, strict=True),
         ):
             assert result_msg.id == original_msg.id, f"Message {i}: ID should be preserved"
             assert result_msg.txt == expected_txt, f"Message {i}: Text should be translated correctly"
@@ -124,7 +124,7 @@ async def test_localize_with_specification_parametrized(
 
         # Check that IDs are preserved and texts are translated correctly
         for i, (original_msg, result_msg, expected_txt) in enumerate(
-            zip(messages, result, expected_texts, strict=False)
+            zip(messages, result, expected_texts, strict=False),
         ):
             assert result_msg.id == original_msg.id, f"Message {i}: ID should be preserved"
             assert result_msg.txt == expected_txt, f"Message {i}: Text should be translated correctly"

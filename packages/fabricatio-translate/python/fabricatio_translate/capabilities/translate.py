@@ -149,7 +149,7 @@ class Translate(UseLLM):
                         **kwargs,
                     )
                     for c in chunked_seq
-                ]
+                ],
             ),
             "Failed to translate chunked text.",
         )

@@ -42,7 +42,7 @@ async def main() -> None:
     )
 
     task = await role.propose_task(
-        "you have to act as a helpful assistant, answer to all user questions properly and patiently"
+        "you have to act as a helpful assistant, answer to all user questions properly and patiently",
     )
     _ = await ok(task).delegate("talk")
 

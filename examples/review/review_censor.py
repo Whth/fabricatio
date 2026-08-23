@@ -18,7 +18,7 @@ async def main() -> None:
     )
 
     code = await role.aask(
-        "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation"
+        "write a cli app using rust with clap which can generate a basic manifest of a standard rust project, output code only,no extra explanation",
     )
 
     ruleset = await role.draft_ruleset("should not use clap to write cli.", rule_count=1)

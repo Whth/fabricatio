@@ -50,7 +50,7 @@ class GenerateDeck(Propose):
         metadata = await self.propose(
             ModelMetaData,
             TEMPLATE_MANAGER.render_template(
-                anki_config.generate_anki_deck_metadata_template, {"requirement": requirement, "fields": fields}
+                anki_config.generate_anki_deck_metadata_template, {"requirement": requirement, "fields": fields},
             ),
             send_to=send_to,
             **ov_kwargs,
@@ -151,8 +151,8 @@ class GenerateDeck(Propose):
                         ),
                         send_to=send_to,
                         **override_kwargs(kwargs, defualt=None),
-                    )
-                )
+                    ),
+                ),
             )
             # draft card template generation requirements
             template_generation_requirements = ok(
@@ -165,13 +165,13 @@ class GenerateDeck(Propose):
                     k=k,
                     send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
-                )
+                ),
             )
 
             templates = ok(
                 await self.generate_template(
-                    fields, template_generation_requirements, send_to=send_to, **override_kwargs(kwargs, defualt=None)
-                )
+                    fields, template_generation_requirements, send_to=send_to, **override_kwargs(kwargs, defualt=None),
+                ),
             )
 
             return Model(name=name, fields=fields, templates=templates)
@@ -184,7 +184,7 @@ class GenerateDeck(Propose):
                     ),
                     send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
-                )
+                ),
             )
 
             template_generation_requirements_seq = ok(
@@ -197,16 +197,16 @@ class GenerateDeck(Propose):
                     k=k,
                     send_to=send_to,
                     **override_kwargs(kwargs, defualt=None),
-                )
+                ),
             )
             templates_seq = await gather(
                 *[
                     self.generate_template(
-                        fields, template_reqs, send_to=send_to, **override_kwargs(kwargs, defualt=None)
+                        fields, template_reqs, send_to=send_to, **override_kwargs(kwargs, defualt=None),
                     )
                     for template_reqs in template_generation_requirements_seq
                     if template_reqs
-                ]
+                ],
             )
 
             return [
@@ -311,7 +311,7 @@ class GenerateDeck(Propose):
 
         # Generate template name
         name_rendered = TEMPLATE_MANAGER.render_template(
-            anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement}
+            anki_config.generate_anki_model_name_template, {"fields": fields, "requirement": requirement},
         )
         name = ok(await self.ageneric_string(name_rendered, send_to=send_to, **okwargs))
         if not name:
@@ -350,7 +350,7 @@ class GenerateDeck(Propose):
 
         # Generate template names
         name_rendered = TEMPLATE_MANAGER.render_template(
-            anki_config.generate_anki_model_name_template, [{"fields": fields, "requirement": r} for r in requirement]
+            anki_config.generate_anki_model_name_template, [{"fields": fields, "requirement": r} for r in requirement],
         )
         names = ok(await self.ageneric_string(name_rendered, send_to=send_to, **okwargs))
         if not names:
@@ -415,7 +415,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_front_side(
-        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> Side | None:
         """Overloaded version for single front side generation.
 
@@ -474,12 +474,12 @@ class GenerateDeck(Propose):
             One or more Side instances based on input type
         """
         return await self._generate_side(
-            fields, requirement, anki_config.generate_anki_card_front_side_template, send_to=send_to, **kwargs
+            fields, requirement, anki_config.generate_anki_card_front_side_template, send_to=send_to, **kwargs,
         )
 
     @overload
     async def generate_back_side(
-        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]],
     ) -> Side | None:
         """Overloaded version for single back side generation.
 
@@ -535,5 +535,5 @@ class GenerateDeck(Propose):
             One or more Side instances based on input type
         """
         return await self._generate_side(
-            fields, requirement, anki_config.generate_anki_card_back_side_template, send_to=send_to, **kwargs
+            fields, requirement, anki_config.generate_anki_card_back_side_template, send_to=send_to, **kwargs,
         )

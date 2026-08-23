@@ -46,13 +46,13 @@ class TweakEssay(Action, DiffEdit):
 
         logger.info(f"Tweaking essay... words: {len(essay)}")
         return ok(
-            await self.diff_edit(essay, "fix all spelling mistakes and typo or wrong usage of words in the essay.")
+            await self.diff_edit(essay, "fix all spelling mistakes and typo or wrong usage of words in the essay."),
         )
 
 
 # Configure role workflow for essay tweaking
 Role.with_bio(name="writer").subscribe(
-    Event.quick_instantiate("tweak"), WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),))
+    Event.quick_instantiate("tweak"), WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),)),
 ).dispatch()
 
 

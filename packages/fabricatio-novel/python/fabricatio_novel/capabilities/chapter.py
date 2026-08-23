@@ -113,7 +113,7 @@ class ChapterCompose(StoryCompose, ABC):
                 ),
                 send_to=send_to,
                 **kwargs,
-            )
+            ),
         )
         stitch_boundaries(
             ctx.charactor_span,
@@ -149,8 +149,8 @@ class ChapterCompose(StoryCompose, ABC):
                     .set_rag(ctx.rag)
                     .set_writing_styles(merge_writing_styles(ctx.writing_styles, story_plan.writing_style))
                     .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, story_plan.writing_constraint)
-                    )
+                        merge_writing_constraints(ctx.writing_constraint, story_plan.writing_constraint),
+                    ),
                 )
             logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
         await self.draft_story_spans(ctx, send_to, **kwargs)
@@ -194,7 +194,7 @@ class ChapterCompose(StoryCompose, ABC):
             return None
         chapter = Chapter.from_context(ctx)
         logger.info(
-            f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}"
+            f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}",
         )
         return chapter
 

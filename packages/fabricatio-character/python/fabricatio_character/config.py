@@ -84,7 +84,7 @@ class CharacterConfig:
             MaslowLevel.BELONGING: "You crave acceptance and connection. Loneliness is your greatest fear.",
             MaslowLevel.ESTEEM: "You need respect and recognition. Failure and humiliation are unacceptable.",
             MaslowLevel.SELF_ACTUALIZATION: "You pursue meaning and purpose. Mundane concerns frustrate you.",
-        }
+        },
     )
     """Maslow level -> behavioral description for prompt injection."""
 
@@ -95,7 +95,7 @@ class CharacterConfig:
             Distortion.PERSONALIZATION: "'The team failed -> it must be my fault, I dragged everyone down'",
             Distortion.EMOTIONAL_REASONING: "'I feel incompetent -> I truly am worthless -> this is fact'",
             Distortion.SHOULD_THINKING: "'I should be able to protect everyone -> I can't -> I'm a failure'",
-        }
+        },
     )
     """Cognitive distortion -> example internal monologue."""
     mind_personality_rules: dict[PersonalityFlag, str] = field(
@@ -106,7 +106,7 @@ class CharacterConfig:
             PersonalityFlag.LOW_EXTRAVERSION: "You prefer solitude, find social interaction draining",
             PersonalityFlag.HIGH_CONSCIENTIOUSNESS: "You are disciplined, organized, cannot tolerate chaos",
             PersonalityFlag.HIGH_OPENNESS: "You are curious, open to new experiences and ideas",
-        }
+        },
     )
     """Personality flag key -> behavioral description for prompt injection."""
 
@@ -273,7 +273,7 @@ class CharacterConfig:
                     voice=VoiceQuality.STEADY,
                 ),
             ),
-        }
+        },
     )
     """Emotion keyword -> (high_intensity_body, low_intensity_body) mapping."""
 
@@ -288,7 +288,7 @@ class CharacterConfig:
             SituationDimension.NEGATIVITY: {Distortion.EMOTIONAL_REASONING: 25.0, Distortion.PERSONALIZATION: 15.0},
             SituationDimension.DUTY: {Distortion.SHOULD_THINKING: 30.0},
             SituationDimension.SOCIALITY: {Distortion.PERSONALIZATION: 20.0},
-        }
+        },
     )
     """DIAMONDS dimension -> {distortion: score_boost} mapping for rule_filter."""
 

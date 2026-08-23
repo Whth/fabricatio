@@ -96,8 +96,8 @@ class StoryCompose(SceneCompose, ABC):
                     .set_outline(ctx.outline)
                     .set_writing_styles(list(ctx.writing_styles))
                     .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint)
-                    )
+                        merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint),
+                    ),
                 )
             logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
         return True
@@ -160,7 +160,7 @@ class StoryCompose(SceneCompose, ABC):
             return None
         story = Story.from_context(ctx)
         logger.info(
-            f"Story '{story.title}' composed ({len(story.scenes)} scene(s),  word count satisfaction: {story.satisfy_ratio()}"
+            f"Story '{story.title}' composed ({len(story.scenes)} scene(s),  word count satisfaction: {story.satisfy_ratio()}",
         )
         return story
 

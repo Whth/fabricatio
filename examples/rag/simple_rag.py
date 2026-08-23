@@ -34,7 +34,7 @@ class Talk(Action, MilvusRAG):
                 "Company address: 123 East Sports Road, Tianhe District, Guangzhou, Postal Code: 510620.",
                 "Annual team building activities will be held in the second quarter of each year, usually at a resort within a two-hour drive from the Guangzhou headquarters.",
                 "Employees who are late more than three times will receive a formal warning, which may affect their year-end performance evaluation.",
-            ]
+            ],
         )
         try:
             while True:
@@ -62,7 +62,7 @@ async def main() -> None:
     )
 
     task = await role.propose_task(
-        "you have to act as a helpful assistant, answer to all user questions properly and patiently"
+        "you have to act as a helpful assistant, answer to all user questions properly and patiently",
     )
     _ = await task.delegate("talk")
 

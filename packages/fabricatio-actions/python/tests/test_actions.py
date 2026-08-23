@@ -86,7 +86,7 @@ class TestRenderedDump:
                 assert dump_path.exists()
                 assert dump_path.read_text() == "rendered: template content"
                 mock_template.render_template.assert_called_once_with(
-                    "test_template", {"MockFinalizedDumpAble": "template content"}
+                    "test_template", {"MockFinalizedDumpAble": "template content"},
                 )
 
 
@@ -105,7 +105,7 @@ class TestPersistentAll:
             mock_obj2 = MockPersistentAble(content="obj2")
 
             count = await action._execute(
-                persist_dir=persist_dir, test_obj1=mock_obj1, test_obj2=mock_obj2, non_persistent="ignored"
+                persist_dir=persist_dir, test_obj1=mock_obj1, test_obj2=mock_obj2, non_persistent="ignored",
             )
 
             assert count == 2

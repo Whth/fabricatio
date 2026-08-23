@@ -687,11 +687,11 @@ class UseEmbedding(EmbeddingScopedConfig, ABC):
 
     @overload
     async def vectorize(
-        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs],
     ) -> list[list[float]] | list[float]: ...
 
     async def vectorize(
-        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs]
+        self, input_text: list[str] | str, **kwargs: Unpack[EmbeddingKwargs],
     ) -> list[list[float]] | list[float]:
         """Asynchronously generates vector embeddings for the given input text.
 
@@ -718,7 +718,7 @@ class UseReranker(RerankerScopedConfig, ABC):
     """A class for reranking documents using a reranker model."""
 
     async def arank(
-        self, query: str, documents: list[str], **kwargs: Unpack[RerankerKwargs]
+        self, query: str, documents: list[str], **kwargs: Unpack[RerankerKwargs],
     ) -> list[tuple[int, float]]:
         """Reranks a list of documents based on their relevance to the query.
 

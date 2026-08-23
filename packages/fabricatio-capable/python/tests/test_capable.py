@@ -57,7 +57,7 @@ async def test_capable_single_string(capable_role: CapableRole, toolbox_set: set
             await capable_role.capable(
                 request="test input",
                 toolboxes=toolbox_set,
-            )
+            ),
         )
         assert result.model_dump_json() == desired.model_dump_json()
         assert bool(result) is True
@@ -89,7 +89,7 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: s
             await capable_role.capable(
                 request=[f"req {i}" for i in range(3)],
                 toolboxes=toolbox_set,
-            )
+            ),
         )
         assert isinstance(results, list)
         assert len(results) == 3

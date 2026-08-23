@@ -125,7 +125,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         return chosen_tools
 
     async def gather_tools(
-        self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]]
+        self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]],
     ) -> list[Tool]:
         """Asynchronously gathers tools based on the provided request.
 

@@ -24,7 +24,7 @@ async def main() -> None:
                     GenerateInitialOutline(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
                     DumpFinalizedOutput(output_key="task_output"),
                 ),
-            )
+            ),
         },
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",

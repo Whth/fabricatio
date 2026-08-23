@@ -65,7 +65,7 @@ def build_node_registry() -> dict[str, Any]:
                         "optional": True,
                         "description": f"Runtime parameter of {cls.__name__}, resolved from the workflow context",
                         "widget": "text",
-                    }
+                    },
                 )
             if _consumes_context(cls) and CONTEXT_PORT_NAME not in seen:
                 runtime_ports.append(
@@ -75,7 +75,7 @@ def build_node_registry() -> dict[str, Any]:
                         "optional": True,
                         "description": "Whole execution context from preceding steps (display-only wire)",
                         "widget": "text",
-                    }
+                    },
                 )
 
             entry: dict[str, Any] = {
@@ -186,9 +186,9 @@ def migrate_board(raw: dict[str, Any]) -> dict[str, Any]:
                         "nodes": workflow.get("nodes", []),
                         "edges": workflow.get("edges", []),
                         "init_context": workflow.get("init_context", {}),
-                    }
+                    },
                 ],
-            }
+            },
         ],
         "actions": [],
         "meta": raw.get("meta"),

@@ -102,7 +102,7 @@ class ToolBox(WithBriefing):
 
     @overload
     def collect_tool[**P, R](
-        self, *, confirm: bool = tool_config.confirm_on_ops, logging: bool = tool_config.logging_on_ops
+        self, *, confirm: bool = tool_config.confirm_on_ops, logging: bool = tool_config.logging_on_ops,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
     @overload

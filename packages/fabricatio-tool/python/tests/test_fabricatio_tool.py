@@ -182,7 +182,7 @@ class TestToolExecutor:
         return {"existing": "value"}
 
     def test_inject_tools(
-        self, tool_executor: ToolExecutor, mock_context: dict[str, Any], sample_func: Callable[[int, str], str]
+        self, tool_executor: ToolExecutor, mock_context: dict[str, Any], sample_func: Callable[[int, str], str],
     ) -> None:
         """Test tool injection into context."""
         new_context = tool_executor.inject_tools(mock_context)

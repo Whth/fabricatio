@@ -94,10 +94,10 @@ class TestSkillRust:
                 path="a.md",
             ),
             Skill(
-                name="security", description="Security audit", tags=["security", "audit"], content="Vulns.", path="b.md"
+                name="security", description="Security audit", tags=["security", "audit"], content="Vulns.", path="b.md",
             ),
             Skill(
-                name="performance", description="Performance optimization", tags=["perf"], content="Speed.", path="c.md"
+                name="performance", description="Performance optimization", tags=["perf"], content="Speed.", path="c.md",
             ),
         ]
 
@@ -207,7 +207,7 @@ class TestUseSkill:
                     content="# Security\nCheck vulns.",
                     path="sec.md",
                 ),
-            ]
+            ],
         )
 
         role.mock_llm_response("reviewed answer")

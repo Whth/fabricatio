@@ -172,7 +172,7 @@ def test_complete_workflow() -> None:
             "region": col_region,
             "sales": col_sales,
             "date": col_date,
-        }
+        },
     )
 
     # Add correlated column (e.g., revenue based on sales)

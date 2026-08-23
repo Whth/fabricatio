@@ -51,7 +51,7 @@ class Improvement(SketchedAble):
                 await checkbox(
                     f"Please choose the solutions you want to retain.(Default: retain all)\n\t`{to_exam.problem}`",
                     choices=[Choice(s.name, s, checked=True) for s in to_exam.solutions],
-                ).ask_async()
+                ).ask_async(),
             )
             await to_exam.edit_solutions()
 

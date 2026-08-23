@@ -92,7 +92,7 @@ def _graph_from_workflow(
                 "inputs": {},
                 "config": _step_config(step),
                 "schema_version": 1,
-            }
+            },
         )
         if prev is not None:
             prev_id, prev_instance_key, prev_port_key = prev
@@ -108,7 +108,7 @@ def _graph_from_workflow(
                         "source_handle": prev_port_key,
                         "target": node_id,
                         "target_handle": target_handle,
-                    }
+                    },
                 )
         # The *instance* output_key is what lands in the workflow context at
         # runtime (steps may override it, e.g. ExtractArticleEssence(output_key="documents")).
@@ -169,7 +169,7 @@ def build_blueprints() -> dict[str, Any]:
                 "category": category,
                 "node_count": len(list(wf.iter_actions())),
                 "workflow": _workflow_doc(wf),
-            }
+            },
         )
 
     fingerprint = hashlib.sha256(json.dumps(blueprints, sort_keys=True, default=str).encode()).hexdigest()[:8]

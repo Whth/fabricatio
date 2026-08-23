@@ -203,7 +203,7 @@ class Article(
                     ArticleSectionOutline(
                         **section.model_dump(exclude={"subsections"}, by_alias=True),
                         subsections=subsections,
-                    )
+                    ),
                 )
 
             # Create a chapter outline and add it to the list
@@ -211,7 +211,7 @@ class Article(
                 ArticleChapterOutline(
                     **chapter.model_dump(exclude={"sections"}, by_alias=True),
                     sections=sections,
-                )
+                ),
             )
 
         return ArticleOutline(
@@ -284,7 +284,7 @@ class Article(
             for i, p in enumerate(subsec.paragraphs):
                 if p.exact_word_count <= threshold:
                     err.append(
-                        f"{chap.title}->{sec.title}->{subsec.title}-> Paragraph [{i}] is too short, {p.exact_word_count} words."
+                        f"{chap.title}->{sec.title}->{subsec.title}-> Paragraph [{i}] is too short, {p.exact_word_count} words.",
                     )
 
         return "\n".join(err)

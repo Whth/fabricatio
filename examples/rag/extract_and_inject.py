@@ -48,7 +48,7 @@ async def main() -> None:
                 persist_dir="output_0324",
                 bib_mgr=BibManager("ref.bib"),
                 reader=_reader,
-            )
+            ),
         },
         name="Researcher",
         description="Extract article essence",

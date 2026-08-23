@@ -174,7 +174,7 @@ class ToolExecutor:
         check_calls = check_calls.model_copy(deep=True)
 
         if check_calls.is_blacklist() and any(
-            included := [tool.name for tool in self.candidates if tool.name in check_calls.targets]
+            included := [tool.name for tool in self.candidates if tool.name in check_calls.targets],
         ):
             raise ValueError(f"Blacklist mode is not allowed for tools: {included}")
 

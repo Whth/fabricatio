@@ -24,5 +24,5 @@ class MakeCharts(Action, Plot):
 
     async def _execute(self, task_input: Task, *_: Any, **cxt) -> None:
         await self.plot(
-            f"{self.plot_requirement or task_input.assembled_prompt}{f'\nYou SHALL save the chart to {self.chart_save_path}' if self.chart_save_path else ''}"
+            f"{self.plot_requirement or task_input.assembled_prompt}{f'\nYou SHALL save the chart to {self.chart_save_path}' if self.chart_save_path else ''}",
         )

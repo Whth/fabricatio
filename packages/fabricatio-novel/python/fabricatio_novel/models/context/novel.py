@@ -120,7 +120,7 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
         if any(entry.kind == "setting_bible" for entry in self.prefix_log.entries):
             return self
         self.prefix_log = self.prefix_log.with_entry(
-            ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip())
+            ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip()),
         )
         return self
 

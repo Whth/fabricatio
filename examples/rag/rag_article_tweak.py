@@ -33,7 +33,7 @@ async def main() -> None:
     task: Task[int] = ok(
         await role.propose_task(
             "Answer to all user questions properly and patiently",
-        )
+        ),
     )
 
     logger.info(f"Complete {await task.delegate(e)} times qa.")

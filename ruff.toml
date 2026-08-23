@@ -41,6 +41,9 @@ select = [
     "TC", # flake8-type-checking
     "TD", # flake8-todos
     "FIX", # flake8-fixme
+    "A", # flake8-builtins
+    "DTZ", # flake8-datetimez
+    "COM", # flake8-commas
     "PTH", # flake8-use-pathlib
     "PLC", # convention
     "PLE", # error
@@ -65,6 +68,9 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
+"docs/source/conf.py" = ["A001"] # Sphinx requires the `copyright` variable name
+"**/rust/__init__.pyi" = ["A002"] # generated stubs mirror Rust parameter names
+"packages/fabricatio-diff/python/fabricatio_diff/capabilities/hashline_edit.py" = ["A002"] # `all` mirrors the Rust binding kwarg and HashlineOp.all field
 # Tests that assert typing.Optional/Union unwrapping behavior itself
 "packages/fabricatio-webui/python/tests/test_registry.py" = ["UP007", "UP045"]
 

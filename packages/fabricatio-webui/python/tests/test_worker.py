@@ -301,7 +301,7 @@ async def test_extra_init_context_seeds_execution_context(tmp_path: Any) -> None
                     "name": "t",
                     "send_to": ["test"],
                     "extra_init_context": {"user": "task-user", "prefix": "hello"},
-                }
+                },
             ),
         )
         done = await _wait_for(collector, "execution_done")

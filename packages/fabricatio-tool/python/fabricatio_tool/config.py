@@ -54,8 +54,8 @@ class ToolConfig(BaseModel):
     """Imports that are forbidden/allowed to be used."""
     check_calls: CheckConfigModel = Field(
         default_factory=lambda: CheckConfigModel(
-            targets={"str", "int", "float", "bool", "dict", "set", "list", "pathlib.Path", "print", "len"}
-        )
+            targets={"str", "int", "float", "bool", "dict", "set", "list", "pathlib.Path", "print", "len"},
+        ),
     )
     """Calls that are forbidden/allowed to be used."""
 

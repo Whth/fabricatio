@@ -98,7 +98,7 @@ class SceneCompose(CharacterCompose, ABC):
         scene.expect_(ctx.expected_word_count)
         ctx.set_content(scene.content)
         logger.info(
-            f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}"
+            f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}",
         )
         return scene
 

@@ -283,7 +283,7 @@ class WorkflowCore:
 
     def add(
         self,
-        type: str,
+        node_type: str,
         *,
         title: str = "",
         inputs: NodeInputs | None = None,
@@ -291,7 +291,7 @@ class WorkflowCore:
         """Add a new node, auto-assigning the next available ID."""
         node_id = str(self.counter)
         self.counter += 1
-        node = Node(id=node_id, type=type, inputs=dict(inputs) if inputs else {}, title=title)
+        node = Node(id=node_id, type=node_type, inputs=dict(inputs) if inputs else {}, title=title)
         self.node_map[node_id] = node
         return node
 
@@ -299,9 +299,9 @@ class WorkflowCore:
         """Get a node by ID.  Raises ``KeyError`` if not found."""
         return self.node_map[node_id]
 
-    def by_type(self, type: str) -> list[Node]:
+    def by_type(self, node_type: str) -> list[Node]:
         """Find all nodes with the given *type*."""
-        return [n for n in self.node_map.values() if n.type == type]
+        return [n for n in self.node_map.values() if n.type == node_type]
 
     def remove(self, node_id: str) -> None:
         """Remove a node and disconnect all references to it."""
@@ -333,16 +333,16 @@ class WorkflowCore:
     # Internal resolver — shared by every *Ops mixin
     # ------------------------------------------------------------------
 
-    def _resolve(self, type: str, node_id: str | None) -> Node:
-        """Return the node for *type* (first match) or the explicit *node_id*."""
+    def _resolve(self, node_type: str, node_id: str | None) -> Node:
+        """Return the node for *node_type* (first match) or the explicit *node_id*."""
         if node_id is not None:
             node = self.node_map.get(node_id)
             if node is None:
                 raise KeyError(f"Node {node_id!r} not found")
             return node
-        matches = self.by_type(type)
+        matches = self.by_type(node_type)
         if not matches:
-            raise KeyError(f"No node with type={type!r} found in workflow")
+            raise KeyError(f"No node with type={node_type!r} found in workflow")
         return matches[0]
 
     def _require_node(self, node_id: str) -> Node:

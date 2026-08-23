@@ -23,7 +23,7 @@ class TestCharacterSpans:
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible
+            title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible,
         )
         novel_start = card()
         novel_end = novel_start.model_copy(update={"look": "wounded"})
@@ -47,7 +47,7 @@ class TestCharacterSpans:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He walked."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -177,7 +177,7 @@ class TestNovelCompose:
                 Value(meta, "model"),
                 raw_value("He left."),
                 raw_value("A stranger appeared."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -219,7 +219,7 @@ class TestNovelCompose:
                 Value(meta, "model"),
                 raw_value("He left."),
                 raw_value("A stranger appeared."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -265,7 +265,7 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
         ctx.set_scene_plan(
-            ScenePlan(title="S2", description="A stranger appears.", writing_style="Close first person.")
+            ScenePlan(title="S2", description="A stranger appears.", writing_style="Close first person."),
         )
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" in requirement
@@ -366,7 +366,7 @@ class TestPrefixAccumulation:
             *return_router_usage(
                 "He left.",
                 "A stranger appeared.",
-            )
+            ),
         ):
             result = await role.compose_story(story)
         assert result is not None
@@ -388,7 +388,7 @@ class TestPrefixAccumulation:
             *return_router_usage(
                 "Alpha.",
                 "Beta.",
-            )
+            ),
         ):
             result = await role.compose_chapter(chapter)
         assert result is not None
@@ -420,7 +420,7 @@ class TestPrefixAccumulation:
         ctx.add_chapter_context(chapter_1).add_chapter_context(chapter_2)
 
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=80, series_bible=SeriesBible()
+            title="The Search", description="A hero searching.", expected_word_count=80, series_bible=SeriesBible(),
         )
         with install_router_usage(
             *return_mixed_router_usage(
@@ -429,7 +429,7 @@ class TestPrefixAccumulation:
                 raw_value("B."),
                 raw_value("C."),
                 raw_value("D."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 

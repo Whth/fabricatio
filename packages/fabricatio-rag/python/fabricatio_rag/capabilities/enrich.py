@@ -19,7 +19,7 @@ class EnrichChunkText(Propose, ABC):
 
     @overload
     async def enrich(
-        self, enrich_guideline: str, chunk: list[str], send_to: str | None = TASK
+        self, enrich_guideline: str, chunk: list[str], send_to: str | None = TASK,
     ) -> list[EnrichmentResult]: ...
 
     async def enrich(

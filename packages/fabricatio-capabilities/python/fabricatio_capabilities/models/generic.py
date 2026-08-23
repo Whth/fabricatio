@@ -335,7 +335,7 @@ class PersistentAble(Base, ABC):
         out = self.model_dump_json(indent=1, by_alias=True)
 
         # Generate a timestamp in the format YYYYMMDD_HHMMSS
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().astimezone().strftime("%Y%m%d_%H%M%S")
 
         # Generate the hash
         file_hash = blake3_hash(out.encode())[:6]
@@ -380,7 +380,7 @@ class PersistentAble(Base, ABC):
         def _get_timestamp(file_path: Path) -> datetime:
             stem = file_path.stem
             parts = stem.split("_")
-            return datetime.strptime(f"{parts[1]}_{parts[2]}", "%Y%m%d_%H%M%S")
+            return datetime.strptime(f"{parts[1]}_{parts[2]}", "%Y%m%d_%H%M%S").astimezone()
 
         files.sort(key=_get_timestamp, reverse=True)
 

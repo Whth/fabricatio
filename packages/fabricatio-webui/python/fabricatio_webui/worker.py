@@ -270,7 +270,7 @@ class WorkflowWorker:
                 "result": result,
                 "task_name": task_name,
                 "namespace": namespace,
-            }
+            },
         )
         if len(self._history) > self._history_max:
             del self._history[: len(self._history) - self._history_max]

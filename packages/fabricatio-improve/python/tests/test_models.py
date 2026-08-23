@@ -212,7 +212,7 @@ class TestImprovement:
                     execute_steps=["step"],
                     feasibility_level=8,
                     impact_level=7,
-                )
+                ),
             ],
         )
 

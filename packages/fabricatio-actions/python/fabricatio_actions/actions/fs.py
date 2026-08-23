@@ -65,8 +65,8 @@ class SmartReadText(ReadText, UseLLM):
         self.read_path = ok(
             self.read_path
             or await self.awhich_pathstr(
-                f"{task_input.briefing}\n\nwhat is the file system path that the task needs to read?"
-            )
+                f"{task_input.briefing}\n\nwhat is the file system path that the task needs to read?",
+            ),
         )
 
         return await super()._execute(*_, **cxt)
@@ -79,8 +79,8 @@ class SmartDumpText(DumpText, UseLLM):
         self.dump_path = ok(
             self.dump_path
             or await self.awhich_pathstr(
-                f"{task_input.briefing}\n\nWhat is the file system path that the task needs write texts to?"
-            )
+                f"{task_input.briefing}\n\nWhat is the file system path that the task needs write texts to?",
+            ),
         )
 
         await super()._execute(*_, **cxt)

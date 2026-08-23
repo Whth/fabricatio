@@ -193,7 +193,7 @@ class Check(EvidentlyJudge, Propose, ABC):
             - Maintains rule execution order from ruleset.rules list
         """
         imp_seq = await gather(
-            *[self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules]
+            *[self.check_string_against_rule(input_text, rule, reference, **kwargs) for rule in ruleset.rules],
         )
         if imp_seq is None:
             logger.warn(f"Generation failed for string check against `{ruleset.name}`")

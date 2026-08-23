@@ -278,7 +278,7 @@ class TestAfterImpact:
             needs=NeedState(
                 current_level=MaslowLevel.BELONGING,
                 satisfied=[MaslowLevel.PHYSIOLOGICAL, MaslowLevel.SAFETY],
-            )
+            ),
         )
         new_state = _mind.after_impact(EventImpact(threatens_need=MaslowLevel.SAFETY), state)
         assert new_state.needs.current_level < MaslowLevel.SAFETY
@@ -348,9 +348,9 @@ class TestAsPrompt:
         _make_state(
             sufferings=[
                 QualitativeSuffering(
-                    what_was_lost="trust", the_void="always suspicious", how_it_changed_me="became withdrawn"
+                    what_was_lost="trust", the_void="always suspicious", how_it_changed_me="became withdrawn",
                 ),
-            ]
+            ],
         )
 
 
@@ -387,7 +387,7 @@ class TestSeedFrom:
                 _codeblock("true"),
                 default=_codeblock("false"),
                 padding=20,
-            )
+            ),
         )
         import asyncio
 
@@ -396,7 +396,7 @@ class TestSeedFrom:
                 name="Hamlet",
                 want="To avenge his father's murder",
                 flaw="Tendency toward catastrophizing",
-            )
+            ),
         )
         assert state.mind.character_name == "Hamlet"
         assert state.needs.current_level == MaslowLevel.ESTEEM
@@ -436,7 +436,7 @@ def json_suffering() -> str:
             "what_was_lost": "trust",
             "the_void": "always suspicious",
             "how_it_changed_me": "became withdrawn",
-        }
+        },
     )
 
 
@@ -449,7 +449,7 @@ def json_linguistic_style() -> str:
             "common_adjectives": ["melancholy"],
             "sentence_structure": "complex",
             "favorite_phrases": ["alas"],
-        }
+        },
     )
 
 
@@ -569,7 +569,7 @@ class TestUponEventDiamonds:
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=60),
-            )
+            ),
         )
         setup_dummy_responses(
             *pad_responses(
@@ -581,7 +581,7 @@ class TestUponEventDiamonds:
                 _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
                 default=_codeblock("false"),
                 padding=30,
-            )
+            ),
         )
         import asyncio
 
@@ -596,7 +596,7 @@ class TestUponEventDiamonds:
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=60),
-            )
+            ),
         )
         setup_dummy_responses(
             *pad_responses(
@@ -609,7 +609,7 @@ class TestUponEventDiamonds:
                 _codeblock(json_suffering()),
                 default=_codeblock("false"),
                 padding=30,
-            )
+            ),
         )
         import asyncio
 
@@ -623,7 +623,7 @@ class TestUponEventDiamonds:
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=10),
-            )
+            ),
         )
         setup_dummy_responses(
             *pad_responses(
@@ -636,7 +636,7 @@ class TestUponEventDiamonds:
                 _codeblock("true"),  # bias ajudge
                 default=_codeblock("false"),
                 padding=30,
-            )
+            ),
         )
         import asyncio
 
@@ -655,7 +655,7 @@ class TestExtractStyle:
                 _codeblock(json_linguistic_style()),
                 default=_codeblock("{}"),
                 padding=20,
-            )
+            ),
         )
         import asyncio
 

@@ -133,7 +133,7 @@ class TestCreateSettingBible:
         roster = ["Hero — brave protagonist."]
         with install_router_usage(*return_mixed_router_usage(Value(roster, "json"))):
             bible = await role.create_setting_bible(
-                "The hero seeks his father.", language="English", sections="characters"
+                "The hero seeks his father.", language="English", sections="characters",
             )
 
         assert bible is not None
@@ -177,7 +177,7 @@ class TestUpdateSettingBible:
         role = BibleRole(name="bible_role")
         bible = SeriesBible(characters=["Old roster."], background_settings=["Old fact."])
         with install_router_usage(
-            *return_mixed_router_usage(Value(["New roster."], "json"), Value(["New fact."], "json"))
+            *return_mixed_router_usage(Value(["New roster."], "json"), Value(["New fact."], "json")),
         ):
             updated = await role.update_setting_bible(bible, "The hero.", language="English")
 
@@ -247,7 +247,7 @@ class TestBibleThreading:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=bible
+            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=bible,
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -259,7 +259,7 @@ class TestBibleThreading:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -277,7 +277,7 @@ class TestBibleThreading:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible()
+            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -289,7 +289,7 @@ class TestBibleThreading:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -312,13 +312,13 @@ class TestBibleThreading:
         ctx.add_chapter_context(chapter_ctx)
 
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible()
+            title="The Search", description="A hero searching.", expected_word_count=40, series_bible=SeriesBible(),
         )
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
                 raw_value("He left."),
-            )
+            ),
         ):
             novel = await role.compose_novel(ctx)
 

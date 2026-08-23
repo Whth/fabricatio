@@ -33,7 +33,7 @@ test_segment_cases = [
 
 
 @pytest.mark.parametrize(
-    ("description", "section_type", "duration", "lyrics", "genres", "expected"), test_segment_cases
+    ("description", "section_type", "duration", "lyrics", "genres", "expected"), test_segment_cases,
 )
 def test_segment_assembly(
     description: str,
@@ -60,7 +60,7 @@ def test_segment_assembly(
 def test_segment_genres() -> None:
     """Test genre management in Segment class."""
     segment = Segment(section_type="bridge", duration=20, lyrics=["Final lines"]).override_extra_genres(
-        ["electronic", "ambient"]
+        ["electronic", "ambient"],
     )
 
     assert segment.extra_genres == ["electronic", "ambient"]
@@ -82,7 +82,7 @@ def test_song_duration() -> None:
 def test_song_genres() -> None:
     """Test genre management in Song class."""
     song = Song(name="test", description="test song", genres=["rock"], segments=[]).override_genres(
-        ["metal", "hardcore"]
+        ["metal", "hardcore"],
     )
 
     assert song.genres == ["metal", "hardcore"]

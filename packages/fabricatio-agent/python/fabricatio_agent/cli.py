@@ -63,7 +63,7 @@ if is_installed("fabricatio_plot"):
                     SaveDataCSV().to_task_output(),
                 ),
             ),
-        }
+        },
     )
 
 
@@ -86,8 +86,8 @@ class TestEngineer(Role, Cooperate):
                 name="GenerateTestcasesWorkFlow",
                 description="Generate test cases for the given task.",
                 steps=(WriteCode().to_task_output(),),
-            )
-        }
+            ),
+        },
     )
 
 
@@ -100,8 +100,8 @@ class DocumentationWriter(Role, Cooperate):
                 name="GenerateDocumentationWorkFlow",
                 description="Generate documentation for the given task.",
                 steps=(WriteCode().to_task_output(),),
-            )
-        }
+            ),
+        },
     )
 
 
@@ -130,7 +130,7 @@ class ProjectLeader(Role, Cooperate):
 def code(
     prompt: str = Argument(..., help="The prompt to generate code from."),
     sequential_thinking: bool = Option(
-        False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking."
+        False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking.",
     ),
 ) -> None:
     """Generate code based on the provided prompt.
@@ -140,7 +140,7 @@ def code(
     subtasks through the architect workflow.
     """
     Team().join(Developer(name="developer")).join(ProjectLeader(name="project-leader")).join(
-        TestEngineer(name="test-engineer")
+        TestEngineer(name="test-engineer"),
     ).join(DocumentationWriter(name="documentation-writer")).inform().dispatch()
     task = Task(name="Write code", description=prompt).update_init_context(sequential_thinking=sequential_thinking)
     task.delegate_blocking(TaskType.Orchestrate)

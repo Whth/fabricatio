@@ -298,8 +298,8 @@ class Rating(Propose, ABC):
                     k=reasons_count,
                     send_to=send_to,
                     **kwargs,
-                )
-            )
+                ),
+            ),
         )
         # extract certain mount of criteria from reasons according to their importance and frequency
         return await self.aask_validate(
@@ -404,7 +404,7 @@ class Rating(Propose, ABC):
         criteria = ok(
             criteria
             or (await self.draft_rating_criteria(topic, send_to=send_to, **okwargs) if approx else None)
-            or await self.draft_rating_criteria_from_examples(topic, to_rate, send_to=send_to, **okwargs)
+            or await self.draft_rating_criteria_from_examples(topic, to_rate, send_to=send_to, **okwargs),
         )
         weights = ok(weights or await self.drafting_rating_weights_klee(topic, criteria, send_to=send_to, **okwargs))
         logger.info(f"Criteria: {criteria}\nWeights: {weights}")
@@ -414,12 +414,12 @@ class Rating(Propose, ABC):
 
     @overload
     async def best(
-        self, candidates: list[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: list[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs],
     ) -> list[str]: ...
 
     @overload
     async def best[T: Display](
-        self, candidates: list[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self, candidates: list[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs],
     ) -> list[T]: ...
 
     async def best[T: Display](
@@ -453,6 +453,6 @@ class Rating(Propose, ABC):
 
         okwargs = no_default(kwargs)
         rating_seq = await self.composite_score(
-            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], send_to=send_to, **okwargs
+            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], send_to=send_to, **okwargs,
         )
         return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]  # pyright: ignore [reportReturnType]

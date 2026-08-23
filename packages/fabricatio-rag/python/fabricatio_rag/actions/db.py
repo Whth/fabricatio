@@ -12,7 +12,7 @@ from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocument
 
 
 class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](
-    Action, RAG[STD, SRD, AC, FC], ABC
+    Action, RAG[STD, SRD, AC, FC], ABC,
 ):
     """Ingest text files, chunk them, and store in the vector database."""
 
@@ -38,7 +38,7 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
 
 
 class StoreDocuments[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](
-    Action, RAG[STD, SRD, AC, FC], ABC
+    Action, RAG[STD, SRD, AC, FC], ABC,
 ):
     """Store pre-built document model instances directly into the vector database.
 

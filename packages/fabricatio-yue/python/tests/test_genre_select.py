@@ -113,7 +113,7 @@ async def test_select_genre_with_multiple_requirements(
 )
 @pytest.mark.asyncio
 async def test_gather_genres_single_requirement(
-    mock_router: list[str], role: SelectGenreRole, requirement: str, ret_value: list[str], k: int
+    mock_router: list[str], role: SelectGenreRole, requirement: str, ret_value: list[str], k: int,
 ) -> None:
     """Test gathering genres from all categories for a single requirement.
 

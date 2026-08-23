@@ -119,7 +119,7 @@ class SectionBase[T: SubSectionBase](ArticleOutlineBase):
                 conf
                 for s, o in zip(self.subsections, other.subsections, strict=True)
                 if (conf := s.resolve_update_conflict(o))
-            ]
+            ],
         )
 
     def update_from_inner(self, other: Self) -> Self:
@@ -181,7 +181,7 @@ class ChapterBase[T: SectionBase](ArticleOutlineBase):
             out += f"Chapter count mismatched, expected `{len(self.sections)}`, got `{len(other.sections)}`"
 
         return out or "\n".join(
-            [conf for s, o in zip(self.sections, other.sections, strict=True) if (conf := s.resolve_update_conflict(o))]
+            [conf for s, o in zip(self.sections, other.sections, strict=True) if (conf := s.resolve_update_conflict(o))],
         )
 
     def update_from_inner(self, other: Self) -> Self:
@@ -365,5 +365,5 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
         file = Path(file)
         string = Path(file).read_text(encoding="utf-8")
         return cls.from_typst_code(
-            title, ok(extract_body(string, ARTICLE_WRAPPER), "Failed to extract body from file.")
+            title, ok(extract_body(string, ARTICLE_WRAPPER), "Failed to extract body from file."),
         )

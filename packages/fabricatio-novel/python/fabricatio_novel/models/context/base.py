@@ -74,7 +74,7 @@ def stitch_boundaries[C](
         if len(boundaries) != expected_boundaries:
             logger.warn(
                 f"Expected {expected_boundaries} {level} boundary card(s) for '{parent_span.start.name}'"
-                f" but got {len(boundaries)}; skipping"
+                f" but got {len(boundaries)}; skipping",
             )
             continue
         for child, span in zip(children, derive_child_spans(parent_span, boundaries), strict=True):

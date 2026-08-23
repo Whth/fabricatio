@@ -120,7 +120,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
         sorted_results = sorted(unique_results, key=itemgetter("distance"), reverse=True)
 
         logger.debug(
-            f"Fetched {len(sorted_results)} document,searched similarities: {[t['distance'] for t in sorted_results]}"
+            f"Fetched {len(sorted_results)} document,searched similarities: {[t['distance'] for t in sorted_results]}",
         )
         # Step 4: Extract the entities
         resp = [result["entity"] for result in sorted_results]

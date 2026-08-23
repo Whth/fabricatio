@@ -44,10 +44,10 @@ class DumpFinalizedOutput(Action, UseLLM):
             or self.dump_path
             or ok(
                 await self.awhich_pathstr(
-                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data."
+                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data.",
                 ),
                 "Could not find the path of file to dump the data.",
-            )
+            ),
         )
         logger.info(f"Saving output to {dump_path.as_posix()}")
         ok(to_dump, "Could not dump the data since the path is not specified.").finalized_dump_to(dump_path)
@@ -75,17 +75,17 @@ class RenderedDump(Action, UseLLM):
             or self.dump_path
             or ok(
                 await self.awhich_pathstr(
-                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data."
+                    f"{ok(task_input, 'Neither `task_input` and `dump_path` is provided.').briefing}\n\nExtract a single path of the file, to which I will dump the data.",
                 ),
                 "Could not find the path of file to dump the data.",
-            )
+            ),
         )
 
         logger.info(f"Saving output to {dump_path.as_posix()}")
         dump_text(
             dump_path,
             TEMPLATE_MANAGER.render_template(
-                self.template_name, {to_dump.__class__.__name__: to_dump.finalized_dump()}
+                self.template_name, {to_dump.__class__.__name__: to_dump.finalized_dump()},
             ),
         )
         return dump_path.as_posix()
@@ -127,10 +127,10 @@ class PersistentAll(Action, UseLLM):
             or self.persist_dir
             or ok(
                 await self.awhich_pathstr(
-                    f"{ok(task_input, 'Neither `task_input` and `persist_dir` is provided.').briefing}\n\nExtract a single path of the dir, to which I will persist the data."
+                    f"{ok(task_input, 'Neither `task_input` and `persist_dir` is provided.').briefing}\n\nExtract a single path of the dir, to which I will persist the data.",
                 ),
                 "Can not find the path of dir to persist the data.",
-            )
+            ),
         )
 
         count = 0
@@ -150,7 +150,7 @@ class PersistentAll(Action, UseLLM):
                 v.persist(final_dir)
                 count += 1
             elif isinstance(v, Iterable) and any(
-                persistent_ables := [pers for pers in v if isinstance(pers, PersistentAble)]
+                persistent_ables := [pers for pers in v if isinstance(pers, PersistentAble)],
             ):
                 logger.info(f"Persisting collection {k} to {final_dir}")
                 final_dir.mkdir(parents=True, exist_ok=True)
@@ -184,7 +184,7 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
 
 
 class RetrieveFromLatest[T: PersistentAble](
-    RetrieveFromPersistent[T], FromMapping[str | Path, "RetrieveFromLatest[T]"]
+    RetrieveFromPersistent[T], FromMapping[str | Path, "RetrieveFromLatest[T]"],
 ):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 
@@ -271,6 +271,6 @@ class Forward[V: str](Action, FromMapping, FromSequence[V]):
                 actions.extend(cls(original=original_key, output_key=output_key, **kwargs) for output_key in output_val)
             else:
                 logger.warn(
-                    f"Invalid type for output key value in mapping: {type(output_val)} for original key {original_key}. Expected str or Sequence[str]."
+                    f"Invalid type for output key value in mapping: {type(output_val)} for original key {original_key}. Expected str or Sequence[str].",
                 )
         return actions

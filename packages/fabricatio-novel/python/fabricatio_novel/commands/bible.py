@@ -45,16 +45,16 @@ def _save_bible(bible: SeriesBible, out: Path) -> None:
 def create_bible(
     outline: str | None = typer.Argument(None, help="Novel outline text."),
     outline_file: Path | None = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument.",
     ),
     language: str | None = typer.Option(
-        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted.",
     ),
     sections: str = typer.Option(
-        "", "--sections", "-s", help="Comma-separated sections to create: characters, background (default: all)."
+        "", "--sections", "-s", help="Comma-separated sections to create: characters, background (default: all).",
     ),
     out: Path = typer.Option(
-        Path("settings/bible.json"), "--out", "-o", help="Output bible JSON path (default: settings/bible.json)."
+        Path("settings/bible.json"), "--out", "-o", help="Output bible JSON path (default: settings/bible.json).",
     ),
     send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
@@ -82,13 +82,13 @@ def update_bible(
     bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
     outline: str | None = typer.Argument(None, help="Novel outline text."),
     outline_file: Path | None = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
+        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument.",
     ),
     language: str | None = typer.Option(
-        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
+        None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted.",
     ),
     sections: str = typer.Option(
-        "", "--sections", "-s", help="Comma-separated sections to re-propose: characters, background (default: all)."
+        "", "--sections", "-s", help="Comma-separated sections to re-propose: characters, background (default: all).",
     ),
     out: Path | None = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
     send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
@@ -107,7 +107,7 @@ def update_bible(
         raise typer.Exit(1) from None
     role = BibleRole(name="bible_updater")
     updated = asyncio.run(
-        role.update_setting_bible(bible, _resolve_outline(outline, outline_file), language, send_to, names)
+        role.update_setting_bible(bible, _resolve_outline(outline, outline_file), language, send_to, names),
     )
     if updated is None:
         typer.secho("❌ Failed to update setting bible.", fg=typer.colors.RED, bold=True)

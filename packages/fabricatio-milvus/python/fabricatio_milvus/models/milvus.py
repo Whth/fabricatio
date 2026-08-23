@@ -76,7 +76,7 @@ class MilvusDataBase[ST: dict[str, Any]](StoredDocumentModel[ST], SearchedDocume
                 fields.append(schema(dtype=DataType.DOUBLE))
             elif anno == list[str] or anno == list[str] or anno == set[str] or anno == set[str]:
                 fields.append(
-                    schema(dtype=DataType.ARRAY, element_type=DataType.VARCHAR, max_length=65535, max_capacity=4096)
+                    schema(dtype=DataType.ARRAY, element_type=DataType.VARCHAR, max_length=65535, max_capacity=4096),
                 )
             elif anno == list[int] or anno == list[int] or anno == set[int] or anno == set[int]:
                 fields.append(schema(dtype=DataType.ARRAY, element_type=DataType.INT64, max_capacity=4096))

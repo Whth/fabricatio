@@ -41,7 +41,7 @@ class TestNovelWorkflow:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
-            )
+            ),
         ):
             epub = await task.delegate(namespace)
 
@@ -92,7 +92,7 @@ class TestNovelWorkflow:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
-            )
+            ),
         ):
             artifact = await task.delegate(namespace)
 

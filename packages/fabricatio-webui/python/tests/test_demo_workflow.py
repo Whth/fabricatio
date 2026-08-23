@@ -119,9 +119,9 @@ class TestDemoOfflineExecution:
                             "edges": wf_doc["edges"],
                             "init_context": {},
                             "task_output_key": wf_doc["task_output_key"],
-                        }
+                        },
                     ],
-                }
+                },
             ],
             "actions": [],
         }

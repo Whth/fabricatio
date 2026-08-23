@@ -208,7 +208,7 @@ class WorkFlow(WithBriefing):
             if self.task_output_key not in final_ctx:
                 logger.warn(
                     f"Task output key: `{self.task_output_key}` not found in the context, None will be returned. "
-                    f"You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`."
+                    f"You can check if `Action.output_key` is set the same as `WorkFlow.task_output_key`.",
                 )
 
             await task.finish(result)
@@ -232,7 +232,7 @@ class WorkFlow(WithBriefing):
         ctx = override_kwargs(self.extra_init_context, **task.extra_init_context)
         if self.task_input_key in ctx:
             raise ValueError(
-                f"Task input key: `{self.task_input_key}`, which is reserved, is already set in the init context"
+                f"Task input key: `{self.task_input_key}`, which is reserved, is already set in the init context",
             )
 
         await self._context.put({self.task_input_key: task, **ctx})

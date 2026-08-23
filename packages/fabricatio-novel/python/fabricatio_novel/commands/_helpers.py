@@ -16,6 +16,6 @@ def _resolve_outline(outline: str | None, outline_file: Path | None) -> str:
     if outline:
         return outline
     typer.secho(
-        "❌ Provide the outline as a positional argument or via --outline-file.", fg=typer.colors.RED, bold=True
+        "❌ Provide the outline as a positional argument or via --outline-file.", fg=typer.colors.RED, bold=True,
     )
     raise typer.Exit(1)

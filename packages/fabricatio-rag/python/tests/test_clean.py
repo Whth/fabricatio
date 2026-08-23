@@ -174,7 +174,7 @@ class TestCleanDelegatesToHashlineDiff:
         # max_iterations=3 → 3 emit + 3 judge false = 6 calls
         with (
             install_router_usage(
-                resp, code_block("false", "json"), resp, code_block("false", "json"), resp, code_block("false", "json")
+                resp, code_block("false", "json"), resp, code_block("false", "json"), resp, code_block("false", "json"),
             ),
             pytest.raises(HashlineEditExhaustedError),
         ):

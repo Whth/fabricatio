@@ -30,7 +30,7 @@ async def main() -> None:
         .dispatch()
     )
     task: Task[list[ArticleEssence]] = await role.propose_task(
-        "Extract the essence of the article from the file at './7.md'"
+        "Extract the essence of the article from the file at './7.md'",
     )
     ess = (await task.delegate("article")).pop()
     logger.info(f"Essence:\n{ess.display()}")

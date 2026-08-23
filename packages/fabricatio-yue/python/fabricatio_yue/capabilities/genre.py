@@ -205,7 +205,7 @@ class SelectGenre(UseLLM):
                 *[
                     self.select_genre(req, genre_classifier, genres, send_to=send_to, **kwargs)
                     for genre_classifier, genres in yue_config.genre.items()
-                ]
+                ],
             )
 
             logger.debug(f"Raw results from genre selection: {results}")

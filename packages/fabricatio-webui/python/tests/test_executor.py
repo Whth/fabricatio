@@ -510,9 +510,9 @@ async def test_role_dispatch_serves_task_by_namespace() -> None:
                         "edges": [],
                         "init_context": {},
                         "task_output_key": "echo",
-                    }
+                    },
                 ],
-            }
+            },
         ],
         "actions": [],
     }
@@ -545,9 +545,9 @@ async def test_unmatched_namespace_leaves_task_unserved() -> None:
                         "nodes": [_node("a", "EchoStep", {"value": "v"})],
                         "edges": [],
                         "task_output_key": "echo",
-                    }
+                    },
                 ],
-            }
+            },
         ],
         "actions": [],
     }

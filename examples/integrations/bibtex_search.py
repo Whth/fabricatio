@@ -8,8 +8,8 @@ b = BibManager("Exported Items.bib")
 logger.info(
     ok(
         b.get_cite_key_by_title(
-            "A Negative Selection Immune System Inspired Methodology for Fault Diagnosis of Wind Turbines"
-        )
-    )
+            "A Negative Selection Immune System Inspired Methodology for Fault Diagnosis of Wind Turbines",
+        ),
+    ),
 )
 logger.info(ok(b.get_cite_key_fuzzy("System Inspired Methodology for Fault")))

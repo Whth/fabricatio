@@ -62,15 +62,15 @@ class WorkflowAccess(ABC):
     """
 
     @abstractmethod
-    def _resolve(self, type: str, node_id: str | None) -> Node:
-        """Return the node for *type* (first match) or the explicit *node_id*."""
+    def _resolve(self, node_type: str, node_id: str | None) -> Node:
+        """Return the node for *node_type* (first match) or the explicit *node_id*."""
 
     @abstractmethod
     def _require_node(self, node_id: str) -> Node:
         """Return the node for *node_id* or raise ``KeyError``."""
 
     @abstractmethod
-    def by_type(self, type: str) -> list[Node]:
+    def by_type(self, node_type: str) -> list[Node]:
         """Find all nodes with the given *type*."""
 
 
@@ -236,14 +236,14 @@ class ResolutionOps(WorkflowAccess, ABC):
             if not matches:
                 raise KeyError(
                     "No ResolutionSelector node found in workflow. "
-                    "Use set_resolution() for literal dimensions, or add a ResolutionSelector node."
+                    "Use set_resolution() for literal dimensions, or add a ResolutionSelector node.",
                 )
             node = matches[0]
 
         if aspect_ratio is not None and aspect_ratio not in RESOLUTION_SELECTOR_ASPECT_RATIOS:
             valid = ", ".join(sorted(RESOLUTION_SELECTOR_ASPECT_RATIOS, key=lambda s: float(s.split(":")[0])))
             raise ValueError(
-                f"Invalid aspect_ratio {aspect_ratio!r}. Valid values for the current ResolutionSelector: {valid}."
+                f"Invalid aspect_ratio {aspect_ratio!r}. Valid values for the current ResolutionSelector: {valid}.",
             )
 
         if aspect_ratio is not None:

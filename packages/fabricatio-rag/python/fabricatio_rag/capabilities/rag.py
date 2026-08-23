@@ -23,7 +23,7 @@ class RAGConfigBase(Base):
 
 
 class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBase, FC: RAGConfigBase](
-    UseEmbedding, UseReranker, UseLLM, ABC
+    UseEmbedding, UseReranker, UseLLM, ABC,
 ):
     """A class representing the RAG (Retrieval Augmented Generation) model."""
 

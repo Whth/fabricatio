@@ -30,7 +30,7 @@ def sample_dataframe() -> pd.DataFrame:
             "name": ["Alice", "Bob", "Charlie"],
             "score": [95.5, 87.0, 92.3],
             "active": [True, False, True],
-        }
+        },
     )
 
 
@@ -262,7 +262,7 @@ def test_save_with_different_dtypes(tmp_path: Path, fmt: str) -> None:
             "str_col": ["a", "b", "c"],
             "bool_col": [True, False, True],
             "datetime_col": pd.date_range("2023-01-01", periods=3),
-        }
+        },
     )
 
     file_path = tmp_path / f"mixed_types.{fmt}"

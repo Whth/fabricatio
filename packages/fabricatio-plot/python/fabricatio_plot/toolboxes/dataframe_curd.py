@@ -133,7 +133,7 @@ def fill_missing_values(
 
 @data_crud_toolbox.collect_tool
 def transform_column(
-    df: pd.DataFrame, column: str, transformation: Literal["log", "sqrt", "square", "normalize"]
+    df: pd.DataFrame, column: str, transformation: Literal["log", "sqrt", "square", "normalize"],
 ) -> pd.DataFrame:
     """Apply mathematical transformation to a numeric column.
 

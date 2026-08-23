@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 
 def entry(
-    kind: Literal["chapter_header", "scene_content"] = "scene_content", title: str = "S1", body: str = "He left."
+    kind: Literal["chapter_header", "scene_content"] = "scene_content", title: str = "S1", body: str = "He left.",
 ) -> ContextEntry:
     """Build a default context entry for tests."""
     return ContextEntry(kind=kind, title=title, body=body)
@@ -128,7 +128,7 @@ class TestContextLogRender:
                 entry(body=bodies[1]),
                 entry(title="S1", body=bodies[2]),
                 entry(title="S2", body=bodies[3]),
-            )
+            ),
         )
         assert log.render() == "\n\n".join(p for p in bodies if p)
 

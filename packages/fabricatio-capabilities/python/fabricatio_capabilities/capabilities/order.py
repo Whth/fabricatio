@@ -63,7 +63,7 @@ class Ordering(Rating):
             List[str] | None: Ordered list of strings if successful, otherwise None.
         """
         rendered = TEMPLATE_MANAGER.render_template(
-            capabilities_config.order_string_template, {"requirement": requirement, "reverse": reverse, "seq": seq}
+            capabilities_config.order_string_template, {"requirement": requirement, "reverse": reverse, "seq": seq},
         )
 
         logger.debug(f"Ordering sequence: \n{seq}")
@@ -74,12 +74,12 @@ class Ordering(Rating):
         logger.error(
             f"Ordering failed. The generated sequence is not the same as the original sequence. \n"
             f"Original sequence: {seq}\n"
-            f"Generated sequence: {ordered_raw}"
+            f"Generated sequence: {ordered_raw}",
         )
         return None
 
     async def order_briefed(
-        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs],
     ) -> list[WithBriefing] | None:
         """Orders a list of WithBriefing objects based on a given requirement using their names for language model processing.
 
@@ -120,12 +120,12 @@ class Ordering(Rating):
 
     @overload
     async def order(
-        self, seq: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs],
     ) -> list[str] | None: ...
 
     @overload
     async def order(
-        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs],
     ) -> list[WithBriefing] | None: ...
 
     async def order(
@@ -156,7 +156,7 @@ class Ordering(Rating):
 
     @overload
     async def order_rated(
-        self, seq: list[str], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+        self, seq: list[str], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs],
     ) -> list[str] | None: ...
 
     @overload

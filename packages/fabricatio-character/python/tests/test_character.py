@@ -131,7 +131,7 @@ class TestCharacterCard:
                 condition="Feverish, limping",
                 mood="Smoldering fury",
                 reason="Captured and drugged in chapter 4",
-            )
+            ),
         )
         assert updated.name == card.name
         assert updated.roles == card.roles
