@@ -9,7 +9,7 @@ This module provides focused tools for core data operations following CRUD princ
 Designed for clear separation of concerns with minimal dependencies.
 """
 
-from typing import Any, List, Literal, Optional
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,7 @@ data_crud_toolbox = ToolBox(
 # CREATE Operations
 # =====================
 @data_crud_toolbox.collect_tool
-def create_empty_dataframe(columns: List[str], dtypes: Optional[List[str]] = None) -> pd.DataFrame:
+def create_empty_dataframe(columns: list[str], dtypes: list[str] | None = None) -> pd.DataFrame:
     """Create an empty DataFrame with specified columns and optional data types.
 
     Args:
@@ -49,9 +49,7 @@ def create_empty_dataframe(columns: List[str], dtypes: Optional[List[str]] = Non
 
 
 @data_crud_toolbox.collect_tool
-def add_computed_column(
-    df: pd.DataFrame, new_column: str, expression: str, dtype: Optional[str] = None
-) -> pd.DataFrame:
+def add_computed_column(df: pd.DataFrame, new_column: str, expression: str, dtype: str | None = None) -> pd.DataFrame:
     """Create a new column by evaluating an expression on existing columns.
 
     Args:
@@ -100,7 +98,7 @@ def fill_missing_values(
     df: pd.DataFrame,
     column: str,
     strategy: Literal["mean", "median", "mode", "constant"] = "mean",
-    constant_value: Optional[Any] = None,
+    constant_value: Any | None = None,
 ) -> pd.DataFrame:
     """Update missing values in a single column using specified strategy.
 
@@ -173,7 +171,7 @@ def transform_column(
 # DELETE Operations
 # =====================
 @data_crud_toolbox.collect_tool
-def drop_columns(df: pd.DataFrame, columns: List[str]) -> pd.DataFrame:
+def drop_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     """Delete specified columns from DataFrame.
 
     Args:

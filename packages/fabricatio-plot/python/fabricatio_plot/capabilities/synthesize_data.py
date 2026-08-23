@@ -2,7 +2,7 @@
 
 from abc import ABC
 from io import StringIO
-from typing import TYPE_CHECKING, List, Optional, Unpack
+from typing import TYPE_CHECKING, Optional, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
@@ -24,8 +24,8 @@ class SynthesizeData(UseLLM, ABC):
     """
 
     async def generate_header(
-        self, requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ListingKwargs[str]]
-    ) -> List[str] | List[List[str] | None] | None:
+        self, requirement: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ListingKwargs[str]]
+    ) -> list[str] | list[list[str] | None] | None:
         """Generate appropriate column headers based on the given requirement(s).
 
         Args:
@@ -53,7 +53,7 @@ class SynthesizeData(UseLLM, ABC):
     async def generate_csv_data(
         self,
         requirement: str,
-        header: Optional[List[str]],
+        header: list[str] | None,
         rows: int = 100,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
@@ -102,7 +102,7 @@ class SynthesizeData(UseLLM, ABC):
     async def synthesize_data(
         self,
         requirement: str,
-        header: Optional[List[str]] = None,
+        header: list[str] | None = None,
         rows: int = 1000,
         batch_size: int = 100,
         send_to: str | None = TASK,
@@ -133,9 +133,7 @@ class SynthesizeData(UseLLM, ABC):
             return None
 
         # Calculate batch sizes upfront
-        batch_sizes = []
-        for i in range(0, rows, batch_size):
-            batch_sizes.append(min(batch_size, rows - i))
+        batch_sizes = [min(batch_size, rows - i) for i in range(0, rows, batch_size)]
 
         # Generate all batches concurrently
         batch_results = await gather(

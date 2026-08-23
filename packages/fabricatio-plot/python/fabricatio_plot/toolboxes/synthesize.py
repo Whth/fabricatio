@@ -4,8 +4,6 @@ This module provides simple, flat functions for generating synthetic data column
 Each function returns a pandas Series. Designed for direct LLM invocation.
 """
 
-from typing import List
-
 import numpy as np
 import pandas as pd
 from fabricatio_tool.models.tool import ToolBox
@@ -45,7 +43,7 @@ def normal_column(n_rows: int, mean: float = 0.0, std: float = 1.0) -> pd.Series
 
 
 @data_syn_toolbox.collect_tool
-def categorical_column(n_rows: int, categories: List[str]) -> pd.Series:
+def categorical_column(n_rows: int, categories: list[str]) -> pd.Series:
     """Generate a categorical column.
 
     Args:

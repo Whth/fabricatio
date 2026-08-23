@@ -5,7 +5,7 @@ It utilizes various toolboxes to fulfill plotting requirements and provides an a
 for handling plot tasks.
 """
 
-from typing import Any, Dict, Optional, Set, Unpack
+from typing import Any, Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TASK
@@ -22,14 +22,14 @@ from fabricatio_plot.toolboxes.plot import plot_toolbox
 class Plot(Handle):
     """A class representing a Plot handler, which manages plot-related operations and toolboxes."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_crud_toolbox, data_io_toolbox})
+    toolboxes: set[ToolBox] = Field(default_factory=lambda: {plot_toolbox, data_crud_toolbox, data_io_toolbox})
     """A set of toolboxes used by the Plot handler, including plot_toolbox and data_toolbox by default."""
 
     async def plot(
         self,
         requirement: str,
-        data: Optional[Dict[str, Any]] = None,
-        output_spec: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | None = None,
+        output_spec: dict[str, str] | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
     ) -> ResultCollector | None:

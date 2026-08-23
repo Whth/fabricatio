@@ -1,7 +1,7 @@
 """Make charts using plot capabilities."""
 
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from fabricatio_core import Action, Task
 
@@ -17,10 +17,10 @@ class MakeCharts(Action, Plot):
 
     ctx_override: ClassVar[bool] = True
 
-    plot_requirement: Optional[str] = None
+    plot_requirement: str | None = None
     """Plot requirement or command."""
 
-    chart_save_path: Optional[str | Path] = None
+    chart_save_path: str | Path | None = None
 
     async def _execute(self, task_input: Task, *_: Any, **cxt) -> None:
         await self.plot(

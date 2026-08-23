@@ -6,7 +6,6 @@ simplified interface for common plotting tasks.
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import numpy as np
 from fabricatio_tool.models.tool import ToolBox
@@ -18,7 +17,7 @@ plot_toolbox = ToolBox(name="PlottingToolBox", description="A toolbox for plotti
 
 
 @plot_toolbox.collect_tool
-def create_figure(figsize: Tuple[float, float] = (8, 6), dpi: int = 200) -> Figure:
+def create_figure(figsize: tuple[float, float] = (8, 6), dpi: int = 200) -> Figure:
     """Create a new matplotlib figure.
 
     Args:
@@ -32,7 +31,7 @@ def create_figure(figsize: Tuple[float, float] = (8, 6), dpi: int = 200) -> Figu
 
 
 @plot_toolbox.collect_tool
-def create_subplots(nrows: int = 1, ncols: int = 1, figsize: Tuple[float, float] = (8, 6)) -> Tuple[Figure, np.ndarray]:
+def create_subplots(nrows: int = 1, ncols: int = 1, figsize: tuple[float, float] = (8, 6)) -> tuple[Figure, np.ndarray]:
     """Create a figure and grid of subplots.
 
     Args:
@@ -52,9 +51,9 @@ def create_subplots(nrows: int = 1, ncols: int = 1, figsize: Tuple[float, float]
 @plot_toolbox.collect_tool
 def plot_line(
     ax: Axes,
-    x: List[float],
-    y: List[float],
-    label: Optional[str] = None,
+    x: list[float],
+    y: list[float],
+    label: str | None = None,
     color: str = "blue",
     linewidth: float = 2.0,
     linestyle: str = "-",
@@ -74,7 +73,7 @@ def plot_line(
 
 
 @plot_toolbox.collect_tool
-def plot_bar(ax: Axes, categories: List[str], values: List[float], color: str = "skyblue", width: float = 0.8) -> None:
+def plot_bar(ax: Axes, categories: list[str], values: list[float], color: str = "skyblue", width: float = 0.8) -> None:
     """Plot a vertical bar chart.
 
     Args:
@@ -90,8 +89,8 @@ def plot_bar(ax: Axes, categories: List[str], values: List[float], color: str = 
 @plot_toolbox.collect_tool
 def plot_scatter(
     ax: Axes,
-    x: List[float],
-    y: List[float],
+    x: list[float],
+    y: list[float],
     color: str = "red",
     size: float = 20,
     marker: str = "o",
@@ -112,9 +111,7 @@ def plot_scatter(
 
 
 @plot_toolbox.collect_tool
-def set_labels(
-    ax: Axes, title: Optional[str] = None, xlabel: Optional[str] = None, ylabel: Optional[str] = None
-) -> None:
+def set_labels(ax: Axes, title: str | None = None, xlabel: str | None = None, ylabel: str | None = None) -> None:
     """Set axis labels and chart title.
 
     Args:

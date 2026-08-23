@@ -4,7 +4,7 @@ Handles file-based data input/output operations separately from in-memory data m
 """
 
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal
 
 import pandas as pd
 from fabricatio_core.decorators import cfg_on
@@ -20,27 +20,27 @@ data_io_toolbox = ToolBox(
 
 
 @data_io_toolbox.collect_tool
-def load_csv(file_path: Union[str, Path]) -> pd.DataFrame:
+def load_csv(file_path: str | Path) -> pd.DataFrame:
     """Load data from a CSV file into a pandas DataFrame."""
     return pd.read_csv(file_path)
 
 
 @data_io_toolbox.collect_tool
 @cfg_on(feats=["excel"])
-def load_excel(file_path: Union[str, Path], sheet_name: str | int = 0) -> pd.DataFrame:
+def load_excel(file_path: str | Path, sheet_name: str | int = 0) -> pd.DataFrame:
     """Load data from an Excel file into a pandas DataFrame."""
     return pd.read_excel(file_path, sheet_name=sheet_name)
 
 
 @data_io_toolbox.collect_tool
 @cfg_on(feats=["parquet"])
-def load_parquet(file_path: Union[str, Path]) -> pd.DataFrame:
+def load_parquet(file_path: str | Path) -> pd.DataFrame:
     """Load data from a Parquet file into a pandas DataFrame."""
     return pd.read_parquet(file_path)
 
 
 @data_io_toolbox.collect_tool
-def save_data(df: pd.DataFrame, file_path: Union[str, Path], fmt: Literal["csv", "excel", "parquet"] = "csv") -> None:
+def save_data(df: pd.DataFrame, file_path: str | Path, fmt: Literal["csv", "excel", "parquet"] = "csv") -> None:
     """Save DataFrame to file (CSV/Excel/Parquet)."""
     if fmt == "csv":
         df.to_csv(file_path, index=False)
