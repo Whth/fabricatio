@@ -26,11 +26,6 @@ class SmartDumpRole(LLMTestRole, SmartDumpText):
     """Test role combining LLMTestRole with SmartDumpText for testing."""
 
 
-# ---------------------------------------------------------------------------
-# Tests: ReadText
-# ---------------------------------------------------------------------------
-
-
 class TestReadText:
     """Test suite for the ReadText action."""
 
@@ -108,11 +103,6 @@ class TestReadText:
 
         assert len(actions) == 1
         assert actions[0].read_path == Path("/some/path.txt")
-
-
-# ---------------------------------------------------------------------------
-# Tests: DumpText
-# ---------------------------------------------------------------------------
 
 
 class TestDumpText:

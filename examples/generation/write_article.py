@@ -23,8 +23,6 @@ from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
 from typer import Typer
 
-# from pydantic import HttpUrl
-
 
 class Role(RoleBase, UseLLM):
     """Role class for article writing."""

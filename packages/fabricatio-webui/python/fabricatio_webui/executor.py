@@ -385,7 +385,7 @@ def _make_instrumented(
     Wired edge values resolve from the task-scoped output store at execution
     time (instances are shared across tasks by framework design).
     """
-    body = real_cls._execute
+    body = real_cls._execute  # noqa: SLF001 -- instrumentation of the framework's `_execute` override seam
     class_name = real_cls.__name__
 
     class _Instrumented(real_cls):  # type: ignore[misc, valid-type]

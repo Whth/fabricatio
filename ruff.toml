@@ -77,6 +77,9 @@ ignore = [
 "packages/fabricatio-diff/python/fabricatio_diff/capabilities/hashline_edit.py" = ["A002"] # `all` mirrors the Rust binding kwarg and HashlineOp.all field
 # Tests that assert typing.Optional/Union unwrapping behavior itself
 "packages/fabricatio-webui/python/tests/test_registry.py" = ["UP007", "UP045"]
+# Tests exercise the documented `Action._execute` override seam and other
+# framework internals directly; that access is the point of the test.
+"packages/*/python/tests/**" = ["SLF001"]
 
 [lint.pydocstyle]
 convention = "google"

@@ -93,7 +93,7 @@ class WorkflowWorker:
         self._broadcast = broadcast
         self._loop = asyncio.get_running_loop()
         # Instrumented node bodies broadcast lifecycle events through this.
-        _executor._broadcast = broadcast
+        _executor._broadcast = broadcast  # noqa: SLF001 -- module-private injection point shared with executor instrumentation
         self._roles = RoleRegistry(Path(data_dir))
         # Dispatch every saved board's roles before any task can arrive.
         self._roles.rebuild()
@@ -214,7 +214,7 @@ class WorkflowWorker:
             # unreliable on fresh tasks).
             task.publish()
             parts = task.pending_label.split("::")
-            if not (EMITTER._gather_exact_handlers(parts) or EMITTER._gather_wildcard_handlers(parts)):
+            if not (EMITTER._gather_exact_handlers(parts) or EMITTER._gather_wildcard_handlers(parts)):  # noqa: SLF001 -- pre-dispatch probe of the emitter's own handler tables
                 raise ValueError(f"No dispatched workflow matches namespace {namespace!r}")
             result = await task.get_output()
         except asyncio.CancelledError:

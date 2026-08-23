@@ -32,10 +32,6 @@ from fabricatio_mock.utils import (
 )
 from pydantic import BaseModel
 
-# =============================================================================
-# Utils: code_block / generic_block
-# =============================================================================
-
 
 class TestCodeBlock:
     """Tests for the code_block utility."""
@@ -74,11 +70,6 @@ class TestGenericBlock:
         result = generic_block("line1\nline2")
         expected = "--- Start of String ---\nline1\nline2\n--- End of String ---"
         assert result == expected
-
-
-# =============================================================================
-# Utils: make_roles / make_n_roles
-# =============================================================================
 
 
 class TestMakeRoles:
