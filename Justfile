@@ -71,7 +71,7 @@ test_raw:
 test: py_sync test_raw
 
 test_package name:
-    cd {{ PACKAGES }}/fabricatio-{{ name }} && uv run --no-sync pytest
+    uv run --no-sync pytest --import-mode=importlib {{ PACKAGES }}/fabricatio-{{ name }}/python/tests --cov
 
 # Build and prepare for publishing.
 publish py_ver=PY dist_dir=DIST:
