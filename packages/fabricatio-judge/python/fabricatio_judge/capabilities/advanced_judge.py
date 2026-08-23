@@ -2,7 +2,7 @@
 
 from abc import ABC
 from asyncio import gather
-from typing import Dict, List, Optional, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
@@ -23,21 +23,21 @@ class EvidentlyJudge(Propose, ABC):
         prompt: str,
         send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[JudgeMent]: ...
+    ) -> JudgeMent | None: ...
     @overload
     async def evidently_judge(
         self,
-        prompt: List[str],
+        prompt: list[str],
         send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[List[JudgeMent] | List[JudgeMent | None]]: ...
+    ) -> list[JudgeMent] | list[JudgeMent | None] | None: ...
 
     async def evidently_judge(
         self,
-        prompt: str | List[str],
+        prompt: str | list[str],
         send_to: str | None = TINY,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> List[JudgeMent] | List[JudgeMent | None] | JudgeMent | None:
+    ) -> list[JudgeMent] | list[JudgeMent | None] | JudgeMent | None:
         """Judge the evidence and make a final decision."""
         return await self.propose(JudgeMent, prompt, send_to=send_to, **kwargs)
 
@@ -45,10 +45,10 @@ class EvidentlyJudge(Propose, ABC):
 class VoteLLMConfig(ScopedConfig):
     """A class that uses a language model to vote on the evidence."""
 
-    vote_llm: Dict[float, ValidateKwargs[JudgeMent]]
+    vote_llm: dict[float, ValidateKwargs[JudgeMent]]
     """Config that specify the models used to make a decision."""
 
-    vote_pass_threshold: Optional[float] = None
+    vote_pass_threshold: float | None = None
     """The threshold for passing the vote."""
 
 
@@ -59,9 +59,9 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
     async def vote_judge(
         self,
         prompt: str,
-        vote_pass_threshold: Optional[float] = None,
+        vote_pass_threshold: float | None = None,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[bool]:
+    ) -> bool | None:
         """Vote on the evidence and make a final decision for a single prompt.
 
         Args:
@@ -78,10 +78,10 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
     @overload
     async def vote_judge(
         self,
-        prompt: List[str],
-        vote_pass_threshold: Optional[float] = None,
+        prompt: list[str],
+        vote_pass_threshold: float | None = None,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[List[bool | None]]:
+    ) -> list[bool | None] | None:
         """Vote on the evidence and make a final decision for a list of prompts.
 
         Args:
@@ -98,10 +98,10 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
 
     async def vote_judge(
         self,
-        prompt: str | List[str],
-        vote_pass_threshold: Optional[float] = None,
+        prompt: str | list[str],
+        vote_pass_threshold: float | None = None,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[bool | List[bool | None]]:
+    ) -> bool | list[bool | None] | None:
         """Vote on the evidence and make a final decision.
 
         Args:
@@ -140,8 +140,8 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
 
     @staticmethod
     def resolve_pass(
-        weights: List[float],
-        judgments: List[JudgeMent],
+        weights: list[float],
+        judgments: list[JudgeMent],
         vote_pass_threshold: float,
     ) -> bool:
         """Determine if the vote passes based on the provided weights and judgments.

@@ -1,6 +1,6 @@
 """Test the judge method."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
@@ -14,7 +14,7 @@ from fabricatio_mock.utils import install_router_usage
 from pydantic import Field
 
 
-def jd(passed: bool | List[bool]) -> JudgeMent | List[JudgeMent]:
+def jd(passed: bool | list[bool]) -> JudgeMent | list[JudgeMent]:
     """Create JudgeMent or list of JudgeMents with test data.
 
     Args:
@@ -98,7 +98,7 @@ class VoteJudgeRole(LLMTestRole, VoteJudge):
     The class has predefined voting weights and thresholds for testing purposes.
     """
 
-    vote_llm: Dict[float, ValidateKwargs[JudgeMent]] = Field(
+    vote_llm: dict[float, ValidateKwargs[JudgeMent]] = Field(
         default_factory=lambda: {
             0.5: {"temperature": 0.5},
             0.7: {"temperature": 0.7},
@@ -120,7 +120,7 @@ def vote_role() -> VoteJudgeRole:
 
 
 # Helper to generate a mock router returning specific judgments
-def make_vote_router(judgments: List[JudgeMent]) -> list[str]:
+def make_vote_router(judgments: list[JudgeMent]) -> list[str]:
     """Create mock router responses that return predefined judgments.
 
     Args:
@@ -138,8 +138,8 @@ class Case:
 
     def __init__(
         self,
-        judgments: List[Dict[str, Any]],
-        threshold: Optional[float],
+        judgments: list[dict[str, Any]],
+        threshold: float | None,
         expected_result: bool,
     ) -> None:
         """Initialize test case with judgments, threshold and expected result.
@@ -234,7 +234,7 @@ async def test_vote_judge(vote_role: VoteJudgeRole, case: Case) -> None:
         ([1.0, 1.0], jd([True, False]), 1.0, False),
     ],
 )
-def test_resolve_pass(weights: List[float], judgments: List[JudgeMent], threshold: float, expected: bool) -> None:
+def test_resolve_pass(weights: list[float], judgments: list[JudgeMent], threshold: float, expected: bool) -> None:
     """Test the static resolve_pass method directly with different weight and judgment combinations.
 
     Args:
@@ -254,7 +254,7 @@ async def test_vote_judge_empty_prompt(vote_role: VoteJudgeRole) -> None:
     Args:
         vote_role (VoteJudgeRole): VoteJudgeRole fixture
     """
-    result = await vote_role.vote_judge([])  # type: ignore
+    result = await vote_role.vote_judge([])  # type: ignore[arg-type]
     assert result == []
 
 
@@ -272,5 +272,5 @@ async def test_vote_judge_multiple_prompts(vote_role: VoteJudgeRole) -> None:
     ] * 3
     responses = return_model_json_router_usage(*judgments)
     with install_router_usage(*responses):
-        result = await vote_role.vote_judge(["prompt1", "prompt2"])  # type: ignore
+        result = await vote_role.vote_judge(["prompt1", "prompt2"])  # type: ignore[arg-type]
         assert result == [True, False]

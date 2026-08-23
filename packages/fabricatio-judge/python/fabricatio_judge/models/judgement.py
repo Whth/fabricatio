@@ -1,7 +1,5 @@
 """Module containing the JudgeMent class for holding judgment results."""
 
-from typing import List
-
 from fabricatio_core.models.generic import SketchedAble
 
 
@@ -14,10 +12,10 @@ class JudgeMent(SketchedAble):
     issue_to_judge: str
     """The issue to be judged, including the original question and context"""
 
-    deny_evidence: List[str]
+    deny_evidence: list[str]
     """List of clues supporting the denial."""
 
-    affirm_evidence: List[str]
+    affirm_evidence: list[str]
     """List of clues supporting the affirmation."""
 
     final_judgement: bool
