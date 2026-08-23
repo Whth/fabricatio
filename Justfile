@@ -43,6 +43,9 @@ bdist py_ver=PY dist_dir=DIST data_dir=DATA:
 dirs dist_dir=DIST data_dir=DATA:
     mkdir -p "{{ dist_dir }}" "{{ data_dir }}"
 
+data_dirs:
+    uv run --no-sync subpackages.py -sb
+
 # Build binary packages.
 bins py_ver=PY dist_dir=DIST:
     mkdir -p "{{ dist_dir }}"

@@ -114,6 +114,21 @@ def make_maturin_dev(project_root: Union[str, Path]) -> bool:
     return build_success
 
 
+def ensure_scripts_dir(project_root: Union[str, Path]) -> Path:
+    """Create the extra/scripts directory for a package without compiling anything.
+
+    Args:
+        project_root: The root directory of the project.
+
+    Returns:
+        The created scripts directory.
+    """
+    scripts_dir = Path(project_root).joinpath(SCRIPTS_DIR)
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    logging.debug(f"Ensured scripts directory: {scripts_dir}")
+    return scripts_dir
+
+
 def make_all_bins(project_root: Union[str, Path]) -> bool:
     """Build all binaries using Cargo and clean up debug files.
 
@@ -126,8 +141,7 @@ def make_all_bins(project_root: Union[str, Path]) -> bool:
     project_root = Path(project_root)
     log_file = LOG_DIR / f"{project_root.name}_bins.log"
 
-    scripts_dir = project_root.joinpath(SCRIPTS_DIR)
-    scripts_dir.mkdir(parents=True, exist_ok=True)
+    scripts_dir = ensure_scripts_dir(project_root)
     ret = run_cmd(
         [
             [
@@ -219,6 +233,15 @@ def _pack(project_root: str | Path) -> bool:
     return make_all_bins(project_root) and make_dist(project_root)
 
 
+def make_all_scripts_dirs() -> None:
+    """Create the extra/scripts directory for mixed Rust/Python (maturin) packages without compiling anything."""
+    for path in [d for d in (*list(PACKAGES_DIR.iterdir()), Path.cwd()) if d.is_dir()]:
+        if not is_using_maturin(path):
+            logging.info(f"{path.name} is not using maturin, skipping...")
+            continue
+        ensure_scripts_dir(path)
+
+
 def _dev(project_root: str | Path) -> bool:
     return make_all_bins(project_root) and make_maturin_dev(project_root)
 
@@ -294,6 +317,12 @@ def parse_arguments() -> argparse.Namespace:
         default=DIST.as_posix(),
         help=f"Specify the distribution directory to store built packages. Defaults to {DIST.as_posix()}",
     )
+    parser.add_argument(
+        "-sb",
+        "--scripts-only",
+        action="store_true",
+        help="Create the extra/scripts directory for all packages without compiling anything.",
+    )
 
     return parser.parse_args()
 
@@ -308,6 +337,10 @@ if __name__ == "__main__":
     logging.info(f"Using distribution directory: {DIST_DIR.as_posix()}")
     logging.info(f"Using log directory: {LOG_DIR.as_posix()}")
     # Update DIST global variable based on command line argument
+    if args.scripts_only:
+        make_all_scripts_dirs()
+        logging.info("Scripts directories created for all packages.")
+        raise SystemExit(0)
     globals()["DIST"] = DIST_DIR
     success = make_all(
         bins=args.bins,

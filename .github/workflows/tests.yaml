@@ -91,6 +91,7 @@ jobs:
 
       - name: Install deps
         run: |
+          just data_dirs
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }}
 
       - name: Test
