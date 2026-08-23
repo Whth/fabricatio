@@ -65,13 +65,13 @@ rs_sync *arg:
 
 # Run tests without installing dependencies.
 test_raw:
-    uv run --only-dev pytest --import-mode=importlib python/tests packages/*/python/tests --cov
+    uv run --only-dev pytest --import-mode=prepend python/tests packages/*/python/tests --cov
 
 # Install full dependencies and run tests.
 test: py_sync test_raw
 
 test_package name:
-    uv run --no-sync pytest --import-mode=importlib {{ PACKAGES }}/fabricatio-{{ name }}/python/tests --cov
+    uv run --no-sync pytest --import-mode=prepend {{ PACKAGES }}/fabricatio-{{ name }}/python/tests --cov
 
 # Build and prepare for publishing.
 publish py_ver=PY dist_dir=DIST:
