@@ -6,7 +6,7 @@ chunk, then merges mini-chunks by those indices. Supports both single-string
 and batch (list of strings) input.
 """
 
-from typing import List, overload
+from typing import overload
 
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, split_into_chunks
@@ -31,38 +31,38 @@ class PreciseChunkText(UseLLM):
         min_size: int = 2,
         mini_chunk_size: int | None = None,
         send_to: str | None = TASK,
-    ) -> List[str]: ...
+    ) -> list[str]: ...
     @overload
     async def precise_chunk(
         self,
         chunk_guideline: str,
-        text: List[str],
+        text: list[str],
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
         send_to: str | None = TASK,
-    ) -> List[List[str]]: ...
+    ) -> list[list[str]]: ...
 
     @overload
     async def precise_chunk(
         self,
         chunk_guideline: str,
-        text: List[str] | str,
+        text: list[str] | str,
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
         send_to: str | None = TASK,
-    ) -> List[List[str]] | List[str]: ...
+    ) -> list[list[str]] | list[str]: ...
 
     async def precise_chunk(
         self,
         chunk_guideline: str,
-        text: str | List[str],
+        text: str | list[str],
         max_size: int = 5,
         min_size: int = 2,
         mini_chunk_size: int | None = None,
         send_to: str | None = TASK,
-    ) -> List[str] | List[List[str]]:
+    ) -> list[str] | list[list[str]]:
         """Split text into semantically coherent chunks using LLM-guided split points.
 
         Args:

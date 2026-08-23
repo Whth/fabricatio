@@ -1,7 +1,7 @@
 """A module for the RAG (Retrieval Augmented Generation) model."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Self, Unpack
+from typing import Self, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseEmbedding, UseLLM, UseReranker
@@ -30,7 +30,7 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
     @abstractmethod
     async def add_document(
         self,
-        data: STD | List[STD],
+        data: STD | list[STD],
         config: AC | None = None,
     ) -> Self:
         """Add documents to a collection."""
@@ -39,18 +39,18 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
     @abstractmethod
     async def afetch_document(
         self,
-        query: str | List[str],
+        query: str | list[str],
         config: FC | None = None,
-    ) -> List[SRD]:
+    ) -> list[SRD]:
         """Fetch documents based on query."""
         pass
 
     async def arefined_query(
         self,
-        question: List[str] | str,
+        question: list[str] | str,
         send_to: str | None = SMOL,
         **kwargs: Unpack[ListingKwargs[str]],
-    ) -> Optional[List[str]]:
+    ) -> list[str] | None:
         """Refines the given question using a template.
 
         Args:
@@ -74,9 +74,9 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
     async def arank_documents(
         self,
         query: str,
-        documents: List[SRD],
+        documents: list[SRD],
         **kwargs: Unpack[RerankerKwargs],
-    ) -> List[SRD]:
+    ) -> list[SRD]:
         """Rerank documents by relevance to query, preserving document objects.
 
         Delegates to UseReranker.arank() for scoring, then reorders the

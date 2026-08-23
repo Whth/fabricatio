@@ -1,8 +1,9 @@
 """Tests for fabricatio-rag."""
 
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Self, Sequence
+from typing import Self
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -188,9 +189,9 @@ class _ConcreteRAG(RAG[_ConcreteStoredDoc, _ConcreteSearchedDoc, _ConcreteRAGCon
 
     def __init__(self) -> None:
         """Initialize with empty stored docs."""
-        self._stored_docs: List[_ConcreteStoredDoc] = []
+        self._stored_docs: list[_ConcreteStoredDoc] = []
 
-    async def add_document(self, data: _ConcreteStoredDoc | List[_ConcreteStoredDoc], config: object = None) -> Self:
+    async def add_document(self, data: _ConcreteStoredDoc | list[_ConcreteStoredDoc], config: object = None) -> Self:
         """Add documents to storage."""
         if isinstance(data, list):
             self._stored_docs.extend(data)
@@ -198,7 +199,7 @@ class _ConcreteRAG(RAG[_ConcreteStoredDoc, _ConcreteSearchedDoc, _ConcreteRAGCon
             self._stored_docs.append(data)
         return self
 
-    async def afetch_document(self, query: str | List[str], config: object = None) -> List[_ConcreteSearchedDoc]:
+    async def afetch_document(self, query: str | list[str], config: object = None) -> list[_ConcreteSearchedDoc]:
         """Fetch documents matching query."""
         queries = [query] if isinstance(query, str) else query
         return [

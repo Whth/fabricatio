@@ -2,7 +2,7 @@
 
 from abc import ABC
 from pathlib import Path
-from typing import Any, ClassVar, List, Type
+from typing import Any, ClassVar
 
 from fabricatio_core import logger
 from fabricatio_core.models.action import Action
@@ -16,7 +16,7 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
 ):
     """Ingest text files, chunk them, and store in the vector database."""
 
-    store_model: Type[STD]
+    store_model: type[STD]
 
     store_config: AC | None = None
     chunk_size: int = 512
@@ -26,7 +26,7 @@ class StoreTextFile[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RA
 
     async def _execute(
         self,
-        text_files: List[Path],
+        text_files: list[Path],
         *_: Any,
         **cxt,
     ) -> int:
@@ -49,6 +49,6 @@ class StoreDocuments[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: R
     store_config: AC | None = None
     ctx_override: ClassVar[bool] = True
 
-    async def _execute(self, documents: List[STD], *_: Any, **cxt) -> int:
+    async def _execute(self, documents: list[STD], *_: Any, **cxt) -> int:
         await self.add_document(documents, config=self.store_config)
         return len(documents)

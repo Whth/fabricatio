@@ -8,7 +8,7 @@ contract end-to-end via the `fabricatio_mock` router.
 
 import inspect
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, Union
 from unittest.mock import patch
 
 import pytest
@@ -73,7 +73,7 @@ class TestPreciseChunkDispatch:
         sig = inspect.signature(PreciseChunkText.precise_chunk)
         text_param = sig.parameters["text"]
         # `str | List[str]` is normalized to `Union[str, List[str]]` by `inspect`.
-        assert text_param.annotation == Union[str, List[str]]
+        assert text_param.annotation == Union[str, list[str]]  # noqa: UP007 — Union itself is asserted
 
     @pytest.mark.asyncio
     async def test_str_input_returns_list_of_strings(

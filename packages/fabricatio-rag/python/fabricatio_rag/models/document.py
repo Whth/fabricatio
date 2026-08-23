@@ -1,8 +1,9 @@
 """Base class for document models."""
 
 from abc import ABCMeta, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Self, Sequence, Type
+from typing import Self
 
 from fabricatio_capabilities.models.generic import AsPrompt
 from fabricatio_core.models.generic import Base, Vectorizable
@@ -18,8 +19,8 @@ class StoredDocumentModel[ST](Base, Vectorizable, metaclass=ABCMeta):
 
     @classmethod
     def from_txt_files[S: "StoredDocumentModel[ST]"](
-        cls: Type[S], files: Sequence[Path], chunk_size: int = 512, overlap: float = 0.2
-    ) -> List[S]:
+        cls: type[S], files: Sequence[Path], chunk_size: int = 512, overlap: float = 0.2
+    ) -> list[S]:
         """Create documents by splitting text files into chunks.
 
         Args:

@@ -13,7 +13,7 @@ NOT part of this class — it belongs in a separate, opt-in capability.
 """
 
 import asyncio
-from typing import List, overload
+from typing import overload
 
 from fabricatio_diff.capabilities.hashline_edit import HashlineEdit
 
@@ -31,18 +31,18 @@ class CleanText(HashlineEdit):
     @overload
     async def clean(self, clean_guideline: str, text: str) -> str: ...
     @overload
-    async def clean(self, clean_guideline: str, text: List[str]) -> List[str]: ...
+    async def clean(self, clean_guideline: str, text: list[str]) -> list[str]: ...
     @overload
     async def clean(
         self,
         clean_guideline: str,
-        text: str | List[str],
-    ) -> str | List[str]: ...
+        text: str | list[str],
+    ) -> str | list[str]: ...
     async def clean(
         self,
         clean_guideline: str,
-        text: str | List[str],
-    ) -> str | List[str]:
+        text: str | list[str],
+    ) -> str | list[str]:
         """Clean text(s) until they satisfy the given guideline.
 
         Args:

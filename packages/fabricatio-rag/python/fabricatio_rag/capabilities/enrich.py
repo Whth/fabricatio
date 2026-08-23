@@ -1,7 +1,7 @@
 """LLM-driven text enrichment: generate question-answer pairs from source text."""
 
 from abc import ABC
-from typing import List, overload
+from typing import overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -19,15 +19,15 @@ class EnrichChunkText(Propose, ABC):
 
     @overload
     async def enrich(
-        self, enrich_guideline: str, chunk: List[str], send_to: str | None = TASK
-    ) -> List[EnrichmentResult]: ...
+        self, enrich_guideline: str, chunk: list[str], send_to: str | None = TASK
+    ) -> list[EnrichmentResult]: ...
 
     async def enrich(
         self,
         enrich_guideline: str,
-        chunk: str | List[str],
+        chunk: str | list[str],
         send_to: str | None = TASK,
-    ) -> EnrichmentResult | List[EnrichmentResult]:
+    ) -> EnrichmentResult | list[EnrichmentResult]:
         """Generate QAPairs from text chunk(s) guided by enrichment instructions.
 
         Args:
