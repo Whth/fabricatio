@@ -203,7 +203,7 @@ def gather_violations(
     r"""Gathers violations in the provided source code based on the given configuration."""
 
 def treeview(
-    directory: builtins.str | os.PathLike | pathlib.Path | None = None, max_depth: builtins.int = 10
+    directory: builtins.str | os.PathLike | pathlib.Path | None = None, max_depth: builtins.int = 10,
 ) -> builtins.str:
     r"""Generates a tree-like string representation of a directory structure.
 

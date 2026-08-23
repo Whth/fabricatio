@@ -74,7 +74,7 @@ class CheckPointStore:
             file_path: The relative path to the file within the worktree.
         """
     def get_file_diff(
-        self, commit_id: builtins.str, file_path: builtins.str | os.PathLike | pathlib.Path
+        self, commit_id: builtins.str, file_path: builtins.str | os.PathLike | pathlib.Path,
     ) -> builtins.str:
         r"""Retrieves the diff for a specific file at a given commit.
 
@@ -119,7 +119,7 @@ class CheckpointService:
             A CheckPointStore instance for the specified worktree.
         """
     def __new__(
-        cls, stores_root: builtins.str | os.PathLike | pathlib.Path, cache_size: builtins.int = 10
+        cls, stores_root: builtins.str | os.PathLike | pathlib.Path, cache_size: builtins.int = 10,
     ) -> CheckpointService:
         r"""Creates a new CheckpointService instance.
 

@@ -68,7 +68,7 @@ def extract_body(string: builtins.str, wrapper: builtins.str) -> builtins.str | 
     """
 
 def extract_sections(
-    string: builtins.str, level: builtins.int = 1, section_char: builtins.str = "#"
+    string: builtins.str, level: builtins.int = 1, section_char: builtins.str = "#",
 ) -> builtins.list[tuple[builtins.str, builtins.str]]:
     r"""Extracts sections from markdown-style text by header level.
 

@@ -28,7 +28,7 @@ def apply_insert_after(content: builtins.str, anchor: builtins.str, text: builti
     """
 
 def apply_replace(
-    content: builtins.str, old_text: builtins.str, new_text: builtins.str, all: builtins.bool
+    content: builtins.str, old_text: builtins.str, new_text: builtins.str, all: builtins.bool,
 ) -> builtins.str:
     r"""Applies a replace edit (text substitution) to content.
 
@@ -43,7 +43,7 @@ def apply_replace(
     """
 
 def apply_replace_lines(
-    content: builtins.str, start_anchor: builtins.str, end_anchor: builtins.str, new_text: builtins.str
+    content: builtins.str, start_anchor: builtins.str, end_anchor: builtins.str, new_text: builtins.str,
 ) -> builtins.str:
     r"""Applies a replace_lines edit to content between two anchors.
 
@@ -91,7 +91,7 @@ def format_hashes(content: builtins.str, start_line: builtins.int = 1) -> builti
     """
 
 def match_lines(
-    haystack: builtins.str, needle: builtins.str, match_precision: builtins.float = 0.9
+    haystack: builtins.str, needle: builtins.str, match_precision: builtins.float = 0.9,
 ) -> builtins.str | None:
     r"""Searches for a sequence of lines in `haystack` that approximately matches `needle`.
 
