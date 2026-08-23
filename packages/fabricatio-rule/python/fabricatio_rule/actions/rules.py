@@ -1,6 +1,7 @@
 """A module containing the DraftRuleSet action."""
 
-from typing import Any, List, Mapping, Optional, Self, Tuple
+from collections.abc import Mapping
+from typing import Any, Self
 
 from fabricatio_actions.models.generic import FromMapping
 from fabricatio_core.journal import logger
@@ -17,16 +18,16 @@ class DraftRuleSet(Action, Check, FromMapping):
     output_key: str = "drafted_ruleset"
     """The key used to store the drafted ruleset in the context dictionary."""
 
-    ruleset_requirement: Optional[str] = None
+    ruleset_requirement: str | None = None
     """The natural language description of the desired ruleset characteristics."""
     rule_count: int = 0
     """The number of rules to generate in the ruleset (0 for no restriction)."""
 
     async def _execute(
         self,
-        ruleset_requirement: Optional[str] = None,
+        ruleset_requirement: str | None = None,
         **_,
-    ) -> Optional[RuleSet]:
+    ) -> RuleSet | None:
         """Draft a ruleset based on the requirement description.
 
         Args:
@@ -48,7 +49,7 @@ class DraftRuleSet(Action, Check, FromMapping):
         return ruleset
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, Tuple[int, str]], **kwargs) -> List[Self]:
+    def from_mapping(cls, mapping: Mapping[str, tuple[int, str]], **kwargs) -> list[Self]:
         """Create a list of DraftRuleSet actions from a mapping of output keys to tuples of rule counts and requirements."""
         return [cls(ruleset_requirement=r, rule_count=c, output_key=k, **kwargs) for k, (c, r) in mapping.items()]
 
@@ -59,11 +60,11 @@ class GatherRuleset(Action, FromMapping):
     output_key: str = "gathered_ruleset"
     """The key used to store the drafted ruleset in the context dictionary."""
 
-    to_gather: List[str]
+    to_gather: list[str]
     """the cxt name of RuleSet to gather"""
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, List[str]], **kwargs: Any) -> List[Self]:
+    def from_mapping(cls, mapping: Mapping[str, list[str]], **kwargs: Any) -> list[Self]:
         """Create a list of GatherRuleset actions from a mapping of output keys to tuples of rule counts and requirements."""
         return [cls(to_gather=t, output_key=k, **kwargs) for k, t in mapping.items()]
 

@@ -332,7 +332,7 @@ class TestCheckObjAgainstRule:
 
         async def run_test() -> None:
             with pytest.raises(TypeError, match="obj must be either Display or WithBriefing"):
-                await check_role.check_obj_against_rule(invalid_obj, sample_rule)  # type: ignore
+                await check_role.check_obj_against_rule(invalid_obj, sample_rule)  # type: ignore[arg-type]
 
         asyncio.run(run_test())
 

@@ -2,7 +2,7 @@
 
 from abc import ABC
 from asyncio import gather
-from typing import List, Optional, Unpack
+from typing import Unpack
 
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
@@ -31,7 +31,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         rule_count: int = 0,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Rule]],
-    ) -> Optional[RuleSet]:
+    ) -> RuleSet | None:
         """Generate rule set based on requirement description.
 
         Args:
@@ -99,7 +99,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         reference: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[Improvement]:
+    ) -> Improvement | None:
         """Validate text against specific rule.
 
         Args:
@@ -143,7 +143,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         rule: Rule,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[Improvement]:
+    ) -> Improvement | None:
         """Validate object against rule using text representation.
 
         Args:
@@ -175,7 +175,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         ruleset: RuleSet,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[List[Improvement]]:
+    ) -> list[Improvement] | None:
         """Validate text against full ruleset.
 
         Args:
@@ -206,7 +206,7 @@ class Check(EvidentlyJudge, Propose, ABC):
         ruleset: RuleSet,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[List[Improvement]]:
+    ) -> list[Improvement] | None:
         """Validate object against full ruleset.
 
         Args:

@@ -5,7 +5,7 @@ It provides methods to censor objects and strings by first checking them against
 """
 
 from abc import ABC
-from typing import Optional, Unpack
+from typing import Unpack
 
 from fabricatio_capabilities.models.generic import ProposedUpdateAble
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
@@ -29,7 +29,7 @@ class Censor(Correct, Check, ABC):
 
     async def censor_obj[M: SketchedAble](
         self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
-    ) -> Optional[M]:
+    ) -> M | None:
         """Censors an object based on the provided ruleset.
 
         Args:
@@ -54,7 +54,7 @@ class Censor(Correct, Check, ABC):
 
     async def censor_string(
         self, input_text: str, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[str]]
-    ) -> Optional[str]:
+    ) -> str | None:
         """Censors a string based on the provided ruleset.
 
         Args:
@@ -80,7 +80,7 @@ class Censor(Correct, Check, ABC):
 
     async def censor_obj_inplace[M: ProposedUpdateAble](
         self, obj: M, ruleset: RuleSet, **kwargs: Unpack[ReferencedKwargs[M]]
-    ) -> Optional[M]:
+    ) -> M | None:
         """Censors an object in-place based on the provided ruleset.
 
         This method modifies the object directly if corrections are needed.
