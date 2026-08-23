@@ -1,6 +1,6 @@
 """Port extraction from Action model fields and MRO capabilities."""
 
-from typing import Any, Dict, List, Type
+from typing import Any
 
 from fabricatio_core.models.action import Action
 from pydantic.fields import FieldInfo
@@ -9,7 +9,7 @@ from fabricatio_webui.registry._constants import EXCLUDED_FIELDS
 from fabricatio_webui.registry._schema import _annotation_to_schema, _widget_hint
 
 
-def _mro_field_owner(cls: Type[Action], field_name: str) -> str:
+def _mro_field_owner(cls: type[Action], field_name: str) -> str:
     """Return the first class in *cls*'s MRO that declares *field_name*.
 
     Pydantic v2 keeps each class's declared annotations on its own
@@ -25,9 +25,9 @@ def _mro_field_owner(cls: Type[Action], field_name: str) -> str:
     return cls.__name__
 
 
-def _extract_input_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
+def _extract_input_ports(cls: type[Action]) -> list[dict[str, Any]]:
     """Extract input ports from *cls* model fields, excluding infrastructure fields."""
-    ports: List[Dict[str, Any]] = []
+    ports: list[dict[str, Any]] = []
 
     for field_name, field_info in cls.model_fields.items():
         if field_name in EXCLUDED_FIELDS:
@@ -70,7 +70,7 @@ def _extract_input_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
     return ports
 
 
-def _extract_output_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
+def _extract_output_ports(cls: type[Action]) -> list[dict[str, Any]]:
     """Extract output ports from *cls* — one port per output_key."""
     output_key: str = getattr(cls, "output_key", "") or cls.model_fields.get("output_key", FieldInfo()).default or ""
     if not output_key:
@@ -86,9 +86,9 @@ def _extract_output_ports(cls: Type[Action]) -> List[Dict[str, Any]]:
     ]
 
 
-def _extract_capabilities(cls: Type[Action]) -> List[str]:
+def _extract_capabilities(cls: type[Action]) -> list[str]:
     """Return capability marker strings from the MRO."""
-    caps: List[str] = []
+    caps: list[str] = []
 
     for base in cls.__mro__:
         if base is Action or base is object:

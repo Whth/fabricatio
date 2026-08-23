@@ -5,7 +5,8 @@ import hashlib
 import importlib
 import json
 import pkgutil
-from typing import Any, Dict, Iterator, List, Tuple, Type
+from collections.abc import Iterator
+from typing import Any
 
 from fabricatio_core.models.action import Action, WorkFlow
 from pydantic.fields import FieldInfo
@@ -36,7 +37,7 @@ def _slugify(text: str) -> str:
     return "-".join(part for part in cleaned.split("-") if part)
 
 
-def _output_key(cls: Type[Action]) -> str:
+def _output_key(cls: type[Action]) -> str:
     return (
         getattr(cls, "output_key", "")
         or cls.model_fields.get("output_key", FieldInfo(default="")).default
@@ -59,7 +60,7 @@ def _iter_workflow_modules() -> Iterator[Any]:
                 yield importlib.import_module(f"{pkg}.workflows.{mod_info.name}")
 
 
-def _collect_workflows() -> Iterator[Tuple[str, WorkFlow]]:
+def _collect_workflows() -> Iterator[tuple[str, WorkFlow]]:
     for module in _iter_workflow_modules():
         category = module.__name__.split(".")[0].removeprefix("fabricatio_")
         for value in vars(module).values():
@@ -67,17 +68,17 @@ def _collect_workflows() -> Iterator[Tuple[str, WorkFlow]]:
                 yield category, value
 
 
-def _step_config(step: Action) -> Dict[str, Any]:
+def _step_config(step: Action) -> dict[str, Any]:
     dumped = step.model_dump(exclude=_INFRA_FIELDS, exclude_none=True)
     return json.loads(json.dumps(dumped, default=str))
 
 
 def _graph_from_workflow(
     wf: WorkFlow,
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    nodes: List[Dict[str, Any]] = []
-    edges: List[Dict[str, Any]] = []
-    prev: Tuple[str, str, str] | None = None
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+    prev: tuple[str, str, str] | None = None
 
     for index, step in enumerate(wf.iter_actions()):
         type_name = type(step).__name__
@@ -141,7 +142,7 @@ def _wire_target(step: Action, prev_key: str) -> str | None:
     return None
 
 
-def _workflow_doc(wf: WorkFlow) -> Dict[str, Any]:
+def _workflow_doc(wf: WorkFlow) -> dict[str, Any]:
     nodes, edges = _graph_from_workflow(wf)
     steps = list(wf.iter_actions())
     task_output_key = steps[-1].output_key or (_output_key(type(steps[-1])) if steps else "")
@@ -155,9 +156,9 @@ def _workflow_doc(wf: WorkFlow) -> Dict[str, Any]:
     }
 
 
-def build_blueprints() -> Dict[str, Any]:
+def build_blueprints() -> dict[str, Any]:
     """Collect all workflows into blueprint dicts and return the versioned payload with a content fingerprint."""
-    blueprints: List[Dict[str, Any]] = []
+    blueprints: list[dict[str, Any]] = []
     for category, wf in _collect_workflows():
         name = wf.name or type(wf).__name__
         blueprints.append(

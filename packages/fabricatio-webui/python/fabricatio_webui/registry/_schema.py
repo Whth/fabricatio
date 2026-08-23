@@ -2,12 +2,12 @@
 
 from pathlib import Path
 from types import UnionType
-from typing import Annotated, Any, Dict, Literal, Tuple, Union, get_args, get_origin
+from typing import Annotated, Any, Literal, Union, get_args, get_origin
 
 from pydantic.fields import FieldInfo
 
 
-def _union_port_type(args: Tuple[Any, ...]) -> str:
+def _union_port_type(args: tuple[Any, ...]) -> str:
     """Render a union's port type: a single member unwraps to ``T?``, multi stays wildcard."""
     non_none = [a for a in args if a is not type(None)]
     if len(non_none) == 1:
@@ -55,7 +55,7 @@ def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
     return origin_name
 
 
-def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> Dict[str, Any] | None:
+def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> dict[str, Any] | None:
     """Widget hint for a bare (non-generic) annotation; ``None`` when unhandled."""
     if not isinstance(ann, type):
         return None
@@ -73,7 +73,7 @@ def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> Dict[str
     return None
 
 
-def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:
+def _widget_hint(ann: Any, has_default: bool, default: Any) -> dict[str, Any]:
     """Map a field annotation to a frontend widget hint (see spec §2.3).
 
     Returns ``{"widget": ...}`` plus optional constraints. The port's own
@@ -114,7 +114,7 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> Dict[str, Any]:
     return _widget_for_bare_type(ann, has_default, default) or {"widget": "json"}
 
 
-def _apply_number_constraints(hint: Dict[str, Any], ann: Any) -> None:
+def _apply_number_constraints(hint: dict[str, Any], ann: Any) -> None:
     """Copy numeric bounds from Annotated metadata into a hint.
 
     Constraints arrive in two shapes: ``Annotated[float, Field(ge=…)]``
@@ -139,10 +139,10 @@ def _apply_number_constraints(hint: Dict[str, Any], ann: Any) -> None:
                 hint["step"] = c.multiple_of
 
 
-def _annotation_to_schema(ann: Any) -> Dict[str, Any]:
+def _annotation_to_schema(ann: Any) -> dict[str, Any]:
     """Produce a full port-schema dict from a type annotation."""
     type_str = _type_to_port_type(ann)
-    schema: Dict[str, Any] = {"type": type_str}
+    schema: dict[str, Any] = {"type": type_str}
 
     origin = get_origin(ann)
     if origin is not None:

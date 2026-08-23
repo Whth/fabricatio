@@ -1,16 +1,15 @@
 """Introspection of Action._execute signatures — the runtime dataflow surface."""
 
 import inspect
-from typing import List, Type
 
 from fabricatio_core.models.action import Action
 
 from fabricatio_webui.registry._constants import _RUNTIME_PLUMBING
 
 
-def _execute_params(cls: Type[Action]) -> List[str]:
+def _execute_params(cls: type[Action]) -> list[str]:
     """Non-plumbing named parameters of *cls*._execute (no **kwargs)."""
-    params: List[str] = []
+    params: list[str] = []
     try:
         sig = inspect.signature(cls._execute)
     except (TypeError, ValueError):
@@ -23,7 +22,7 @@ def _execute_params(cls: Type[Action]) -> List[str]:
     return params
 
 
-def _required_execute_params(cls: Type[Action]) -> List[str]:
+def _required_execute_params(cls: type[Action]) -> list[str]:
     """Non-plumbing _execute parameters without a default value."""
     try:
         sig = inspect.signature(cls._execute)
@@ -38,7 +37,7 @@ def _required_execute_params(cls: Type[Action]) -> List[str]:
     return required
 
 
-def _consumes_context(cls: Type[Action]) -> bool:
+def _consumes_context(cls: type[Action]) -> bool:
     """True when *cls*._execute receives the whole workflow context.
 
     Either via a ``**kwargs`` catch-all (novel actions take ``**cxt``) or a

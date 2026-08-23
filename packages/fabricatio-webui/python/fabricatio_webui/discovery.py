@@ -8,14 +8,13 @@ distribution whose normalized name starts with ``fabricatio_``.
 
 import pkgutil
 from importlib import metadata
-from typing import List
 
 #: Module name of this package; pinned first so its no-LLM "Hello Fabricatio"
 #: demo always tops the blueprint rail.
 _SELF = "fabricatio_webui"
 
 
-def installed_fabricatio_packages() -> List[str]:
+def installed_fabricatio_packages() -> list[str]:
     """Return module names of every installed ``fabricatio_*`` package.
 
     The result unions import-distribution metadata with top-level package

@@ -8,7 +8,6 @@ cfg(feats=["cli"], pkg_name="fabricatio-webui")
 import asyncio
 import json
 from pathlib import Path
-from typing import Optional
 
 from typer import Option, Typer
 
@@ -30,9 +29,9 @@ def _default_www() -> Path:
 
 @app.command()
 def main(
-    frontend_dir: Optional[Path] = Option(None, "--frontend-dir", "-d", help="front end directory"),
+    frontend_dir: Path | None = Option(None, "--frontend-dir", "-d", help="front end directory"),
     data_dir: Path = Option(Path("./workflows"), "--data-dir", help="workflow persistence directory"),
-    addr: Optional[str] = Option(None, "--addr", "-a", help="address to bind to"),
+    addr: str | None = Option(None, "--addr", "-a", help="address to bind to"),
 ) -> None:
     """Start the webui service."""
     registry = build_node_registry()

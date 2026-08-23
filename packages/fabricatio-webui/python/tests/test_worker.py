@@ -4,7 +4,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 from fabricatio_core.models.action import Action
@@ -65,7 +65,7 @@ class ContextReadStep(Action):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-def _workflow_json(node_id: str, node_type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+def _workflow_json(node_id: str, node_type: str, config: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": "wf",
         "namespace": "test",
@@ -76,7 +76,7 @@ def _workflow_json(node_id: str, node_type: str, config: Dict[str, Any]) -> Dict
     }
 
 
-def _board_json(role_name: str, workflows: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _board_json(role_name: str, workflows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "format_version": 2,
         "name": role_name,
@@ -85,7 +85,7 @@ def _board_json(role_name: str, workflows: List[Dict[str, Any]]) -> Dict[str, An
     }
 
 
-def _write_boards(tmp_path: Path, boards: Dict[str, Dict[str, Any]]) -> None:
+def _write_boards(tmp_path: Path, boards: dict[str, dict[str, Any]]) -> None:
     (tmp_path / "workflows.json").write_text(json.dumps(boards), encoding="utf-8")
 
 
@@ -94,13 +94,13 @@ class Collector:
 
     def __init__(self) -> None:
         """Create an empty collector."""
-        self.messages: List[Dict[str, Any]] = []
+        self.messages: list[dict[str, Any]] = []
 
     def broadcast(self, raw: str) -> None:
         """Record one broadcast WS frame."""
         self.messages.append(json.loads(raw))
 
-    def by_type(self, event_type: str) -> List[Dict[str, Any]]:
+    def by_type(self, event_type: str) -> list[dict[str, Any]]:
         """Return all messages of one event type."""
         return [m for m in self.messages if m.get("type") == event_type]
 
@@ -116,7 +116,7 @@ async def _wait_for(
     event_type: str,
     timeout: float = 10.0,
     match: Any = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Poll for a message of a type (optionally matching a predicate)."""
     deadline = asyncio.get_running_loop().time() + timeout
     while asyncio.get_running_loop().time() < deadline:

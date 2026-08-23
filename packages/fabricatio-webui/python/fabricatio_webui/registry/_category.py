@@ -1,9 +1,7 @@
 """Category derivation for the node palette."""
 
-from typing import Set
 
-
-def _mro_class_names(cls: type) -> Set[str]:
+def _mro_class_names(cls: type) -> set[str]:
     """Return the set of class names in *cls*'s MRO."""
     return {c.__name__ for c in cls.__mro__}
 

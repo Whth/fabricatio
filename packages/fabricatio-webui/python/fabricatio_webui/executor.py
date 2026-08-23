@@ -14,10 +14,11 @@ import concurrent.futures
 import json
 import threading
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any
 
 import orjson
 from fabricatio_core.journal import logger
@@ -34,7 +35,7 @@ _EXECUTION_ID_KEY = "__webui_execution_id__"
 _ERRORS_KEY = "__webui_errors__"
 
 # Injected by the worker at startup; broadcasts WS JSON to Rust.
-_broadcast: Optional[Callable[[str], None]] = None
+_broadcast: Callable[[str], None] | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +85,7 @@ class _NodeBodyExecutor:
     """
 
     def submit(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> "concurrent.futures.Future[Any]":
-        fut: "concurrent.futures.Future[Any]" = concurrent.futures.Future()
+        fut: concurrent.futures.Future[Any] = concurrent.futures.Future()
 
         def runner() -> None:
             try:
@@ -106,10 +107,10 @@ _NODE_BODY_EXECUTOR = _NodeBodyExecutor()
 # ---------------------------------------------------------------------------
 
 
-def _find_action_class(type_name: str) -> Optional[Type[Action]]:
+def _find_action_class(type_name: str) -> type[Action] | None:
     """Locate an Action subclass by name, walking all known subclasses."""
-    queue: deque[Type[Action]] = deque(Action.__subclasses__())
-    seen: Set[Type[Action]] = set()
+    queue: deque[type[Action]] = deque(Action.__subclasses__())
+    seen: set[type[Action]] = set()
 
     while queue:
         cls = queue.popleft()
@@ -125,10 +126,10 @@ def _find_action_class(type_name: str) -> Optional[Type[Action]]:
     return None
 
 
-def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> List[str]:
+def _topological_order(instances: set[str], raw_edges: list[dict[str, Any]]) -> list[str]:
     """Topologically sort nodes based on edges, detecting cycles (Kahn's)."""
-    in_degree: Dict[str, int] = dict.fromkeys(instances, 0)
-    adjacency: Dict[str, List[str]] = {nid: [] for nid in instances}
+    in_degree: dict[str, int] = dict.fromkeys(instances, 0)
+    adjacency: dict[str, list[str]] = {nid: [] for nid in instances}
 
     for edge in raw_edges:
         src = _norm_node_id(edge.get("source", ""))
@@ -141,7 +142,7 @@ def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> 
         in_degree[tgt] = in_degree.get(tgt, 0) + 1
 
     ready: deque[str] = deque(nid for nid, deg in in_degree.items() if deg == 0)
-    order: List[str] = []
+    order: list[str] = []
 
     while ready:
         nid = ready.popleft()
@@ -159,7 +160,7 @@ def _topological_order(instances: Set[str], raw_edges: List[Dict[str, Any]]) -> 
     return order
 
 
-def _class_output_key(cls: Type[Action]) -> str:
+def _class_output_key(cls: type[Action]) -> str:
     """Registry-style output port name for an Action class.
 
     Mirrors ``registry._extract_output_ports``: ``output_key`` when set,
@@ -190,20 +191,20 @@ def _resolve_output_key(instance: Action, node_id: str) -> str:
 
 @dataclass(frozen=True)
 class _NodePlan:
-    action_class: Type[Action]
-    config: Dict[str, Any]
-    wired: Tuple[Tuple[str, str, str], ...]  # (source_id, source_handle, target_handle)
+    action_class: type[Action]
+    config: dict[str, Any]
+    wired: tuple[tuple[str, str, str], ...]  # (source_id, source_handle, target_handle)
 
 
 @dataclass(frozen=True)
 class _WorkflowPlan:
-    nodes: Dict[str, _NodePlan]
-    order: Tuple[str, ...]
+    nodes: dict[str, _NodePlan]
+    order: tuple[str, ...]
     task_output_key: str
-    init_context: Dict[str, Any]
+    init_context: dict[str, Any]
 
 
-def _workflow_plan_key(wf: Dict[str, Any]) -> str:
+def _workflow_plan_key(wf: dict[str, Any]) -> str:
     """Canonical JSON of the plan-relevant parts of a workflow."""
     return json.dumps(
         {
@@ -222,7 +223,7 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
     """Parse + resolve + topo-sort one workflow graph, caching the result."""
     wf = json.loads(plan_key)
 
-    raw_nodes: Dict[str, Dict[str, Any]] = {}
+    raw_nodes: dict[str, dict[str, Any]] = {}
     for node in wf.get("nodes", []):
         nid = _norm_node_id(node.get("id", ""))
         if not nid:
@@ -230,9 +231,9 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
             continue
         raw_nodes[nid] = dict(node)
 
-    raw_edges: List[Dict[str, Any]] = list(wf.get("edges", []))
+    raw_edges: list[dict[str, Any]] = list(wf.get("edges", []))
 
-    incoming: Dict[str, List[Tuple[str, str, str]]] = {nid: [] for nid in raw_nodes}
+    incoming: dict[str, list[tuple[str, str, str]]] = {nid: [] for nid in raw_nodes}
     for edge in raw_edges:
         src = _norm_node_id(edge.get("source", ""))
         tgt = _norm_node_id(edge.get("target", ""))
@@ -242,8 +243,8 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
         target_handle = edge.get("targetHandle", "") or edge.get("target_handle", "")
         incoming.setdefault(tgt, []).append((src, source_handle, target_handle))
 
-    nodes: Dict[str, _NodePlan] = {}
-    instantiable: Set[str] = set()
+    nodes: dict[str, _NodePlan] = {}
+    instantiable: set[str] = set()
     for nid, node in raw_nodes.items():
         type_name: str = node.get("type", "")
         if not type_name:
@@ -255,7 +256,7 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
             logger.warn(f"Action class {type_name!r} not found for node {nid!r}; skipping.")
             continue
 
-        config: Dict[str, Any] = dict(node.get("config", {}))
+        config: dict[str, Any] = dict(node.get("config", {}))
         wired = tuple(incoming.get(nid, []))
 
         try:
@@ -288,12 +289,12 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
 
 
 def _wired_value(
-    outputs: Dict[str, Any],
+    outputs: dict[str, Any],
     node_id: str,
     src_id: str,
     source_handle: str,
     tgt_handle: str,
-) -> Tuple[bool, Any]:
+) -> tuple[bool, Any]:
     """Resolve one wired edge's runtime value.
 
     Sources are node outputs only — fields are targets.  ``field:``-prefixed
@@ -314,9 +315,9 @@ def _wired_value(
 
 
 def _instantiate_action(
-    cls: Type[Action],
-    config: Dict[str, Any],
-    wired: Tuple[Tuple[str, str, str], ...],
+    cls: type[Action],
+    config: dict[str, Any],
+    wired: tuple[tuple[str, str, str], ...],
 ) -> Action:
     """Instantiate a node's action, tolerating required-but-wired fields.
 
@@ -342,9 +343,9 @@ def _instantiate_action(
 
 def _inject_wired_values(
     instance: Action,
-    cxt: Dict[str, Any],
-    outputs: Dict[str, Any],
-    wired: Tuple[Tuple[str, str, str], ...],
+    cxt: dict[str, Any],
+    outputs: dict[str, Any],
+    wired: tuple[tuple[str, str, str], ...],
     node_id: str,
     class_name: str,
 ) -> None:
@@ -373,10 +374,10 @@ def _inject_wired_values(
 
 
 def _make_instrumented(
-    real_cls: Type[Action],
+    real_cls: type[Action],
     node_id: str,
-    wired: Tuple[Tuple[str, str, str], ...],
-) -> Type[Action]:
+    wired: tuple[tuple[str, str, str], ...],
+) -> type[Action]:
     """Create a per-node Action subclass that emits lifecycle events.
 
     The subclass is a real subclass of the node's Action class, so the
@@ -390,8 +391,8 @@ def _make_instrumented(
     class _Instrumented(real_cls):  # type: ignore[misc, valid-type]
         async def _execute(self, *args: Any, **cxt: Any) -> Any:
             task = cxt.get(INPUT_KEY)
-            outputs: Dict[str, Any] = {}
-            execution_id: Optional[str] = None
+            outputs: dict[str, Any] = {}
+            execution_id: str | None = None
             if isinstance(task, Task):
                 outputs = task.extra_init_context.setdefault(_OUTPUTS_KEY, {})
                 execution_id = task.extra_init_context.get(_EXECUTION_ID_KEY)
@@ -436,11 +437,11 @@ def _make_instrumented(
     return _Instrumented
 
 
-async def _emit(execution_id: Optional[str], event_type: str, payload: Dict[str, Any]) -> None:
+async def _emit(execution_id: str | None, event_type: str, payload: dict[str, Any]) -> None:
     """Broadcast a WS event through the injected rust_broadcast callable."""
     if _broadcast is None:
         return
-    msg: Dict[str, Any] = {"type": event_type, **payload}
+    msg: dict[str, Any] = {"type": event_type, **payload}
     if execution_id is not None:
         msg["execution_id"] = execution_id
     try:
@@ -467,14 +468,14 @@ def _subscription_pattern(namespace: str) -> str:
     return f"{ns}::*::Pending"
 
 
-def _workflow_class(output_key: str) -> Type[WorkFlow]:
+def _workflow_class(output_key: str) -> type[WorkFlow]:
     """A WorkFlow subclass carrying the task output key (a ClassVar)."""
     return type("WebuiWorkFlow", (WorkFlow,), {"task_output_key": output_key})
 
 
 def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
     """Instantiate a WorkFlow from a plan (shared across tasks, per design)."""
-    instances: List[Action] = []
+    instances: list[Action] = []
     for node_id in plan.order:
         node_plan = plan.nodes[node_id]
         cls = _make_instrumented(node_plan.action_class, node_id, node_plan.wired)
@@ -498,7 +499,7 @@ def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
     )
 
 
-def _build_role(role_name: str, subscriptions: Dict[str, WorkFlow], description: str = "") -> Role:
+def _build_role(role_name: str, subscriptions: dict[str, WorkFlow], description: str = "") -> Role:
     """Create a role and dispatch it onto the EMITTER."""
     return Role.new(subscriptions, name=role_name, description=description).dispatch()
 
@@ -508,7 +509,7 @@ def _build_role(role_name: str, subscriptions: Dict[str, WorkFlow], description:
 # ---------------------------------------------------------------------------
 
 
-def _load_boards(data_dir: Path) -> List[Dict[str, Any]]:
+def _load_boards(data_dir: Path) -> list[dict[str, Any]]:
     """Read + migrate all saved boards from the Rust-persisted store."""
     from fabricatio_webui.registry import migrate_board
 
@@ -521,7 +522,7 @@ def _load_boards(data_dir: Path) -> List[Dict[str, Any]]:
         logger.warn(f"Failed to read {path}: {exc!r}")
         return []
 
-    boards: List[Dict[str, Any]] = []
+    boards: list[dict[str, Any]] = []
     values = raw.values() if isinstance(raw, dict) else []
     for value in values:
         if not isinstance(value, dict):
@@ -533,9 +534,9 @@ def _load_boards(data_dir: Path) -> List[Dict[str, Any]]:
     return boards
 
 
-def build_roles_from_boards(boards: List[Dict[str, Any]]) -> List[Role]:
+def build_roles_from_boards(boards: list[dict[str, Any]]) -> list[Role]:
     """Compile every role in *boards* and dispatch it onto the EMITTER."""
-    roles: List[Role] = []
+    roles: list[Role] = []
     for board in boards:
         for role_json in board.get("roles", []):
             role_name = str(role_json.get("name", "")).strip()
@@ -543,7 +544,7 @@ def build_roles_from_boards(boards: List[Dict[str, Any]]) -> List[Role]:
                 logger.warn("A board contains a role without a name; skipping.")
                 continue
 
-            subscriptions: Dict[str, WorkFlow] = {}
+            subscriptions: dict[str, WorkFlow] = {}
             for wf_json in role_json.get("workflows", []):
                 try:
                     plan = _compile_workflow_plan(_registry_version(), _workflow_plan_key(wf_json))
@@ -594,4 +595,4 @@ class RoleRegistry:
         logger.info(f"Dispatched {len(_DISPATCHED_ROLES)} role(s) from saved boards.")
 
 
-_DISPATCHED_ROLES: List[Role] = []
+_DISPATCHED_ROLES: list[Role] = []

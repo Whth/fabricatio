@@ -3,7 +3,7 @@
 import importlib
 import pkgutil
 from collections import deque
-from typing import Iterator, Set, Type
+from collections.abc import Iterator
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
@@ -33,13 +33,13 @@ def _action_module_names() -> Iterator[str]:
             yield info.name
 
 
-def _concrete_action_subclasses() -> Set[Type[Action]]:
+def _concrete_action_subclasses() -> set[type[Action]]:
     """Recursively collect all concrete (non-abstract) Action subclasses."""
-    concrete: Set[Type[Action]] = set()
-    seen: Set[Type[Action]] = set()
+    concrete: set[type[Action]] = set()
+    seen: set[type[Action]] = set()
 
     # Use a deque so we can process breadth-first; Action itself is abstract.
-    queue: deque[Type[Action]] = deque(Action.__subclasses__())
+    queue: deque[type[Action]] = deque(Action.__subclasses__())
 
     while queue:
         cls = queue.popleft()

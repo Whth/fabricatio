@@ -13,8 +13,9 @@ namespace. Node lifecycle events stream from the instrumented actions in
 """
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import orjson
 from fabricatio_core.emitter import EMITTER
@@ -84,11 +85,11 @@ class WorkflowWorker:
         history_max: int = 256,
     ) -> None:
         """Create the worker with a bounded queue and a broadcast callback."""
-        self._queue: "asyncio.Queue[Dict[str, Any]]" = asyncio.Queue(maxsize=queue_max)
-        self._history: List[Dict[str, Any]] = []
+        self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=queue_max)
+        self._history: list[dict[str, Any]] = []
         self._history_max = history_max
-        self._current: Optional[asyncio.Task] = None
-        self._current_task: Optional[Task] = None
+        self._current: asyncio.Task | None = None
+        self._current_task: Task | None = None
         self._broadcast = broadcast
         self._loop = asyncio.get_running_loop()
         # Instrumented node bodies broadcast lifecycle events through this.
@@ -108,7 +109,7 @@ class WorkflowWorker:
         marshalled onto the event loop (``put_nowait`` is not thread-safe and
         its waiter wake-up would be lost cross-thread).
         """
-        item: Dict[str, Any] = {
+        item: dict[str, Any] = {
             "execution_id": execution_id,
             "task_json": task_json,
         }
@@ -116,7 +117,7 @@ class WorkflowWorker:
             raise asyncio.QueueFull
         self._loop.call_soon_threadsafe(self._enqueue, item)
 
-    def _enqueue(self, item: Dict[str, Any]) -> None:
+    def _enqueue(self, item: dict[str, Any]) -> None:
         """Run on the event loop: push onto the queue and announce."""
         self._queue.put_nowait(item)
         logger.info(f"Worker: queued execution {item['execution_id']} (depth={self._queue.qsize()})")
@@ -138,7 +139,7 @@ class WorkflowWorker:
         """JSON: ``{"queue": [...], "active": [...]}``."""
         pending = getattr(self._queue, "_queue", ())
         queued = [{"execution_id": it["execution_id"], "state": "queued"} for it in list(pending)]
-        active: List[Dict[str, Any]] = []
+        active: list[dict[str, Any]] = []
         if self._current is not None and not self._current.done():
             active.append({"execution_id": self._current.get_name(), "state": "running"})
         return orjson.dumps({"queue": queued, "active": active}).decode()
@@ -172,7 +173,7 @@ class WorkflowWorker:
                 self._current_task = None
                 self._emit_status()
 
-    async def _execute_one(self, item: Dict[str, Any]) -> None:
+    async def _execute_one(self, item: dict[str, Any]) -> None:
         """Publish the submitted task and await its output."""
         execution_id = item["execution_id"]
         try:
@@ -255,8 +256,8 @@ class WorkflowWorker:
         self,
         execution_id: str,
         state: str,
-        error: Optional[str],
-        result: Optional[Any] = None,
+        error: str | None,
+        result: Any | None = None,
         task_name: str = "",
         namespace: str = "",
     ) -> None:
@@ -283,7 +284,7 @@ class WorkflowWorker:
             },
         )
 
-    def _send(self, event_type: str, payload: Dict[str, Any]) -> None:
+    def _send(self, event_type: str, payload: dict[str, Any]) -> None:
         msg = {"type": event_type, **payload}
         try:
             self._broadcast(orjson.dumps(msg).decode())

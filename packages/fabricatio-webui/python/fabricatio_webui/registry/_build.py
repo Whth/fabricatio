@@ -4,7 +4,7 @@ import hashlib
 import inspect
 import json
 from functools import cache
-from typing import Any, Dict, List
+from typing import Any
 
 from fabricatio_core.journal import logger
 
@@ -15,7 +15,7 @@ from fabricatio_webui.registry._execute import _consumes_context, _execute_param
 from fabricatio_webui.registry._ports import _extract_capabilities, _extract_input_ports, _extract_output_ports
 
 
-def build_node_registry() -> Dict[str, Any]:
+def build_node_registry() -> dict[str, Any]:
     """Build the full node type registry for the frontend.
 
     Returns a dict with:
@@ -27,7 +27,7 @@ def build_node_registry() -> Dict[str, Any]:
     # Auto-discover action modules so __subclasses__() finds them.
     _discover_action_modules()
 
-    node_types: List[Dict[str, Any]] = []
+    node_types: list[dict[str, Any]] = []
     concrete = _concrete_action_subclasses()
     logger.info(f"Building node registry: discovered {len(concrete)} concrete Action subclass(es).")
 
@@ -53,7 +53,7 @@ def build_node_registry() -> Dict[str, Any]:
             # the CONTEXT_PORT_NAME display port so blueprint graphs can show
             # the implicit context dataflow between steps.
             seen = {p["name"] for p in model_ports}
-            runtime_ports: List[Dict[str, Any]] = []
+            runtime_ports: list[dict[str, Any]] = []
             for param_name in _execute_params(cls):
                 if param_name in seen:
                     continue
@@ -78,7 +78,7 @@ def build_node_registry() -> Dict[str, Any]:
                     }
                 )
 
-            entry: Dict[str, Any] = {
+            entry: dict[str, Any] = {
                 "type": cls.__name__,
                 "title": first_line or cls.__name__,
                 "description": doc,
@@ -111,26 +111,26 @@ def build_node_registry() -> Dict[str, Any]:
 
 
 @cache
-def _worker_registry() -> Dict[str, Any]:
+def _worker_registry() -> dict[str, Any]:
     """Return a cached registry for the execution worker (built once)."""
     return build_node_registry()
 
 
-def migrate_workflow(wf: Dict[str, Any], registry: Dict[str, Any]) -> tuple[Dict[str, Any], str]:
+def migrate_workflow(wf: dict[str, Any], registry: dict[str, Any]) -> tuple[dict[str, Any], str]:
     """Upgrade a legacy workflow dict to the current format.
 
     Returns ``(workflow, summary)`` where *summary* describes what changed.
     Never mutates the input dict — the workflow is rebuilt. Idempotent: a
     current-format workflow is returned with summary ``"no changes"``.
     """
-    changes: List[str] = []
+    changes: list[str] = []
     wf = dict(wf)
     if wf.get("format_version", 0) < 1:
         wf["format_version"] = 1
         changes.append("format_version -> 1")
 
     by_type = {n["type"]: n for n in registry.get("node_types", [])}
-    nodes: List[Dict[str, Any]] = []
+    nodes: list[dict[str, Any]] = []
     for raw_node in wf.get("nodes", []):
         node = dict(raw_node)
         node.setdefault("inputs", {})
@@ -141,7 +141,7 @@ def migrate_workflow(wf: Dict[str, Any], registry: Dict[str, Any]) -> tuple[Dict
         nodes.append(node)
     wf["nodes"] = nodes
 
-    edges: List[Dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
     for raw_edge in wf.get("edges", []):
         edge = dict(raw_edge)
         edge.setdefault("source_handle", "default")
@@ -152,7 +152,7 @@ def migrate_workflow(wf: Dict[str, Any], registry: Dict[str, Any]) -> tuple[Dict
     return wf, ", ".join(changes) or "no changes"
 
 
-def migrate_board(raw: Dict[str, Any]) -> Dict[str, Any]:
+def migrate_board(raw: dict[str, Any]) -> dict[str, Any]:
     """Upgrade a saved document to the board format (``format_version`` 2).
 
     Legacy workflow documents (formats 0/1) become boards holding one role

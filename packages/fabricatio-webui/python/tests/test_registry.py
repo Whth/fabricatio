@@ -1,7 +1,7 @@
 """Tests for registry widget hints, versions, and executor previews."""
 
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Literal, Optional
 
 from fabricatio_core.models.action import Action
 from fabricatio_webui.executor import _preview
@@ -20,8 +20,8 @@ class WidgetProbe(Action):
     note: str = "short"
     long_note: str = "x" * 200
     path: Path = Path("probe_path.txt")
-    items: List[str] = Field(default_factory=list)
-    payload: Dict[str, Any] = Field(default_factory=dict)
+    items: list[str] = Field(default_factory=list)
+    payload: dict[str, Any] = Field(default_factory=dict)
     output_key: str = "probe_result"
 
     async def _execute(self, **cxt: Any) -> Any:
@@ -31,13 +31,13 @@ class WidgetProbe(Action):
 class GroupProbeMixin(Action):
     """MRO probe: fields declared on this mixin should report it as the group."""
 
-    mixin_field: Optional[str] = None
+    mixin_field: str | None = None
 
 
 class GroupProbeAction(GroupProbeMixin):
     """MRO probe: own field should report this class as the group."""
 
-    own_field: Optional[str] = None
+    own_field: str | None = None
 
     async def _execute(self, **cxt: Any) -> Any:
         return None
@@ -76,8 +76,8 @@ def test_widget_hint_table() -> None:
     assert _widget_hint(str, True, "short")["widget"] == "text"
     assert _widget_hint(str, True, "x" * 200)["widget"] == "textarea"
     assert _widget_hint(Path, True, Path("probe_path.txt"))["widget"] == "text"
-    assert _widget_hint(List[str], True, [])["widget"] == "text"
-    assert _widget_hint(Dict[str, Any], True, {})["widget"] == "json"
+    assert _widget_hint(list[str], True, [])["widget"] == "text"
+    assert _widget_hint(dict[str, Any], True, {})["widget"] == "json"
     assert _widget_hint(Any, True, None)["widget"] == "json"
     optional = _widget_hint(Optional[str], True, None)
     assert optional["widget"] == "text"
