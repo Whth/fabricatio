@@ -49,6 +49,9 @@ select = [
     "PLE", # error
     "PLR", # refactoring
     "PLW", # warning
+    "RSE",
+    "ERA",
+    "SLF",
 ]
 
 ignore = [
