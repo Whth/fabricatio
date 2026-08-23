@@ -1,0 +1,71 @@
+include = [
+    "docs/source/conf.py",
+    "pyproject.toml", "python/fabricatio/*.py", "python/fabricatio/*.pyi", "examples/*.py",
+    "packages/**/*.py", "packages/**/*.pyi", "packages/*/pyproject.toml"]
+line-length = 120
+target-version = "py312"
+
+[format]
+quote-style = "double" # Like Black, use double quotes for strings.
+
+[lint]
+select = [
+    "F", # Pyflakes
+    "I", # isort
+    "N", # pep8-naming
+    "D", # pydocstyle
+    "W", # warnings
+    "ANN", # flake8-annotations
+    "ASYNC", # flake8-async
+    "S", # flake8-bandit
+    "BLE", # flake8-blind-except
+    "C90", # flake8-complexity
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "T10", # flake8-debugger
+    "T20", # flake8-print
+    "PYI", # flake8-pyi
+    "PT", # flake8-pytest-style
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "RUF", # Ruff-specific rules
+    "UP", # pyupgrade
+    "PGH", # pygrep-hooks
+    "PERF", # perflint
+    "ISC", # flake8-implicit-str-concat
+    "G", # flake8-logging-format
+    "TID", # flake8-tidy-imports
+    "RSE", # flake8-raise
+    "PTH", # flake8-use-pathlib
+    "PLC", # convention
+    "PLE", # error
+    "PLR", # refactoring
+    "PLW", # warning
+]
+
+ignore = [
+    "ANN401",
+    "ANN003",
+    "PYI063",
+    "PYI021",
+    "ASYNC109",
+    "RUF001",
+    "PYI019",
+    "B008",
+    "S101",
+    "PLR2004",
+    "PLC0415",
+    "ASYNC230",
+    "ASYNC240"
+]
+
+[lint.per-file-ignores]
+# Tests that assert typing.Optional/Union unwrapping behavior itself
+"packages/fabricatio-webui/python/tests/test_registry.py" = ["UP007", "UP045"]
+
+[lint.pydocstyle]
+convention = "google"
+ignore-decorators = ["typing.overload"]
+
+[lint.pylint]
+max-args = 8
