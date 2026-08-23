@@ -4,9 +4,7 @@ The uploaded image can be consumed by an upstream bundled img2img workflow;
 this action does not run any workflow itself.
 """
 
-from __future__ import annotations
-
-from pathlib import Path  # noqa: TC003 — pydantic forward-ref needs this at runtime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fabricatio_core.models.action import Action
@@ -30,6 +28,6 @@ class ComfyuiUploadImage(Action, Comfyui):
     image_type: str = "input"
     """Target directory on the server: ``"input"`` or ``"temp"``."""
 
-    async def _execute(self, **_cxt: object) -> UploadResponse:
+    async def _execute(self, **_cxt: object) -> "UploadResponse":
         """Run :meth:`Comfyui.acomfyui_upload` with this action's fields."""
         return await self.acomfyui_upload(image_path=self.image_path, image_type=self.image_type)

@@ -13,9 +13,7 @@ Use as a step inside a :class:`fabricatio_core.WorkFlow`::
     )
 """
 
-from __future__ import annotations
-
-from pathlib import Path  # noqa: TC003 — pydantic forward-ref needs this at runtime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fabricatio_core.models.action import Action
@@ -70,7 +68,7 @@ class ComfyuiGenerateImage(Action, Comfyui):
     timeout: float | None = None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""
 
-    async def _execute(self, **_cxt: object) -> ComfyuiExecutionResult:
+    async def _execute(self, **_cxt: object) -> "ComfyuiExecutionResult":
         """Run :meth:`Comfyui.acomfyui_generate` with this action's fields."""
         return await self.acomfyui_generate(
             prompt=self.prompt,

@@ -17,8 +17,6 @@ as :class:`fabricatio_core.capabilities.usages.UseLLM` — ``a`` prefix +
 domain verb.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fabricatio_core.journal import logger
@@ -50,14 +48,14 @@ class Comfyui:
     to release the connection pool when the mixin is no longer needed.
     """
 
-    _comfyui_client: ComfyuiClientBase | None
+    _comfyui_client: "ComfyuiClientBase | None"
 
-    def __init__(self, comfyui_client: ComfyuiClientBase | None = None) -> None:
+    def __init__(self, comfyui_client: "ComfyuiClientBase | None" = None) -> None:
         """Optionally inject a pre-built client; otherwise created lazily."""
         self._comfyui_client = comfyui_client
 
     @property
-    def comfyui_client(self) -> ComfyuiClientBase:
+    def comfyui_client(self) -> "ComfyuiClientBase":
         """The lazily-created (or injected) :class:`ComfyuiClientBase`."""
         if self._comfyui_client is None:
             self._comfyui_client = ComfyuiHTTPClient.create()
@@ -100,9 +98,9 @@ class Comfyui:
         steps: int | None = None,
         cfg: float | None = None,
         template: str | None = None,
-        download_dir: str | Path | None = None,
+        download_dir: "str | Path | None" = None,
         timeout: float | None = None,
-    ) -> ComfyuiExecutionResult:
+    ) -> "ComfyuiExecutionResult":
         """Generate an image from typed knobs using a bundled workflow.
 
         Returns:
@@ -138,11 +136,11 @@ class Comfyui:
 
     async def acomfyui_upload(
         self,
-        image_path: str | Path,
+        image_path: "str | Path",
         *,
         image_type: str = "input",
         overwrite: bool = True,
-    ) -> UploadResponse:
+    ) -> "UploadResponse":
         """Upload an image to the server."""
         resp = await self.comfyui_client.upload_image(image_path, image_type=image_type, overwrite=overwrite)
         logger.info(f"Uploaded image -> {resp.name}")
@@ -153,10 +151,10 @@ class Comfyui:
         await self.comfyui_client.interrupt()
         logger.info("ComfyUI execution interrupted")
 
-    async def acomfyui_history(self, prompt_id: str) -> HistoryEntry | None:
+    async def acomfyui_history(self, prompt_id: str) -> "HistoryEntry | None":
         """Retrieve execution history for *prompt_id*."""
         return await self.comfyui_client.get_history(prompt_id)
 
-    async def acomfyui_inspect_queue(self) -> QueueInfo:
+    async def acomfyui_inspect_queue(self) -> "QueueInfo":
         """Fetch the current execution queue state."""
         return await self.comfyui_client.get_queue_info()
