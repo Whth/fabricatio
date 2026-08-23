@@ -414,12 +414,20 @@ class Rating(Propose, ABC):
 
     @overload
     async def best(
-        self, candidates: list[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs],
+        self,
+        candidates: list[str],
+        k: int = 1,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[CompositeScoreKwargs],
     ) -> list[str]: ...
 
     @overload
     async def best[T: Display](
-        self, candidates: list[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs],
+        self,
+        candidates: list[T],
+        k: int = 1,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[CompositeScoreKwargs],
     ) -> list[T]: ...
 
     async def best[T: Display](
@@ -453,6 +461,8 @@ class Rating(Propose, ABC):
 
         okwargs = no_default(kwargs)
         rating_seq = await self.composite_score(
-            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates], send_to=send_to, **okwargs,
+            to_rate=[c.display() if isinstance(c, Display) else c for c in candidates],
+            send_to=send_to,
+            **okwargs,
         )
         return [a[0] for a in sorted(zip(candidates, rating_seq, strict=True), key=lambda x: x[1], reverse=True)[:k]]  # pyright: ignore [reportReturnType]

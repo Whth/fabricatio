@@ -65,13 +65,17 @@ class TestDecideSolution:
 
     @pytest.mark.asyncio
     async def test_decide_solution_already_decided(
-        self, role: CorrectRole, single_solution_ps: ProblemSolutions,
+        self,
+        role: CorrectRole,
+        single_solution_ps: ProblemSolutions,
     ) -> None:
         """Test decide_solution returns unchanged when already decided."""
 
     @pytest.mark.asyncio
     async def test_decide_solution_undecided_uses_best(
-        self, role: CorrectRole, multi_solution_ps: ProblemSolutions,
+        self,
+        role: CorrectRole,
+        multi_solution_ps: ProblemSolutions,
     ) -> None:
         """Test decide_solution picks best when multiple solutions exist."""
         from unittest.mock import AsyncMock, patch
@@ -87,7 +91,9 @@ class TestDecideImprovement:
 
     @pytest.mark.asyncio
     async def test_decide_improvement_all_decided(
-        self, role: CorrectRole, single_solution_ps: ProblemSolutions,
+        self,
+        role: CorrectRole,
+        single_solution_ps: ProblemSolutions,
     ) -> None:
         """Test decide_improvement when all problem solutions are already decided."""
         imp = Improvement(focused_on="test", problem_solutions=[single_solution_ps])
@@ -97,7 +103,10 @@ class TestDecideImprovement:
 
     @pytest.mark.asyncio
     async def test_decide_improvement_with_undecided(
-        self, role: CorrectRole, single_solution_ps: ProblemSolutions, multi_solution_ps: ProblemSolutions,
+        self,
+        role: CorrectRole,
+        single_solution_ps: ProblemSolutions,
+        multi_solution_ps: ProblemSolutions,
     ) -> None:
         """Test decide_improvement with mix of decided and undecided."""
         from unittest.mock import AsyncMock, patch

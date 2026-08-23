@@ -754,7 +754,8 @@ def _first_checkpoint() -> str | None:
 
 _requires_comfyui = pytest.mark.skipif(not _comfyui_available(), reason="ComfyUI server not running")
 _requires_checkpoint = pytest.mark.skipif(
-    _first_checkpoint() is None, reason="No checkpoints installed on ComfyUI server",
+    _first_checkpoint() is None,
+    reason="No checkpoints installed on ComfyUI server",
 )
 
 

@@ -61,10 +61,17 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     *,
     outline: str | None = typer.Argument(None, help="Novel outline text."),
     outline_file: Path | None = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument.",
+        None,
+        "--outline-file",
+        "-of",
+        help="Read the outline from a file instead of the positional argument.",
     ),
     language: str | None = typer.Option(
-        None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted.",
+        None,
+        "--language",
+        "--lang",
+        "-l",
+        help="Written language. Auto-detected from the outline when omitted.",
     ),
     persist_dir: Path = typer.Option(
         Path("novels"),
@@ -73,15 +80,23 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
     ),
     flat: bool = typer.Option(
-        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+        False,
+        "--flat",
+        help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
     font: Path | None = typer.Option(
-        None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text.",
+        None,
+        "--font",
+        "-f",
+        help="Font file (.ttf) to embed in the EPUB and apply to its body text.",
     ),
     cover: Path | None = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
     output: Path | None = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to the run directory).",
+        None,
+        "--output",
+        "-o",
+        help="EPUB output file name (relative to the run directory).",
     ),
     export_format: ExportFormat = typer.Option(
         ExportFormat.EPUB,
@@ -125,10 +140,17 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     *,
     outline: str | None = typer.Argument(None, help="Novel outline text."),
     outline_file: Path | None = typer.Option(
-        None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument.",
+        None,
+        "--outline-file",
+        "-of",
+        help="Read the outline from a file instead of the positional argument.",
     ),
     language: str | None = typer.Option(
-        None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted.",
+        None,
+        "--language",
+        "--lang",
+        "-l",
+        help="Written language. Auto-detected from the outline when omitted.",
     ),
     persist_dir: Path = typer.Option(
         Path("novels"),
@@ -137,7 +159,9 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
     ),
     flat: bool = typer.Option(
-        False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+        False,
+        "--flat",
+        help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
     rag_query: str | None = typer.Option(
@@ -147,14 +171,23 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         help="Custom query guideline for writing style retrieval; defaults to the story description.",
     ),
     retrieve_limit: int = typer.Option(
-        0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15).",
+        0,
+        "--retrieve-limit",
+        "-rl",
+        help="Final reference documents kept after reranking (0 = default 15).",
     ),
     font: Path | None = typer.Option(
-        None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text.",
+        None,
+        "--font",
+        "-f",
+        help="Font file (.ttf) to embed in the EPUB and apply to its body text.",
     ),
     cover: Path | None = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
     output: Path | None = typer.Option(
-        None, "--output", "-o", help="EPUB output file name (relative to the run directory).",
+        None,
+        "--output",
+        "-o",
+        help="EPUB output file name (relative to the run directory).",
     ),
     export_format: ExportFormat = typer.Option(
         ExportFormat.EPUB,

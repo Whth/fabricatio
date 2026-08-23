@@ -15,7 +15,8 @@ from fabricatio_tool.models.tool import ToolBox
 # Dedicated I/O Toolbox
 # =====================
 data_io_toolbox = ToolBox(
-    name="DataIoToolBox", description="Dedicated toolbox for file-based data input/output operations",
+    name="DataIoToolBox",
+    description="Dedicated toolbox for file-based data input/output operations",
 )
 
 

@@ -85,7 +85,8 @@ class RenderedDump(Action, UseLLM):
         dump_text(
             dump_path,
             TEMPLATE_MANAGER.render_template(
-                self.template_name, {to_dump.__class__.__name__: to_dump.finalized_dump()},
+                self.template_name,
+                {to_dump.__class__.__name__: to_dump.finalized_dump()},
             ),
         )
         return dump_path.as_posix()
@@ -184,7 +185,8 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
 
 
 class RetrieveFromLatest[T: PersistentAble](
-    RetrieveFromPersistent[T], FromMapping[str | Path, "RetrieveFromLatest[T]"],
+    RetrieveFromPersistent[T],
+    FromMapping[str | Path, "RetrieveFromLatest[T]"],
 ):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 

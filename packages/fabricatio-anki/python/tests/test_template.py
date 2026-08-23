@@ -71,7 +71,8 @@ test_side_from_html_cases = [
 
 
 @pytest.mark.parametrize(
-    ("description", "html_content", "expected_layout", "expected_js", "expected_css"), test_side_from_html_cases,
+    ("description", "html_content", "expected_layout", "expected_js", "expected_css"),
+    test_side_from_html_cases,
 )
 def test_side_from_html(
     description: str,

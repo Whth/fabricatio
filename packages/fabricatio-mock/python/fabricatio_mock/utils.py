@@ -78,7 +78,9 @@ def make_n_roles(n: int, role_cls: type[Role] = Role) -> list[Role]:
 
 
 def setup_dummy_embeddings(
-    *embeddings: list[float], group: str = DUMMY_EMBEDDING_GROUP, model_id: str = "dummy/test-embedding-model",
+    *embeddings: list[float],
+    group: str = DUMMY_EMBEDDING_GROUP,
+    model_id: str = "dummy/test-embedding-model",
 ) -> None:
     """Configure the singleton router with dummy embeddings for testing.
 
@@ -97,7 +99,9 @@ def setup_dummy_embeddings(
 
 @contextmanager
 def install_dummy_embeddings(
-    *embeddings: list[float], group: str = DUMMY_EMBEDDING_GROUP, model_id: str = "dummy/test-embedding-model",
+    *embeddings: list[float],
+    group: str = DUMMY_EMBEDDING_GROUP,
+    model_id: str = "dummy/test-embedding-model",
 ) -> Generator[None, None, None]:
     """Context manager that configures dummy embeddings for testing.
 
@@ -111,7 +115,9 @@ def install_dummy_embeddings(
 
 
 def setup_dummy_reranks(
-    *rankings: tuple[int, float], group: str = DUMMY_RERANKER_GROUP, model_id: str = "dummy/test-reranker-model",
+    *rankings: tuple[int, float],
+    group: str = DUMMY_RERANKER_GROUP,
+    model_id: str = "dummy/test-reranker-model",
 ) -> None:
     """Configure the singleton router with dummy reranker rankings for testing.
 
@@ -130,7 +136,9 @@ def setup_dummy_reranks(
 
 @contextmanager
 def install_dummy_reranks(
-    *rankings: tuple[int, float], group: str = DUMMY_RERANKER_GROUP, model_id: str = "dummy/test-reranker-model",
+    *rankings: tuple[int, float],
+    group: str = DUMMY_RERANKER_GROUP,
+    model_id: str = "dummy/test-reranker-model",
 ) -> Generator[None, None, None]:
     """Context manager that configures dummy reranker rankings for testing.
 

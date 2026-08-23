@@ -37,7 +37,9 @@ class DumpText(Action, HandleTask):
         logger.debug(f"Dumping text: \n{dump_text}")
         collector = ok(
             await self.handle(
-                task_input.briefing, {"text_to_dump": dump_text}, {self.save_key: "the pathstr of the written file"},
+                task_input.briefing,
+                {"text_to_dump": dump_text},
+                {self.save_key: "the pathstr of the written file"},
             ),
         )
 

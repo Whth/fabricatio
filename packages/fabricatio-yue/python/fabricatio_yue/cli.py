@@ -29,7 +29,8 @@ def compose(
 
     ns = "compose"
     Role.with_bio(name="composer").subscribe(
-        Event.quick_instantiate(ns), WorkFlow(steps=(Compose().to_task_output(),)),
+        Event.quick_instantiate(ns),
+        WorkFlow(steps=(Compose().to_task_output(),)),
     ).dispatch()
 
     ok(

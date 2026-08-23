@@ -19,7 +19,10 @@ class InjectToDB(Action, MilvusRAG):
     """The name of the collection to inject data into."""
 
     async def _execute[T: MilvusDataBase](
-        self, to_inject: T | list[T | None] | None, override_inject: bool = False, **_,
+        self,
+        to_inject: T | list[T | None] | None,
+        override_inject: bool = False,
+        **_,
     ) -> str | None:
         from pymilvus.milvus_client import IndexParams
 
@@ -100,7 +103,8 @@ class MilvusRAGTalk(Action, MilvusRAG):
                 )
 
                 gpt_say = await self.aask(
-                    user_say, system_message="\n".join(m.text for m in ret) + "\nYou can refer facts provided above.",
+                    user_say,
+                    system_message="\n".join(m.text for m in ret) + "\nYou can refer facts provided above.",
                 )
                 print(f"GPT: {gpt_say}")  # noqa: T201
                 counter += 1

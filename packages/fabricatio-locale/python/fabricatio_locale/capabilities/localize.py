@@ -18,7 +18,10 @@ class Localize(Translate):
     """
 
     async def localize(
-        self, msgs: list[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs],
+        self,
+        msgs: list[Msg],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[TranslateKwargs],
     ) -> list[Msg]:
         """Localizes a list of messages by translating their text content.
 

@@ -25,7 +25,10 @@ class Correct(Rating, ABC):
     """A class that provides the capability to correct objects."""
 
     async def decide_solution(
-        self, problem_solutions: ProblemSolutions, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs],
+        self,
+        problem_solutions: ProblemSolutions,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[BestKwargs],
     ) -> ProblemSolutions:
         """Decide the best solution from a list of problem solutions.
 
@@ -47,7 +50,10 @@ class Correct(Rating, ABC):
         return problem_solutions
 
     async def decide_improvement(
-        self, improvement: Improvement, send_to: str | None = TASK, **kwargs: Unpack[BestKwargs],
+        self,
+        improvement: Improvement,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[BestKwargs],
     ) -> Improvement:
         """Decide the best solution for each problem solution in an improvement.
 
@@ -68,7 +74,8 @@ class Correct(Rating, ABC):
                     self.decide_solution(
                         ps,
                         **fallback_kwargs(
-                            kwargs, topic=f"which solution is better to deal this problem {ps.problem.description}\n\n",
+                            kwargs,
+                            topic=f"which solution is better to deal this problem {ps.problem.description}\n\n",
                         ),
                     )
                     for ps in improvement.problem_solutions
@@ -199,7 +206,11 @@ class Correct(Rating, ABC):
         return obj
 
     async def correct_string(
-        self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]],
+        self,
+        input_text: str,
+        improvement: Improvement,
+        reference: str = "",
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> str | None:
         """Review and correct a string based on defined criteria and templates.
 

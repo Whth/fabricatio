@@ -107,7 +107,9 @@ class TestReviewTask:
 
     @pytest.mark.asyncio
     async def test_review_task_delegates_to_review_obj(
-        self, role: ReviewerRole, sample_improvement: Improvement,
+        self,
+        role: ReviewerRole,
+        sample_improvement: Improvement,
     ) -> None:
         """Test review_task delegates to review_obj."""
         from fabricatio_core.models.task import Task

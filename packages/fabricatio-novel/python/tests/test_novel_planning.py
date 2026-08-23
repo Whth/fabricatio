@@ -127,7 +127,10 @@ class TestNovelPlan:
         ctx = NovelContext.create("The hero.", language="English")
         meta = NovelPlan(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
         with install_router_usage(
-            *return_model_json_router_usage(meta)[:1], "not valid json", "still not json", "nope",
+            *return_model_json_router_usage(meta)[:1],
+            "not valid json",
+            "still not json",
+            "nope",
         ):
             novel = await role.compose_novel(ctx)
         assert novel is None
@@ -175,7 +178,10 @@ class TestWordCountAllocation:
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=400, series_bible=SeriesBible(),
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=400,
+            series_bible=SeriesBible(),
         )
         chapter_plans_json = [
             {"title": "Ch1", "description": "The start.", "weight": 3.0},

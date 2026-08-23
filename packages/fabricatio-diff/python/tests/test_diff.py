@@ -68,7 +68,12 @@ def role() -> DiffEditRole:
 )
 @pytest.mark.asyncio
 async def test_diff_edit_success(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected_result: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
+    expected_result: str,
 ) -> None:
     """Test the diff_edit method with successful cases.
 
@@ -102,7 +107,11 @@ async def test_diff_edit_success(
 )
 @pytest.mark.asyncio
 async def test_diff_method(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
 ) -> None:
     """Test the diff method returns correct Diff object.
 
@@ -132,7 +141,11 @@ async def test_diff_method(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_no_match(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
 ) -> None:
     """Test diff_edit when search string doesn't match source.
 
@@ -206,7 +219,12 @@ async def test_diff_edit_with_precision(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_empty_source(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
+    expected: str,
 ) -> None:
     """Test diff_edit with empty source string.
 
@@ -235,7 +253,11 @@ async def test_diff_edit_empty_source(
 )
 @pytest.mark.asyncio
 async def test_diff_method_returns_none_on_invalid_response(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
 ) -> None:
     """Test diff method returns None when LLM response is invalid.
 
@@ -283,7 +305,12 @@ async def test_diff_method_returns_none_on_invalid_response(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_various_cases(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
+    expected: str,
 ) -> None:
     """Test diff_edit with various search and replace scenarios.
 
@@ -313,7 +340,12 @@ async def test_diff_edit_various_cases(
 )
 @pytest.mark.asyncio
 async def test_diff_edit_multiline(
-    responses: list[str], role: DiffEditRole, ret_value: Diff, source: str, requirement: str, expected: str,
+    responses: list[str],
+    role: DiffEditRole,
+    ret_value: Diff,
+    source: str,
+    requirement: str,
+    expected: str,
 ) -> None:
     """Test diff_edit with multiline text.
 

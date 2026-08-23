@@ -19,7 +19,10 @@ class StoredDocumentModel[ST](Base, Vectorizable, metaclass=ABCMeta):
 
     @classmethod
     def from_txt_files[S: "StoredDocumentModel[ST]"](
-        cls: type[S], files: Sequence[Path], chunk_size: int = 512, overlap: float = 0.2,
+        cls: type[S],
+        files: Sequence[Path],
+        chunk_size: int = 512,
+        overlap: float = 0.2,
     ) -> list[S]:
         """Create documents by splitting text files into chunks.
 

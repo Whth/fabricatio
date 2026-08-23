@@ -54,7 +54,11 @@ def role() -> CorrectRole:
 )
 @pytest.mark.asyncio
 async def test_correct_string(
-    responses: list[str], imp: Improvement, role: CorrectRole, ret_value: str, prompt: str,
+    responses: list[str],
+    imp: Improvement,
+    role: CorrectRole,
+    ret_value: str,
+    prompt: str,
 ) -> None:
     """Test the review_string functionality with different inputs."""
     with install_router_usage(*responses):

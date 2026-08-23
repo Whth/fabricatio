@@ -51,7 +51,13 @@ def test_plot_line(mocker: pytest_mock.MockerFixture) -> None:
     """
     mock_ax = mocker.Mock(spec=mpl_axes.Axes)
     plot_module.plot_line(
-        ax=mock_ax, x=[1, 2, 3], y=[4, 5, 6], label="test", color="red", linewidth=1.5, linestyle="--",
+        ax=mock_ax,
+        x=[1, 2, 3],
+        y=[4, 5, 6],
+        label="test",
+        color="red",
+        linewidth=1.5,
+        linestyle="--",
     )
 
     mock_ax.plot.assert_called_once_with([1, 2, 3], [4, 5, 6], label="test", color="red", linewidth=1.5, linestyle="--")

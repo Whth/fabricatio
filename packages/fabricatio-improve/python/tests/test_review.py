@@ -43,7 +43,10 @@ async def test_review_string(responses: list[str], role: ReviewerRole, ret_value
     with install_router_usage(*responses):
         imp = ok(
             await role.review_string(
-                prompt, topic, criteria={"some thing"}, rating_manual={"some thing": "a is bad, b is good."},
+                prompt,
+                topic,
+                criteria={"some thing"},
+                rating_manual={"some thing": "a is bad, b is good."},
             ),
         )
         assert imp.model_dump_json() == ret_value.model_dump_json()

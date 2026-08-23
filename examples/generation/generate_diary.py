@@ -63,7 +63,9 @@ class DumpText(Action, Handle):
         )
 
         resc = await self.handle_fine_grind(
-            task_input.assembled_prompt, {"text_to_dump": dump_text}, {"written_file_path": "path of the written file"},
+            task_input.assembled_prompt,
+            {"text_to_dump": dump_text},
+            {"written_file_path": "path of the written file"},
         )
         if resc:
             return resc.take("written_file_path")
@@ -77,7 +79,8 @@ class Coder(RoleBase, ProposeTask):
     subscriptions: dict[EventPattern, WorkFlow] = Field(
         default={
             Event.quick_instantiate("doc").collapse(): WorkFlow(
-                name="write documentation", steps=(WriteDiary, DumpText),
+                name="write documentation",
+                steps=(WriteDiary, DumpText),
             ),
         },
     )

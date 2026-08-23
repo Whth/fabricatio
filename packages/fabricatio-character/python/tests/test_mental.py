@@ -348,7 +348,9 @@ class TestAsPrompt:
         _make_state(
             sufferings=[
                 QualitativeSuffering(
-                    what_was_lost="trust", the_void="always suspicious", how_it_changed_me="became withdrawn",
+                    what_was_lost="trust",
+                    the_void="always suspicious",
+                    how_it_changed_me="became withdrawn",
                 ),
             ],
         )

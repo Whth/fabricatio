@@ -73,7 +73,9 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         if isinstance(query, str):
             search_vec = await self.vectorize(query)
             searched = await table.search_document(
-                search_vec, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold,
+                search_vec,
+                limit=conf.limit,
+                dedup_threshold=conf.dedup_cos_threshold,
             )
             return [doc_model.from_raw(s) for s in searched]
 

@@ -12,7 +12,11 @@ class SaveDataCSV(Action, UseLLM):
     """Saves a DataFrame to a CSV file at the specified path."""
 
     async def _execute(
-        self, task_input: Task, data_to_save: pd.DataFrame, save_path: str | Path | None = None, **cxt,
+        self,
+        task_input: Task,
+        data_to_save: pd.DataFrame,
+        save_path: str | Path | None = None,
+        **cxt,
     ) -> Path:
         p = Path(
             ok(

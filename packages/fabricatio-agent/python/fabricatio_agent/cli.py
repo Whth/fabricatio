@@ -130,7 +130,10 @@ class ProjectLeader(Role, Cooperate):
 def code(
     prompt: str = Argument(..., help="The prompt to generate code from."),
     sequential_thinking: bool = Option(
-        False, "-sq", "--sequential-thinking", help="Whether to use sequential thinking.",
+        False,
+        "-sq",
+        "--sequential-thinking",
+        help="Whether to use sequential thinking.",
     ),
 ) -> None:
     """Generate code based on the provided prompt.

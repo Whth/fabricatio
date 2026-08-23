@@ -588,7 +588,10 @@ class RecordingTable:
         self.thresholds: list[float | None] = []
 
     async def search_document(
-        self, embedding: list[float], limit: int, dedup_threshold: float | None = None,
+        self,
+        embedding: list[float],
+        limit: int,
+        dedup_threshold: float | None = None,
     ) -> list[SearchedDocument]:
         """Record the call arguments, then delegate to the wrapped table."""
         self.limits.append(limit)
@@ -627,7 +630,9 @@ class TestFetchConfigDedup:
         assert conf.dedup_cos_threshold is None
 
     async def test_afetch_threads_threshold_into_search(
-        self, table: VectorStoreTable, monkeypatch: pytest.MonkeyPatch,
+        self,
+        table: VectorStoreTable,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """afetch_document forwards the configured threshold and limit to every search call."""
         await table.add_documents(_dedup_docs())

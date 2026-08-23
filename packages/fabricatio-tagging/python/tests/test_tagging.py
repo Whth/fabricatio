@@ -49,7 +49,12 @@ def responses(mock_tags: list[str]) -> list[str]:
 )
 @pytest.mark.asyncio
 async def test_tagging_single_string(
-    responses: list[str], role: TaggingRole, mock_tags: list[str], text: str, requirement: str, k: int,
+    responses: list[str],
+    role: TaggingRole,
+    mock_tags: list[str],
+    text: str,
+    requirement: str,
+    k: int,
 ) -> None:
     """Test the tagging method with a single text string.
 
@@ -139,7 +144,11 @@ def test_tagging_invalid_type_raises(
 )
 @pytest.mark.asyncio
 async def test_tagging_with_requirement(
-    responses: list[str], role: TaggingRole, mock_tags: list[str], text: str, requirement: str,
+    responses: list[str],
+    role: TaggingRole,
+    mock_tags: list[str],
+    text: str,
+    requirement: str,
 ) -> None:
     """Test the tagging method with various requirements.
 

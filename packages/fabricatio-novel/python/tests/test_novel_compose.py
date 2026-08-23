@@ -23,7 +23,10 @@ class TestCharacterSpans:
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=100, series_bible=bible,
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=100,
+            series_bible=bible,
         )
         novel_start = card()
         novel_end = novel_start.model_copy(update={"look": "wounded"})
@@ -420,7 +423,10 @@ class TestPrefixAccumulation:
         ctx.add_chapter_context(chapter_1).add_chapter_context(chapter_2)
 
         meta = NovelPlan(
-            title="The Search", description="A hero searching.", expected_word_count=80, series_bible=SeriesBible(),
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=80,
+            series_bible=SeriesBible(),
         )
         with install_router_usage(
             *return_mixed_router_usage(

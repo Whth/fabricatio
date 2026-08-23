@@ -230,7 +230,10 @@ class MemoryStore:
             Exception: If there is an error parsing the query or searching the index.
         """
     def search_by_tags(
-        self, tags: typing.Sequence[builtins.str], top_k: builtins.int = 20, write: builtins.bool = False,
+        self,
+        tags: typing.Sequence[builtins.str],
+        top_k: builtins.int = 20,
+        write: builtins.bool = False,
     ) -> builtins.list[Memory]:
         r"""Searches memories by specific tags.
 
@@ -246,7 +249,10 @@ class MemoryStore:
             Exception: If there is an error searching the index.
         """
     def get_memories_by_importance(
-        self, min_importance: builtins.int, top_k: builtins.int = 20, write: builtins.bool = False,
+        self,
+        min_importance: builtins.int,
+        top_k: builtins.int = 20,
+        write: builtins.bool = False,
     ) -> builtins.list[Memory]:
         r"""Gets memories filtered by a minimum importance level.
 
@@ -262,7 +268,10 @@ class MemoryStore:
             Exception: If there is an error searching the index.
         """
     def get_recent_memories(
-        self, days: builtins.int, top_k: builtins.int = 20, write: builtins.bool = False,
+        self,
+        days: builtins.int,
+        top_k: builtins.int = 20,
+        write: builtins.bool = False,
     ) -> builtins.list[Memory]:
         r"""Gets memories from the last N days.
 

@@ -66,7 +66,10 @@ def store_reference_texts(
 def store_enriched_texts(
     patterns: list[str] = typer.Argument(..., help="File paths and/or glob patterns to enrich and ingest."),
     enrich_guideline: str = typer.Option(
-        "", "--enrich-guideline", "-eg", help="Guidance for QA-pair generation (e.g. 'Extract world-building facts').",
+        "",
+        "--enrich-guideline",
+        "-eg",
+        help="Guidance for QA-pair generation (e.g. 'Extract world-building facts').",
     ),
     chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
     max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),

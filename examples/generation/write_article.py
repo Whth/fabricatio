@@ -122,7 +122,10 @@ def finish(
     article_outline_path: Path = typer.Argument(help="Path to the article outline raw file."),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
     persist_dir: Path = typer.Option(
-        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output.",
+        Path("persistent"),
+        "-p",
+        "--persist-dir",
+        help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
     supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
@@ -148,11 +151,17 @@ def finish(
 @app.command()
 def completion(
     article_outline_raw_path: Path = typer.Option(
-        Path("article_outline_raw.txt"), "-a", "--article-outline-raw", help="Path to the article outline raw file.",
+        Path("article_outline_raw.txt"),
+        "-a",
+        "--article-outline-raw",
+        help="Path to the article outline raw file.",
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
     persist_dir: Path = typer.Option(
-        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output.",
+        Path("persistent"),
+        "-p",
+        "--persist-dir",
+        help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
     supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
@@ -178,11 +187,17 @@ def completion(
 @app.command()
 def write(
     article_briefing: Path = typer.Option(
-        Path("article_briefing.txt"), "-a", "--article-briefing", help="Path to the article briefing file.",
+        Path("article_briefing.txt"),
+        "-a",
+        "--article-briefing",
+        help="Path to the article briefing file.",
     ),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
     persist_dir: Path = typer.Option(
-        Path("persistent"), "-p", "--persist-dir", help="Directory to persist the output.",
+        Path("persistent"),
+        "-p",
+        "--persist-dir",
+        help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
     supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),

@@ -172,7 +172,8 @@ class TestRAGCompose:
         captured_configs: list[WritingStyleFetchConfig] = []
 
         async def fake_fetch(
-            query: object, config: WritingStyleFetchConfig | None = None,
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
         ) -> list[WritingStyleDocument]:
             captured_queries.append(query)
             if config is not None:
@@ -196,7 +197,8 @@ class TestRAGCompose:
         captured_queries: list[object] = []
 
         async def fake_fetch(
-            query: object, config: WritingStyleFetchConfig | None = None,
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
         ) -> list[WritingStyleDocument]:
             captured_queries.append(query)
             return []
@@ -216,7 +218,8 @@ class TestRAGCompose:
         blank = WritingStyleDocument.with_text_chunk("   ")
 
         async def fake_fetch(
-            query: object, config: WritingStyleFetchConfig | None = None,
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
         ) -> list[WritingStyleDocument]:
             return [blank, doc, blank]
 
@@ -233,7 +236,8 @@ class TestRAGCompose:
         story.set_rag(RagRetrieval(query="guide", limit=7))
 
         async def fake_fetch(
-            query: object, config: WritingStyleFetchConfig | None = None,
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
         ) -> list[WritingStyleDocument]:
             return []
 

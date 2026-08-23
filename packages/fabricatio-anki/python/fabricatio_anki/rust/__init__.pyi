@@ -58,7 +58,8 @@ def add_csv_data(
     """
 
 def compile_deck(
-    path: builtins.str | os.PathLike | pathlib.Path, output: builtins.str | os.PathLike | pathlib.Path,
+    path: builtins.str | os.PathLike | pathlib.Path,
+    output: builtins.str | os.PathLike | pathlib.Path,
 ) -> None:
     r"""Compile an Anki deck from a project directory and export it to the specified output path.
 

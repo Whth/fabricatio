@@ -27,7 +27,9 @@ class NovelBuilder:
     def add_chapter(self, title: builtins.str, content: builtins.str) -> NovelBuilder:
         r"""Adds a chapter with given title and content."""
     def add_cover_image(
-        self, path: builtins.str | os.PathLike | pathlib.Path, source: builtins.str | os.PathLike | pathlib.Path,
+        self,
+        path: builtins.str | os.PathLike | pathlib.Path,
+        source: builtins.str | os.PathLike | pathlib.Path,
     ) -> NovelBuilder:
         r"""Adds a cover image from the given file path."""
     def add_metadata(self, key: builtins.str, value: builtins.str) -> NovelBuilder:
@@ -35,7 +37,9 @@ class NovelBuilder:
     def add_css(self, css: builtins.str) -> NovelBuilder:
         r"""Adds CSS styles to the novel."""
     def add_resource(
-        self, path: builtins.str | os.PathLike | pathlib.Path, source: builtins.str | os.PathLike | pathlib.Path,
+        self,
+        path: builtins.str | os.PathLike | pathlib.Path,
+        source: builtins.str | os.PathLike | pathlib.Path,
     ) -> NovelBuilder:
         r"""Adds a resource file to the novel."""
     def add_font(self, font_family: builtins.str, source: builtins.str | os.PathLike | pathlib.Path) -> NovelBuilder:

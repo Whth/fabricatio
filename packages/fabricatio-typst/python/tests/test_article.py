@@ -104,13 +104,25 @@ class TestArticle:
         """Test asynchronous title editing functionality."""
         # Add components to test
         chapter = ArticleChapter(
-            heading="Original Chapter", sections=[], elaboration="", aims=[], expected_word_count=500,
+            heading="Original Chapter",
+            sections=[],
+            elaboration="",
+            aims=[],
+            expected_word_count=500,
         )
         section = ArticleSection(
-            heading="Original Section", subsections=[], elaboration="", aims=[], expected_word_count=500,
+            heading="Original Section",
+            subsections=[],
+            elaboration="",
+            aims=[],
+            expected_word_count=500,
         )
         subsection = ArticleSubsection(
-            heading="Original Subsection", expected_word_count=100, paragraphs=[], elaboration="", aims=[],
+            heading="Original Subsection",
+            expected_word_count=100,
+            paragraphs=[],
+            elaboration="",
+            aims=[],
         )
         section.subsections.append(subsection)
         chapter.sections.append(section)
@@ -128,7 +140,11 @@ class TestArticle:
         chapter = ArticleChapter(heading="Chapter", sections=[], elaboration="", aims=[], expected_word_count=500)
         section = ArticleSection(heading="Section", subsections=[], elaboration="", aims=[], expected_word_count=500)
         subsection = ArticleSubsection(
-            heading="Subsection", expected_word_count=100, paragraphs=[], elaboration="", aims=[],
+            heading="Subsection",
+            expected_word_count=100,
+            paragraphs=[],
+            elaboration="",
+            aims=[],
         )
         section.subsections.append(subsection)
         chapter.sections.append(section)
@@ -192,7 +208,11 @@ class TestConflictResolution:
     def _make_chapter(self, title: str, sec_title: str = "S") -> ArticleChapterOutline:
         sub = ArticleSubsectionOutline(heading=sec_title, expected_word_count=10, elaboration="", aims=[])
         sec = ArticleSectionOutline(
-            heading=sec_title, subsections=[sub], elaboration="", aims=[], expected_word_count=10,
+            heading=sec_title,
+            subsections=[sub],
+            elaboration="",
+            aims=[],
+            expected_word_count=10,
         )
         return ArticleChapterOutline(heading=title, sections=[sec], elaboration="", aims=[], expected_word_count=10)
 
@@ -215,7 +235,11 @@ class TestConflictResolution:
         b = self._make_chapter("T")
         extra_sub = ArticleSubsectionOutline(heading="X", expected_word_count=10, elaboration="", aims=[])
         extra_sec = ArticleSectionOutline(
-            heading="X", subsections=[extra_sub], elaboration="", aims=[], expected_word_count=10,
+            heading="X",
+            subsections=[extra_sub],
+            elaboration="",
+            aims=[],
+            expected_word_count=10,
         )
         b.sections.append(extra_sec)
         result = a.resolve_update_conflict(b)

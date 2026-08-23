@@ -88,7 +88,10 @@ def return_router_usage(*value: str, default: str | None = None, padding: int = 
 
 
 def return_generic_router_usage(
-    *strings: str, lang: str = "string", default: str | None = None, padding: int = 10,
+    *strings: str,
+    lang: str = "string",
+    default: str | None = None,
+    padding: int = 10,
 ) -> list[str]:
     """Build generic-block-formatted responses for install_router_usage.
 
@@ -202,7 +205,9 @@ def return_mixed_router_usage(*values: Value, default: str | None = None, paddin
 
 
 def pad_embeddings(
-    *embeddings: list[float], default: list[float] | None = None, padding: int = 10,
+    *embeddings: list[float],
+    default: list[float] | None = None,
+    padding: int = 10,
 ) -> list[list[float]]:
     """Build a padded embeddings list for DummyModel.
 
@@ -224,7 +229,9 @@ def pad_embeddings(
 
 
 def pad_rankings(
-    *rankings: tuple[int, float], default: tuple[int, float] | None = None, padding: int = 10,
+    *rankings: tuple[int, float],
+    default: tuple[int, float] | None = None,
+    padding: int = 10,
 ) -> list[tuple[int, float]]:
     """Build a padded rankings list for DummyModel.
 

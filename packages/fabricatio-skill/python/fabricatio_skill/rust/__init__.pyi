@@ -103,7 +103,9 @@ def scan_skills(path: builtins.str) -> builtins.list[Skill]:
     """
 
 def search_skills(
-    query: builtins.str, skills: typing.Sequence[Skill], in_content: builtins.bool = False,
+    query: builtins.str,
+    skills: typing.Sequence[Skill],
+    in_content: builtins.bool = False,
 ) -> builtins.list[Skill]:
     r"""Search skills by keyword matching against name, description, tags, and content.
 

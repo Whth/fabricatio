@@ -25,7 +25,11 @@ class Questioning(Propose):
     """
 
     async def selection(
-        self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs],
+        self,
+        q: str,
+        k: int = 1,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str | list[str]:
         """Create an interactive selection prompt for the user.
 
@@ -54,7 +58,8 @@ class Questioning(Propose):
             await self.propose(
                 SelectionQuestion,
                 TEMPLATE_MANAGER.render_template(
-                    question_config.selection_template, {"q": q},
+                    question_config.selection_template,
+                    {"q": q},
                 ),  # create the generation prompt
                 send_to=send_to,
                 **kwargs,
@@ -68,7 +73,11 @@ class Questioning(Propose):
         return await question.multiple(k)
 
     async def selection_string(
-        self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs],
+        self,
+        q: str,
+        k: int = 1,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Generates a selection question and returns the formatted response with selected indices.
 
@@ -94,7 +103,8 @@ class Questioning(Propose):
             await self.propose(
                 SelectionQuestion,
                 TEMPLATE_MANAGER.render_template(
-                    question_config.selection_template, {"q": q},
+                    question_config.selection_template,
+                    {"q": q},
                 ),  # create the generation prompt
                 send_to=send_to,
                 **kwargs,

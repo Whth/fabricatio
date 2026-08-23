@@ -55,12 +55,17 @@ class StoreDocument:
     @metadata.setter
     def metadata(self, value: builtins.str | None) -> None: ...
     def __new__(
-        cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: builtins.str | None,
+        cls,
+        content: builtins.str,
+        vector: typing.Sequence[builtins.float],
+        metadata: builtins.str | None,
     ) -> StoreDocument:
         r"""Create a new Document instance."""
     @staticmethod
     def with_metadata(
-        content: builtins.str, vector: typing.Sequence[builtins.float], metadata: dict | None,
+        content: builtins.str,
+        vector: typing.Sequence[builtins.float],
+        metadata: dict | None,
     ) -> StoreDocument:
         r"""Create a new Document instance with metadata dict."""
 
@@ -85,7 +90,9 @@ class VectorStoreService:
 @typing.final
 class VectorStoreTable:
     def add_documents(
-        self, documents: typing.Sequence[StoreDocument], rebuild_index: builtins.bool = True,
+        self,
+        documents: typing.Sequence[StoreDocument],
+        rebuild_index: builtins.bool = True,
     ) -> typing.Awaitable[builtins.list[builtins.str]]:
         r"""Adds multiple documents to the vector store.
 

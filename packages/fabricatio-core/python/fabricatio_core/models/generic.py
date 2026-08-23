@@ -198,7 +198,9 @@ class WithDependency(Base, ABC):
         return self.clear_dependencies().add_dependency(dependencies)
 
     def read_dependency[T](
-        self, idx: int = -1, reader: Callable[[str], T] = lambda p: Path(p).read_text(encoding="utf-8", errors="ignore"),
+        self,
+        idx: int = -1,
+        reader: Callable[[str], T] = lambda p: Path(p).read_text(encoding="utf-8", errors="ignore"),
     ) -> T:
         """Read the content of a file dependency.
 
@@ -354,7 +356,8 @@ class EmbeddingScopedConfig(ScopedConfig):
             ),
             ndim=first_available((ndim, self.embedding_ndim, CONFIG.embedding.ndim)),
             no_cache=first_available(
-                (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache), raise_exception=False,
+                (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache),
+                raise_exception=False,
             )
             or False,
             max_batch_emb_size=first_available(
@@ -380,7 +383,8 @@ class RerankerScopedConfig(ScopedConfig):
                 "send_to is not specified at any where",
             ),
             no_cache=first_available(
-                (no_cache, self.reranker_no_cache, CONFIG.reranker.no_cache), raise_exception=False,
+                (no_cache, self.reranker_no_cache, CONFIG.reranker.no_cache),
+                raise_exception=False,
             )
             or False,
         )
@@ -454,17 +458,20 @@ class LLMScopedConfig(ScopedConfig):
             stream=first_available((stream, self.llm_stream, CONFIG.llm.stream), raise_exception=False) or False,
             top_p=first_available((top_p, self.llm_top_p, CONFIG.llm.top_p), raise_exception=False),
             temperature=first_available(
-                (temperature, self.llm_temperature, CONFIG.llm.temperature), raise_exception=False,
+                (temperature, self.llm_temperature, CONFIG.llm.temperature),
+                raise_exception=False,
             ),
             max_completion_tokens=first_available(
                 (max_completion_tokens, self.llm_max_completion_tokens, CONFIG.llm.max_completion_tokens),
                 raise_exception=False,
             ),
             presence_penalty=first_available(
-                (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty), raise_exception=False,
+                (presence_penalty, self.llm_presence_penalty, CONFIG.llm.presence_penalty),
+                raise_exception=False,
             ),
             frequency_penalty=first_available(
-                (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty), raise_exception=False,
+                (frequency_penalty, self.llm_frequency_penalty, CONFIG.llm.frequency_penalty),
+                raise_exception=False,
             ),
             effort=first_available((effort, self.llm_effort, CONFIG.llm.effort), raise_exception=False),
             no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
@@ -473,7 +480,10 @@ class LLMScopedConfig(ScopedConfig):
         )
 
     def _resolve_validation_params[T](
-        self, default: T | None = None, max_validations: PositiveInt = 3, **kwargs: Unpack[LLMKwargs],
+        self,
+        default: T | None = None,
+        max_validations: PositiveInt = 3,
+        **kwargs: Unpack[LLMKwargs],
     ) -> ValidateKwargs[T]:
         res = self._resolve_completion_params(**kwargs)
         return ValidateKwargs(default=default, max_validations=max_validations, **res)

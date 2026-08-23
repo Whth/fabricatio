@@ -4,7 +4,6 @@ This demonstrates fabricatio's diff editing feature by correcting common writing
 in a Chinese student essay while preserving the original content structure and meaning.
 """
 
-
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
 from fabricatio.capabilities import DiffEdit
 from fabricatio_core.utils import ok
@@ -52,7 +51,8 @@ class TweakEssay(Action, DiffEdit):
 
 # Configure role workflow for essay tweaking
 Role.with_bio(name="writer").subscribe(
-    Event.quick_instantiate("tweak"), WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),)),
+    Event.quick_instantiate("tweak"),
+    WorkFlow(name="tweak flow", steps=(TweakEssay().to_task_output(),)),
 ).dispatch()
 
 

@@ -24,7 +24,10 @@ class Lyricize(Propose, SelectGenre):
 
     @overload
     async def lyricize(
-        self, requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]],
+        self,
+        requirement: str,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Song]],
     ) -> Song | None:
         """Generate lyrics for a single requirement.
 
@@ -42,7 +45,10 @@ class Lyricize(Propose, SelectGenre):
 
     @overload
     async def lyricize(
-        self, requirement: list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]],
+        self,
+        requirement: list[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Song]],
     ) -> list[Song | None]:
         """Generate lyrics for multiple requirements.
 
@@ -59,7 +65,10 @@ class Lyricize(Propose, SelectGenre):
         ...
 
     async def lyricize(
-        self, requirement: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]],
+        self,
+        requirement: str | list[str],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Song]],
     ) -> Song | list[Song | None] | None:
         """Generate lyrics based on requirements.
 

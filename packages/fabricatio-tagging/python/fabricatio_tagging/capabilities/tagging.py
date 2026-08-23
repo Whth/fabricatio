@@ -24,7 +24,12 @@ class Tagging(Propose):
 
     @overload
     async def tagging(
-        self, text: str, requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs],
+        self,
+        text: str,
+        requirement: str = "",
+        k: int = 0,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
     ) -> list[str] | None:
         """Generate tags for a single text string.
 
@@ -96,7 +101,8 @@ class Tagging(Propose):
         if isinstance(text, str):
             return await self.alist_v(
                 TEMPLATE_MANAGER.render_template(
-                    tagging_config.tagging_template, {"text": text, "requirement": requirement},
+                    tagging_config.tagging_template,
+                    {"text": text, "requirement": requirement},
                 ),
                 value_type=str,
                 k=k,
@@ -105,7 +111,8 @@ class Tagging(Propose):
             )
         if isinstance(text, list):
             rendered = TEMPLATE_MANAGER.render_template(
-                tagging_config.tagging_template, [{"text": t, "requirement": requirement} for t in text],
+                tagging_config.tagging_template,
+                [{"text": t, "requirement": requirement} for t in text],
             )
 
             tags_seq = await gather(

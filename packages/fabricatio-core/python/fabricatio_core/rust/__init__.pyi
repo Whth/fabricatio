@@ -249,7 +249,8 @@ class ContentBlockParser:
     def right_delimiter(self) -> builtins.str: ...
     @staticmethod
     def with_delimiters(
-        left_delimiter: builtins.str, right_delimiter: builtins.str | None = None,
+        left_delimiter: builtins.str,
+        right_delimiter: builtins.str | None = None,
     ) -> ContentBlockParser:
         r"""Create a new ContentBlockParser instance.
 
@@ -864,7 +865,10 @@ class Router:
             None: This is an asynchronous operation that modifies the router state.
         """
     def add_or_update_dummy_completion_model(
-        self, group: builtins.str, model_identifier: builtins.str, responses: typing.Sequence[builtins.str],
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        responses: typing.Sequence[builtins.str],
     ) -> None: ...
     def add_or_update_dummy_embedding_model(
         self,
@@ -1426,7 +1430,9 @@ class TemplateManager:
     def template_count(self) -> builtins.int:
         r"""The count of templates currently registered."""
     def add_store(
-        self, source: builtins.str | os.PathLike | pathlib.Path, rediscovery: builtins.bool = False,
+        self,
+        source: builtins.str | os.PathLike | pathlib.Path,
+        rediscovery: builtins.bool = False,
     ) -> TemplateManager:
         r"""Adds a template directory to the list of template directories.
 
@@ -1438,7 +1444,9 @@ class TemplateManager:
             A mutable reference to self for method chaining.
         """
     def add_stores(
-        self, sources: typing.Sequence[builtins.str | os.PathLike | pathlib.Path], rediscovery: builtins.bool = False,
+        self,
+        sources: typing.Sequence[builtins.str | os.PathLike | pathlib.Path],
+        rediscovery: builtins.bool = False,
     ) -> TemplateManager:
         r"""Adds multiple template directories to the list.
 
@@ -1869,7 +1877,9 @@ def list_installed() -> builtins.list[builtins.str]:
     """
 
 def split_into_chunks(
-    string: builtins.str, max_chunk_size: builtins.int, max_overlapping_rate: builtins.float = 0.3,
+    string: builtins.str,
+    max_chunk_size: builtins.int,
+    max_overlapping_rate: builtins.float = 0.3,
 ) -> builtins.list[builtins.str]:
     r"""Splits a string into chunks based on maximum size and overlapping rate.
 

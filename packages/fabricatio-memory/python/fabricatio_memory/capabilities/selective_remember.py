@@ -25,7 +25,12 @@ class SelectiveRemember(Remember, EvidentlyJudge):
     """
 
     async def sremember(
-        self, prerequisite: str, raw: str, *, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Note]],
+        self,
+        prerequisite: str,
+        raw: str,
+        *,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[Note]],
     ) -> Note | None:
         """Conditionally records a memory based on a judgment.
 
@@ -40,7 +45,8 @@ class SelectiveRemember(Remember, EvidentlyJudge):
         """
         if await self.evidently_judge(
             TEMPLATE_MANAGER.render_template(
-                memory_config.sremember_template, {"prerequisite": prerequisite, "raw": raw},
+                memory_config.sremember_template,
+                {"prerequisite": prerequisite, "raw": raw},
             ),
             send_to=send_to,
         ):

@@ -33,7 +33,8 @@ test_segment_cases = [
 
 
 @pytest.mark.parametrize(
-    ("description", "section_type", "duration", "lyrics", "genres", "expected"), test_segment_cases,
+    ("description", "section_type", "duration", "lyrics", "genres", "expected"),
+    test_segment_cases,
 )
 def test_segment_assembly(
     description: str,

@@ -74,7 +74,10 @@ class Thinking(Propose, ABC):
             # Commit the current thought
             logger.debug(f"Committing thought: {thought.serial} - {thought.thought}")
             vcs.commit(
-                content=thought.thought, serial=thought.serial, estimated=thought.estimated, branch=thought.branch,
+                content=thought.thought,
+                serial=thought.serial,
+                estimated=thought.estimated,
+                branch=thought.branch,
             )
             if thought.end:
                 logger.debug("End of thinking process reached.")

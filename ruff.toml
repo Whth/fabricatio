@@ -64,7 +64,8 @@ ignore = [
     "PLR2004",
     "PLC0415",
     "ASYNC230",
-    "ASYNC240"
+    "ASYNC240",
+    "COM812"
 ]
 
 [lint.per-file-ignores]

@@ -156,7 +156,10 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
         return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def extract_new_subsec(
-        self, subsec: ArticleSubsection, raw_paras: str, cm: CitationManager,
+        self,
+        subsec: ArticleSubsection,
+        raw_paras: str,
+        cm: CitationManager,
     ) -> ArticleSubsection:
         """Extract the new subsec."""
         new_subsec = ok(
@@ -401,7 +404,8 @@ class ChunkArticle(Action):
             bib_manager,
             max_chunk_size=ok(max_chunk_size or self.max_chunk_size, "No max_chunk_size provided!"),
             max_overlapping_rate=ok(
-                max_overlapping_rate or self.max_overlapping_rate, "No max_overlapping_rate provided!",
+                max_overlapping_rate or self.max_overlapping_rate,
+                "No max_overlapping_rate provided!",
             ),
         )
 

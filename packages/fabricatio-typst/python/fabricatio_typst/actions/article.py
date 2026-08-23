@@ -176,7 +176,9 @@ class GenerateInitialOutline(Action, Extract, Correct):
                 )
                 raw_outline = (
                     await self.correct_string(
-                        raw_outline, imp, wrap_in_block(article_proposal.as_prompt(), "Article Proposal"),
+                        raw_outline,
+                        imp,
+                        wrap_in_block(article_proposal.as_prompt(), "Article Proposal"),
                     )
                 ) or raw_outline
                 r_print(raw_outline)

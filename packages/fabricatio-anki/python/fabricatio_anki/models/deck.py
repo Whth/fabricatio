@@ -56,7 +56,9 @@ class Model(SketchedAble, Named):
         model_root = Path(parent_dir) / self.name
         logger.info(f"Saving model metadata to {model_root}")
         save_metadata(
-            model_root, Constants.FIELDS, {Constants.MODEL_ID: perf_counter_ns(), Constants.FIELDS: self.fields},
+            model_root,
+            Constants.FIELDS,
+            {Constants.MODEL_ID: perf_counter_ns(), Constants.FIELDS: self.fields},
         )
 
         for t in self.templates:
@@ -100,7 +102,9 @@ class Deck(SketchedAble, WithBriefing):
 
         logger.info("Writing deck metadata")
         save_metadata(
-            path, Constants.DECK, {Constants.DECK_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})},
+            path,
+            Constants.DECK,
+            {Constants.DECK_ID: perf_counter_ns(), **self.model_dump(exclude={"models"})},
         )
 
         logger.info(f"Deck saved successfully with {len(self.models)} models")

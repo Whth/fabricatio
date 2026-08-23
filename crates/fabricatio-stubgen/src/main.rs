@@ -35,7 +35,11 @@ use pyo3_stub_gen::Result;
 
 /// Collect every `<pkg>/python/<module>/rust/__init__.pyi` under `<repo>/packages`.
 fn discover_stubs() -> Vec<PathBuf> {
-    let Some(root) = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).map(Path::to_path_buf) else {
+    let Some(root) = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .map(Path::to_path_buf)
+    else {
         return Vec::new();
     };
     let packages_dir = root.join("packages");
@@ -62,9 +66,17 @@ fn discover_stubs() -> Vec<PathBuf> {
 /// Run one ruff subcommand over the stubs in chunks; warn (never fail) on errors.
 fn run_ruff(root: &Path, args: &[&str], stubs: &[PathBuf]) {
     for chunk in stubs.chunks(64) {
-        match Command::new("ruff").args(args).args(chunk).current_dir(root).status() {
+        match Command::new("ruff")
+            .args(args)
+            .args(chunk)
+            .current_dir(root)
+            .status()
+        {
             Ok(s) if s.success() => {}
-            Ok(s) => eprintln!("polish: ruff {} exited with {s}", args.first().unwrap_or(&"")),
+            Ok(s) => eprintln!(
+                "polish: ruff {} exited with {s}",
+                args.first().unwrap_or(&"")
+            ),
             Err(e) => eprintln!("polish: failed to launch ruff ({e}); skipping"),
         }
     }
@@ -72,7 +84,11 @@ fn run_ruff(root: &Path, args: &[&str], stubs: &[PathBuf]) {
 
 /// Post-generation polish: make every emitted `.pyi` comply with the repo ruff config.
 fn polish_stubs() {
-    let Some(root) = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).map(Path::to_path_buf) else {
+    let Some(root) = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(2)
+        .map(Path::to_path_buf)
+    else {
         return;
     };
     let stubs = discover_stubs();

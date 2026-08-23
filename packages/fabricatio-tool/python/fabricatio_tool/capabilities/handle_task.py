@@ -24,7 +24,11 @@ class HandleTask(Handle, ABC):
     """
 
     async def handle_task(
-        self, task: Task, data: dict[str, Any], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[str]],
+        self,
+        task: Task,
+        data: dict[str, Any],
+        send_to: str | None = TASK,
+        **kwargs: Unpack[ValidateKwargs[str]],
     ) -> ResultCollector | None:
         """Asynchronously handles a task based on a given task object and parameters with enhanced control features.
 
