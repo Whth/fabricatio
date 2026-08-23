@@ -1,8 +1,9 @@
 """A module containing the RAG (Retrieval-Augmented Generation) models."""
 
 from abc import ABC
+from collections.abc import Sequence
 from functools import partial
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional, Self, Sequence, Set
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.utils import ok
@@ -17,20 +18,20 @@ if TYPE_CHECKING:
 class MilvusScopedConfig(ScopedConfig):
     """A class representing the configuration for Milvus."""
 
-    milvus_uri: Optional[str] = Field(default=None)
+    milvus_uri: str | None = Field(default=None)
     """The URI of the Milvus server."""
 
-    milvus_token: Optional[SecretStr] = Field(default=None)
+    milvus_token: SecretStr | None = Field(default=None)
     """The token for the Milvus server."""
 
-    milvus_timeout: Optional[PositiveFloat] = Field(default=None)
+    milvus_timeout: PositiveFloat | None = Field(default=None)
     """The timeout for the Milvus server."""
 
-    milvus_dimensions: Optional[PositiveInt] = Field(default=None)
+    milvus_dimensions: PositiveInt | None = Field(default=None)
     """The dimensions of the Milvus server."""
 
 
-class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], SearchedDocumentModel[ST], ABC):
+class MilvusDataBase[ST: dict[str, Any]](StoredDocumentModel[ST], SearchedDocumentModel[ST], ABC):
     """A base class for Milvus data."""
 
     primary_field_name: ClassVar[str] = "id"
@@ -73,13 +74,13 @@ class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], SearchedDocume
                 fields.append(schema(dtype=DataType.VARCHAR, max_length=65535))
             elif anno == float:
                 fields.append(schema(dtype=DataType.DOUBLE))
-            elif anno == list[str] or anno == List[str] or anno == set[str] or anno == Set[str]:
+            elif anno == list[str] or anno == list[str] or anno == set[str] or anno == set[str]:
                 fields.append(
                     schema(dtype=DataType.ARRAY, element_type=DataType.VARCHAR, max_length=65535, max_capacity=4096)
                 )
-            elif anno == list[int] or anno == List[int] or anno == set[int] or anno == Set[int]:
+            elif anno == list[int] or anno == list[int] or anno == set[int] or anno == set[int]:
                 fields.append(schema(dtype=DataType.ARRAY, element_type=DataType.INT64, max_capacity=4096))
-            elif anno == list[float] or anno == List[float] or anno == set[float] or anno == Set[float]:
+            elif anno == list[float] or anno == list[float] or anno == set[float] or anno == set[float]:
                 fields.append(schema(dtype=DataType.ARRAY, element_type=DataType.DOUBLE, max_capacity=4096))
             elif anno == JsonValue:
                 fields.append(schema(dtype=DataType.JSON))
@@ -90,12 +91,12 @@ class MilvusDataBase[ST: Dict[str, Any]](StoredDocumentModel[ST], SearchedDocume
         return CollectionSchema(fields)
 
     @classmethod
-    def from_sequence(cls, data: Sequence[ST]) -> List[Self]:
+    def from_sequence(cls, data: Sequence[ST]) -> list[Self]:
         """Constructs a list of instances from a sequence of dictionaries."""
         return [cls(**d) for d in data]
 
 
-class MilvusClassicModel[SD: Dict[str, Any]](MilvusDataBase[SD]):
+class MilvusClassicModel[SD: dict[str, Any]](MilvusDataBase[SD]):
     """A class representing a classic model stored in Milvus."""
 
     text: str
@@ -108,7 +109,7 @@ class MilvusClassicModel[SD: Dict[str, Any]](MilvusDataBase[SD]):
         """Create a model instance from a raw Milvus search result."""
         return cls(**raw)
 
-    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
         return self.model_dump()
 
     def _prepare_vectorization_inner(self) -> str:

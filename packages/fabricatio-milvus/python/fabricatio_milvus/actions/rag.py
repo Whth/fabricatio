@@ -1,7 +1,5 @@
 """Inject data into the database."""
 
-from typing import List, Optional
-
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.task import Task
@@ -21,8 +19,8 @@ class InjectToDB(Action, MilvusRAG):
     """The name of the collection to inject data into."""
 
     async def _execute[T: MilvusDataBase](
-        self, to_inject: Optional[T] | List[Optional[T]], override_inject: bool = False, **_
-    ) -> Optional[str]:
+        self, to_inject: T | list[T | None] | None, override_inject: bool = False, **_
+    ) -> str | None:
         from pymilvus.milvus_client import IndexParams
 
         if to_inject is None:
@@ -93,7 +91,7 @@ class MilvusRAGTalk(Action, MilvusRAG):
                 user_say = await text("User: ").ask_async()
                 if user_say is None:
                     break
-                ret: List[MilvusClassicModel] = await self.aretrieve(
+                ret: list[MilvusClassicModel] = await self.aretrieve(
                     user_say,
                     config=FetchConfig(
                         document_model=MilvusClassicModel,

@@ -1,7 +1,6 @@
 """Module containing configuration classes for fabricatio-milvus."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from fabricatio_core import CONFIG
 from pydantic import SecretStr
@@ -11,16 +10,16 @@ from pydantic import SecretStr
 class MilvusConfig:
     """Configuration for fabricatio-milvus."""
 
-    milvus_uri: Optional[str] = None
+    milvus_uri: str | None = None
     """The URI of the Milvus server."""
 
-    milvus_timeout: Optional[float] = None
+    milvus_timeout: float | None = None
     """The timeout of the Milvus server in seconds."""
 
-    milvus_token: Optional[SecretStr] = None
+    milvus_token: SecretStr | None = None
     """The token for Milvus authentication."""
 
-    milvus_dimensions: Optional[int] = None
+    milvus_dimensions: int | None = None
     """The dimensions for Milvus vectors."""
 
 

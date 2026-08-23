@@ -1,6 +1,6 @@
 """A module containing kwargs types for content correction and checking operations."""
 
-from typing import NotRequired, Optional, TypedDict
+from typing import NotRequired, TypedDict
 
 from pymilvus import CollectionSchema
 from pymilvus.milvus_client import IndexParams
@@ -32,6 +32,6 @@ class FetchKwargs(TypedDict):
     collection_name: NotRequired[str | None]
     similarity_threshold: NotRequired[float]
     result_per_query: NotRequired[int]
-    tei_endpoint: NotRequired[Optional[str]]
+    tei_endpoint: NotRequired[str | None]
     reranker_threshold: NotRequired[float]
     filter_expr: NotRequired[str]

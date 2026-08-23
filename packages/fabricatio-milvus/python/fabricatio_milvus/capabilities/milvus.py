@@ -2,7 +2,7 @@
 
 from functools import cache
 from operator import itemgetter
-from typing import List, Optional, Self, Type
+from typing import Self
 
 from fabricatio_core import logger
 from fabricatio_core.utils import ok
@@ -15,7 +15,7 @@ from fabricatio_milvus.models.milvus import MilvusDataBase, MilvusScopedConfig
 
 
 @cache
-def create_client(uri: str, token: str = "", timeout: Optional[float] = None) -> MilvusClient:
+def create_client(uri: str, token: str = "", timeout: float | None = None) -> MilvusClient:
     """Create a Milvus client."""
     return MilvusClient(
         uri=uri,
@@ -28,18 +28,18 @@ class AddConfig(RAGConfigBase):
     """Configuration for adding documents to a Milvus collection."""
 
     flush: bool = False
-    collection_name: Optional[str] = None
+    collection_name: str | None = None
 
 
 class FetchConfig[D: MilvusDataBase](RAGConfigBase):
     """Configuration for fetching documents from a Milvus collection."""
 
-    document_model: Optional[Type[D]] = None
+    document_model: type[D] | None = None
 
-    collection_name: Optional[str] = None
+    collection_name: str | None = None
     similarity_threshold: float = 0.37
     result_per_query: int = 10
-    tei_endpoint: Optional[str] = None
+    tei_endpoint: str | None = None
     reranker_threshold: float = 0.7
     filter_expr: str = ""
 
@@ -58,7 +58,7 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
 
     async def add_document(
         self,
-        data: D | List[D],
+        data: D | list[D],
         config: AC | None = None,
     ) -> Self:
         """Adds a document to the specified collection.
@@ -86,9 +86,9 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
 
     async def afetch_document(
         self,
-        query: str | List[str],
+        query: str | list[str],
         config: FC | None = None,
-    ) -> List[D]:
+    ) -> list[D]:
         """Asynchronously fetches documents from a Milvus database based on input vectors.
 
         Args:
@@ -129,9 +129,9 @@ class MilvusRAG[D: MilvusDataBase, AC: AddConfig, FC: FetchConfig](MilvusScopedC
 
     async def aretrieve(
         self,
-        query: str | List[str],
+        query: str | list[str],
         config: FetchConfig[D] | None = None,
-    ) -> List[D]:
+    ) -> list[D]:
         """Convenience method to vectorize a query, search Milvus, and return typed documents.
 
         Args:
