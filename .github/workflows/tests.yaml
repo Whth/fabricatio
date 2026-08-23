@@ -93,10 +93,6 @@ jobs:
         run: |
           uv sync --no-install-project  --only-dev --index https://pypi.org/simple -p ${{ matrix.python-version }}
 
-      - name: Compile extensions
-        run: |
-          just dev ${{ matrix.python-version }}
-
       - name: Test
         run: |
           just test
