@@ -1,7 +1,7 @@
 """This module contains the capabilities for the capable."""
 
 from abc import ABC
-from typing import List, Optional, Set, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core.models.generic import WithBriefing
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -21,30 +21,30 @@ class Capable(WithBriefing, EvidentlyJudge, UseTool, ABC):
     async def capable(
         self,
         request: str,
-        toolboxes: Optional[Set[ToolBox]],
+        toolboxes: set[ToolBox] | None,
         *,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> Optional[JudgeMent]: ...
+    ) -> JudgeMent | None: ...
 
     @overload
     async def capable(
         self,
-        request: List[str],
-        toolboxes: Optional[Set[ToolBox]],
+        request: list[str],
+        toolboxes: set[ToolBox] | None,
         *,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> List[Optional[JudgeMent]]: ...
+    ) -> list[JudgeMent | None]: ...
 
     async def capable(
         self,
-        request: str | List[str],
-        toolboxes: Optional[Set[ToolBox]],
+        request: str | list[str],
+        toolboxes: set[ToolBox] | None,
         *,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[JudgeMent]],
-    ) -> JudgeMent | List[JudgeMent] | List[JudgeMent | None] | None:
+    ) -> JudgeMent | list[JudgeMent] | list[JudgeMent | None] | None:
         """Processes a capability request using the provided toolboxes and additional arguments.
 
         Args:

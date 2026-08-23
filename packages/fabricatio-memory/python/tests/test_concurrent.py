@@ -4,7 +4,6 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import List
 
 import pytest
 from fabricatio_memory.rust import MemoryService
@@ -21,8 +20,8 @@ def worker_add_memories(
     store_name: str,
     thread_id: int,
     num_memories: int,
-    results: List[str],
-    errors: List[Exception],
+    results: list[str],
+    errors: list[Exception],
 ) -> None:
     """Worker function that adds memories to a shared store."""
     store = memory_service.get_store(store_name)
@@ -48,8 +47,8 @@ def test_concurrent_writers_on_same_store(shared_memory_service: MemoryService) 
     num_threads = 5
     memories_per_thread = 10
 
-    all_memory_ids: List[str] = []
-    errors: List[Exception] = []
+    all_memory_ids: list[str] = []
+    errors: list[Exception] = []
 
     threads = []
     for tid in range(num_threads):
@@ -113,8 +112,8 @@ def test_concurrent_reads_and_writes(shared_memory_service: MemoryService) -> No
         except OSError as e:
             errors.append(e)
 
-    read_results: List[str] = []
-    errors: List[Exception] = []
+    read_results: list[str] = []
+    errors: list[Exception] = []
 
     reader = threading.Thread(target=reader_worker, args=(read_results, errors))
     writer = threading.Thread(target=writer_worker, args=(errors,))

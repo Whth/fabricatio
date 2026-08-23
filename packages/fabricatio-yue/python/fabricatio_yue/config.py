@@ -1,7 +1,6 @@
 """Module containing configuration classes for fabricatio-yue."""
 
 from pathlib import Path
-from typing import Dict, List
 
 from fabricatio_core import CONFIG
 from fabricatio_core.decorators import once
@@ -16,12 +15,12 @@ class YueConfig(BaseModel):
 
     model_config = ConfigDict(use_attribute_docstrings=True)
 
-    segment_types: List[str] = Field(
+    segment_types: list[str] = Field(
         default_factory=lambda: ["verse", "chorus", "bridge", "intro", "outro", "solo", "beat", "end"]
     )
     """List of valid segment types for music composition."""
 
-    genre: Dict[str, List[str]] = Field(default_factory=once(lambda: loads(genres_path.read_bytes())))
+    genre: dict[str, list[str]] = Field(default_factory=once(lambda: loads(genres_path.read_bytes())))
     """Dictionary mapping genre categories to lists of specific genres."""
 
     lyricize_template: str = "built-in/lyricize"

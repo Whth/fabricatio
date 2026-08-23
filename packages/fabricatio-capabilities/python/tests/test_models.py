@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional
 
 import orjson
 import pytest
@@ -55,7 +54,7 @@ class _SimpleModel(BaseModel):
 class _SimplePatch(Patch[_SimpleModel], BaseModel):
     """Concrete Patch for testing."""
 
-    name: Optional[str] = None
+    name: str | None = None
 
 
 class _TestSequencePatch(SequencePatch[str], BaseModel):
@@ -76,7 +75,7 @@ class _TestAsPrompt(AsPrompt, BaseModel):
 
     text: str = "hello"
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
+    def _as_prompt_inner(self) -> dict[str, str]:
         return {"text": self.text}
 
 

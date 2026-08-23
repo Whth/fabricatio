@@ -5,8 +5,6 @@ thought content, progression control, revision information, and branching
 details.
 """
 
-from typing import Optional
-
 from fabricatio_core.models.generic import SketchedAble
 
 
@@ -23,9 +21,9 @@ class Thought(SketchedAble):
     """The estimated total number of thought steps."""
     revision: bool = False
     """Whether this is a revision of a previous step."""
-    revises_thought: Optional[int] = None
+    revises_thought: int | None = None
     """The step number being revised."""
-    checkout: Optional[int] = None
+    checkout: int | None = None
     """The step number from which a branch is created."""
-    branch: Optional[str] = None
+    branch: str | None = None
     """Unique identifier for the branch."""

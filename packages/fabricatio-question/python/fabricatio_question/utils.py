@@ -1,17 +1,17 @@
 """Utility functions for asking questions."""
 
-from typing import List, Optional, overload
+from typing import overload
 
 
 @overload
-async def ask_retain[V](candidates: List[str]) -> List[str]: ...
+async def ask_retain[V](candidates: list[str]) -> list[str]: ...
 
 
 @overload
-async def ask_retain[V](candidates: List[str], value_mapping: List[V]) -> List[V]: ...
+async def ask_retain[V](candidates: list[str], value_mapping: list[V]) -> list[V]: ...
 
 
-async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] = None) -> List[str] | List[V]:
+async def ask_retain[V](candidates: list[str], value_mapping: list[V] | None = None) -> list[str] | list[V]:
     """Asks the user to retain a list of candidates."""
     from questionary import Choice, checkbox
 
@@ -23,7 +23,7 @@ async def ask_retain[V](candidates: List[str], value_mapping: Optional[List[V]] 
     ).ask_async()
 
 
-async def ask_edit(text_seq: List[str]) -> List[str]:
+async def ask_edit(text_seq: list[str]) -> list[str]:
     """Asks the user to edit a list of texts.
 
     Args:

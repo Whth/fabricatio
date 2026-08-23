@@ -1,6 +1,6 @@
 """Module for the Ordering class which provides functionalities to order sequences based on requirements."""
 
-from typing import Any, List, TypeGuard, Unpack, overload
+from typing import Any, TypeGuard, Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import WithBriefing
@@ -13,7 +13,7 @@ from fabricatio_capabilities.config import capabilities_config
 from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs, OrderStringKwargs
 
 
-def is_list_str(sq: Any) -> TypeGuard[List[str]]:
+def is_list_str(sq: Any) -> TypeGuard[list[str]]:
     """Check if the input is a list of strings.
 
     Args:
@@ -25,7 +25,7 @@ def is_list_str(sq: Any) -> TypeGuard[List[str]]:
     return isinstance(sq, list) and all(isinstance(s, str) for s in sq)
 
 
-def is_list_briefing(sq: Any) -> TypeGuard[List[WithBriefing]]:
+def is_list_briefing(sq: Any) -> TypeGuard[list[WithBriefing]]:
     """Check if the input is a list of WithBriefing objects.
 
     Args:
@@ -42,12 +42,12 @@ class Ordering(Rating):
 
     async def order_string(
         self,
-        seq: List[str],
+        seq: list[str],
         requirement: str,
         reverse: bool = False,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
-    ) -> List[str] | None:
+        **kwargs: Unpack[ValidateKwargs[list[str]]],
+    ) -> list[str] | None:
         """Orders a list of strings based on a given requirement using a language model.
 
         Args:
@@ -79,8 +79,8 @@ class Ordering(Rating):
         return None
 
     async def order_briefed(
-        self, seq: List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
-    ) -> List[WithBriefing] | None:
+        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+    ) -> list[WithBriefing] | None:
         """Orders a list of WithBriefing objects based on a given requirement using their names for language model processing.
 
         This method extracts the 'name' attributes from the WithBriefing objects to form a sequence of strings,
@@ -120,21 +120,21 @@ class Ordering(Rating):
 
     @overload
     async def order(
-        self, seq: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
-    ) -> List[str] | None: ...
+        self, seq: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+    ) -> list[str] | None: ...
 
     @overload
     async def order(
-        self, seq: List[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
-    ) -> List[WithBriefing] | None: ...
+        self, seq: list[WithBriefing], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[OrderStringKwargs]
+    ) -> list[WithBriefing] | None: ...
 
     async def order(
         self,
-        seq: List[str] | List[WithBriefing],
+        seq: list[str] | list[WithBriefing],
         requirement: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[OrderStringKwargs],
-    ) -> List[str] | List[WithBriefing] | None:
+    ) -> list[str] | list[WithBriefing] | None:
         """Orders a sequence of either strings or WithBriefing objects based on a requirement.
 
         Args:
@@ -156,25 +156,25 @@ class Ordering(Rating):
 
     @overload
     async def order_rated(
-        self, seq: List[str], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> List[str] | None: ...
+        self, seq: list[str], reverse: bool = False, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> list[str] | None: ...
 
     @overload
     async def order_rated(
         self,
-        seq: List[WithBriefing],
+        seq: list[WithBriefing],
         reverse: bool = False,
         send_to: str | None = TASK,
         **kwargs: Unpack[CompositeScoreKwargs],
-    ) -> List[WithBriefing] | None: ...
+    ) -> list[WithBriefing] | None: ...
 
     async def order_rated(
         self,
-        seq: List[str] | List[WithBriefing],
+        seq: list[str] | list[WithBriefing],
         reverse: bool = False,
         send_to: str | None = TASK,
         **kwargs: Unpack[CompositeScoreKwargs],
-    ) -> List[str] | List[WithBriefing] | None:
+    ) -> list[str] | list[WithBriefing] | None:
         """Orders a sequence based on composite scores calculated from their briefings or content.
 
         Args:
@@ -188,7 +188,7 @@ class Ordering(Rating):
         Returns:
             None | List[str] | List[WithBriefing]: Ordered sequence based on scores.
         """
-        to_rate: List[str] = [s.briefing for s in seq] if is_list_briefing(seq) else seq  # pyright: ignore [reportAssignmentType]
+        to_rate: list[str] = [s.briefing for s in seq] if is_list_briefing(seq) else seq  # pyright: ignore [reportAssignmentType]
 
         scores = await self.composite_score(to_rate=to_rate, send_to=send_to, **kwargs)
         # order the sequence by the scores

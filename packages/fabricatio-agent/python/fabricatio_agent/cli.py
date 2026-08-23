@@ -5,7 +5,6 @@ from fabricatio_core.utils import cfg
 
 cfg(feats=["cli"])
 from enum import StrEnum
-from typing import Dict
 
 from fabricatio_core import Event, Role, Task, WorkFlow
 from fabricatio_core.rust import is_installed
@@ -71,7 +70,7 @@ if is_installed("fabricatio_plot"):
 class Developer(Role, Cooperate):
     """A developer role capable of handling coding tasks."""
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: dev_reg,
         frozen=True,
     )
@@ -81,7 +80,7 @@ class Developer(Role, Cooperate):
 class TestEngineer(Role, Cooperate):
     """A test engineer role for generating test cases."""
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Test).collapse(): WorkFlow(
                 name="GenerateTestcasesWorkFlow",
@@ -95,7 +94,7 @@ class TestEngineer(Role, Cooperate):
 class DocumentationWriter(Role, Cooperate):
     """A documentation writer role for writing documentation."""
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Test).collapse(): WorkFlow(
                 name="GenerateDocumentationWorkFlow",
@@ -114,7 +113,7 @@ class ProjectLeader(Role, Cooperate):
     PlanningWorkFlow which breaks down complex tasks into smaller subtasks.
     """
 
-    subscriptions: Dict[EventPattern, WorkFlow] = Field(
+    subscriptions: dict[EventPattern, WorkFlow] = Field(
         default_factory=lambda: {
             Event.quick_instantiate(TaskType.Orchestrate).collapse(): WorkFlow(
                 name="OrchestrateWorkFlow",

@@ -7,7 +7,6 @@ and file output operations.
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 
 import pytest
 from fabricatio_yue.models.segment import Segment, Song
@@ -40,8 +39,8 @@ def test_segment_assembly(
     description: str,
     section_type: str,
     duration: int,
-    lyrics: List[str],
-    genres: List[str],
+    lyrics: list[str],
+    genres: list[str],
     expected: str,
 ) -> None:
     """Test that Segment assembly correctly formats section content.

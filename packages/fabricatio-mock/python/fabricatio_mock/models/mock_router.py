@@ -5,8 +5,9 @@ the behavior of a LiteLLM Router. It is primarily intended for use in testing sc
 actual network requests to language models are not desirable or necessary.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Literal, Optional
+from typing import Literal
 
 import orjson
 from fabricatio_core.utils import ok
@@ -24,7 +25,7 @@ class Value[M: BaseModel | str]:
     type: Literal["model", "json", "python", "raw", "generic"]
     """Specifies the type of the source data, which determines how the data will be processed when converted to a string representation."""
 
-    convertor: Optional[Callable[[M], str]] = None
+    convertor: Callable[[M], str] | None = None
 
     def to_string(self) -> str:
         """Converts the source data to a string representation based on its type.
@@ -48,7 +49,7 @@ class Value[M: BaseModel | str]:
         raise ValueError(f"Invalid type: {self.type}")
 
 
-def pad_responses(*value: str, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def pad_responses(*value: str, default: str | None = None, padding: int = 10) -> list[str]:
     """Build a padded response list for DummyModel.
 
     DummyModel errors when its queue is exhausted. Pad with extra copies of the
@@ -68,7 +69,7 @@ def pad_responses(*value: str, default: Optional[str] = None, padding: int = 10)
     return list(value) + [default_val] * padding
 
 
-def return_router_usage(*value: str, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_router_usage(*value: str, default: str | None = None, padding: int = 10) -> list[str]:
     """Build padded response strings for install_router_usage.
 
     Like return_string but returns a list of pre-formatted strings
@@ -87,7 +88,7 @@ def return_router_usage(*value: str, default: Optional[str] = None, padding: int
 
 
 def return_generic_router_usage(
-    *strings: str, lang: str = "string", default: Optional[str] = None, padding: int = 10
+    *strings: str, lang: str = "string", default: str | None = None, padding: int = 10
 ) -> list[str]:
     """Build generic-block-formatted responses for install_router_usage.
 
@@ -106,7 +107,7 @@ def return_generic_router_usage(
     return pad_responses(*processed, default=default, padding=padding)
 
 
-def return_code_router_usage(*codes: str, lang: str, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_code_router_usage(*codes: str, lang: str, default: str | None = None, padding: int = 10) -> list[str]:
     """Build code-block-formatted responses for install_router_usage.
 
     Args:
@@ -124,7 +125,7 @@ def return_code_router_usage(*codes: str, lang: str, default: Optional[str] = No
     return pad_responses(*processed, default=default, padding=padding)
 
 
-def return_python_router_usage(*codes: str, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_python_router_usage(*codes: str, default: str | None = None, padding: int = 10) -> list[str]:
     """Build Python-code-block responses for install_router_usage.
 
     Args:
@@ -138,7 +139,7 @@ def return_python_router_usage(*codes: str, default: Optional[str] = None, paddi
     return return_code_router_usage(*codes, lang="python", default=default, padding=padding)
 
 
-def return_json_router_usage(*jsons: str, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_json_router_usage(*jsons: str, default: str | None = None, padding: int = 10) -> list[str]:
     """Build JSON-code-block responses for install_router_usage.
 
     Args:
@@ -152,7 +153,7 @@ def return_json_router_usage(*jsons: str, default: Optional[str] = None, padding
     return return_code_router_usage(*jsons, lang="json", default=default, padding=padding)
 
 
-def return_json_obj_router_usage(*objs: JsonValue, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_json_obj_router_usage(*objs: JsonValue, default: str | None = None, padding: int = 10) -> list[str]:
     """Build serialized-JSON responses for install_router_usage.
 
     Args:
@@ -169,7 +170,7 @@ def return_json_obj_router_usage(*objs: JsonValue, default: Optional[str] = None
     return return_json_router_usage(*processed, default=default, padding=padding)
 
 
-def return_model_json_router_usage(*models: BaseModel, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_model_json_router_usage(*models: BaseModel, default: str | None = None, padding: int = 10) -> list[str]:
     """Build serialized-Pydantic-model responses for install_router_usage.
 
     Args:
@@ -186,7 +187,7 @@ def return_model_json_router_usage(*models: BaseModel, default: Optional[str] = 
     return return_json_router_usage(*processed, default=default, padding=padding)
 
 
-def return_mixed_router_usage(*values: Value, default: Optional[str] = None, padding: int = 10) -> list[str]:
+def return_mixed_router_usage(*values: Value, default: str | None = None, padding: int = 10) -> list[str]:
     """Build mixed-type responses for install_router_usage.
 
     Args:
@@ -201,7 +202,7 @@ def return_mixed_router_usage(*values: Value, default: Optional[str] = None, pad
 
 
 def pad_embeddings(
-    *embeddings: list[float], default: Optional[list[float]] = None, padding: int = 10
+    *embeddings: list[float], default: list[float] | None = None, padding: int = 10
 ) -> list[list[float]]:
     """Build a padded embeddings list for DummyModel.
 
@@ -223,7 +224,7 @@ def pad_embeddings(
 
 
 def pad_rankings(
-    *rankings: tuple[int, float], default: Optional[tuple[int, float]] = None, padding: int = 10
+    *rankings: tuple[int, float], default: tuple[int, float] | None = None, padding: int = 10
 ) -> list[tuple[int, float]]:
     """Build a padded rankings list for DummyModel.
 

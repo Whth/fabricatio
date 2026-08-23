@@ -4,7 +4,7 @@ This module provides the GenerateAnalysis class, which extends the Propose class
 to generate structured topic analysis using a template-based approach.
 """
 
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -28,12 +28,12 @@ class GenerateAnalysis(Propose):
 
     @overload
     async def generate_analysis(
-        self, topic: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
-    ) -> List[TopicAnalysis | None] | None: ...
+        self, topic: list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
+    ) -> list[TopicAnalysis | None] | None: ...
 
     async def generate_analysis(
-        self, topic: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
-    ) -> TopicAnalysis | List[TopicAnalysis | None] | List[TopicAnalysis] | None:
+        self, topic: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[TopicAnalysis]]
+    ) -> TopicAnalysis | list[TopicAnalysis | None] | list[TopicAnalysis] | None:
         """Generates an analysis for the given topic(s) using a template-based approach.
 
         Args:

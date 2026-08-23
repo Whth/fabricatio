@@ -1,7 +1,5 @@
 """Test module for match_lines function."""
 
-from typing import Optional
-
 import pytest
 from fabricatio_diff.rust import match_lines
 
@@ -33,7 +31,7 @@ test_cases = [
         "single_line_match",
     ],
 )
-def test_match_lines(haystack: str, needle: str, match_precision: float, expected: Optional[str]) -> None:
+def test_match_lines(haystack: str, needle: str, match_precision: float, expected: str | None) -> None:
     """Test the match_lines function with various input scenarios.
 
     Args:

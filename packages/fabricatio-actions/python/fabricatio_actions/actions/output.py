@@ -1,7 +1,8 @@
 """Dump the finalized output to a file."""
 
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Iterable, List, Mapping, Optional, Self, Sequence, Type
+from typing import Any, Self
 
 from fabricatio_capabilities.models.generic import FinalizedDumpAble, PersistentAble
 from fabricatio_core.capabilities.usages import UseLLM
@@ -29,13 +30,13 @@ class DumpFinalizedOutput(Action, UseLLM):
     """Dump the finalized output to a file."""
 
     output_key: str = "dump_path"
-    dump_path: Optional[str] = None
+    dump_path: str | None = None
 
     async def _execute(
         self,
         to_dump: FinalizedDumpAble,
-        task_input: Optional[Task] = None,
-        dump_path: Optional[str | Path] = None,
+        task_input: Task | None = None,
+        dump_path: str | Path | None = None,
         **_,
     ) -> str:
         dump_path = Path(
@@ -57,7 +58,7 @@ class RenderedDump(Action, UseLLM):
     """Render the data to a file."""
 
     output_key: str = "dump_path"
-    dump_path: Optional[str] = None
+    dump_path: str | None = None
 
     template_name: str
     """The template name to render the data."""
@@ -65,8 +66,8 @@ class RenderedDump(Action, UseLLM):
     async def _execute(
         self,
         to_dump: FinalizedDumpAble,
-        task_input: Optional[Task] = None,
-        dump_path: Optional[str | Path] = None,
+        task_input: Task | None = None,
+        dump_path: str | Path | None = None,
         **_,
     ) -> str:
         dump_path = Path(
@@ -110,15 +111,15 @@ class PersistentAll(Action, UseLLM):
 
     output_key: str = "persistent_count"
     """The number of objects persisted."""
-    persist_dir: Optional[str] = None
+    persist_dir: str | None = None
     """The directory to persist the data."""
     override: bool = False
     """Whether to remove the existing dir before dumping."""
 
     async def _execute(
         self,
-        task_input: Optional[Task] = None,
-        persist_dir: Optional[str | Path] = None,
+        task_input: Task | None = None,
+        persist_dir: str | Path | None = None,
         **cxt,
     ) -> int:
         persist_dir = Path(
@@ -167,10 +168,10 @@ class RetrieveFromPersistent[T: PersistentAble](Action):
     """Retrieve the object from the persistent file."""
     load_path: str
     """The path of the persistent file or directory contains multiple file."""
-    retrieve_cls: Type[T]
+    retrieve_cls: type[T]
     """The class of the object to retrieve."""
 
-    async def _execute(self, /, **_) -> Optional[T | List[T]]:
+    async def _execute(self, /, **_) -> T | list[T] | None:
         logger.info(f"Retrieve `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
             logger.warn(f"Path {self.load_path} does not exist")
@@ -187,7 +188,7 @@ class RetrieveFromLatest[T: PersistentAble](
 ):
     """Retrieve the object from the latest persistent file in the dir at `load_path`."""
 
-    async def _execute(self, /, **_) -> Optional[T]:
+    async def _execute(self, /, **_) -> T | None:
         logger.info(f"Retrieve latest `{self.retrieve_cls.__name__}` from {self.load_path}")
         if not (p := Path(self.load_path)).exists():
             logger.warn(f"Path {self.load_path} does not exist")
@@ -204,9 +205,9 @@ class RetrieveFromLatest[T: PersistentAble](
         cls,
         mapping: Mapping[str, str | Path],
         /,
-        retrieve_cls: Optional[Type[T]] = None,
+        retrieve_cls: type[T] | None = None,
         **kwargs,
-    ) -> List["RetrieveFromLatest[T]"]:
+    ) -> list["RetrieveFromLatest[T]"]:
         """Create a list of `RetrieveFromLatest` from the mapping."""
         return [
             cls(retrieve_cls=ok(retrieve_cls), load_path=Path(p).as_posix(), output_key=o, **kwargs)
@@ -223,12 +224,12 @@ class GatherAsList(Action):
 
     output_key: str = "gathered"
     """Gather the objects from the context as a list."""
-    gather_suffix: Optional[str] = None
+    gather_suffix: str | None = None
     """Gather the objects from the context as a list."""
-    gather_prefix: Optional[str] = None
+    gather_prefix: str | None = None
     """Gather the objects from the context as a list."""
 
-    async def _execute(self, **cxt) -> List[Any]:
+    async def _execute(self, **cxt) -> list[Any]:
         if self.gather_suffix is not None:
             result = [cxt[k] for k in cxt if k.endswith(self.gather_suffix)]
             logger.debug(f"Gathered {len(result)} items with suffix {self.gather_suffix}")
@@ -255,12 +256,12 @@ class Forward[V: str](Action, FromMapping, FromSequence[V]):
         return source
 
     @classmethod
-    def from_sequence(cls, sequence: Sequence[V], /, original: Optional[str] = None, **kwargs: Any) -> List[Self]:
+    def from_sequence(cls, sequence: Sequence[V], /, original: str | None = None, **kwargs: Any) -> list[Self]:
         """Create a list of `Forward` from the sequence."""
         return [cls(original=ok(original), output_key=o, **kwargs) for o in sequence]
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, str | Sequence[str]], **kwargs: Any) -> List[Self]:
+    def from_mapping(cls, mapping: Mapping[str, str | Sequence[str]], **kwargs: Any) -> list[Self]:
         """Create a list of `Forward` from the mapping."""
         actions = []
         for original_key, output_val in mapping.items():

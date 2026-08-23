@@ -5,7 +5,7 @@ The class interacts with tools and manages their execution workflow.
 """
 
 from abc import ABC
-from typing import Any, Dict, List, Optional, Unpack
+from typing import Any, Unpack
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
@@ -25,13 +25,13 @@ class Handle(UseTool, ABC):
     async def draft_tool_usage_code(
         self,
         request: str,
-        tools: List[Tool],
-        data: Dict[str, Any],
-        output_spec: Optional[Dict[str, str]] = None,
-        last_error: Optional[ApplicationError] = None,
+        tools: list[Tool],
+        data: dict[str, Any],
+        output_spec: dict[str, str] | None = None,
+        last_error: ApplicationError | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Asynchronously drafts the tool usage code for a task based on a given task object and tools."""
         logger.info(f"Drafting tool usage code for task: \n{request}")
 
@@ -60,13 +60,13 @@ class Handle(UseTool, ABC):
     async def handle_fine_grind(
         self,
         request: str,
-        data: Dict[str, Any],
-        output_spec: Optional[Dict[str, str]] = None,
-        box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
-        tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
+        data: dict[str, Any],
+        output_spec: dict[str, str] | None = None,
+        box_choose_kwargs: ChooseKwargs[ToolBox] | None = None,
+        tool_choose_kwargs: ChooseKwargs[Tool] | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[ResultCollector]:
+    ) -> ResultCollector | None:
         """Asynchronously handles a task based on a given task object and parameters."""
         logger.info(f"Handling task: \n{request}")
 
@@ -83,11 +83,11 @@ class Handle(UseTool, ABC):
     async def handle(
         self,
         request: str,
-        data: Optional[Dict[str, Any]] = None,
-        output_spec: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | None = None,
+        output_spec: dict[str, str] | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[ResultCollector]:
+    ) -> ResultCollector | None:
         """Asynchronously handles a task based on a given task object and parameters."""
         okwargs = ChooseKwargs(**no_default(kwargs))
 

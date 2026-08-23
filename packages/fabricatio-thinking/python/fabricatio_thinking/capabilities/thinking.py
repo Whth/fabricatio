@@ -2,7 +2,7 @@
 
 from abc import ABC
 from itertools import count
-from typing import Optional, Unpack
+from typing import Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
@@ -20,8 +20,8 @@ class Thinking(Propose, ABC):
     async def thinking(
         self,
         question: str,
-        vcs: Optional[ThoughtVCS] = None,
-        max_steps: Optional[int] = 25,
+        vcs: ThoughtVCS | None = None,
+        max_steps: int | None = 25,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Thought]],
     ) -> ThoughtVCS:

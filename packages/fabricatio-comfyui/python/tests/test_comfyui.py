@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar
 from unittest.mock import patch
 
 import pytest
@@ -60,7 +60,7 @@ class TestFactories:
 class TestWorkflow:
     """Workflow and Node unit tests."""
 
-    DEMO_JSON: ClassVar[Dict[str, Any]] = {
+    DEMO_JSON: ClassVar[dict[str, Any]] = {
         "42": {
             "inputs": {"ckpt_name": "catTowerNoobaiXL_v15Vpred.safetensors"},
             "class_type": "CheckpointLoaderSimple",
@@ -548,7 +548,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
     """End-to-end flow via the high-level capability: prompt -> queue -> poll -> download."""
     client = ComfyuiHTTPClient.create(None)
 
-    mock_history: Dict[str, Any] = {
+    mock_history: dict[str, Any] = {
         "mock-uuid-123": {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},

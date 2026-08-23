@@ -1,7 +1,7 @@
 """Agent capability implementation."""
 
 from abc import ABC
-from typing import Any, List, Optional, Unpack
+from typing import Any, Unpack
 
 from fabricatio_capabilities.capabilities.task import DispatchTask
 from fabricatio_capable.capabilities.capable import Capable
@@ -44,7 +44,7 @@ class Agent(
     async def fulfill(
         self,
         request: str,
-        sequential_thinking: Optional[bool] = None,
+        sequential_thinking: bool | None = None,
         check_capable: bool = False,
         memory: bool = False,
         top_k: int = 100,
@@ -52,7 +52,7 @@ class Agent(
         *,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[Any] | None:
+    ) -> list[Any] | None:
         """Process and fulfill a request using various agent capabilities.
 
         Args:

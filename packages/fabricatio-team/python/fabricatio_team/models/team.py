@@ -1,7 +1,7 @@
 """This module contains the models for the team."""
 
 from dataclasses import dataclass, field
-from typing import Self, Set
+from typing import Self
 
 from fabricatio_core import Role, logger
 from fabricatio_core.models.role import RoleName, get_registered_role
@@ -35,7 +35,7 @@ class Team:
 
     """
 
-    members: Set[RoleName] = field(default_factory=set)
+    members: set[RoleName] = field(default_factory=set)
     """The team members."""
 
     def join(self, teammate: Role | RoleName) -> Self:

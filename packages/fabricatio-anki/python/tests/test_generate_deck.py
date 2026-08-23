@@ -1,6 +1,6 @@
 """Tests for the Anki deck generation capabilities."""
 
-from typing import Any, List, Optional
+from typing import Any
 
 import orjson
 import pytest
@@ -22,7 +22,7 @@ def template_factory(name: str, front_layout: str = "Front", back_layout: str = 
     return Template(name=name, front=side_factory(front_layout), back=side_factory(back_layout))
 
 
-def model_factory(name: str, fields: List[str], templates: Optional[List[Template]] = None) -> Model:
+def model_factory(name: str, fields: list[str], templates: list[Template] | None = None) -> Model:
     """Create Model object with test data."""
     if templates is None:
         templates = [template_factory(f"{name}_template")]
@@ -37,7 +37,7 @@ def metadata_factory(name: str, description: str, author: str = "Test Author") -
 def deck_factory(
     name: str,
     description: str,
-    models: Optional[List[Model]] = None,
+    models: list[Model] | None = None,
     author: str = "Test Author",
 ) -> Deck:
     """Create Deck object with test data."""
@@ -46,7 +46,7 @@ def deck_factory(
     return Deck(name=name, description=description, models=models, author=author)
 
 
-def _json_array(items: List[str]) -> str:
+def _json_array(items: list[str]) -> str:
     """Serialize a list to a JSON code block for alist_v."""
     return code_block(orjson.dumps(items).decode(), "json")
 
@@ -59,8 +59,8 @@ def _json_obj(data: dict[str, Any]) -> str:
 def _build_deck_responses(
     metadata_name: str,
     metadata_desc: str,
-    model_reqs: List[str],
-    template_reqs: List[str],
+    model_reqs: list[str],
+    template_reqs: list[str],
     model_name: str,
     template_name: str,
     front_html: str,
@@ -134,9 +134,9 @@ def role() -> GenerateDeckRole:
 async def test_generate_deck_success(
     role: GenerateDeckRole,
     metadata_ret: ModelMetaData,
-    model_reqs_ret: List[str],
-    template_reqs_ret: List[str],
-    fields: List[str],
+    model_reqs_ret: list[str],
+    template_reqs_ret: list[str],
+    fields: list[str],
     requirement: str,
     expected_deck_name: str,
 ) -> None:
@@ -182,9 +182,9 @@ async def test_generate_deck_success(
 async def test_generate_model_single_requirement(
     role: GenerateDeckRole,
     requirement: str,
-    fields: List[str],
+    fields: list[str],
     expected_name: str,
-    template_names: List[str],
+    template_names: list[str],
 ) -> None:
     """Test the generate_model method with single requirement string."""
     front_html = f"<div>{{ {fields[0]} }}</div>"
@@ -227,10 +227,10 @@ async def test_generate_model_single_requirement(
 @pytest.mark.asyncio
 async def test_generate_model_multiple_requirements(
     role: GenerateDeckRole,
-    requirements: List[str],
-    fields: List[str],
+    requirements: list[str],
+    fields: list[str],
     expected_count: int,
-    model_names: List[str],
+    model_names: list[str],
 ) -> None:
     """Test the generate_model method with multiple requirements."""
     template_reqs = ["Template 1", "Template 2"]
@@ -282,7 +282,7 @@ async def test_generate_model_multiple_requirements(
 async def test_generate_template_single_requirement(
     role: GenerateDeckRole,
     requirement: str,
-    fields: List[str],
+    fields: list[str],
     expected_name: str,
 ) -> None:
     """Test the generate_template method with single requirement."""
@@ -322,8 +322,8 @@ async def test_generate_template_single_requirement(
 @pytest.mark.asyncio
 async def test_generate_template_multiple_requirements(
     role: GenerateDeckRole,
-    requirements: List[str],
-    fields: List[str],
+    requirements: list[str],
+    fields: list[str],
     expected_count: int,
 ) -> None:
     """Test the generate_template method with multiple requirements."""
@@ -372,7 +372,7 @@ async def test_generate_template_multiple_requirements(
 async def test_generate_front_side(
     role: GenerateDeckRole,
     requirement: str,
-    fields: List[str],
+    fields: list[str],
     expected_html_content: str,
 ) -> None:
     """Test the generate_front_side method."""
@@ -404,7 +404,7 @@ async def test_generate_front_side(
 async def test_generate_back_side(
     role: GenerateDeckRole,
     requirement: str,
-    fields: List[str],
+    fields: list[str],
     expected_html_content: str,
 ) -> None:
     """Test the generate_back_side method."""
@@ -427,7 +427,7 @@ async def test_generate_back_side(
 @pytest.mark.asyncio
 async def test_generate_deck_empty_model_requirements(
     role: GenerateDeckRole,
-    fields: List[str],
+    fields: list[str],
     requirement: str,
 ) -> None:
     """Test generate_deck returns None when model requirements are empty."""
@@ -473,7 +473,7 @@ async def test_generate_template_none_inputs(role: GenerateDeckRole) -> None:
 @pytest.mark.asyncio
 async def test_generate_deck_none_metadata(
     role: GenerateDeckRole,
-    fields: List[str],
+    fields: list[str],
     requirement: str,
 ) -> None:
     """Test generate_deck when metadata propose returns None."""
@@ -509,7 +509,7 @@ async def test_generate_deck_none_metadata(
 async def test_generate_deck_with_router(
     role: GenerateDeckRole,
     requirement: str,
-    fields: List[str],
+    fields: list[str],
     expected_deck_name: str,
 ) -> None:
     """Test generate_deck method with router mocking following test_diff.py pattern."""

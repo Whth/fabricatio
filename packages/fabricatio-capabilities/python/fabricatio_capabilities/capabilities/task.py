@@ -1,7 +1,7 @@
 """A module for the task capabilities of the Fabricatio library."""
 
 from abc import ABC
-from typing import Optional, Set, Unpack
+from typing import Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.propose import Propose
@@ -23,7 +23,7 @@ class ProposeTask(Propose, ABC):
         prompt: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Task[T]]],
-    ) -> Optional[Task[T]]:
+    ) -> Task[T] | None:
         """Asynchronously proposes a task based on a given prompt and parameters.
 
         Parameters:
@@ -49,10 +49,10 @@ class DispatchTask(UseLLM, ABC):
     async def dispatch_task[T](
         self,
         task: Task[T],
-        candidates: Set[Role],
+        candidates: set[Role],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[T]:
+    ) -> T | None:
         """Asynchronously dispatches a task to an appropriate delegate based on candidate selection.
 
         This method uses a template to render instructions for selecting the most suitable candidate,

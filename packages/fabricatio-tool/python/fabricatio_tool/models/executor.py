@@ -3,7 +3,7 @@
 import asyncio
 import traceback
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Optional, Self
+from typing import Any, ClassVar, Self
 
 from fabricatio_core import logger
 
@@ -28,13 +28,13 @@ class ToolExecutor:
     fn_name: ClassVar[str] = "execute"
     """The name of the function to execute."""
 
-    candidates: List[Tool] = field(default_factory=list)
+    candidates: list[Tool] = field(default_factory=list)
     """The sequence of tools to execute."""
 
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
     """The data that could be used when invoking the tools."""
 
-    def inject_tools[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
+    def inject_tools[C: dict[str, Any]](self, cxt: C | None = None) -> C:
         """Inject the tools into the provided module or default.
 
         This method injects the tools into the provided module or creates a new module if none is provided.
@@ -57,7 +57,7 @@ class ToolExecutor:
             cxt[tool.name] = tool.invoke
         return cxt
 
-    def inject_data[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
+    def inject_data[C: dict[str, Any]](self, cxt: C | None = None) -> C:
         """Inject the data into the provided module or default.
 
         This method injects the data into the provided module or creates a new module if none is provided.
@@ -80,7 +80,7 @@ class ToolExecutor:
             cxt[key] = value
         return cxt
 
-    def inject_collector[C: Dict[str, Any]](self, cxt: Optional[C] = None) -> C:
+    def inject_collector[C: dict[str, Any]](self, cxt: C | None = None) -> C:
         """Inject the collector into the provided module or default.
 
         This method injects the collector into the provided module or creates a new module if none is provided.
@@ -101,13 +101,13 @@ class ToolExecutor:
         cxt[self.collector_varname] = self.collector
         return cxt
 
-    async def execute[C: Dict[str, Any]](
+    async def execute[C: dict[str, Any]](
         self,
         body: str,
-        cxt: Optional[C] = None,
-        check_modules: Optional[CheckConfigModel] = None,
-        check_imports: Optional[CheckConfigModel] = None,
-        check_calls: Optional[CheckConfigModel] = None,
+        cxt: C | None = None,
+        check_modules: CheckConfigModel | None = None,
+        check_imports: CheckConfigModel | None = None,
+        check_calls: CheckConfigModel | None = None,
         err_key: str = tool_config.error_key,
     ) -> ResultCollector:
         """Execute the sequence of tools with the provided context.
@@ -208,7 +208,7 @@ class ToolExecutor:
         return "\n".join([f"    {line}" for line in lines.split("\n")])
 
     @classmethod
-    def from_recipe(cls, recipe: List[str], toolboxes: List[ToolBox]) -> Self:
+    def from_recipe(cls, recipe: list[str], toolboxes: list[ToolBox]) -> Self:
         """Create a tool executor from a recipe and a list of toolboxes.
 
         This method creates a tool executor by retrieving tools from the provided toolboxes based on the recipe.

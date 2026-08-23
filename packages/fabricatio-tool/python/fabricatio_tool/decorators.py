@@ -1,15 +1,15 @@
 """Decorators for confirming before executing a function."""
 
+from collections.abc import Callable, Coroutine
 from functools import wraps
 from inspect import iscoroutinefunction, signature
-from typing import Callable, Coroutine, Optional
 
 from fabricatio_core import logger
 
 
 def confirm_to_execute[**P, R](
     func: Callable[P, R],
-) -> Callable[P, Coroutine[None, None, Optional[R]]]:
+) -> Callable[P, Coroutine[None, None, R | None]]:
     """Decorator to confirm before executing a function.
 
     Args:
@@ -27,7 +27,7 @@ def confirm_to_execute[**P, R](
     if iscoroutinefunction(func):
 
         @wraps(func)
-        async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+        async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
             if await confirm(
                 f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
                 instruction="Please input [Yes/No] to proceed (default: Yes):",
@@ -39,7 +39,7 @@ def confirm_to_execute[**P, R](
         return _async_wrapper
 
     @wraps(func)
-    async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> Optional[R]:
+    async def _wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
         if await confirm(
             f"Are you sure to execute function: {func.__name__}{signature(func)} \n📦 Args:{args}\n🔑 Kwargs:{kwargs}\n",
             instruction="Please input [Yes/No] to proceed (default: Yes):",

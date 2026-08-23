@@ -1,7 +1,7 @@
 """Module containing the UseSkill capability for progressive skill resolution."""
 
 from abc import ABC
-from typing import List, Optional, Self, Unpack
+from typing import Self, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
@@ -28,12 +28,12 @@ class UseSkill(UseLLM, ABC):
     Level 3 (Python): use_skill — full progressive pipeline (select → distill → ask)
     """
 
-    skill_names: List[str] = Field(default_factory=list)
+    skill_names: list[str] = Field(default_factory=list)
     """Names of loaded skills available for this role/action (resolved via registry)."""
 
     # ── helpers ───────────────────────────────────────────────────────
 
-    def _resolve_skills(self, names: Optional[List[str]] = None) -> list[Skill]:
+    def _resolve_skills(self, names: list[str] | None = None) -> list[Skill]:
         """Return Skill objects from the registry.
 
         Args:
@@ -49,7 +49,7 @@ class UseSkill(UseLLM, ABC):
 
     # ── Level 1: Register ─────────────────────────────────────────────
 
-    def add_skills(self, skills: list[Skill], names: Optional[List[str]] = None) -> Self:
+    def add_skills(self, skills: list[Skill], names: list[str] | None = None) -> Self:
         """Register skills in the global registry and track their names here.
 
         Args:
@@ -71,7 +71,7 @@ class UseSkill(UseLLM, ABC):
     async def select_skills(
         self,
         question: str,
-        available: Optional[List[str]] = None,
+        available: list[str] | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[Skill]:
@@ -155,7 +155,7 @@ class UseSkill(UseLLM, ABC):
         self,
         question: str,
         *,
-        names: Optional[List[str]] = None,
+        names: list[str] | None = None,
         select: bool = True,
         distill: bool = True,
         in_content: bool = False,

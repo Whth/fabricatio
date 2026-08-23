@@ -7,7 +7,7 @@ and lyrics.
 """
 
 from pathlib import Path
-from typing import List, Self
+from typing import Self
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
@@ -24,12 +24,12 @@ class Segment(SketchedAble):
 
     duration: NonNegativeInt
     """Duration of the segment in seconds"""
-    lyrics: List[str]
+    lyrics: list[str]
     """Lyrics for this segment as a list of lines"""
-    extra_genres: List[str] = Field(default_factory=list)
+    extra_genres: list[str] = Field(default_factory=list)
     """Additional genre tags for this segment to control generation if specified."""
 
-    def override_extra_genres(self, genres: List[str]) -> Self:
+    def override_extra_genres(self, genres: list[str]) -> Self:
         """Override the genre tags for this segment.
 
         Args:
@@ -51,9 +51,9 @@ class Segment(SketchedAble):
 class Song(SketchedAble, WithBriefing):
     """Represents a complete song with its attributes and segments."""
 
-    genres: List[str]
+    genres: list[str]
     """Primary genre classifications for the entire song"""
-    segments: List[Segment]
+    segments: list[Segment]
     """Ordered list of segments that compose the song"""
 
     @property
@@ -67,7 +67,7 @@ class Song(SketchedAble, WithBriefing):
         """
         return sum(segment.duration for segment in self.segments)
 
-    def override_genres(self, genres: List[str]) -> Self:
+    def override_genres(self, genres: list[str]) -> Self:
         """Override the primary genre tags for the entire song.
 
         Args:

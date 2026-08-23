@@ -5,13 +5,12 @@ using AI models through the Tagging class.
 """
 
 from asyncio import gather
-from typing import List, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-from typing_extensions import Unpack
 
 from fabricatio_tagging.config import tagging_config
 
@@ -26,7 +25,7 @@ class Tagging(Propose):
     @overload
     async def tagging(
         self, text: str, requirement: str = "", k: int = 0, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
-    ) -> List[str] | None:
+    ) -> list[str] | None:
         """Generate tags for a single text string.
 
         Args:
@@ -44,12 +43,12 @@ class Tagging(Propose):
     @overload
     async def tagging(
         self,
-        text: List[str],
+        text: list[str],
         requirement: str = "",
         k: int = 0,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Generate tags for multiple text strings.
 
         Args:
@@ -66,12 +65,12 @@ class Tagging(Propose):
 
     async def tagging(
         self,
-        text: str | List[str],
+        text: str | list[str],
         requirement: str = "",
         k: int = 0,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[List[str]] | List[str] | None:
+    ) -> list[list[str]] | list[str] | None:
         """Generate tags for text content.
 
         This method can handle both single text strings and lists of text strings,

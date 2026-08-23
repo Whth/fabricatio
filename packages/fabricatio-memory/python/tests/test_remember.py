@@ -2,7 +2,6 @@
 
 import uuid
 from pathlib import Path
-from typing import List
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
@@ -15,7 +14,7 @@ from fabricatio_mock.models.mock_router import return_model_json_router_usage, r
 from fabricatio_mock.utils import install_router_usage
 
 
-def note(content: str = "test content", importance: int = 5, tags: List[str] | None = None) -> Note:
+def note(content: str = "test content", importance: int = 5, tags: list[str] | None = None) -> Note:
     """Create Note with test data.
 
     Args:

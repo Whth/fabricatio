@@ -3,7 +3,7 @@
 from enum import StrEnum
 from pathlib import Path
 from time import perf_counter_ns
-from typing import List, Optional, Self, Set, Type
+from typing import Self
 
 from fabricatio import logger
 from fabricatio_capabilities.models.generic import Patch
@@ -30,14 +30,14 @@ class Constants(StrEnum):
 class Model(SketchedAble, Named):
     """Represents a model in Anki which contains fields and templates."""
 
-    fields: List[str]
+    fields: list[str]
     """List of field names that define the data structure for this model.
 
     Each field represents a piece of information that can be filled in when creating cards,
     such as 'Front', 'Back', 'Extra', etc. These fields are used as placeholders
     in the template HTML and determine what data can be stored for each note."""
 
-    templates: List[Template]
+    templates: list[Template]
     """List of card templates associated with this model.
 
     Each template defines how the fields should be displayed on the front and back
@@ -74,7 +74,7 @@ class Deck(SketchedAble, WithBriefing):
     This field identifies who created the deck and is displayed in the deck metadata.
     Defaults to 'Anonymous' if no author is specified."""
 
-    models: List[Model]
+    models: list[Model]
     """List of card models that define the structure and appearance of cards in this deck.
 
     Each model contains fields and templates that determine how information is organized
@@ -115,7 +115,7 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
     """
 
     @staticmethod
-    def excluded_fields() -> Set[str]:
+    def excluded_fields() -> set[str]:
         """Returns a set of fields that should be excluded from updates.
 
         These fields are intentionally not modified when applying metadata patches.
@@ -126,7 +126,7 @@ class ModelMetaData(WithBriefing, Patch[Deck]):
         return {"models", "author"}
 
     @staticmethod
-    def ref_cls() -> Optional[Type[BaseModel]]:
+    def ref_cls() -> type[BaseModel] | None:
         """Returns the reference class for this patch.
 
         Determines which class this patch can be applied to.

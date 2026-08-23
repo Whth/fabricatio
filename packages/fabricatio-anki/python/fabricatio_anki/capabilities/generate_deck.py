@@ -1,7 +1,7 @@
 """Provide capabilities for creating a deck of cards."""
 
 from asyncio import gather
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -24,7 +24,7 @@ class GenerateDeck(Propose):
     async def generate_deck(
         self,
         requirement: str,
-        fields: List[str],
+        fields: list[str],
         km: int = 0,
         kt: int = 0,
         send_to: str | None = TASK,
@@ -80,7 +80,7 @@ class GenerateDeck(Propose):
     @overload
     async def generate_model(
         self,
-        fields: List[str],
+        fields: list[str],
         requirement: str,
         k: int = 0,
         send_to: str | None = TASK,
@@ -101,12 +101,12 @@ class GenerateDeck(Propose):
     @overload
     async def generate_model(
         self,
-        fields: List[str],
-        requirement: List[str],
+        fields: list[str],
+        requirement: list[str],
         k: int = 0,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Model]],
-    ) -> List[Model] | None:
+    ) -> list[Model] | None:
         """Overloaded version for multiple requirements.
 
         Args:
@@ -121,12 +121,12 @@ class GenerateDeck(Propose):
 
     async def generate_model(
         self,
-        fields: List[str],
-        requirement: str | List[str],
+        fields: list[str],
+        requirement: str | list[str],
         k: int = 0,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Model]],
-    ) -> Model | List[Model] | None:
+    ) -> Model | list[Model] | None:
         """Generate one or more Anki card models.
 
         Args:
@@ -220,7 +220,7 @@ class GenerateDeck(Propose):
     @overload
     async def generate_template(
         self,
-        fields: List[str],
+        fields: list[str],
         requirement: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Template]],
@@ -242,11 +242,11 @@ class GenerateDeck(Propose):
     @overload
     async def generate_template(
         self,
-        fields: List[str],
-        requirement: List[str],
+        fields: list[str],
+        requirement: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Template]],
-    ) -> List[Template] | None:
+    ) -> list[Template] | None:
         """Overloaded version for multiple template generation.
 
         Args:
@@ -263,11 +263,11 @@ class GenerateDeck(Propose):
 
     async def generate_template(
         self,
-        fields: List[str],
-        requirement: str | List[str],
+        fields: list[str],
+        requirement: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Template]],
-    ) -> Template | List[Template] | None:
+    ) -> Template | list[Template] | None:
         """Generate one or more card templates.
 
         Args:
@@ -289,7 +289,7 @@ class GenerateDeck(Propose):
 
     async def _generate_single_template(
         self,
-        fields: List[str],
+        fields: list[str],
         requirement: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Template]],
@@ -328,11 +328,11 @@ class GenerateDeck(Propose):
 
     async def _generate_multiple_templates(
         self,
-        fields: List[str],
-        requirement: List[str],
+        fields: list[str],
+        requirement: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Template]],
-    ) -> List[Template] | None:
+    ) -> list[Template] | None:
         """Generate multiple templates from a list of requirements.
 
         Args:
@@ -373,12 +373,12 @@ class GenerateDeck(Propose):
 
     async def _generate_side(
         self,
-        fields: List[str],
-        requirement: str | List[str],
+        fields: list[str],
+        requirement: str | list[str],
         template_name: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> Side | List[Side | None] | None:
+    ) -> Side | list[Side | None] | None:
         """Generate one or more card sides using the specified template.
 
         Args:
@@ -415,7 +415,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_front_side(
-        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | None:
         """Overloaded version for single front side generation.
 
@@ -434,11 +434,11 @@ class GenerateDeck(Propose):
     @overload
     async def generate_front_side(
         self,
-        fields: List[str],
-        requirement: List[str],
+        fields: list[str],
+        requirement: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> List[Side | None] | None:
+    ) -> list[Side | None] | None:
         """Overloaded version for multiple front side generation.
 
         Args:
@@ -455,11 +455,11 @@ class GenerateDeck(Propose):
 
     async def generate_front_side(
         self,
-        fields: List[str],
-        requirement: str | List[str],
+        fields: list[str],
+        requirement: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> Side | List[Side | None] | None:
+    ) -> Side | list[Side | None] | None:
         """Generate one or more front sides for Anki cards.
 
         Args:
@@ -479,7 +479,7 @@ class GenerateDeck(Propose):
 
     @overload
     async def generate_back_side(
-        self, fields: List[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
+        self, fields: list[str], requirement: str, send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Side]]
     ) -> Side | None:
         """Overloaded version for single back side generation.
 
@@ -498,11 +498,11 @@ class GenerateDeck(Propose):
     @overload
     async def generate_back_side(
         self,
-        fields: List[str],
-        requirement: List[str],
+        fields: list[str],
+        requirement: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> List[Side | None] | None:
+    ) -> list[Side | None] | None:
         """Overloaded version for multiple back side generation.
 
         Args:
@@ -516,11 +516,11 @@ class GenerateDeck(Propose):
 
     async def generate_back_side(
         self,
-        fields: List[str],
-        requirement: str | List[str],
+        fields: list[str],
+        requirement: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Side]],
-    ) -> Side | List[Side | None] | None:
+    ) -> Side | list[Side | None] | None:
         """Generate one or more back sides for Anki cards.
 
         Args:

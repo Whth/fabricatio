@@ -4,7 +4,7 @@ It extends the UseLLM class and provides methods to manage and use toolboxes and
 """
 
 from abc import ABC
-from typing import List, Optional, Set, Unpack
+from typing import Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.capabilities.usages import UseLLM
@@ -20,7 +20,7 @@ from fabricatio_tool.models.tool import Tool, ToolBox
 class ToolConfig(ScopedConfig):
     """A configuration class for tool usage."""
 
-    toolboxes: Set[ToolBox] = Field(default_factory=set)
+    toolboxes: set[ToolBox] = Field(default_factory=set)
     """A set of toolboxes used by the instance."""
 
 
@@ -35,7 +35,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         request: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[ToolBox]],
-    ) -> Optional[List[ToolBox]]:
+    ) -> list[ToolBox] | None:
         """Asynchronously executes a multi-choice decision-making process to choose toolboxes.
 
         Args:
@@ -52,7 +52,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
             logger.warn("No toolboxes available.")
             return []
 
-        def _is_included_fn(query: Set[str], toolbox: ToolBox) -> bool:
+        def _is_included_fn(query: set[str], toolbox: ToolBox) -> bool:
             return toolbox.name in query or any(t.name in query for t in toolbox.tools)
 
         return await self.achoose(
@@ -69,7 +69,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
         toolbox: ToolBox,
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[Tool]],
-    ) -> Optional[List[Tool]]:
+    ) -> list[Tool] | None:
         """Asynchronously executes a multi-choice decision-making process to choose tools.
 
         Args:
@@ -96,10 +96,10 @@ class UseTool(UseLLM, ToolConfig, ABC):
     async def gather_tools_fine_grind(
         self,
         request: str,
-        box_choose_kwargs: Optional[ChooseKwargs[ToolBox]] = None,
-        tool_choose_kwargs: Optional[ChooseKwargs[Tool]] = None,
+        box_choose_kwargs: ChooseKwargs[ToolBox] | None = None,
+        tool_choose_kwargs: ChooseKwargs[Tool] | None = None,
         send_to: str | None = TASK,
-    ) -> List[Tool]:
+    ) -> list[Tool]:
         """Asynchronously gathers tools based on the provided request and toolbox and tool selection criteria.
 
         Args:
@@ -126,7 +126,7 @@ class UseTool(UseLLM, ToolConfig, ABC):
 
     async def gather_tools(
         self, request: str, send_to: str | None = TASK, **kwargs: Unpack[ChooseKwargs[Tool]]
-    ) -> List[Tool]:
+    ) -> list[Tool]:
         """Asynchronously gathers tools based on the provided request.
 
         Args:

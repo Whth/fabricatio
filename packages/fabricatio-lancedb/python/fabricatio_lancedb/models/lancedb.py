@@ -1,6 +1,7 @@
 """This module contains the models for the lancedb."""
 
-from typing import Any, Dict, Self, Sequence
+from collections.abc import Sequence
+from typing import Any, Self
 
 from fabricatio_rag.models.document import SearchedDocumentModel, StoredDocumentModel
 
@@ -26,7 +27,7 @@ class LancedbDocumentModel[ST: StoreDocument, SR: SearchedDocument](StoredDocume
         """Create a document model from a raw LanceDB search result."""
         return cls(content=raw.content, metadata=raw.access_metadata())
 
-    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
         return self.model_dump(exclude_none=True)
 
     @classmethod

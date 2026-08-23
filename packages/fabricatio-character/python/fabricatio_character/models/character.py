@@ -1,6 +1,6 @@
 """This module contains the models for the character."""
 
-from typing import ClassVar, Dict, Self
+from typing import ClassVar, Self
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_core.models.generic import JSONList, Named, SketchedAble
@@ -86,7 +86,7 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
         """Render the tracked metrics inline as ``name=value`` pairs."""
         return ", ".join(f"{name}={value}" for name, value in self.metric.items())
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
+    def _as_prompt_inner(self) -> dict[str, str]:
         data = self.model_dump()
         data["metric"] = self.metric_prompt()
         return data
@@ -134,7 +134,7 @@ class CharacterCardDiff(CharacterCard):
         kwargs.setdefault("exclude_none", True)
         return super().model_dump(**kwargs)
 
-    def _as_prompt_inner(self) -> Dict[str, str]:
+    def _as_prompt_inner(self) -> dict[str, str]:
         data = self.model_dump()
         if self.metric is not None:
             data["metric"] = self.metric_prompt()

@@ -6,7 +6,8 @@ interface and provides implementations for task sequence generation.
 """
 
 from asyncio import gather
-from typing import Any, Callable, List, Optional, Self
+from collections.abc import Callable
+from typing import Any, Self
 
 from fabricatio_core import Task
 from fabricatio_core.models.generic import ProposedAble
@@ -21,15 +22,15 @@ class TaskList(ProposedAble):
 
     ultimate_target: str
     """The ultimate target of the task list"""
-    tasks: List[Task]
+    tasks: list[Task]
     """The tasks sequence that aims to achieve the ultimate target."""
     parallel: bool = False
     """Whether the tasks should be executed in parallel."""
 
-    _before_exec_hooks: List[Callable[[], Any]] = PrivateAttr(default_factory=list)
+    _before_exec_hooks: list[Callable[[], Any]] = PrivateAttr(default_factory=list)
     """A list of callables to be executed before each task in the task list"""
 
-    _after_exec_hooks: List[Callable[[], Any]] = PrivateAttr(default_factory=list)
+    _after_exec_hooks: list[Callable[[], Any]] = PrivateAttr(default_factory=list)
     """A list of callables to be executed after each task in the task list"""
 
     def _run_before_exec_hooks(self) -> None:
@@ -76,7 +77,7 @@ class TaskList(ProposedAble):
             t.append_extra_description(desc)
         return self
 
-    async def execute(self, parallel: Optional[bool] = None) -> List[Any]:
+    async def execute(self, parallel: bool | None = None) -> list[Any]:
         """Asynchronously executes the sequence of tasks in the task list.
 
         If the parallel flag is set to True, all tasks are executed concurrently.

@@ -1,7 +1,5 @@
 """Provide question models for interactive user input."""
 
-from typing import List
-
 import questionary
 from fabricatio_core.models.generic import SketchedAble
 
@@ -11,7 +9,7 @@ class SelectionQuestion(SketchedAble):
 
     q: str
     """The question text to display to the user."""
-    option: List[str]
+    option: list[str]
     """List of available options for the user to choose from."""
 
     async def single(self) -> str:
@@ -22,7 +20,7 @@ class SelectionQuestion(SketchedAble):
         """
         return await questionary.select(self.q, choices=self.option).ask_async()
 
-    async def multiple(self, k: int = 0) -> List[str]:
+    async def multiple(self, k: int = 0) -> list[str]:
         """Present a multiple-choice selection question to the user.
 
         Args:

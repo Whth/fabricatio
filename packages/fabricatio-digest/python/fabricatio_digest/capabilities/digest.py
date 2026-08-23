@@ -1,7 +1,7 @@
 """Module for the Digest class, which generates task lists based on requirements."""
 
 from abc import ABC
-from typing import Optional, Set, Unpack
+from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
@@ -20,10 +20,10 @@ class Digest(Propose, ABC):
     async def digest(
         self,
         requirement: str,
-        receptions: Set[RoleName],
+        receptions: set[RoleName],
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Optional[TaskList]]],
-    ) -> Optional[TaskList]:
+        **kwargs: Unpack[ValidateKwargs[TaskList | None]],
+    ) -> TaskList | None:
         """Generate a task list based on the given requirement and receptions.
 
         This method utilizes a template to construct instructions for creating

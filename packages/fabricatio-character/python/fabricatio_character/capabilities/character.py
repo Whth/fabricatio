@@ -1,7 +1,7 @@
 """This module contains the capabilities for the character."""
 
 from abc import ABC
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import ValidateKwargs
@@ -27,7 +27,7 @@ class CharacterCompose(Propose, ABC):
         requirements: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> List[CharacterCard | None]: ...
+    ) -> list[CharacterCard | None]: ...
 
     @overload
     async def compose_characters(
@@ -35,7 +35,7 @@ class CharacterCompose(Propose, ABC):
         requirements: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> List[CharacterCard]: ...
+    ) -> list[CharacterCard]: ...
 
     @overload
     async def compose_characters(
@@ -43,14 +43,14 @@ class CharacterCompose(Propose, ABC):
         requirements: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None: ...
+    ) -> CharacterCard | list[CharacterCard | None] | list[CharacterCard] | None: ...
 
     async def compose_characters(
         self,
         requirements: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[CharacterCard]],
-    ) -> CharacterCard | List[CharacterCard | None] | List[CharacterCard] | None:
+    ) -> CharacterCard | list[CharacterCard | None] | list[CharacterCard] | None:
         """Delegate to propose() to resolve character(s) based on requirements.
 
         Args:

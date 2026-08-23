@@ -5,8 +5,6 @@ and tags. It is designed to work within the fabricatio_memory package and extend
 SketchedAble base class.
 """
 
-from typing import List
-
 from fabricatio_core.models.generic import SketchedAble
 from pydantic import Field
 
@@ -22,5 +20,5 @@ class Note(SketchedAble):
     importance: int = Field(ge=MIN_IMPORTANCE_SCORE, le=MAX_IMPORTANCE_SCORE)
     """Numerical value representing the importance of the memory. The higher, the more important."""
 
-    tags: List[str]
+    tags: list[str]
     """List of string tags associated with the memory for categorization and searching."""

@@ -1,6 +1,7 @@
 """MCP (Model Context Protocol) management utilities."""
 
-from typing import Any, Callable, Coroutine, Dict, List
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from fabricatio_core import logger
 from fabricatio_core.decorators import once
@@ -11,12 +12,12 @@ from fabricatio_tool.rust import MCPManager
 
 
 @once
-async def get_global_mcp_manager(conf: Dict[str, ServiceConfig] = tool_config.mcp_servers) -> MCPManager:
+async def get_global_mcp_manager(conf: dict[str, ServiceConfig] = tool_config.mcp_servers) -> MCPManager:
     """Get the global MCP manager instance."""
     return await MCPManager.create(conf)
 
 
-async def mcp_tool_to_function(client_id: str, tool_name: str) -> Callable[..., Coroutine[Any, Any, List[str]]]:
+async def mcp_tool_to_function(client_id: str, tool_name: str) -> Callable[..., Coroutine[Any, Any, list[str]]]:
     """Converts a registered MCP tool into a callable async function.
 
     This function dynamically generates and returns an async function that wraps
@@ -47,7 +48,7 @@ async def mcp_tool_to_function(client_id: str, tool_name: str) -> Callable[..., 
         logger.debug(f"Generating function for tool {t.name} in {client_id}")
         d = locals()
         exec(code, d)  # noqa: S102
-        f: Callable[..., Coroutine[Any, Any, List[str]]] = d.get(t.name)  # pyright: ignore [reportAssignmentType]
+        f: Callable[..., Coroutine[Any, Any, list[str]]] = d.get(t.name)  # pyright: ignore [reportAssignmentType]
         return f
     raise ValueError(f"Tool {tool_name} not found")
 

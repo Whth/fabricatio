@@ -1,6 +1,6 @@
 """Implements localization functionality by leveraging the translation mechanism."""
 
-from typing import List, Unpack
+from typing import Unpack
 
 from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
@@ -18,8 +18,8 @@ class Localize(Translate):
     """
 
     async def localize(
-        self, msgs: List[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs]
-    ) -> List[Msg]:
+        self, msgs: list[Msg], send_to: str | None = TASK, **kwargs: Unpack[TranslateKwargs]
+    ) -> list[Msg]:
         """Localizes a list of messages by translating their text content.
 
         Args:

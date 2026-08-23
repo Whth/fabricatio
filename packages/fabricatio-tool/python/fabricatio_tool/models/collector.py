@@ -1,7 +1,7 @@
 """Module for the ResultCollector class, which is used to collect, submit, revoke, and retrieve results in a container."""
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Self, Type, overload
+from typing import Any, Optional, Self, overload
 
 from fabricatio_core import logger
 
@@ -37,7 +37,7 @@ class ResultCollector:
     use .revoke(key: str) revoke a result from the container by its source `key`.
     """
 
-    container: Dict[str, Any] = field(default_factory=dict)
+    container: dict[str, Any] = field(default_factory=dict)
     """A dictionary to store results."""
 
     def submit(self, key: str, val: Any) -> Self:
@@ -72,12 +72,12 @@ class ResultCollector:
         return self
 
     @overload
-    def take[T](self, key: str, desired: Optional[Type[T]] = None) -> T | None: ...
+    def take[T](self, key: str, desired: type[T] | None = None) -> T | None: ...
 
     @overload
-    def take[T](self, key: List[str], desired: Optional[Type[T]] = None) -> List[T | None]: ...
+    def take[T](self, key: list[str], desired: type[T] | None = None) -> list[T | None]: ...
 
-    def take[T](self, key: str | List[str], desired: Optional[Type[T]] = None) -> T | List[T | None] | None:
+    def take[T](self, key: str | list[str], desired: type[T] | None = None) -> T | list[T | None] | None:
         """Retrieve value(s) from the container by key(s) with optional type checking.
 
         This method retrieves a single value or multiple values from the container based on the provided key(s).

@@ -3,7 +3,7 @@
 from fabricatio_core.utils import cfg, ok
 
 cfg(feats=["digest"])
-from typing import Optional, Unpack
+from typing import Unpack
 
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.rust import TASK
@@ -22,8 +22,8 @@ class CooperativeDigest(Cooperate, Digest):
         with_self: bool = True,
         *,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Optional[TaskList]]],
-    ) -> Optional[TaskList]:
+        **kwargs: Unpack[ValidateKwargs[TaskList | None]],
+    ) -> TaskList | None:
         """Generate a task list based on the given requirement, considering the team members.
 
         Args:

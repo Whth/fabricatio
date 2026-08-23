@@ -1,7 +1,5 @@
 """Tests for the digest."""
 
-from typing import List, Set
-
 import pytest
 from fabricatio_core import Role, Task
 from fabricatio_core.models.generic import SketchedAble
@@ -34,7 +32,7 @@ def digest_role() -> DigestRole:
 
 
 @pytest.fixture
-def mock_receptions() -> Set[RoleName]:
+def mock_receptions() -> set[RoleName]:
     """Create mock receptions for testing.
 
     Returns:
@@ -45,7 +43,7 @@ def mock_receptions() -> Set[RoleName]:
     return {r.name for r in role_seq}
 
 
-def create_test_tasklist(target: str, task_descriptions: List[str]) -> TaskList:
+def create_test_tasklist(target: str, task_descriptions: list[str]) -> TaskList:
     """Create a test TaskList with given target and task descriptions.
 
     Args:
@@ -95,7 +93,7 @@ def responses(ret_value: SketchedAble) -> list[str]:
 @pytest.mark.asyncio
 async def test_digest_success(
     digest_role: DigestRole,
-    mock_receptions: Set[RoleName],
+    mock_receptions: set[RoleName],
     requirement: str,
     expected_target: str,
     expected_task_count: int,
@@ -145,7 +143,7 @@ async def test_digest_with_empty_receptions(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
+async def test_digest_returns_none(digest_role: DigestRole, mock_receptions: set[RoleName]) -> None:
     """Test digest when it returns None.
 
     Args:
@@ -182,7 +180,7 @@ async def test_digest_with_single_reception(digest_role: DigestRole) -> None:
 
 
 @pytest.mark.asyncio
-async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
+async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: set[RoleName]) -> None:
     """Test digest with additional kwargs.
 
     Args:
@@ -202,7 +200,7 @@ async def test_digest_with_kwargs(digest_role: DigestRole, mock_receptions: Set[
 
 
 @pytest.mark.asyncio
-async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: Set[RoleName]) -> None:
+async def test_digest_complex_requirement(digest_role: DigestRole, mock_receptions: set[RoleName]) -> None:
     """Test digest with a complex, multi-part requirement.
 
     Args:

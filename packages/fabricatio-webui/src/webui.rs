@@ -75,7 +75,7 @@ pub(crate) fn rust_broadcast(payload_json: String) {
     override_return_type(type_repr = "typing.Awaitable[None]", imports = ("typing",))
 )]
 #[pyfunction]
-/// Starts the web UI service with the given frontend and data directories.
+/// Start the web UI service with the given frontend and data directories.
 ///
 /// The four ``*_fn`` callables are the Python WorkflowWorker entry points:
 /// submit(execution_id, workflow_json, task_input_json), cancel() -> bool,

@@ -6,7 +6,7 @@ LLM infrastructure.
 """
 
 import asyncio
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
@@ -17,7 +17,7 @@ from fabricatio_core.utils import ok
 from fabricatio_translate.config import translate_config
 
 
-def fill_empty(source: List[str], translated: List[str] | List[str | None] | None) -> List[str]:
+def fill_empty(source: list[str], translated: list[str] | list[str | None] | None) -> list[str]:
     """Fill empty translations."""
     if translated is None:
         logger.warn("No translations provided, returning source text.")
@@ -46,21 +46,21 @@ class Translate(UseLLM):
     @overload
     async def translate(
         self,
-        text: List[str],
+        text: list[str],
         target_language: str,
         specification: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[str] | List[str | None] | None: ...
+    ) -> list[str] | list[str | None] | None: ...
 
     async def translate(
         self,
-        text: str | List[str],
+        text: str | list[str],
         target_language: str,
         specification: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> str | List[str] | List[str | None] | None:
+    ) -> str | list[str] | list[str | None] | None:
         """Translate the provided text into the target language.
 
         Args:
@@ -99,23 +99,23 @@ class Translate(UseLLM):
     @overload
     async def translate_chunked(
         self,
-        text: List[str],
+        text: list[str],
         target_language: str,
         chunk_size: int = 6000,
         specification: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> List[str] | List[str | None] | None: ...
+    ) -> list[str] | list[str | None] | None: ...
 
     async def translate_chunked(
         self,
-        text: str | List[str],
+        text: str | list[str],
         target_language: str,
         chunk_size: int = 6000,
         specification: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> str | List[str] | List[str | None] | None:
+    ) -> str | list[str] | list[str | None] | None:
         """Translate the provided text into the target language in a chunked manner.
 
         Args:
@@ -136,7 +136,7 @@ class Translate(UseLLM):
         # Convert single string to list for uniform processing
         was_str = isinstance(text, str)
         texts = [text] if was_str else text
-        chunked_seq: List[List[str]] = [split_into_chunks(t, chunk_size, max_overlapping_rate=0.0) for t in texts]
+        chunked_seq: list[list[str]] = [split_into_chunks(t, chunk_size, max_overlapping_rate=0.0) for t in texts]
 
         chunk_translations = ok(
             await asyncio.gather(

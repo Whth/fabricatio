@@ -1,7 +1,5 @@
 """Tests for the capable."""
 
-from typing import Set
-
 import pytest
 from fabricatio_capable.capabilities.capable import Capable
 from fabricatio_core.utils import ok
@@ -17,7 +15,7 @@ class CapableRole(LLMTestRole, Capable):
 
 
 @pytest.fixture
-def toolbox_set() -> Set[ToolBox]:
+def toolbox_set() -> set[ToolBox]:
     """Provide a minimal, valid set of toolboxes for the capable tests.
 
     Returns:
@@ -37,7 +35,7 @@ def capable_role() -> CapableRole:
 
 
 @pytest.mark.asyncio
-async def test_capable_single_string(capable_role: CapableRole, toolbox_set: Set[ToolBox]) -> None:
+async def test_capable_single_string(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
     """Test capable method with a single string request.
 
     This test verifies that the capable method correctly processes a single string
@@ -66,7 +64,7 @@ async def test_capable_single_string(capable_role: CapableRole, toolbox_set: Set
 
 
 @pytest.mark.asyncio
-async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: Set[ToolBox]) -> None:
+async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
     """Test capable method with a list of string requests.
 
     This test verifies that the capable method correctly processes a list of string
@@ -107,7 +105,7 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: S
 
 
 @pytest.mark.asyncio
-async def test_capable_none_response(capable_role: CapableRole, toolbox_set: Set[ToolBox]) -> None:
+async def test_capable_none_response(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
     """Test capable method when LLM returns None.
 
     This test verifies that the capable method raises a ValueError when the LLM

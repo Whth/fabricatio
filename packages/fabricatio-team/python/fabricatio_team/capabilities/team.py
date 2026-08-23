@@ -1,7 +1,8 @@
 """This module contains the capabilities for the team."""
 
 from abc import ABC
-from typing import Iterable, List, Optional, Self, Set
+from collections.abc import Iterable
+from typing import Self
 
 from fabricatio_core import Role, logger
 from fabricatio_core.models.generic import ScopedConfig
@@ -14,12 +15,12 @@ from pydantic import Field
 class Cooperate(ScopedConfig, ABC):
     """Cooperate class provides the capability to manage a set of team_member roles."""
 
-    team_roster: Optional[Set[RoleName]] = Field(default=None)
+    team_roster: set[RoleName] | None = Field(default=None)
     """A set of Role instances representing the team_member."""
-    other_member_roster: Optional[Set[RoleName]] = Field(default=None)
+    other_member_roster: set[RoleName] | None = Field(default=None)
     """A set of Role names representing other team members."""
 
-    def update_team_roster(self, team_member: Iterable[RoleName], myself: Optional[RoleName] = None) -> Self:
+    def update_team_roster(self, team_member: Iterable[RoleName], myself: RoleName | None = None) -> Self:
         """Updates the team_member set with the given iterable of roles.
 
         Args:
@@ -53,10 +54,10 @@ class Cooperate(ScopedConfig, ABC):
         return get_registered_role(team_member_name)
 
     @property
-    def team_members(self) -> List[Role]:
+    def team_members(self) -> list[Role]:
         """Returns the team_member set."""
         return [get_registered_role(mate) for mate in ok(self.team_roster)]
 
-    def gather_accept_events(self) -> List[str]:
+    def gather_accept_events(self) -> list[str]:
         """Gathers all accept_events from all team_member roles."""
         return list(flatten(m.accept_events for m in self.team_members))

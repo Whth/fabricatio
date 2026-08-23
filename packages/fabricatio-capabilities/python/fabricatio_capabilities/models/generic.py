@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Self, Set, Type, final
+from typing import Any, ClassVar, Self, final
 
 import orjson
 from fabricatio_core import TEMPLATE_MANAGER
@@ -180,7 +180,7 @@ class Patch[T](ProposedAble, ABC):
             setattr(other, field, getattr(self, field))
         return other
 
-    def as_kwargs(self) -> Dict[str, Any]:
+    def as_kwargs(self) -> dict[str, Any]:
         """Get the kwargs of the patch.
 
         Converts the patch into a dictionary suitable for use with kwargs syntax.
@@ -200,7 +200,7 @@ class Patch[T](ProposedAble, ABC):
         return self.model_dump()
 
     @staticmethod
-    def ref_cls() -> Optional[Type[BaseModel]]:
+    def ref_cls() -> type[BaseModel] | None:
         """Get the reference class of the model.
 
         This can be overridden in subclasses to provide a reference model for schema documentation.
@@ -211,7 +211,7 @@ class Patch[T](ProposedAble, ABC):
         return None
 
     @staticmethod
-    def excluded_fields() -> Set[str]:
+    def excluded_fields() -> set[str]:
         """Get a list of fields to exclude from the patch.
 
         This can be overridden in subclasses to provide a list of fields that should be excluded from the patch.
@@ -284,7 +284,7 @@ class SequencePatch[T](ProposedUpdateAble, ABC):
     This class provides a base implementation for patches that can be applied to sequences of objects.
     """
 
-    tweaked: List[T]
+    tweaked: list[T]
     """Tweaked content list"""
 
     def update_from_inner(self, other: Self) -> Self:
@@ -354,7 +354,7 @@ class PersistentAble(Base, ABC):
 
     @classmethod
     @final
-    def from_latest_persistent(cls, dir_path: str | Path) -> Optional[Self]:
+    def from_latest_persistent(cls, dir_path: str | Path) -> Self | None:
         """Load most recent persisted instance from directory.
 
         Args:
@@ -425,7 +425,7 @@ class AsPrompt(ABC):
         )
 
     @abstractmethod
-    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
         """Generate the inner part of the prompt.
 
         This method should be implemented by subclasses to provide the specific data for the prompt.

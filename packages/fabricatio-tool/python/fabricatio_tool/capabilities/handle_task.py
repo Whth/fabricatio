@@ -5,7 +5,7 @@ The class facilitates interaction with various tools, managing their execution l
 """
 
 from abc import ABC
-from typing import Any, Dict, Optional, Unpack
+from typing import Any, Unpack
 
 from fabricatio_core import Task
 from fabricatio_core.models.kwargs_types import ChooseKwargs, ValidateKwargs
@@ -24,8 +24,8 @@ class HandleTask(Handle, ABC):
     """
 
     async def handle_task(
-        self, task: Task, data: Dict[str, Any], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[str]]
-    ) -> Optional[ResultCollector]:
+        self, task: Task, data: dict[str, Any], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[str]]
+    ) -> ResultCollector | None:
         """Asynchronously handles a task based on a given task object and parameters with enhanced control features.
 
         This method prepares execution parameters and delegates task processing to the fine-grained execution handler.

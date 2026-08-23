@@ -1,7 +1,5 @@
 """Tests for the ordering capabilities."""
 
-from typing import List, Union
-
 import pytest
 from fabricatio_capabilities.capabilities.order import Ordering
 from fabricatio_core.models.generic import WithBriefing
@@ -28,7 +26,7 @@ class OrderingRole(LLMTestRole, Ordering):
 
 
 @pytest.fixture
-def router(ret_value: List[str]) -> list[str]:
+def router(ret_value: list[str]) -> list[str]:
     """Create a router fixture that returns a specific list of strings.
 
     Args:
@@ -41,7 +39,7 @@ def router(ret_value: List[str]) -> list[str]:
 
 
 @pytest.fixture
-def scores_router(ret_value: List[float]) -> list[str]:
+def scores_router(ret_value: list[float]) -> list[str]:
     """Create a router fixture that returns specific scores as JSON.
 
     Args:
@@ -100,11 +98,11 @@ def role() -> OrderingRole:
 async def test_order_string_success(
     router: list[str],
     role: OrderingRole,
-    ret_value: List[str],
-    seq: List[str],
+    ret_value: list[str],
+    seq: list[str],
     requirement: str,
     reverse: bool,
-    expected_result: List[str],
+    expected_result: list[str],
 ) -> None:
     """Test the order_string method with successful cases.
 
@@ -146,8 +144,8 @@ async def test_order_string_success(
 async def test_order_string_invalid_response(
     router: list[str],
     role: OrderingRole,
-    ret_value: List[str],
-    seq: List[str],
+    ret_value: list[str],
+    seq: list[str],
     requirement: str,
 ) -> None:
     """Test order_string when LLM returns invalid sequence.
@@ -197,10 +195,10 @@ async def test_order_string_invalid_response(
 async def test_order_with_strings(
     router: list[str],
     role: OrderingRole,
-    ret_value: List[str],
-    seq: List[str],
+    ret_value: list[str],
+    seq: list[str],
     requirement: str,
-    expected_result: List[str],
+    expected_result: list[str],
 ) -> None:
     """Test the order method with string sequences.
 
@@ -246,10 +244,10 @@ async def test_order_with_strings(
 async def test_order_briefed_success(
     router: list[str],
     role: OrderingRole,
-    ret_value: List[str],
-    seq: List[WithBriefing],
+    ret_value: list[str],
+    seq: list[WithBriefing],
     requirement: str,
-    expected_names: List[str],
+    expected_names: list[str],
 ) -> None:
     """Test the order_briefed method with WithBriefing sequences.
 
@@ -299,10 +297,10 @@ async def test_order_briefed_success(
 async def test_order_with_briefings(
     router: list[str],
     role: OrderingRole,
-    ret_value: List[str],
-    seq: List[WithBriefing],
+    ret_value: list[str],
+    seq: list[WithBriefing],
     requirement: str,
-    expected_names: List[str],
+    expected_names: list[str],
 ) -> None:
     """Test the order method with WithBriefing sequences.
 
@@ -333,7 +331,7 @@ async def test_order_with_briefings(
 @pytest.mark.asyncio
 async def test_order_invalid_input(
     role: OrderingRole,
-    seq: List[Union[str, WithBriefing, int]],
+    seq: list[str | WithBriefing | int],
 ) -> None:
     """Test order method with invalid input types.
 

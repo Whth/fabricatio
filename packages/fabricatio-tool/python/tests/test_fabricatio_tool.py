@@ -1,7 +1,8 @@
 """Tests for the tool."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict
+from typing import Any
 
 import pytest
 from fabricatio_tool.models.collector import ResultCollector
@@ -176,19 +177,19 @@ class TestToolExecutor:
     """Test cases for the ToolExecutor class."""
 
     @pytest.fixture
-    def mock_context(self) -> Dict[str, Any]:
+    def mock_context(self) -> dict[str, Any]:
         """Mock context for testing."""
         return {"existing": "value"}
 
     def test_inject_tools(
-        self, tool_executor: ToolExecutor, mock_context: Dict[str, Any], sample_func: Callable[[int, str], str]
+        self, tool_executor: ToolExecutor, mock_context: dict[str, Any], sample_func: Callable[[int, str], str]
     ) -> None:
         """Test tool injection into context."""
         new_context = tool_executor.inject_tools(mock_context)
         assert sample_func.__name__ in new_context
         assert new_context[sample_func.__name__](5, "a") == "5a"
 
-    def test_inject_data(self, tool_executor: ToolExecutor, mock_context: Dict[str, Any]) -> None:
+    def test_inject_data(self, tool_executor: ToolExecutor, mock_context: dict[str, Any]) -> None:
         """Test data injection into context."""
         tool_executor.data = {"new": "data"}
         new_context = tool_executor.inject_data(mock_context)

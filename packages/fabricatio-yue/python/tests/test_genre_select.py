@@ -1,7 +1,5 @@
 """Unit tests for genre selection functionality."""
 
-from typing import List
-
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_json_obj_router_usage
@@ -16,7 +14,7 @@ class SelectGenreRole(LLMTestRole, SelectGenre):
 
 
 @pytest.fixture
-def mock_router(ret_value: List[JsonValue]) -> list[str]:
+def mock_router(ret_value: list[JsonValue]) -> list[str]:
     """Fixture to create a mocked router with predefined responses.
 
     Args:
@@ -50,8 +48,8 @@ async def test_select_genre(
     mock_router: list[str],
     requirement: str,
     genre_classifier: str,
-    available_genres: List[str],
-    ret_value: List[str],
+    available_genres: list[str],
+    ret_value: list[str],
     role: SelectGenreRole,
 ) -> None:
     """Test genre selection based on a single requirement.
@@ -83,10 +81,10 @@ genres = ["house", "techno", "disco", "pop", "ambient"]
 @pytest.mark.asyncio
 async def test_select_genre_with_multiple_requirements(
     mock_router: list[str],
-    requirements_list: List[str],
+    requirements_list: list[str],
     genre_classifier: str,
     role: SelectGenreRole,
-    available_genres: List[str],
+    available_genres: list[str],
 ) -> None:
     """Test genre selection with multiple requirements.
 
@@ -115,7 +113,7 @@ async def test_select_genre_with_multiple_requirements(
 )
 @pytest.mark.asyncio
 async def test_gather_genres_single_requirement(
-    mock_router: list[str], role: SelectGenreRole, requirement: str, ret_value: List[str], k: int
+    mock_router: list[str], role: SelectGenreRole, requirement: str, ret_value: list[str], k: int
 ) -> None:
     """Test gathering genres from all categories for a single requirement.
 
@@ -140,8 +138,8 @@ async def test_gather_genres_single_requirement(
 async def test_gather_genres_multiple_requirements(
     mock_router: list[str],
     role: SelectGenreRole,
-    requirements_list: List[str],
-    ret_value: List[str],
+    requirements_list: list[str],
+    ret_value: list[str],
     k: int,
 ) -> None:
     """Test gathering genres from all categories for multiple requirements.

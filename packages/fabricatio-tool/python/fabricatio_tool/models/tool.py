@@ -4,9 +4,10 @@ This module provides classes for defining tools and toolboxes, which can be used
 with additional functionalities such as logging, execution info, and briefing.
 """
 
+from collections.abc import Callable
 from functools import cached_property
 from inspect import iscoroutinefunction, signature
-from typing import Any, Callable, List, Optional, Self, overload
+from typing import Any, Self, overload
 
 from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
@@ -96,7 +97,7 @@ class ToolBox(WithBriefing):
     description: str = ""
     """The description of the toolbox."""
 
-    tools: List[Tool] = Field(default_factory=list, frozen=True)
+    tools: list[Tool] = Field(default_factory=list, frozen=True)
     """A list of tools in the toolbox."""
 
     @overload
@@ -109,7 +110,7 @@ class ToolBox(WithBriefing):
 
     def collect_tool[**P, R](
         self,
-        func: Optional[Callable[P, R]] = None,
+        func: Callable[P, R] | None = None,
         *,
         confirm: bool = tool_config.confirm_on_ops,
         logging: bool = tool_config.logging_on_ops,
@@ -174,7 +175,7 @@ class ToolBox(WithBriefing):
         toc = f"## {self.name}: {self.description}\n## {len(self.tools)} tools available:"
         return f"{toc}\n{list_out}"
 
-    def get(self, name: str) -> Optional[Tool]:
+    def get(self, name: str) -> Tool | None:
         """Retrieve a tool by its name from the toolbox.
 
         This method looks up and returns a tool with the specified name from the list of tools in the toolbox.

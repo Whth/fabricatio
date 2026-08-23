@@ -1,6 +1,6 @@
 """Built-in actions."""
 
-from typing import ClassVar, List, Optional, Set
+from typing import ClassVar
 
 from fabricatio_core import Action, Task, logger
 from fabricatio_core.rust import CodeSnippet
@@ -19,14 +19,14 @@ class WriteCode(Action, Agent):
 
     ctx_override: ClassVar[bool] = True
 
-    toolboxes: Set[ToolBox] = Field(default={fs_toolbox})
+    toolboxes: set[ToolBox] = Field(default={fs_toolbox})
 
     output_key: str = "code"
 
-    coding_language: Optional[str] = None
+    coding_language: str | None = None
     """The coding language to use, will automatically be inferred from the prompt if not specified."""
 
-    async def _execute(self, task_input: Task, **cxt) -> Optional[List[CodeSnippet]]:
+    async def _execute(self, task_input: Task, **cxt) -> list[CodeSnippet] | None:
         c_seq = ok(
             await self.acode_snippets(
                 f"current directory tree:\n{treeview()}\n\n{task_input.assembled_prompt}",
@@ -44,7 +44,7 @@ class WriteCode(Action, Agent):
 class CleanUp(Action, Agent, HandleTask):
     """Clean up the workspace."""
 
-    toolboxes: Set[ToolBox] = Field(default={fs_toolbox})
+    toolboxes: set[ToolBox] = Field(default={fs_toolbox})
 
     async def _execute(self, task_input: Task, **cxt) -> None:
         """Execute the action."""
@@ -58,7 +58,7 @@ class MakeSpecification(Action, Agent):
 
     output_key: str = "specification"
 
-    async def _execute(self, prompt: str, **cxt) -> Optional[str]:
+    async def _execute(self, prompt: str, **cxt) -> str | None:
         """Execute the action."""
 
 
@@ -92,6 +92,6 @@ class ReviewCode(Action, Agent):
 
     ctx_override: ClassVar[bool] = True
 
-    async def _execute(self, prompt: str, **cxt) -> Optional[str]:
+    async def _execute(self, prompt: str, **cxt) -> str | None:
         """Execute the action."""
         return self.save_checkpoint()

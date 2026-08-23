@@ -58,4 +58,4 @@ def workspaces() -> None:
     """List all workspaces."""
     ws_list = get_checkpoint_service().workspaces()
 
-    echo("\n".join((w.as_posix() for w in ws_list)))
+    echo("\n".join(w.as_posix() for w in ws_list))

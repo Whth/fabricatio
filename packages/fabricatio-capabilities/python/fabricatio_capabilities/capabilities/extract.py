@@ -1,7 +1,7 @@
 """A module that provide capabilities for extracting information from a given source to a model."""
 
 from abc import ABC
-from typing import List, Optional, Type, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -18,9 +18,9 @@ class Extract(Propose, ABC):
     @overload
     async def extract[M: ProposedAble](
         self,
-        cls: Type[M],
+        cls: type[M],
         source: str,
-        extract_requirement: Optional[str] = None,
+        extract_requirement: str | None = None,
         align_language: bool = True,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
@@ -29,45 +29,45 @@ class Extract(Propose, ABC):
     @overload
     async def extract[M: ProposedAble](
         self,
-        cls: Type[M],
+        cls: type[M],
         source: str,
-        extract_requirement: Optional[str] = None,
+        extract_requirement: str | None = None,
         align_language: bool = True,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> Optional[M]: ...
+    ) -> M | None: ...
 
     @overload
     async def extract[M: ProposedAble](
         self,
-        cls: Type[M],
-        source: List[str],
-        extract_requirement: Optional[str] = None,
+        cls: type[M],
+        source: list[str],
+        extract_requirement: str | None = None,
         align_language: bool = True,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> List[M]: ...
+    ) -> list[M]: ...
 
     @overload
     async def extract[M: ProposedAble](
         self,
-        cls: Type[M],
-        source: List[str],
-        extract_requirement: Optional[str] = None,
+        cls: type[M],
+        source: list[str],
+        extract_requirement: str | None = None,
         align_language: bool = True,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[None]],
-    ) -> List[Optional[M]]: ...
+    ) -> list[M | None]: ...
 
     async def extract[M: ProposedAble](
         self,
-        cls: Type[M],
-        source: List[str] | str,
-        extract_requirement: Optional[str] = None,
+        cls: type[M],
+        source: list[str] | str,
+        extract_requirement: str | None = None,
         align_language: bool = True,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Optional[M]]],
-    ) -> M | List[M] | List[Optional[M]] | None:
+        **kwargs: Unpack[ValidateKwargs[M | None]],
+    ) -> M | list[M] | list[M | None] | None:
         """Extract information from a given source to a model.
 
         Args:

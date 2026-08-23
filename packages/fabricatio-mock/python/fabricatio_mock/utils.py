@@ -3,8 +3,8 @@
 Provides functions to generate fenced code blocks and generic content blocks.
 """
 
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator, List, Type
 
 from fabricatio_core import Role, rust
 from fabricatio_core.rust import ProviderType
@@ -51,7 +51,7 @@ def install_router_usage(*responses: str, group: str = DUMMY_LLM_GROUP) -> Gener
     yield
 
 
-def make_roles(names: List[str], role_cls: Type[Role] = Role) -> List[Role]:
+def make_roles(names: list[str], role_cls: type[Role] = Role) -> list[Role]:
     """Create a list of Role objects from a list of names.
 
     Args:
@@ -64,7 +64,7 @@ def make_roles(names: List[str], role_cls: Type[Role] = Role) -> List[Role]:
     return [role_cls(name=name, description="test") for name in names]
 
 
-def make_n_roles(n: int, role_cls: Type[Role] = Role) -> List[Role]:
+def make_n_roles(n: int, role_cls: type[Role] = Role) -> list[Role]:
     """Create a list of Role objects with a given number of names.
 
     Args:

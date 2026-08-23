@@ -1,8 +1,9 @@
 """This module contains the capabilities for the lancedb."""
 
 import asyncio
+from collections.abc import Iterable
 from dataclasses import field
-from typing import Iterable, List, Optional, Self, Tuple, Type
+from typing import Self
 
 from fabricatio_core import CONFIG
 from fabricatio_core.utils import first_available, ok
@@ -26,7 +27,7 @@ class LancedbAddRAGConfig(RAGConfigBase):
 class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
     """LanceDB-specific RAG configuration."""
 
-    document_model: Optional[Type[D]] = None
+    document_model: type[D] | None = None
     limit: int = 15
     dedup_cos_threshold: float | None = 0.95
     table_name: str = field(default_factory=lambda: lancedb_config.default_table_name)
@@ -35,7 +36,7 @@ class LancedbFetchRAGConfig[D: LancedbDocumentModel](RAGConfigBase):
 class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFetchRAGConfig](RAG[D, D, AC, FC]):
     """LanceDB-specific RAG capability extending the base RAG class."""
 
-    async def add_document(self, data: D | List[D], config: AC | None = None) -> Self:
+    async def add_document(self, data: D | list[D], config: AC | None = None) -> Self:
         """Add a document to the LanceDB collection."""
         conf = config or LancedbAddRAGConfig.default()
         table = await (await get_service()).create_or_open_table(
@@ -55,13 +56,13 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
 
         vec_seq = list(flatten(vec_packs_seq))
 
-        packs: Iterable[Tuple[D, List[float]]] = zip(data_seq, vec_seq, strict=True)
+        packs: Iterable[tuple[D, list[float]]] = zip(data_seq, vec_seq, strict=True)
 
         await table.add_documents([d.prepare_insertion(v) for (d, v) in packs], rebuild_index=conf.rebuild_index)
 
         return self
 
-    async def afetch_document(self, query: str | List[str], config: FC | None = None) -> List[D]:
+    async def afetch_document(self, query: str | list[str], config: FC | None = None) -> list[D]:
         """Fetch documents from the LanceDB collection."""
         conf = config or LancedbFetchRAGConfig.default()
         doc_model = ok(conf.document_model)

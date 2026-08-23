@@ -9,7 +9,6 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
 from fabricatio_core import CONFIG
 
@@ -69,7 +68,7 @@ class CharacterConfig:
     """Accumulated positive events needed to rise one Maslow level."""
 
     # ── Age brackets: (upper_bound_exclusive, shift_scale) ──
-    mind_age_brackets: Tuple[Tuple[int, float], ...] = (
+    mind_age_brackets: tuple[tuple[int, float], ...] = (
         (12, 3.0),
         (18, 1.5),
         (25, 0.5),
@@ -78,7 +77,7 @@ class CharacterConfig:
     """Age brackets and their personality shift multipliers."""
 
     # ── Psychological knowledge: prose ──
-    mind_need_focus: Dict[MaslowLevel, str] = field(
+    mind_need_focus: dict[MaslowLevel, str] = field(
         default_factory=lambda: {
             MaslowLevel.PHYSIOLOGICAL: "Your entire focus is on survival: food, shelter, safety. Nothing else matters.",
             MaslowLevel.SAFETY: "You need stability and predictability. Uncertainty unsettles you.",
@@ -89,7 +88,7 @@ class CharacterConfig:
     )
     """Maslow level -> behavioral description for prompt injection."""
 
-    mind_bias_examples: Dict[Distortion, str] = field(
+    mind_bias_examples: dict[Distortion, str] = field(
         default_factory=lambda: {
             Distortion.CATASTROPHIZING: "'He said something rude -> he must hate me -> everyone will leave'",
             Distortion.BLACK_AND_WHITE: "'Not completely loyal is betrayal, no middle ground'",
@@ -99,7 +98,7 @@ class CharacterConfig:
         }
     )
     """Cognitive distortion -> example internal monologue."""
-    mind_personality_rules: Dict[PersonalityFlag, str] = field(
+    mind_personality_rules: dict[PersonalityFlag, str] = field(
         default_factory=lambda: {
             PersonalityFlag.HIGH_NEUROTICISM: "You tend to anxiety, amplify threats, assume the worst",
             PersonalityFlag.LOW_AGREEABLENESS: "You are skeptical of others' motives, slow to trust",
@@ -112,7 +111,7 @@ class CharacterConfig:
     """Personality flag key -> behavioral description for prompt injection."""
 
     # ── Emotion -> Somatic mapping ──
-    mind_emotion_somatic_map: Dict[Emotion, Tuple[SomaticState, SomaticState]] = field(
+    mind_emotion_somatic_map: dict[Emotion, tuple[SomaticState, SomaticState]] = field(
         default_factory=lambda: {
             Emotion.FEAR: (
                 SomaticState(
@@ -282,7 +281,7 @@ class CharacterConfig:
     mind_diamonds_template: str = "built-in/mind_diamonds_analysis"
     """Template for DIAMONDS 8-dim situation extraction."""
 
-    mind_diamonds_distortion_boost: Dict[SituationDimension, Dict[Distortion, float]] = field(
+    mind_diamonds_distortion_boost: dict[SituationDimension, dict[Distortion, float]] = field(
         default_factory=lambda: {
             SituationDimension.ADVERSITY: {Distortion.CATASTROPHIZING: 30.0},
             SituationDimension.DECEPTION: {Distortion.BLACK_AND_WHITE: 25.0, Distortion.PERSONALIZATION: 15.0},

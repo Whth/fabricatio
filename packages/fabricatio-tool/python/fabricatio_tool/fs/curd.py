@@ -3,12 +3,11 @@
 import shutil
 from os import PathLike
 from pathlib import Path
-from typing import Union
 
 from fabricatio_core.journal import logger
 
 
-def dump_text(path: Union[str, Path], text: str) -> None:
+def dump_text(path: str | Path, text: str) -> None:
     """Dump text to a file. you need to make sure the file's parent directory exists.
 
     Args:
@@ -21,7 +20,7 @@ def dump_text(path: Union[str, Path], text: str) -> None:
     Path(path).write_text(text, encoding="utf-8", errors="ignore", newline="\n")
 
 
-def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
+def copy_file(src: str | Path, dst: str | Path) -> None:
     """Copy a file from source to destination.
 
     Args:
@@ -40,7 +39,7 @@ def copy_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
-def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
+def move_file(src: str | Path, dst: str | Path) -> None:
     """Move a file from source to destination.
 
     Args:
@@ -59,7 +58,7 @@ def move_file(src: Union[str, Path], dst: Union[str, Path]) -> None:
         raise
 
 
-def delete_file(file_path: Union[str, Path]) -> None:
+def delete_file(file_path: str | Path) -> None:
     """Delete a file.
 
     Args:
@@ -77,7 +76,7 @@ def delete_file(file_path: Union[str, Path]) -> None:
         raise
 
 
-def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok: bool = True) -> None:
+def create_directory(dir_path: str | Path, parents: bool = True, exist_ok: bool = True) -> None:
     """Create a directory.
 
     Args:
@@ -93,7 +92,7 @@ def create_directory(dir_path: Union[str, Path], parents: bool = True, exist_ok:
         raise
 
 
-def delete_directory(dir_path: Union[str, Path]) -> None:
+def delete_directory(dir_path: str | Path) -> None:
     """Delete a directory and its contents.
 
     Args:

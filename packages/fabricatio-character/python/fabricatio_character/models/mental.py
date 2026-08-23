@@ -14,7 +14,7 @@ Complete psychological state model covering:
 """
 
 from enum import IntEnum, StrEnum, auto
-from typing import TYPE_CHECKING, Any, List, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from fabricatio_core.models.generic import Base, ProposedAble
 from pydantic import Field
@@ -228,15 +228,15 @@ class LinguisticStyle(ProposedAble):
     preferences: str = ""
     """Natural language description of style tendencies."""
 
-    common_pronouns: List[str] = Field(default_factory=list)
+    common_pronouns: list[str] = Field(default_factory=list)
     """Preferred pronouns."""
 
-    common_modals: List[str] = Field(default_factory=list)
+    common_modals: list[str] = Field(default_factory=list)
     """Preferred modal verbs."""
-    common_adjectives: List[str] = Field(default_factory=list)
+    common_adjectives: list[str] = Field(default_factory=list)
     """Preferred adjectives and descriptors."""
 
-    style_references: List[str] = Field(default_factory=list)
+    style_references: list[str] = Field(default_factory=list)
     """Exemplary utterances from the character for style reference."""
 
 
@@ -375,7 +375,7 @@ class EmotionalState(Base):
     somatic: SomaticState = Field(default_factory=SomaticState)
     """Current body sensations."""
 
-    active_distortion: Optional[Distortion] = None
+    active_distortion: Distortion | None = None
     """Currently activated cognitive distortion (per-event, volatile)."""
     latest_situation: Optional["SituationProfile"] = None
     """DIAMONDS profile from the latest event (volatile, for prompt injection)."""
@@ -387,7 +387,7 @@ class NeedState(Base):
     current_level: MaslowLevel = MaslowLevel.PHYSIOLOGICAL
     """Current dominant need level."""
 
-    satisfied: List[MaslowLevel] = Field(default_factory=list)
+    satisfied: list[MaslowLevel] = Field(default_factory=list)
     """Already satisfied need levels."""
 
     counters: dict[MaslowLevel, int] = Field(default_factory=lambda: dict.fromkeys(MaslowLevel, 0))
@@ -416,7 +416,7 @@ class MentalState(Base):
     needs: NeedState = Field(default_factory=NeedState)
     """Maslow need hierarchy tracking."""
 
-    sufferings: List[QualitativeSuffering] = Field(default_factory=list)
+    sufferings: list[QualitativeSuffering] = Field(default_factory=list)
     """Accumulated irreversible traumas."""
 
     @classmethod
@@ -463,7 +463,7 @@ class EventImpact(ProposedAble):
     distortion activation, and need transitions.
     """
 
-    emotion: Optional[Emotion] = None
+    emotion: Emotion | None = None
     """Triggered emotion name."""
 
     emotion_intensity: float = Field(ge=0, le=100, default=0)
@@ -472,13 +472,13 @@ class EventImpact(ProposedAble):
     personality_shift: dict[BigFiveDimension, float] = Field(default_factory=dict)
     """BigFive dimension deltas (e.g. {BigFiveDimension.NEUROTICISM: 5.0})."""
 
-    triggers_distortion: Optional[Distortion] = None
+    triggers_distortion: Distortion | None = None
     """Triggered cognitive distortion type."""
 
-    threatens_need: Optional[MaslowLevel] = None
+    threatens_need: MaslowLevel | None = None
     """Need level threatened by the event."""
 
-    fulfills_need: Optional[MaslowLevel] = None
+    fulfills_need: MaslowLevel | None = None
     """Need level fulfilled by the event."""
     created_suffering: Optional["QualitativeSuffering"] = None
     """Suffering created from high-intensity emotional events."""
@@ -490,7 +490,7 @@ class EventImpact(ProposedAble):
 class DistortionAnalysis(ProposedAble):
     """CBT distortion analysis output — used by LLM distortion judgment path."""
 
-    triggered_distortion: Optional[Distortion] = None
+    triggered_distortion: Distortion | None = None
     internal_monologue: str = ""
     reasoning: str = ""
 

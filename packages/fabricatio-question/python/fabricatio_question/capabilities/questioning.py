@@ -4,7 +4,7 @@ This module provides the Questioning class which extends the Propose capability
 to create interactive selection prompts for users.
 """
 
-from typing import List, Unpack
+from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -26,7 +26,7 @@ class Questioning(Propose):
 
     async def selection(
         self, q: str, k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
-    ) -> str | List[str]:
+    ) -> str | list[str]:
         """Create an interactive selection prompt for the user.
 
         This method first uses the LLM to generate a well-structured selection question

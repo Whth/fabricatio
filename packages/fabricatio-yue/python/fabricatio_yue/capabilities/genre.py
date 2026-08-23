@@ -1,6 +1,6 @@
 """Genre selection capabilities for music composition."""
 
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.usages import UseLLM
@@ -20,10 +20,10 @@ class SelectGenre(UseLLM):
         self,
         requirement: str,
         genre_classifier: str,
-        genres: List[str],
+        genres: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[str] | None:
+    ) -> list[str] | None:
         """Select genres for a single requirement.
 
         Args:
@@ -43,12 +43,12 @@ class SelectGenre(UseLLM):
     @overload
     async def select_genre(
         self,
-        requirement: List[str],
+        requirement: list[str],
         genre_classifier: str,
-        genres: List[str],
+        genres: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[List[str] | None]:
+    ) -> list[list[str] | None]:
         """Select genres for multiple requirements.
 
         Args:
@@ -65,12 +65,12 @@ class SelectGenre(UseLLM):
 
     async def select_genre(
         self,
-        requirement: str | List[str],
+        requirement: str | list[str],
         genre_classifier: str,
-        genres: List[str],
+        genres: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[str] | List[List[str] | None] | None:
+    ) -> list[str] | list[list[str] | None] | None:
         """Select appropriate music genres based on given requirements.
 
         This method uses template-based generation to select suitable genres from a provided
@@ -131,7 +131,7 @@ class SelectGenre(UseLLM):
         requirements: str,
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[str] | None:
+    ) -> list[str] | None:
         """Gather genres for a single requirement.
 
         Args:
@@ -147,10 +147,10 @@ class SelectGenre(UseLLM):
     @overload
     async def gather_genres(
         self,
-        requirements: List[str],
+        requirements: list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[List[str] | None]:
+    ) -> list[list[str] | None]:
         """Gather genres for multiple requirements.
 
         Args:
@@ -165,10 +165,10 @@ class SelectGenre(UseLLM):
 
     async def gather_genres(
         self,
-        requirements: str | List[str],
+        requirements: str | list[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ChooseKwargs[str]],
-    ) -> List[str] | List[List[str] | None] | None:
+    ) -> list[str] | list[list[str] | None] | None:
         """Gather genres from all available genre categories based on requirements.
 
         This method iterates through all genre categories in the configuration and selects
@@ -190,7 +190,7 @@ class SelectGenre(UseLLM):
         logger.debug(f"Gathering genres for requirements: {requirements}")
         logger.debug(f"Available genre categories: {list(yue_config.genre.keys())}")
 
-        async def gather_for_single_requirement(req: str) -> List[str] | None:
+        async def gather_for_single_requirement(req: str) -> list[str] | None:
             """Gather genres for a single requirement from all categories.
 
             Args:

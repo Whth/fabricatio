@@ -1,11 +1,9 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Dict, List
-
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 
 
-class CompositeScoreKwargs(ValidateKwargs[Dict[str, float]], total=False):
+class CompositeScoreKwargs(ValidateKwargs[dict[str, float]], total=False):
     """Arguments for composite score generation operations.
 
     Extends LLMKwargs with parameters for generating composite scores
@@ -14,8 +12,8 @@ class CompositeScoreKwargs(ValidateKwargs[Dict[str, float]], total=False):
 
     topic: str
     criteria: set[str]
-    weights: Dict[str, float]
-    manual: Dict[str, str]
+    weights: dict[str, float]
+    manual: dict[str, str]
 
 
 class BestKwargs(CompositeScoreKwargs, total=False):
@@ -30,7 +28,7 @@ class ReferencedKwargs[T](ValidateKwargs[T], total=False):
     reference: str
 
 
-class OrderStringKwargs(ValidateKwargs[List[str]], total=False):
+class OrderStringKwargs(ValidateKwargs[list[str]], total=False):
     """Arguments for ordering strings."""
 
     reverse: bool = False

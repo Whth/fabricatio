@@ -3,7 +3,7 @@
 from abc import ABC
 from itertools import permutations
 from random import sample
-from typing import Dict, List, Optional, Set, Tuple, Union, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
@@ -27,12 +27,12 @@ class Rating(Propose, ABC):
 
     async def rate_fine_grind(
         self,
-        to_rate: str | List[str],
-        rating_manual: Dict[str, str],
-        score_range: Tuple[float, float],
+        to_rate: str | list[str],
+        rating_manual: dict[str, str],
+        score_range: tuple[float, float],
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
+        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+    ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
         """Rate a given string based on a rating manual and score range.
 
         Args:
@@ -97,35 +97,35 @@ class Rating(Propose, ABC):
         self,
         to_rate: str,
         topic: str,
-        criteria: Set[str],
-        manual: Optional[Dict[str, str]] = None,
-        score_range: Tuple[float, float] = (0.0, 1.0),
+        criteria: set[str],
+        manual: dict[str, str] | None = None,
+        score_range: tuple[float, float] = (0.0, 1.0),
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> Dict[str, float]: ...
+        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+    ) -> dict[str, float]: ...
 
     @overload
     async def rate(
         self,
-        to_rate: List[str],
+        to_rate: list[str],
         topic: str,
-        criteria: Set[str],
-        manual: Optional[Dict[str, str]] = None,
-        score_range: Tuple[float, float] = (0.0, 1.0),
+        criteria: set[str],
+        manual: dict[str, str] | None = None,
+        score_range: tuple[float, float] = (0.0, 1.0),
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> List[Dict[str, float]]: ...
+        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+    ) -> list[dict[str, float]]: ...
 
     async def rate(
         self,
-        to_rate: Union[str, List[str]],
+        to_rate: str | list[str],
         topic: str,
-        criteria: Set[str],
-        manual: Optional[Dict[str, str]] = None,
-        score_range: Tuple[float, float] = (0.0, 1.0),
+        criteria: set[str],
+        manual: dict[str, str] | None = None,
+        score_range: tuple[float, float] = (0.0, 1.0),
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> Dict[str, float] | List[Dict[str, float]] | List[Optional[Dict[str, float]]] | None:
+        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+    ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
 
         Args:
@@ -155,10 +155,10 @@ class Rating(Propose, ABC):
     async def draft_rating_manual(
         self,
         topic: str,
-        criteria: Optional[Set[str]] = None,
+        criteria: set[str] | None = None,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, str]]],
-    ) -> Optional[Dict[str, str]]:
+        **kwargs: Unpack[ValidateKwargs[dict[str, str]]],
+    ) -> dict[str, str] | None:
         """Drafts a rating manual based on a topic and dimensions.
 
         Args:
@@ -179,7 +179,7 @@ class Rating(Propose, ABC):
             logger.error(f"Failed to draft rating criteria for topic {topic}")
             return None
 
-        def _validator(response: str) -> Dict[str, str] | None:
+        def _validator(response: str) -> dict[str, str] | None:
             if (
                 json_data := json_parser.validate_dict(response, key_type=str, value_type=str)
             ) is not None and json_data.keys() == criteria:
@@ -206,8 +206,8 @@ class Rating(Propose, ABC):
         topic: str,
         criteria_count: NonNegativeInt = 0,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Set[str]]],
-    ) -> Optional[Set[str]]:
+        **kwargs: Unpack[ValidateKwargs[set[str]]],
+    ) -> set[str] | None:
         """Drafts rating dimensions based on a topic.
 
         Args:
@@ -243,13 +243,13 @@ class Rating(Propose, ABC):
     async def draft_rating_criteria_from_examples(
         self,
         topic: str,
-        examples: List[str],
+        examples: list[str],
         m: NonNegativeInt = 0,
         reasons_count: PositiveInt = 2,
         criteria_count: PositiveInt = 5,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[List[str]]],
-    ) -> Optional[Set[str]]:
+        **kwargs: Unpack[ValidateKwargs[list[str]]],
+    ) -> set[str] | None:
         """Asynchronously drafts a set of rating criteria based on provided examples.
 
         This function generates rating criteria by analyzing examples and extracting reasons for comparison,
@@ -323,10 +323,10 @@ class Rating(Propose, ABC):
     async def drafting_rating_weights_klee(
         self,
         topic: str,
-        criteria: Set[str],
+        criteria: set[str],
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[float]],
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Drafts rating weights for a given topic and criteria using the Klee method.
 
         Args:
@@ -374,14 +374,14 @@ class Rating(Propose, ABC):
     async def composite_score(
         self,
         topic: str,
-        to_rate: List[str],
-        criteria: Optional[Set[str]] = None,
-        weights: Optional[Dict[str, float]] = None,
-        manual: Optional[Dict[str, str]] = None,
+        to_rate: list[str],
+        criteria: set[str] | None = None,
+        weights: dict[str, float] | None = None,
+        manual: dict[str, str] | None = None,
         approx: bool = False,
         send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[Dict[str, float]]],
-    ) -> List[float]:
+        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+    ) -> list[float]:
         """Calculates the composite scores for a list of items based on a given topic and criteria.
 
         Args:
@@ -414,21 +414,21 @@ class Rating(Propose, ABC):
 
     @overload
     async def best(
-        self, candidates: List[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> List[str]: ...
+        self, candidates: list[str], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> list[str]: ...
 
     @overload
     async def best[T: Display](
-        self, candidates: List[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
-    ) -> List[T]: ...
+        self, candidates: list[T], k: int = 1, send_to: str | None = TASK, **kwargs: Unpack[CompositeScoreKwargs]
+    ) -> list[T]: ...
 
     async def best[T: Display](
         self,
-        candidates: List[str] | List[T],
+        candidates: list[str] | list[T],
         k: int = 1,
         send_to: str | None = TASK,
         **kwargs: Unpack[CompositeScoreKwargs],
-    ) -> Optional[List[str] | List[T]]:
+    ) -> list[str] | list[T] | None:
         """Choose the best candidates from the list of candidates based on the composite score.
 
         Args:

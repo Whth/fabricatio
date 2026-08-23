@@ -2,7 +2,7 @@
 
 from abc import ABC
 from pathlib import Path
-from typing import Optional, Self
+from typing import Self
 
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
@@ -18,9 +18,9 @@ class Checkpoint(UseLLM, ABC):
     worktree_dir: Path = Field(default_factory=Path.cwd)
     """The worktree directory. Use the current working directory by default."""
 
-    _checkpoint_store: Optional[CheckPointStore] = PrivateAttr(None)
+    _checkpoint_store: CheckPointStore | None = PrivateAttr(None)
 
-    def mount_checkpoint_store(self, checkpoint_store: Optional[CheckPointStore] = None) -> Self:
+    def mount_checkpoint_store(self, checkpoint_store: CheckPointStore | None = None) -> Self:
         """Mount a checkpoint store to the capability."""
         self._checkpoint_store = checkpoint_store or get_checkpoint_service().get_store(self.worktree_dir)
         return self
@@ -30,7 +30,7 @@ class Checkpoint(UseLLM, ABC):
         self._checkpoint_store = None
         return self
 
-    def access_checkpoint_store(self, fallback_default: Optional[CheckPointStore] = None) -> CheckPointStore:
+    def access_checkpoint_store(self, fallback_default: CheckPointStore | None = None) -> CheckPointStore:
         """Access the checkpoint store."""
         if self._checkpoint_store is None and fallback_default is not None:
             self.mount_checkpoint_store(fallback_default)

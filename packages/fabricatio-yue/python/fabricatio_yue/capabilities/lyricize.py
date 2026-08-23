@@ -1,6 +1,6 @@
 """Module containing the Lyricize capability for generating lyrics based on requirements."""
 
-from typing import List, Unpack, overload
+from typing import Unpack, overload
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
@@ -42,8 +42,8 @@ class Lyricize(Propose, SelectGenre):
 
     @overload
     async def lyricize(
-        self, requirement: List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
-    ) -> List[Song | None]:
+        self, requirement: list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
+    ) -> list[Song | None]:
         """Generate lyrics for multiple requirements.
 
         Args:
@@ -59,8 +59,8 @@ class Lyricize(Propose, SelectGenre):
         ...
 
     async def lyricize(
-        self, requirement: str | List[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
-    ) -> Song | List[Song | None] | None:
+        self, requirement: str | list[str], send_to: str | None = TASK, **kwargs: Unpack[ValidateKwargs[Song]]
+    ) -> Song | list[Song | None] | None:
         """Generate lyrics based on requirements.
 
         Args:

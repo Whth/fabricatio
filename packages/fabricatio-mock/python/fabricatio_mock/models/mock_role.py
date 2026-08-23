@@ -4,8 +4,6 @@ This class combines the base Role class with LLM usage capabilities for testing 
 It provides default implementations and test values for LLM-related attributes.
 """
 
-from typing import Optional
-
 from fabricatio_core import Role
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
@@ -21,10 +19,10 @@ class LLMTestRole(Role, UseLLM):
     for testing purposes.
     """
 
-    llm_send_to: Optional[str] = DUMMY_LLM_GROUP
-    llm_no_cache: Optional[bool] = True
+    llm_send_to: str | None = DUMMY_LLM_GROUP
+    llm_no_cache: bool | None = True
 
-    def _resolve_completion_send_to(self, send_to: Optional[str] = None) -> str:
+    def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
         """Pin LLM routing to the dummy group, ignoring any explicit ``send_to``.
 
         The base resolution prefers the explicit ``send_to`` and resolves it

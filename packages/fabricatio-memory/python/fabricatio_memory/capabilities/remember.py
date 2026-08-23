@@ -1,7 +1,7 @@
 """Provide a memory system to remember things."""
 
 from abc import ABC
-from typing import Optional, Self, Unpack
+from typing import Self, Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
@@ -22,16 +22,16 @@ class RememberScopedConfig(ScopedConfig):
 
     memory_llm: LLMKwargs = Field(default_factory=LLMKwargs)
     """Configuration for LLM generation parameters used in memory operations."""
-    memory_store_name: Optional[str] = Field(default=None)
+    memory_store_name: str | None = Field(default=None)
     """The memory system instance used for storing and retrieving memories."""
 
-    _memory_store: Optional[MemoryStore] = PrivateAttr(default=None)
+    _memory_store: MemoryStore | None = PrivateAttr(default=None)
 
 
 class Remember(Propose, RememberScopedConfig, ABC):
     """Provide a memory system to remember things."""
 
-    def mount_memory_store(self, memory_store: Optional[MemoryStore] = None) -> Self:
+    def mount_memory_store(self, memory_store: MemoryStore | None = None) -> Self:
         """Mount a memory system to the capability."""
         self._memory_store = memory_store or get_memory_service().get_store(ok(self.memory_store_name))
         return self
@@ -41,7 +41,7 @@ class Remember(Propose, RememberScopedConfig, ABC):
         self._memory_store = None
         return self
 
-    def access_memory_store(self, fallback_default: Optional[MemoryStore] = None) -> MemoryStore:
+    def access_memory_store(self, fallback_default: MemoryStore | None = None) -> MemoryStore:
         """Access the memory system."""
         if self._memory_store is None and fallback_default is not None:
             self.mount_memory_store(fallback_default)

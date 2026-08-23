@@ -1,7 +1,8 @@
 """A module for file system utilities."""
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, ClassVar, List, Mapping, Optional, Self
+from typing import Any, ClassVar, Self
 
 from fabricatio_core import Task
 from fabricatio_core.capabilities.usages import UseLLM
@@ -20,7 +21,7 @@ class ReadText(Action, FromMapping):
     ctx_override: ClassVar[bool] = True
 
     output_key: str = "read_text"
-    read_path: Optional[str | Path] = None
+    read_path: str | Path | None = None
     """Path to the file to read."""
 
     async def _execute(self, *_: Any, **cxt) -> str:
@@ -29,7 +30,7 @@ class ReadText(Action, FromMapping):
         return p.read_text(encoding="utf-8")
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:
+    def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> list[Self]:
         """Create a list of ReadText actions from a mapping of output_key to read_path."""
         return [cls(read_path=p, output_key=k, **kwargs) for k, p in mapping.items()]
 
@@ -39,7 +40,7 @@ class DumpText(Action, FromMapping):
 
     ctx_override: ClassVar[bool] = True
 
-    dump_path: Optional[str | Path] = None
+    dump_path: str | Path | None = None
     """Path to the file to dump."""
     text_key: str = "text"
     """Key of the text to dump."""
@@ -52,7 +53,7 @@ class DumpText(Action, FromMapping):
         p.write_text(text, encoding="utf-8", errors="ignore")
 
     @classmethod
-    def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> List[Self]:
+    def from_mapping(cls, mapping: Mapping[str, str | Path], **kwargs: Any) -> list[Self]:
         """Create a list of DumpText actions from a mapping of output_key to dump_path."""
         return [cls(dump_path=p, text_key=k, **kwargs) for k, p in mapping.items()]
 

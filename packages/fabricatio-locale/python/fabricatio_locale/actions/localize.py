@@ -1,7 +1,7 @@
 """Module containing the LocalizePoFile action for localizing .po files."""
 
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from fabricatio_core import Action
 
@@ -20,7 +20,7 @@ class LocalizePoFile(Action, Localize):
     target_lang: str = "en"
     """Target language code (e.g., 'es' for Spanish) to translate messages into."""
 
-    output_path: Optional[str | Path] = "locale_file.po"
+    output_path: str | Path | None = "locale_file.po"
     """Optional path to save the updated .po file. Defaults to same as input if not specified."""
 
     async def _execute(self, *_: Any, **cxt: Any) -> Path:
