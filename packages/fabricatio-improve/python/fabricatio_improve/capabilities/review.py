@@ -1,7 +1,7 @@
 """A module that provides functionality to rate tasks based on a rating manual and score range."""
 
 from abc import ABC
-from typing import Dict, Optional, Set, Unpack
+from typing import Unpack
 
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_core.capabilities.propose import Propose
@@ -28,7 +28,7 @@ class Review(Rating, Propose, ABC):
 
     async def review_task[T](
         self, task: Task[T], send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
-    ) -> Optional[Improvement]:
+    ) -> Improvement | None:
         """Review a task using specified review criteria.
 
         This method analyzes a task object to identify problems and propose solutions
@@ -52,11 +52,11 @@ class Review(Rating, Propose, ABC):
         self,
         input_text: str,
         topic: str,
-        criteria: Optional[Set[str]] = None,
-        rating_manual: Optional[Dict[str, str]] = None,
+        criteria: set[str] | None = None,
+        rating_manual: dict[str, str] | None = None,
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[Improvement]],
-    ) -> Optional[Improvement]:
+    ) -> Improvement | None:
         """Review a string based on specified topic and criteria.
 
         This method analyzes a text string to identify problems and propose solutions
@@ -99,7 +99,7 @@ class Review(Rating, Propose, ABC):
 
     async def review_obj[M: (Display, WithBriefing)](
         self, obj: M, send_to: str | None = TASK, **kwargs: Unpack[ReviewKwargs[Improvement]]
-    ) -> Optional[Improvement]:
+    ) -> Improvement | None:
         """Review an object that implements Display or WithBriefing interface.
 
         This method extracts displayable text from the object and performs a review

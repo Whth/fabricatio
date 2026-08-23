@@ -2,7 +2,7 @@
 
 from abc import ABC
 from asyncio import gather
-from typing import Optional, Unpack
+from typing import Unpack
 
 from fabricatio_capabilities.capabilities.rating import Rating
 from fabricatio_capabilities.models.generic import ProposedUpdateAble
@@ -89,7 +89,7 @@ class Correct(Rating, ABC):
         reference: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> Optional[M]:
+    ) -> M | None:
         """Fix a troubled object based on problem solutions.
 
         Args:
@@ -128,7 +128,7 @@ class Correct(Rating, ABC):
         reference: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[ValidateKwargs[str]],
-    ) -> Optional[str]:
+    ) -> str | None:
         """Fix a troubled string based on problem solutions.
 
         Args:
@@ -166,7 +166,7 @@ class Correct(Rating, ABC):
         improvement: Improvement,
         reference: str = "",
         **kwargs: Unpack[ValidateKwargs[M]],
-    ) -> Optional[M]:
+    ) -> M | None:
         """Review and correct an object based on defined criteria and templates.
 
         This method first conducts a review of the given object, then uses the review results
@@ -200,7 +200,7 @@ class Correct(Rating, ABC):
 
     async def correct_string(
         self, input_text: str, improvement: Improvement, reference: str = "", **kwargs: Unpack[ValidateKwargs[str]]
-    ) -> Optional[str]:
+    ) -> str | None:
         """Review and correct a string based on defined criteria and templates.
 
         This method first conducts a review of the given string, then uses the review results
@@ -230,9 +230,7 @@ class Correct(Rating, ABC):
             input_text = fixed_string
         return input_text
 
-    async def correct_obj_inplace[M: ProposedUpdateAble](
-        self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]
-    ) -> Optional[M]:
+    async def correct_obj_inplace[M: ProposedUpdateAble](self, obj: M, **kwargs: Unpack[CorrectKwargs[M]]) -> M | None:
         """Correct an object in place based on defined criteria and templates.
 
         Args:

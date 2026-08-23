@@ -1,7 +1,7 @@
 """A module containing kwargs types for content correction and checking operations."""
 
 from itertools import chain
-from typing import List, Self, Tuple, Unpack
+from typing import Self, Unpack
 
 from fabricatio_core.models.generic import SketchedAble
 
@@ -14,7 +14,7 @@ class Improvement(SketchedAble):
     focused_on: str
     """The focused on topic of the improvement"""
 
-    problem_solutions: List[ProblemSolutions]
+    problem_solutions: list[ProblemSolutions]
     """Collection of problems identified during review along with their potential solutions."""
 
     def all_problems_have_solutions(self) -> bool:
@@ -37,7 +37,7 @@ class Improvement(SketchedAble):
         from questionary import Choice, checkbox
 
         # Choose the problems to retain
-        chosen_ones: List[ProblemSolutions] = await checkbox(
+        chosen_ones: list[ProblemSolutions] = await checkbox(
             "Please choose the problems you want to retain.(Default: retain all)",
             choices=[Choice(p.problem.name, p, checked=True) for p in self.problem_solutions],
         ).ask_async()
@@ -62,7 +62,7 @@ class Improvement(SketchedAble):
         return all(ps.decided() for ps in self.problem_solutions)
 
     @classmethod
-    def gather(cls, *improvements: Unpack[Tuple["Improvement", ...]]) -> Self:
+    def gather(cls, *improvements: Unpack[tuple["Improvement", ...]]) -> Self:  # noqa: UP044
         """Gather multiple improvements into a single instance."""
         return cls(
             focused_on=";".join(imp.focused_on for imp in improvements),

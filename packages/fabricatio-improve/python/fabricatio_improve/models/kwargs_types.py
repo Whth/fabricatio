@@ -1,6 +1,6 @@
 """This module contains the types for the keyword arguments of the methods in the models module."""
 
-from typing import Dict, Required
+from typing import Required
 
 from fabricatio_capabilities.models.kwargs_types import ReferencedKwargs
 from fabricatio_core.models.generic import SketchedAble
@@ -32,5 +32,5 @@ class ReviewKwargs[T](ReviewInnerKwargs[T], total=False):
     specific topics and review criteria.
     """
 
-    rating_manual: Dict[str, str]
+    rating_manual: dict[str, str]
     topic: Required[str]

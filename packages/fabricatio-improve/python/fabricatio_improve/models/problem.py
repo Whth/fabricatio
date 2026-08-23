@@ -1,6 +1,6 @@
 """A class representing a problem-solution pair identified during a review process."""
 
-from typing import Any, List, Optional, Self
+from typing import Any, Self
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
@@ -28,7 +28,7 @@ class Solution(SketchedAble, WithBriefing):
     description: str = Field(alias="mechanism")
     """Description of the solution, including a detailed description of the execution steps, and the mechanics, principle or fact."""
 
-    execute_steps: List[str]
+    execute_steps: list[str]
     """A list of steps to execute to implement the solution, which is expected to be able to finally solve the corresponding problem, and which should be an Idiot-proof tutorial."""
 
     feasibility_level: int = Field(ge=0, le=10)
@@ -43,7 +43,7 @@ class ProblemSolutions(SketchedAble):
 
     problem: Problem
     """The problem identified in the review."""
-    solutions: List[Solution]
+    solutions: list[Solution]
     """A collection of potential solutions, spread the thought, add more solution as possible.Do not leave this as blank"""
 
     def model_post_init(self, context: Any, /) -> None:
@@ -62,7 +62,7 @@ class ProblemSolutions(SketchedAble):
         self.problem = problem
         return self
 
-    def update_solutions(self, solutions: List[Solution]) -> Self:
+    def update_solutions(self, solutions: list[Solution]) -> Self:
         """Update the list of potential solutions."""
         self.solutions = solutions
         return self
@@ -92,7 +92,7 @@ class ProblemSolutions(SketchedAble):
         """Check if the improvement is decided."""
         return len(self.solutions) == 1
 
-    def final_solution(self, always_use_first: bool = False) -> Optional[Solution]:
+    def final_solution(self, always_use_first: bool = False) -> Solution | None:
         """Get the final solution."""
         if not always_use_first and not self.decided():
             logger.error(
