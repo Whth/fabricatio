@@ -1,7 +1,8 @@
 """Base context machinery: character spans and shared channel element behavior."""
 
 from abc import ABC, abstractmethod
-from typing import Callable, Generator, Self, Sequence, final
+from collections.abc import Callable, Generator, Sequence
+from typing import Self, final
 
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard

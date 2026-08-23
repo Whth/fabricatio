@@ -1,7 +1,6 @@
 """Writing-style RAG tests for fabricatio-novel."""
 
 from itertools import pairwise
-from typing import List
 
 import pytest
 from _support import RAGRole, prefix_log
@@ -60,7 +59,7 @@ class TestRAGCompose:
                 )
             )
 
-        async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:
+        async def fake_fetch(query: object, config: object | None = None) -> list[WritingStyleDocument]:
             return []
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
@@ -87,10 +86,10 @@ class TestRAGCompose:
         story = StoryContext(title="St1", description="The departure.")
         story.set_rag(RagRetrieval())
         story.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
-        fetched: List[object] = []
+        fetched: list[object] = []
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
 
-        async def fake_fetch(query: object, config: object | None = None) -> List[WritingStyleDocument]:
+        async def fake_fetch(query: object, config: object | None = None) -> list[WritingStyleDocument]:
             fetched.append(query)
             return [doc]
 
@@ -113,7 +112,7 @@ class TestRAGCompose:
         story.scene_context.append(scene)
         story.set_rag(RagRetrieval())
 
-        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> List[WritingStyleDocument]:
+        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
 
         monkeypatch.setattr(RAGRole, "_fetch_style_docs", staticmethod(fake_fetch_docs))
@@ -131,7 +130,7 @@ class TestRAGCompose:
         story = StoryContext(title="St1", description="The departure.")
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
 
-        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> List[WritingStyleDocument]:
+        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> ScenePlans:
@@ -150,7 +149,7 @@ class TestRAGCompose:
         role = RAGRole(name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
-        captured: List[str] = []
+        captured: list[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
@@ -169,12 +168,12 @@ class TestRAGCompose:
         ctx = StoryContext(title="Battle", description="The hero fights.")
         ctx.set_rag(RagRetrieval(query="中文查询指南", limit=7))
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
-        captured_queries: List[object] = []
-        captured_configs: List[WritingStyleFetchConfig] = []
+        captured_queries: list[object] = []
+        captured_configs: list[WritingStyleFetchConfig] = []
 
         async def fake_fetch(
             query: object, config: WritingStyleFetchConfig | None = None
-        ) -> List[WritingStyleDocument]:
+        ) -> list[WritingStyleDocument]:
             captured_queries.append(query)
             if config is not None:
                 captured_configs.append(config)
@@ -194,11 +193,11 @@ class TestRAGCompose:
         role = RAGRole(name="rag_role")
         ctx = StoryContext(title="Battle", description="The hero fights.")
         ctx.set_rag(RagRetrieval())
-        captured_queries: List[object] = []
+        captured_queries: list[object] = []
 
         async def fake_fetch(
             query: object, config: WritingStyleFetchConfig | None = None
-        ) -> List[WritingStyleDocument]:
+        ) -> list[WritingStyleDocument]:
             captured_queries.append(query)
             return []
 
@@ -218,7 +217,7 @@ class TestRAGCompose:
 
         async def fake_fetch(
             query: object, config: WritingStyleFetchConfig | None = None
-        ) -> List[WritingStyleDocument]:
+        ) -> list[WritingStyleDocument]:
             return [blank, doc, blank]
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
@@ -235,7 +234,7 @@ class TestRAGCompose:
 
         async def fake_fetch(
             query: object, config: WritingStyleFetchConfig | None = None
-        ) -> List[WritingStyleDocument]:
+        ) -> list[WritingStyleDocument]:
             return []
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))

@@ -1,6 +1,6 @@
 """Output model for a composed chapter: the chapter plan plus its materialized stories."""
 
-from typing import List, Self
+from typing import Self
 
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core import TEMPLATE_MANAGER
@@ -15,7 +15,7 @@ from fabricatio_novel.rust import text_to_xhtml_paragraphs
 class Chapter(ChapterPlan, WordCount):
     """A composed chapter: its plan fields and the stories it contains."""
 
-    story: List[Story]
+    story: list[Story]
 
     @property
     def exact_word_count(self) -> int:
@@ -43,10 +43,7 @@ class Chapter(ChapterPlan, WordCount):
         registers it once on the EPUB side via ``add_chapter(title, ...)``,
         so embedding it here would duplicate it in every chapter document.
         """
-        sections = []
-        for story in self.story:
-            for scene in story.scenes:
-                sections.append(text_to_xhtml_paragraphs(scene.content))
+        sections = [text_to_xhtml_paragraphs(scene.content) for story in self.story for scene in story.scenes]
         return TEMPLATE_MANAGER.render_template(
             novel_config.render_chapter_xhtml_template,
             {"content": "\n".join(sections), "title": self.title},

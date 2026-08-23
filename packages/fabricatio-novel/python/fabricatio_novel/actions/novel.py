@@ -6,7 +6,7 @@ result can be traced back to the stage that produced it.
 """
 
 from pathlib import Path
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar
 
 from fabricatio_core import logger
 from fabricatio_core.models.action import OUTPUT_KEY, Action
@@ -44,7 +44,7 @@ class StageAction(Action):
     stage: ClassVar[str] = ""
     """Stage name used to build the snapshot directory (e.g. ``02_metadata``)."""
 
-    async def snapshot(self, novel_ctx: NovelContext, cxt: Dict[str, Any]) -> None:
+    async def snapshot(self, novel_ctx: NovelContext, cxt: dict[str, Any]) -> None:
         """Persist the whole novel context tree into the stage's snapshot directory."""
         persist_dir = cxt.get("persist_dir")
         if not persist_dir:

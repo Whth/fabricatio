@@ -1,7 +1,7 @@
 """Output model for a composed novel: plan fields, materialized chapters and EPUB export."""
 
 from pathlib import Path
-from typing import List, Self
+from typing import Self
 
 from fabricatio_capabilities.models.generic import PersistentAble
 
@@ -15,7 +15,7 @@ from fabricatio_novel.rust import NovelBuilder
 class Novel(PersistentAble, NovelPlan):
     """A composed novel: its plan fields and the chapters it contains."""
 
-    chapter: List[Chapter]
+    chapter: list[Chapter]
 
     @property
     def exact_word_count(self) -> int:

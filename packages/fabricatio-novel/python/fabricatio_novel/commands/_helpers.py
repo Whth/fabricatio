@@ -1,12 +1,11 @@
 """Shared helpers for the Fabricatio Novel CLI command modules."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
 
-def _resolve_outline(outline: Optional[str], outline_file: Optional[Path]) -> str:
+def _resolve_outline(outline: str | None, outline_file: Path | None) -> str:
     """Resolve the outline from a positional argument or ``--outline-file``, exiting on failure."""
     if outline_file is not None:
         text = outline_file.read_text(encoding="utf-8").strip()

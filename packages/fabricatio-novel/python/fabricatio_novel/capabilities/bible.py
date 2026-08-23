@@ -7,7 +7,8 @@ scene prompts rides the seeded prefix entry, not this capability.
 """
 
 from abc import ABC
-from typing import Iterable, Optional, Unpack, cast
+from collections.abc import Iterable
+from typing import Unpack, cast
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
@@ -20,7 +21,7 @@ from fabricatio_novel.models.series_book import SeriesBible
 _SECTIONS = ("characters", "background")
 
 
-def parse_sections(sections: str | Iterable[str] | None) -> Optional[set[str]]:
+def parse_sections(sections: str | Iterable[str] | None) -> set[str] | None:
     """Normalize a ``--sections`` option into a set of section names; None means all."""
     if sections is None:
         return None

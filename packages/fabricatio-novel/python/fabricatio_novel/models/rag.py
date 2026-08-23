@@ -1,6 +1,6 @@
 """RAG document and configuration models for writing style and enriched reference retrieval."""
 
-from typing import ClassVar, Type
+from typing import ClassVar
 
 from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, LancedbFetchRAGConfig
 from fabricatio_lancedb.models.lancedb import LancedbDocumentModel
@@ -22,7 +22,7 @@ class WritingStyleAddConfig(LancedbAddRAGConfig):
 class WritingStyleFetchConfig(LancedbFetchRAGConfig[WritingStyleDocument]):
     """Fetch configuration for writing style documents."""
 
-    document_model: Type[WritingStyleDocument] = WritingStyleDocument
+    document_model: type[WritingStyleDocument] = WritingStyleDocument
 
 
 class EnrichedDocument(LancedbDocumentModel[StoreDocument, SearchedDocument]):
@@ -38,4 +38,4 @@ class EnrichedAddConfig(LancedbAddRAGConfig):
 class EnrichedFetchConfig(LancedbFetchRAGConfig[EnrichedDocument]):
     """Fetch configuration for enriched documents."""
 
-    document_model: Type[EnrichedDocument] = EnrichedDocument
+    document_model: type[EnrichedDocument] = EnrichedDocument

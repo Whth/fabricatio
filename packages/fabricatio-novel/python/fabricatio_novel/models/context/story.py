@@ -1,6 +1,7 @@
 """Pipeline channel model for a story: its plan and the scene contexts it writes."""
 
-from typing import Generator, Self, final
+from collections.abc import Generator
+from typing import Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field

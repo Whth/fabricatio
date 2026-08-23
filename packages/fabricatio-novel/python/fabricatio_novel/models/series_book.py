@@ -6,7 +6,7 @@ Characters and background settings are both one plain string per entry; a
 bare string assigned to ``characters`` is coerced to its non-blank lines.
 """
 
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar
 
 from fabricatio_capabilities.models.generic import AsPrompt, FinalizedDumpAble, PersistentAble
 from pydantic import Field, field_validator
@@ -20,10 +20,10 @@ class SeriesBible(FinalizedDumpAble, AsPrompt, PersistentAble):
     rendering_template: ClassVar[str] = novel_config.setting_bible_context_template
     """Template used to render the bible into prompts via :meth:`as_prompt`."""
 
-    characters: List[str] = Field(default_factory=list)
+    characters: list[str] = Field(default_factory=list)
     """The canonical character roster, one entry per character."""
 
-    background_settings: List[str] = Field(default_factory=list)
+    background_settings: list[str] = Field(default_factory=list)
     """All non-character settings facts (premise, tone, world rules, factions, terminology, foreshadowing), one plain string per fact."""
 
     @field_validator("characters", mode="before")
@@ -34,7 +34,7 @@ class SeriesBible(FinalizedDumpAble, AsPrompt, PersistentAble):
             return [line for line in (raw.strip() for raw in value.splitlines()) if line]
         return value
 
-    def _as_prompt_inner(self) -> Dict[str, str] | Dict[str, Any] | Any:
+    def _as_prompt_inner(self) -> dict[str, str] | dict[str, Any] | Any:
         """Return the bible sections for the prompt template."""
         return self.model_dump()
 

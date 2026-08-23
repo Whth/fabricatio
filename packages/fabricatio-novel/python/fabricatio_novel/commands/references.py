@@ -2,7 +2,6 @@
 
 import asyncio
 from pathlib import Path
-from typing import List
 
 import typer
 from fabricatio_core import Role
@@ -10,7 +9,7 @@ from fabricatio_core import Role
 from fabricatio_novel.cli import app
 
 
-def _collect_files(patterns: List[str]) -> List[Path]:
+def _collect_files(patterns: list[str]) -> list[Path]:
     files = set()
     for pattern in patterns:
         p = Path(pattern)
@@ -28,7 +27,7 @@ def _collect_files(patterns: List[str]) -> List[Path]:
 
 @app.command(name="store-refs")
 def store_reference_texts(
-    patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to ingest."),
+    patterns: list[str] = typer.Argument(..., help="File paths and/or glob patterns to ingest."),
     chunk_guideline: str = typer.Option("", "--chunk-guideline", "-cg", help="Guidance for semantic chunking."),
     max_size: int = typer.Option(5, "--max-size", "-ms", help="Maximum chunks per split."),
     min_size: int = typer.Option(2, "--min-size", "-mi", help="Minimum chunks per split."),
@@ -65,7 +64,7 @@ def store_reference_texts(
 
 @app.command(name="enrich-refs")
 def store_enriched_texts(
-    patterns: List[str] = typer.Argument(..., help="File paths and/or glob patterns to enrich and ingest."),
+    patterns: list[str] = typer.Argument(..., help="File paths and/or glob patterns to enrich and ingest."),
     enrich_guideline: str = typer.Option(
         "", "--enrich-guideline", "-eg", help="Guidance for QA-pair generation (e.g. 'Extract world-building facts')."
     ),

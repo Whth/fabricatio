@@ -1,6 +1,7 @@
 """Pipeline channel model for the novel root: outline, language and chapter contexts."""
 
-from typing import Generator, Self, final
+from collections.abc import Generator
+from typing import Self, final
 
 from fabricatio_capabilities.models.generic import UpdateFrom
 from fabricatio_core.rust import detect_language

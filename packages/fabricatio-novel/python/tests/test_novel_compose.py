@@ -1,7 +1,5 @@
 """Composition-chain tests for fabricatio-novel with mock LLM routers."""
 
-from typing import List
-
 import pytest
 from _support import NovelRole, card, prefix_log, raw_value
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage, return_router_usage
@@ -321,7 +319,7 @@ class TestNovelCompose:
         role = NovelRole(name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
         story.set_cast(["Hero", "Villain"])
-        captured: List[str] = []
+        captured: list[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
@@ -338,7 +336,7 @@ class TestNovelCompose:
         role = NovelRole(name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         chapter.set_cast(["Hero"])
-        captured: List[str] = []
+        captured: list[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)

@@ -1,6 +1,6 @@
 """Output model for a composed story: the story plan plus its materialized scenes."""
 
-from typing import List, Self
+from typing import Self
 
 from fabricatio_capabilities.models.generic import WordCount
 
@@ -12,7 +12,7 @@ from fabricatio_novel.models.scene import Scene
 class Story(StoryPlan, WordCount):
     """A composed story: its plan fields and the scenes it contains."""
 
-    scenes: List[Scene]
+    scenes: list[Scene]
 
     @property
     def exact_word_count(self) -> int:

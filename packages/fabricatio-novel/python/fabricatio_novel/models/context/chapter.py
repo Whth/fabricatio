@@ -1,6 +1,7 @@
 """Pipeline channel model for a chapter: its plan and the story contexts it writes."""
 
-from typing import ClassVar, Generator, Self, final
+from collections.abc import Generator
+from typing import ClassVar, Self, final
 
 from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field

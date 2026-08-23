@@ -1,7 +1,7 @@
 """RAG-extended scene composition: retrieve raw writing style references for story-bound scenes."""
 
 from abc import ABC
-from typing import List, Unpack
+from typing import Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.decorators import logging_exec_time
@@ -54,7 +54,7 @@ class RAGCompose(SceneCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGCon
         self,
         ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
-    ) -> List[WritingStyleDocument]:
+    ) -> list[WritingStyleDocument]:
         """Fetch the story's top style references by vector similarity.
 
         The story description (plus the optional query guideline) is used

@@ -2,9 +2,8 @@
 
 import asyncio
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Optional
 
 import typer
 from fabricatio_core import Event, Role, Task
@@ -16,17 +15,17 @@ from fabricatio_novel.commands._helpers import _resolve_outline
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow, RagDebugNovelWorkflow
 
 
-def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Optional[Path]:
+def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Path | None:
     """Dispatch the task through the subscribed workflow and return its output (the artifact path)."""
 
-    async def _run() -> Optional[Path]:
+    async def _run() -> Path | None:
         Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), workflow).dispatch()
         return await task.delegate(namespace)
 
     return asyncio.run(_run())
 
 
-class ExportFormat(str, Enum):
+class ExportFormat(StrEnum):
     """Export formats for a generated novel."""
 
     EPUB = "epub"
@@ -60,11 +59,11 @@ def _stamped_run_dir(persist_dir: Path) -> Path:
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913 - flat signature required by typer option derivation
     *,
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
+    outline: str | None = typer.Argument(None, help="Novel outline text."),
+    outline_file: Path | None = typer.Option(
         None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
     ),
-    language: Optional[str] = typer.Option(
+    language: str | None = typer.Option(
         None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
     ),
     persist_dir: Path = typer.Option(
@@ -77,11 +76,11 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
-    font: Optional[Path] = typer.Option(
+    font: Path | None = typer.Option(
         None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
     ),
-    cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
-    output: Optional[Path] = typer.Option(
+    cover: Path | None = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
+    output: Path | None = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
     format: ExportFormat = typer.Option(
@@ -89,10 +88,8 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         "--format",
         help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
     ),
-    bible: Optional[Path] = typer.Option(
-        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
-    ),
-    constraint: Optional[str] = typer.Option(
+    bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
+    constraint: str | None = typer.Option(
         None,
         "--constraint",
         "-c",
@@ -126,11 +123,11 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
 @app.command(name="wr")
 def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer option derivation
     *,
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
+    outline: str | None = typer.Argument(None, help="Novel outline text."),
+    outline_file: Path | None = typer.Option(
         None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
     ),
-    language: Optional[str] = typer.Option(
+    language: str | None = typer.Option(
         None, "--language", "--lang", "-l", help="Written language. Auto-detected from the outline when omitted."
     ),
     persist_dir: Path = typer.Option(
@@ -143,7 +140,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         False, "--flat", help="Write directly into --persist-dir instead of a timestamped run subdirectory."
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
-    rag_query: Optional[str] = typer.Option(
+    rag_query: str | None = typer.Option(
         None,
         "--rag-query",
         "-rq",
@@ -152,11 +149,11 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     retrieve_limit: int = typer.Option(
         0, "--retrieve-limit", "-rl", help="Final reference documents kept after reranking (0 = default 15)."
     ),
-    font: Optional[Path] = typer.Option(
+    font: Path | None = typer.Option(
         None, "--font", "-f", help="Font file (.ttf) to embed in the EPUB and apply to its body text."
     ),
-    cover: Optional[Path] = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
-    output: Optional[Path] = typer.Option(
+    cover: Path | None = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
+    output: Path | None = typer.Option(
         None, "--output", "-o", help="EPUB output file name (relative to the run directory)."
     ),
     format: ExportFormat = typer.Option(
@@ -164,10 +161,8 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         "--format",
         help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
     ),
-    bible: Optional[Path] = typer.Option(
-        None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."
-    ),
-    constraint: Optional[str] = typer.Option(
+    bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
+    constraint: str | None = typer.Option(
         None,
         "--constraint",
         "-c",

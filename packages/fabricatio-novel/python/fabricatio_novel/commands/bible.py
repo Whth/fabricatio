@@ -2,7 +2,6 @@
 
 import asyncio
 from pathlib import Path
-from typing import Optional
 
 import typer
 from fabricatio_core import TEMPLATE_MANAGER, Role
@@ -44,11 +43,11 @@ def _save_bible(bible: SeriesBible, out: Path) -> None:
 
 @app.command(name="create")
 def create_bible(
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
+    outline: str | None = typer.Argument(None, help="Novel outline text."),
+    outline_file: Path | None = typer.Option(
         None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
     ),
-    language: Optional[str] = typer.Option(
+    language: str | None = typer.Option(
         None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
     ),
     sections: str = typer.Option(
@@ -81,17 +80,17 @@ def create_bible(
 @app.command(name="update")
 def update_bible(
     bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
-    outline: Optional[str] = typer.Argument(None, help="Novel outline text."),
-    outline_file: Optional[Path] = typer.Option(
+    outline: str | None = typer.Argument(None, help="Novel outline text."),
+    outline_file: Path | None = typer.Option(
         None, "--outline-file", "-of", help="Read the outline from a file instead of the positional argument."
     ),
-    language: Optional[str] = typer.Option(
+    language: str | None = typer.Option(
         None, "--language", "--lang", "-l", help="Bible language. Auto-detected from the outline when omitted."
     ),
     sections: str = typer.Option(
         "", "--sections", "-s", help="Comma-separated sections to re-propose: characters, background (default: all)."
     ),
-    out: Optional[Path] = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
+    out: Path | None = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
     send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
     """Re-propose sections of an existing setting bible from the outline."""

@@ -1,7 +1,5 @@
 """Progressive-planning tests for fabricatio-novel: plans, word counts, outline grounding."""
 
-from typing import List
-
 import pytest
 from _support import NovelRole, raw_value
 from fabricatio_core.models.generic import ProposedAble
@@ -214,7 +212,7 @@ class TestPlanningOutlineGrounding:
     async def test_planning_requirements_embed_outline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert chapter, story, and scene planning prompts all embed the raw outline text."""
         role = NovelRole(name="novel_role")
-        captured: List[str] = []
+        captured: list[str] = []
 
         async def fake_propose(
             cls: type[ProposedAble],
