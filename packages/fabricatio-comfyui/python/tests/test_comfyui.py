@@ -25,6 +25,33 @@ from fabricatio_comfyui.models.workflow import (
     Workflow,
 )
 
+
+class TestFactories:
+    """Classmethod factory construction paths."""
+
+    def test_with_comfyui_client_injects(self) -> None:
+        """with_comfyui_client binds a pre-built client without manual __init__."""
+        client = ComfyuiHTTPClient.create(None)
+        role = Comfyui.with_comfyui_client(client)
+        assert role.comfyui_client is client
+
+    def test_default_client_is_lazy(self) -> None:
+        """Plain construction leaves the client unset until first access."""
+        role = Comfyui()
+        assert role._comfyui_client is None
+        assert isinstance(role.comfyui_client, ComfyuiHTTPClient)
+
+    def test_from_template_default(self) -> None:
+        """from_template loads the bundled default template."""
+        wf = Workflow.from_template("default")
+        assert len(wf.node_map) > 0
+
+    def test_from_template_missing(self) -> None:
+        """from_template raises FileNotFoundError for unknown template names."""
+        with pytest.raises(FileNotFoundError):
+            Workflow.from_template("no-such-template")
+
+
 # ======================================================================
 # Workflow tests
 # ======================================================================
@@ -543,7 +570,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_get.side_effect = get_side_effect
         mock_img.return_value = b"fake-image-bytes"
 
-        role = Comfyui(comfyui_client=client)
+        role = Comfyui.with_comfyui_client(client)
         result = await role.acomfyui_generate(
             prompt="a mountain landscape",
             download_dir=tmp_path,
@@ -577,7 +604,7 @@ async def test_generate_accepts_workflow() -> None:
 async def test_generate_timeout() -> None:
     """Verify timeout raises when polling fails to complete."""
     client = ComfyuiHTTPClient.create(None)
-    role = Comfyui(comfyui_client=client)
+    role = Comfyui.with_comfyui_client(client)
 
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
@@ -791,7 +818,7 @@ async def test_integration_queue_and_history(tmp_path: Path) -> None:
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
     """Integration: end-to-end generate with the high-level capability against a real server."""
     client = _fresh_client()
-    role = Comfyui(comfyui_client=client)
+    role = Comfyui.with_comfyui_client(client)
     try:
         result = await role.acomfyui_generate(
             prompt="a cute cat",
