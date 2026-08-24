@@ -52,28 +52,6 @@ class Rating(Propose, ABC):
         Lu X, Li J, Takeuchi K, et al. AHP-powered LLM reasoning for multi-criteria evaluation of open-ended responses[A/OL]. arXiv, 2024. DOI: 10.48550/arXiv.2410.01246.
     """
 
-    async def _rate_rendered(
-        self,
-        model: type[ProposedAble],
-        rendered: list[str],
-        send_to: str | None,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
-        """Propose against rendered prompts and normalize the result shapes.
-
-        Single prompt → single ``dict | None``; multiple prompts → a list with
-        ``None`` for each failed item.
-        """
-        res = await self.propose(
-            model,
-            rendered[0] if len(rendered) == 1 else rendered,
-            send_to=send_to,
-            **kwargs,
-        )
-        if isinstance(res, list):
-            return [r.model_dump() if r else None for r in res]
-        return None if res is None else res.model_dump()
-
     async def rate(
         self,
         to_rate: str | list[str],
@@ -112,8 +90,7 @@ class Rating(Propose, ABC):
         min_score, max_score = score_range
         model = _build_rating_model(ok(manual), min_score, max_score)
 
-        was_str = isinstance(to_rate, str)
-        texts = [to_rate] if was_str else list(to_rate)
+        texts = [to_rate] if isinstance(to_rate, str) else list(to_rate)
         rendered = [
             TEMPLATE_MANAGER.render_template(
                 capabilities_config.rate_fine_grind_template,
@@ -122,7 +99,15 @@ class Rating(Propose, ABC):
             for text in texts
         ]
 
-        return await self._rate_rendered(model, rendered, send_to, **kwargs)
+        res = await self.propose(
+            model,
+            rendered[0] if len(rendered) == 1 else rendered,
+            send_to=send_to,
+            **kwargs,
+        )
+        if isinstance(res, list):
+            return [r.model_dump() if r else None for r in res]
+        return None if res is None else res.model_dump()
 
     async def draft_rating_manual(
         self,
