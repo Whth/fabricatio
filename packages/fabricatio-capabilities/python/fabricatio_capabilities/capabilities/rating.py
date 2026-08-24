@@ -8,7 +8,7 @@ from typing import Unpack, overload
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Display, ProposedAble
-from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, json_parser
 from fabricatio_core.utils import no_default, ok
 from more_itertools import flatten, windowed
@@ -57,23 +57,22 @@ class Rating(Propose, ABC):
         model: type[ProposedAble],
         rendered: list[str],
         send_to: str | None,
-        okwargs: "ValidateKwargs[dict[str, float]]",
-        default: dict[str, float] | None,
+        **kwargs: Unpack[LLMKwargs],
     ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
         """Propose against rendered prompts and normalize the result shapes.
 
         Single prompt → single ``dict | None``; multiple prompts → a list with
-        ``default`` substituting for each failed item.
+        ``None`` for each failed item.
         """
         res = await self.propose(
             model,
             rendered[0] if len(rendered) == 1 else rendered,
             send_to=send_to,
-            **okwargs,
+            **kwargs,
         )
         if isinstance(res, list):
-            return [r.model_dump() if r else default for r in res]
-        return default if res is None else res.model_dump()
+            return [r.model_dump() if r else None for r in res]
+        return None if res is None else res.model_dump()
 
     async def rate(
         self,
@@ -83,7 +82,7 @@ class Rating(Propose, ABC):
         manual: dict[str, str] | None = None,
         score_range: tuple[float, float] = (0.0, 1.0),
         send_to: str | None = None,
-        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+        **kwargs: Unpack[LLMKwargs],
     ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
 
@@ -98,16 +97,15 @@ class Rating(Propose, ABC):
             score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
             send_to: Routing-group variant for the LLM call; ``None`` defers to the
                 role-level ``llm_send_to``, then the configured variant slots / global default.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
+            **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
             Union[Dict[str, float], List[Dict[str, float]]]: A dictionary with the ratings for each criterion if a single string is provided,
             or a list of dictionaries with the ratings for each criterion if a sequence of strings is provided.
         """
-        okwargs = no_default(kwargs)
         manual = (
             manual
-            or await self.draft_rating_manual(topic, criteria, send_to=send_to, **okwargs)
+            or await self.draft_rating_manual(topic, criteria, send_to=send_to, **kwargs)
             or dict(zip(criteria, criteria, strict=True))
         )
 
@@ -124,7 +122,7 @@ class Rating(Propose, ABC):
             for text in texts
         ]
 
-        return await self._rate_rendered(model, rendered, send_to, okwargs, kwargs.get("default"))
+        return await self._rate_rendered(model, rendered, send_to, **kwargs)
 
     async def draft_rating_manual(
         self,
