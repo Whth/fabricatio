@@ -7,8 +7,9 @@ pass ``send_to=...`` explicitly to steer elsewhere.
 """
 
 from abc import ABC
+from asyncio import gather
 from pathlib import Path
-from typing import Unpack
+from typing import Unpack, overload
 
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TEMPLATE_MANAGER, VISION
@@ -22,24 +23,51 @@ from fabricatio_capabilities.utils import build_rating_model
 class RatingImage(Rating, ABC):
     """Capability that rates images against criteria via a vision-capable LLM."""
 
+    @overload
     async def rate_image(
         self,
-        image: str | Path,
+        image: Path,
         topic: str,
         criteria: set[str],
         manual: dict[str, str] | None = None,
         score_range: tuple[float, float] = (0.0, 1.0),
         send_to: str | None = VISION,
         **kwargs: Unpack[LLMKwargs],
-    ) -> dict[str, float] | None:
-        """Rate a single attached image against each criterion in the rating manual.
+    ) -> dict[str, float] | None: ...
+
+    @overload
+    async def rate_image(
+        self,
+        image: list[Path],
+        topic: str,
+        criteria: set[str],
+        manual: dict[str, str] | None = None,
+        score_range: tuple[float, float] = (0.0, 1.0),
+        send_to: str | None = VISION,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> list[dict[str, float] | None]: ...
+
+    async def rate_image(
+        self,
+        image: Path | list[Path],
+        topic: str,
+        criteria: set[str],
+        manual: dict[str, str] | None = None,
+        score_range: tuple[float, float] = (0.0, 1.0),
+        send_to: str | None = VISION,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> dict[str, float] | list[dict[str, float] | None] | None:
+        """Rate attached image(s) against each criterion in the rating manual.
 
         When *manual* is not provided, one is drafted from the topic and criteria
         via the LLM (falling back to identity descriptions when drafting fails).
 
         Args:
-            image: Path to the image file to attach to the request.  This method
-                owns the ``images`` attachment — do not pass ``images=`` here.
+            image: Path to the image file to attach, or a list of paths to rate
+                independently (one request per image — the router broadcasts a
+                shared ``images`` list to every message, so per-image requests
+                are issued instead).  This method owns the ``images`` attachment;
+                do not pass ``images=`` here.
             topic: The topic related to the task.
             criteria: A set of criteria for rating.
             manual: A dictionary containing the rating criteria.  If not provided,
@@ -50,8 +78,9 @@ class RatingImage(Rating, ABC):
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            Dict[str, float]: The ratings for each criterion, or ``None`` when the
-                model failed to produce a valid rating within the validation budget.
+            The ratings for each criterion; ``None`` when the model failed to
+            produce a valid rating within the validation budget.  A single path
+            yields ``dict | None``, a list of paths yields a list of the same.
         """
         manual = (
             manual
@@ -66,11 +95,10 @@ class RatingImage(Rating, ABC):
             {"topic": topic, "criteria": sorted(criteria), "min_score": min_score, "max_score": max_score},
         )
 
-        res = await self.propose(
-            model,
-            rendered,
-            send_to=send_to,
-            images=[Path(image).read_bytes()],
-            **kwargs,
-        )
-        return None if res is None else res.model_dump()
+        async def _inner(img: Path) -> dict[str, float] | None:
+            res = await self.propose(model, rendered, send_to=send_to, images=[img.read_bytes()], **kwargs)
+            return None if res is None else res.model_dump()
+
+        if isinstance(image, list):
+            return list(await gather(*(_inner(img) for img in image)))
+        return await _inner(image)

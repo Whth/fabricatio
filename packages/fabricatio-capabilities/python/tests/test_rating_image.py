@@ -87,8 +87,18 @@ async def test_rate_image_invalid_response_returns_none(role: RatingImageTestRol
 
 
 @pytest.mark.asyncio
-async def test_rate_image_accepts_str_path(responses: list[str], role: RatingImageTestRole, image_path: Path) -> None:
-    """String paths are accepted alongside Path objects."""
+async def test_rate_image_batch(
+    responses: list[str], role: RatingImageTestRole, image_path: Path, tmp_path: Path
+) -> None:
+    """A list of paths rates each image independently, preserving order."""
+    second = tmp_path / "second.png"
+    second.write_bytes(PNG_BYTES)
+
     with install_router_usage(*responses):
-        ratings = await role.rate_image(str(image_path), "t", {"clarity"}, manual={"clarity": "c"})
-    assert ratings is not None
+        ratings = await role.rate_image(
+            [image_path, second],
+            "art quality",
+            {"clarity", "depth"},
+            manual={"clarity": "sharpness", "depth": "composition depth"},
+        )
+    assert ratings == [{"clarity": 0.80, "depth": 0.60}, {"clarity": 0.80, "depth": 0.60}]
