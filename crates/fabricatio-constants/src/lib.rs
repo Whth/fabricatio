@@ -118,8 +118,17 @@ pub mod agent_variant {
     /// complex synthesis, and any job where quality is the only acceptable outcome.
     pub const PLAN: &str = "plan";
 
+    /// A model with image understanding capabilities — used for jobs that
+    /// must interpret visual input such as screenshots, diagrams, or photos.
+    pub const VISION: &str = "vision";
+
     pub fn is_agent_variant(variant: &str) -> bool {
-        variant == TINY || variant == SMOL || variant == TASK || variant == SLOW || variant == PLAN
+        variant == TINY
+            || variant == SMOL
+            || variant == TASK
+            || variant == SLOW
+            || variant == PLAN
+            || variant == VISION
     }
 }
 
@@ -129,4 +138,5 @@ pub mod agent_variant_varnames {
     pub const TASK_VARNAME: &str = "TASK";
     pub const SLOW_VARNAME: &str = "SLOW";
     pub const PLAN_VARNAME: &str = "PLAN";
+    pub const VISION_VARNAME: &str = "VISION";
 }

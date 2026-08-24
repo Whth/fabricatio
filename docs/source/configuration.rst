@@ -221,8 +221,9 @@ per call.
 [agent]
 ~~~~~~~
 
-Maps the five named LLM variants to concrete routing groups or model ids. Variants are
-ordered roughly by capability/cost:
+Maps the six named LLM variants to concrete routing groups or model ids. Variants are
+ordered roughly by capability/cost (``vision`` is orthogonal — it selects for image
+understanding rather than a capability/cost tier):
 
 .. list-table::
    :header-rows: 1
@@ -246,8 +247,11 @@ ordered roughly by capability/cost:
    * - ``plan``
      - *(unset)*
      - Planning, multi-step strategy, quality-critical synthesis.
+   * - ``vision``
+     - *(unset)*
+     - Image understanding: screenshots, diagrams, photos, multimodal requests.
 
-Resolution semantics: whenever a ``send_to`` candidate equals one of the five variant
+Resolution semantics: whenever a ``send_to`` candidate equals one of the six variant
 names, it is looked up in this section. A **configured** slot resolves to its value; an
 **unconfigured** slot yields nothing and resolution falls through to the next candidate
 in the chain (call argument → capability default → ``llm.send_to``). Any other string is

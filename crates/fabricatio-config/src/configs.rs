@@ -57,7 +57,7 @@ pub struct LLMConfig {
     pub effort: Option<String>,
 }
 
-/// Embedding configuration structure
+/// Embedding configuration structure.
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
@@ -68,7 +68,7 @@ pub struct EmbeddingConfig {
     pub max_batch_emb_size: Option<usize>,
 }
 
-/// Reranker configuration structure
+/// Reranker configuration structure.
 #[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
@@ -119,7 +119,7 @@ impl Default for TemplateManagerConfig {
     }
 }
 
-/// Template configuration structure
+/// Template configuration structure.
 #[derive(Debug, Clone, Deserialize, Serialize, TemplateDefault)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
@@ -193,6 +193,11 @@ pub struct Agent {
     pub task: Option<String>,
     pub slow: Option<String>,
     pub plan: Option<String>,
+    /// A model with image understanding.
+    ///
+    /// Selected for jobs that must interpret visual input such as
+    /// screenshots, diagrams, or photos.
+    pub vision: Option<String>,
 }
 
 /// Configuration for a specific deployment.
@@ -251,12 +256,12 @@ pub struct RoutingConfig {
     pub retry_backoff_multiplier: Option<f64>,
 }
 
-/// General configuration structure for application-wide settings
+/// General configuration structure for application-wide settings.
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
 pub struct GeneralConfig {
-    /// Whether to automatically repair malformed JSON
+    /// Whether to automatically repair malformed JSON.
     pub use_json_repair: bool,
 }
 
@@ -268,14 +273,14 @@ impl Default for GeneralConfig {
     }
 }
 
-/// Pymitter configuration structure
+/// Pymitter configuration structure.
 ///
 /// Contains settings for controlling event emission and listener behavior
 #[derive(Debug, Clone, Deserialize, Serialize, Validate)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
 pub struct EmitterConfig {
-    /// The delimiter used to separate the event name into segments
+    /// The delimiter used to separate the event name into segments.
     pub delimiter: String,
 }
 
@@ -351,6 +356,7 @@ impl Config {
             Some(agent_variant::TASK) => self.agent.task.clone(),
             Some(agent_variant::SLOW) => self.agent.slow.clone(),
             Some(agent_variant::PLAN) => self.agent.plan.clone(),
+            Some(agent_variant::VISION) => self.agent.vision.clone(),
             None => None,
             Some(variant) => is_agent_variant(variant)
                 .not()
@@ -367,6 +373,7 @@ impl Config {
             agent_variant::TASK => self.agent.task = target,
             agent_variant::SLOW => self.agent.slow = target,
             agent_variant::PLAN => self.agent.plan = target,
+            agent_variant::VISION => self.agent.vision = target,
             _ => Err(PyValueError::new_err(format!(
                 "Invalid agent variant: {kind}"
             )))?,
@@ -375,7 +382,7 @@ impl Config {
         Ok(())
     }
 
-    /// Load configuration data for a given section name and instantiate a Python class
+    /// Load configuration data for a given section name and instantiate a Python class.
     ///
     /// This method performs configuration loading with the following behavior:
     /// - Looks up configuration data by section name from extension configuration store
@@ -418,7 +425,7 @@ pyo3_stub_gen::inventory::submit! {
         class Config:
 
             def load(self,name:str,config_cls: typing.Type[_T]) -> _T:
-                """Load configuration data for a given section name and instantiate a Python class"""
+                """Load configuration data for a given section name and instantiate a Python class."""
         "#
     }
 }

@@ -35,6 +35,7 @@ cfg_if!(
         module_variable!("fabricatio_core.rust", agent_variant_varnames::TASK_VARNAME, &str);
         module_variable!("fabricatio_core.rust", agent_variant_varnames::SLOW_VARNAME, &str);
         module_variable!("fabricatio_core.rust", agent_variant_varnames::PLAN_VARNAME, &str);
+        module_variable!("fabricatio_core.rust", agent_variant_varnames::VISION_VARNAME, &str);
         define_stub_info_gatherer!(stub_info);
 
 
@@ -67,6 +68,10 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add(agent_variant_varnames::TASK_VARNAME, agent_variant::TASK)?;
     m.add(agent_variant_varnames::SLOW_VARNAME, agent_variant::SLOW)?;
     m.add(agent_variant_varnames::PLAN_VARNAME, agent_variant::PLAN)?;
+    m.add(
+        agent_variant_varnames::VISION_VARNAME,
+        agent_variant::VISION,
+    )?;
 
     router_usage::register(python, m, r)?;
     m.add(LOGGER_VARNAME, Logger)?;

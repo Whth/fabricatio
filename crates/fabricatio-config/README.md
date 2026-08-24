@@ -99,6 +99,7 @@ Agent {
     task: Option<String>,   // Routine workhorse: drafting, extraction
     slow: Option<String>,   // Heavy reasoning, long context
     plan: Option<String>,   // Planning, quality-critical synthesis
+    vision: Option<String>, // Image understanding: screenshots, diagrams, photos
 }
 ```
 
