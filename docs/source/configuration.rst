@@ -780,6 +780,10 @@ fabricatio-capabilities
      - string
      - ``built-in/rate_fine_grind``
      - rate fine grind
+   * - ``rate_image_template``
+     - string
+     - ``built-in/rate_image``
+     - rate an attached image via a vision-capable model
    * - ``draft_rating_manual_template``
      - string
      - ``built-in/draft_rating_manual``

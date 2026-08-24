@@ -97,6 +97,7 @@ extract_template = "built-in/extract"
 as_prompt_template = "built-in/as_prompt"
 dispatch_task_template = "built-in/dispatch_task"
 rate_fine_grind_template = "built-in/rate_fine_grind"
+rate_image_template = "built-in/rate_image"
 draft_rating_manual_template = "built-in/draft_rating_manual"
 draft_rating_criteria_template = "built-in/draft_rating_criteria"
 extract_reasons_from_examples_template = "built-in/extract_reasons_from_examples"
@@ -112,6 +113,7 @@ order_briefed_template = "built-in/order_briefed"
 | `as_prompt_template` | `str` | `"built-in/as_prompt"` | The name of the as prompt template which will be used to convert a string to a prompt. |
 | `dispatch_task_template` | `str` | `"built-in/dispatch_task"` | The name of the dispatch task template which will be used to dispatch a task. |
 | `rate_fine_grind_template` | `str` | `"built-in/rate_fine_grind"` | The name of the rate fine grind template which will be used to rate fine grind. |
+| `rate_image_template` | `str` | `"built-in/rate_image"` | The name of the rate image template which will be used to rate an attached image via a vision-capable model. |
 | `draft_rating_manual_template` | `str` | `"built-in/draft_rating_manual"` | The name of the draft rating manual template which will be used to draft rating manual. |
 | `draft_rating_criteria_template` | `str` | `"built-in/draft_rating_criteria"` | The name of the draft rating criteria template which will be used to draft rating criteria. |
 | `extract_reasons_from_examples_template` | `str` | `"built-in/extract_reasons_from_examples"` | The name of the extract reasons from examples template which will be used to extract reasons from examples. |
