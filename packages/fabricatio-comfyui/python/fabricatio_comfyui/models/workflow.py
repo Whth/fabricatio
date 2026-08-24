@@ -10,8 +10,7 @@ multiple inheritance.
 Load from a bundled template or build from scratch::
 
     wf = Workflow.from_template("default")
-    wf.set_positive_prompt("masterpiece, best quality")
-    wf.set_resolution(width=1024, height=1024)
+    wf.with_positive_prompt("masterpiece, best quality").with_resolution(width=1024, height=1024)
 
     data = wf.to_api()
 """

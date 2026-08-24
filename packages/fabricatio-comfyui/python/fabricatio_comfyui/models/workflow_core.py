@@ -6,8 +6,8 @@ This module owns the *immutable* parts of a ComfyUI workflow graph:
 * :class:`NodeRef` — typed ``[node_id, output_index]`` link between nodes.
 * :class:`Node` — a single workflow node with typed input manipulation.
 * :class:`WorkflowCore` — the concrete graph container: construction,
-  CRUD, and serialization.  Domain-specific convenience setters
-  (``set_sampler``, ``set_positive_prompt``, …) live in
+  CRUD, and serialization.  Domain-specific chainable builders
+  (``with_sampler``, ``with_positive_prompt``, …) live in
   :mod:`fabricatio_comfyui.models.workflow_ops` and are composed into the
   final :class:`Workflow` via nominal multiple inheritance.
 
@@ -23,6 +23,8 @@ from pathlib import Path
 from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from fabricatio_comfyui.utils import is_node_ref
 
 __all__ = [
     "RESOLUTION_SELECTOR_ASPECT_RATIOS",
@@ -138,11 +140,6 @@ class NodeRef(BaseModel):
         """Parse from ``[node_id, output_index]``."""
         return cls(node_id=str(raw[0]), output_index=int(raw[1]))
 
-    @staticmethod
-    def is_ref(value: Any) -> bool:
-        """Return ``True`` if *value* looks like a node reference."""
-        return isinstance(value, list) and len(value) == 2 and isinstance(value[0], str)
-
 
 # ------------------------------------------------------------------
 # Single node
@@ -189,7 +186,7 @@ class Node(BaseModel):
     def get_ref(self, input_name: str) -> NodeRef | None:
         """Return a :class:`NodeRef` if the input is a connection, else ``None``."""
         val = self.inputs.get(input_name)
-        if NodeRef.is_ref(val):
+        if is_node_ref(val):
             return NodeRef.from_api(val)
         return None
 
@@ -307,7 +304,7 @@ class WorkflowCore:
         """Remove a node and disconnect all references to it."""
         del self.node_map[node_id]
         for node in self.node_map.values():
-            to_remove = [k for k, v in node.inputs.items() if NodeRef.is_ref(v) and v[0] == node_id]
+            to_remove = [k for k, v in node.inputs.items() if is_node_ref(v) and v[0] == node_id]
             for k in to_remove:
                 del node.inputs[k]
 

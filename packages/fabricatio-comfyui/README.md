@@ -105,7 +105,7 @@ from fabricatio_comfyui import ComfyuiHTTPClient, Workflow
 
 async def main() -> None:
     wf = Workflow.default()
-    wf.set_positive_prompt("a mountain landscape")
+    wf.with_positive_prompt("a mountain landscape")
 
     async with ComfyuiHTTPClient.create() as client:
         resp = await client.queue_prompt(wf)

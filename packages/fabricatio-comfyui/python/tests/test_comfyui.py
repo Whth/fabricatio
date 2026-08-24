@@ -192,67 +192,75 @@ class TestWorkflow:
         assert "width" not in node_49.inputs
         assert "height" not in node_49.inputs
 
-    def test_set_checkpoint(self) -> None:
-        """set_checkpoint updates the checkpoint name."""
+    def test_with_checkpoint(self) -> None:
+        """with_checkpoint updates the checkpoint name."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_checkpoint("new_model.safetensors")
+        wf.with_checkpoint("new_model.safetensors")
         assert wf.get("42").inputs["ckpt_name"] == "new_model.safetensors"
 
-    def test_set_checkpoint_specific_node(self) -> None:
-        """set_checkpoint with node_id targets a specific node."""
+    def test_with_checkpoint_specific_node(self) -> None:
+        """with_checkpoint with node_id targets a specific node."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_checkpoint("model_v2.safetensors", node_id="42")
+        wf.with_checkpoint("model_v2.safetensors", node_id="42")
         assert wf.get("42").inputs["ckpt_name"] == "model_v2.safetensors"
 
-    def test_set_checkpoint_missing(self) -> None:
-        """set_checkpoint raises if no matching node exists."""
+    def test_with_checkpoint_missing(self) -> None:
+        """with_checkpoint raises if no matching node exists."""
         wf = Workflow.new()
         with pytest.raises(KeyError, match="No node with type"):
-            wf.set_checkpoint("model.safetensors")
+            wf.with_checkpoint("model.safetensors")
 
-    def test_set_positive_prompt(self) -> None:
-        """set_positive_prompt updates the first CLIPTextEncode node."""
+    def test_with_positive_prompt(self) -> None:
+        """with_positive_prompt updates the first CLIPTextEncode node."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_positive_prompt("a beautiful landscape")
+        wf.with_positive_prompt("a beautiful landscape")
         assert wf.get("50").inputs["text"] == "a beautiful landscape"
 
-    def test_set_negative_prompt(self) -> None:
-        """set_negative_prompt updates the second CLIPTextEncode node."""
+    def test_with_negative_prompt(self) -> None:
+        """with_negative_prompt updates the second CLIPTextEncode node."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_negative_prompt("bad quality, blurry")
+        wf.with_negative_prompt("bad quality, blurry")
         assert wf.get("51").inputs["text"] == "bad quality, blurry"
 
-    def test_set_sampler_ksampler_advanced(self) -> None:
-        """set_sampler updates KSamplerAdvanced parameters."""
+    def test_builders_chain(self) -> None:
+        """with_* builders return *self*, so calls chain Rust-builder style."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_sampler(seed=999, steps=30, cfg=7.5, sampler_name="ddim")
+        result = wf.with_positive_prompt("chained").with_sampler(seed=1).with_resolution(width=64, height=64)
+        assert result is wf
+        assert wf.get("50").inputs["text"] == "chained"
+        assert wf.get("85").inputs["noise_seed"] == 1
+
+    def test_with_sampler_ksampler_advanced(self) -> None:
+        """with_sampler updates KSamplerAdvanced parameters."""
+        wf = Workflow.from_api(self.DEMO_JSON)
+        wf.with_sampler(seed=999, steps=30, cfg=7.5, sampler_name="ddim")
         node = wf.get("85")
         assert node.inputs["noise_seed"] == 999
         assert node.inputs["steps"] == 30
         assert node.inputs["cfg"] == 7.5
         assert node.inputs["sampler_name"] == "ddim"
 
-    def test_set_sampler_partial_update(self) -> None:
-        """set_sampler only updates provided parameters."""
+    def test_with_sampler_partial_update(self) -> None:
+        """with_sampler only updates provided parameters."""
         wf = Workflow.from_api(self.DEMO_JSON)
         original_steps = wf.get("85").inputs["steps"]
-        wf.set_sampler(cfg=12.0)
+        wf.with_sampler(cfg=12.0)
         assert wf.get("85").inputs["cfg"] == 12.0
         assert wf.get("85").inputs["steps"] == original_steps
 
-    def test_set_resolution(self) -> None:
-        """set_resolution updates EmptyLatentImage dimensions."""
+    def test_with_resolution(self) -> None:
+        """with_resolution updates EmptyLatentImage dimensions."""
         wf = Workflow.new()
         wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
-        wf.set_resolution(width=1024, height=768)
+        wf.with_resolution(width=1024, height=768)
         node = wf.by_type("EmptyLatentImage")[0]
         assert node.inputs["width"] == 1024
         assert node.inputs["height"] == 768
 
-    def test_set_chart_proportion_updates_selector(self) -> None:
-        """set_chart_proportion updates ResolutionSelector inputs."""
+    def test_with_aspect_ratio_updates_selector(self) -> None:
+        """with_aspect_ratio updates ResolutionSelector inputs."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_chart_proportion(aspect_ratio="16:9 (Widescreen)", megapixels=2.0, multiple=16)
+        wf.with_aspect_ratio(aspect_ratio="16:9 (Widescreen)", megapixels=2.0, multiple=16)
         node = wf.get("79")
         assert node.inputs["aspect_ratio"] == "16:9 (Widescreen)"
         assert node.inputs["megapixels"] == 2.0
@@ -261,42 +269,42 @@ class TestWorkflow:
         assert wf.get("49").inputs["width"] == ["79", 0]
         assert wf.get("49").inputs["height"] == ["79", 1]
 
-    def test_set_chart_proportion_partial(self) -> None:
-        """set_chart_proportion only updates provided parameters."""
+    def test_with_aspect_ratio_partial(self) -> None:
+        """with_aspect_ratio only updates provided parameters."""
         wf = Workflow.from_api(self.DEMO_JSON)
         original_megapixels = wf.get("79").inputs["megapixels"]
-        wf.set_chart_proportion(aspect_ratio="1:1 (Square)")
+        wf.with_aspect_ratio(aspect_ratio="1:1 (Square)")
         node = wf.get("79")
         assert node.inputs["aspect_ratio"] == "1:1 (Square)"
         assert node.inputs["megapixels"] == original_megapixels
         assert "multiple" not in node.inputs
 
-    def test_set_chart_proportion_by_node_id(self) -> None:
-        """set_chart_proportion with explicit node_id."""
+    def test_with_aspect_ratio_by_node_id(self) -> None:
+        """with_aspect_ratio with explicit node_id."""
         wf = Workflow.from_api(self.DEMO_JSON)
-        wf.set_chart_proportion(aspect_ratio="3:2 (Photo)", node_id="79")
+        wf.with_aspect_ratio(aspect_ratio="3:2 (Photo)", node_id="79")
         assert wf.get("79").inputs["aspect_ratio"] == "3:2 (Photo)"
 
-    def test_set_chart_proportion_wrong_type_raises(self) -> None:
-        """set_chart_proportion with node_id that is not a ResolutionSelector."""
+    def test_with_aspect_ratio_wrong_type_raises(self) -> None:
+        """with_aspect_ratio with node_id that is not a ResolutionSelector."""
         wf = Workflow.from_api(self.DEMO_JSON)
         with pytest.raises(KeyError, match="not ResolutionSelector"):
-            wf.set_chart_proportion(aspect_ratio="1:1 (Square)", node_id="42")
+            wf.with_aspect_ratio(aspect_ratio="1:1 (Square)", node_id="42")
 
-    def test_set_chart_proportion_missing_raises(self) -> None:
-        """set_chart_proportion raises KeyError when no ResolutionSelector exists."""
+    def test_with_aspect_ratio_missing_raises(self) -> None:
+        """with_aspect_ratio raises KeyError when no ResolutionSelector exists."""
         wf = Workflow.new()
         wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
         with pytest.raises(KeyError, match="No ResolutionSelector"):
-            wf.set_chart_proportion(aspect_ratio="1:1 (Square)")
+            wf.with_aspect_ratio(aspect_ratio="1:1 (Square)")
 
-    def test_set_chart_proportion_invalid_aspect_ratio_raises(self) -> None:
-        """set_chart_proportion rejects aspect_ratio values outside the live server's enum."""
+    def test_with_aspect_ratio_invalid_raises(self) -> None:
+        """with_aspect_ratio rejects aspect_ratio values outside the live server's enum."""
         from fabricatio_comfyui.models.workflow import RESOLUTION_SELECTOR_ASPECT_RATIOS
 
         wf = Workflow.from_api(self.DEMO_JSON)
         with pytest.raises(ValueError, match="Invalid aspect_ratio"):
-            wf.set_chart_proportion(aspect_ratio="bogus")
+            wf.with_aspect_ratio(aspect_ratio="bogus")
         # Sanity: the constant matches the live server's enum of 8 values.
         assert "16:9 (Widescreen)" in RESOLUTION_SELECTOR_ASPECT_RATIOS
         assert len(RESOLUTION_SELECTOR_ASPECT_RATIOS) == 8

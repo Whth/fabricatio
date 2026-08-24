@@ -1,4 +1,4 @@
-"""Domain-specific workflow setter ABCs.
+"""Domain-specific workflow builder ABCs.
 
 Each ``*Ops`` ABC captures one family of ComfyUI node-type conveniences
 (``CheckpointLoaderSimple`` / ``VAELoader`` / ``CLIPTextEncode`` /
@@ -8,11 +8,16 @@ via nominal multiple inheritance::
 
     class Workflow(WorkflowCore, LoaderOps, PromptOps, SamplerOps, ResolutionOps): ...
 
-Splitting the setters out of the graph container keeps each concern in a
+Splitting the builders out of the graph container keeps each concern in a
 small, auditable unit and stops the graph class from baking in knowledge of
 every ComfyUI node type.  Adding a new node family is a new ``*Ops`` ABC
 plus one more base in ``Workflow``'s bases — no plugin dict, no ``hasattr``,
 no runtime dispatch.
+
+Every ``with_*`` builder mutates the workflow in place and returns *self*
+(Rust consuming-builder style), so configuration reads as a chain::
+
+    wf.with_positive_prompt("a mountain").with_sampler(seed=42).with_resolution(width=1024)
 
 Every ``*Ops`` mixin inherits :class:`WorkflowAccess`, which declares the
 core helpers (``_resolve`` / ``_require_node`` / ``by_type``) it depends on
@@ -22,6 +27,7 @@ nominal inheritance — no duck typing, no attribute sniffing.
 """
 
 from abc import ABC, abstractmethod
+from typing import Self
 
 from fabricatio_comfyui.models.workflow_core import (
     RESOLUTION_SELECTOR_ASPECT_RATIOS,
@@ -80,36 +86,33 @@ class WorkflowAccess(ABC):
 
 
 class LoaderOps(WorkflowAccess, ABC):
-    """Typed setters for ``CheckpointLoaderSimple`` and ``VAELoader`` nodes."""
+    """Chainable builders for ``CheckpointLoaderSimple`` and ``VAELoader`` nodes."""
 
-    def set_checkpoint(self, ckpt_name: str, *, node_id: str | None = None) -> Node:
-        """Set the checkpoint on a ``CheckpointLoaderSimple`` node."""
+    def with_checkpoint(self, ckpt_name: str, *, node_id: str | None = None) -> Self:
+        """Set the checkpoint on a ``CheckpointLoaderSimple`` node; return *self* for chaining."""
         node = self._resolve(_CHECKPOINT_LOADER, node_id)
         node.set_input("ckpt_name", ckpt_name)
-        return node
+        return self
 
-    def set_vae(self, vae_name: str, *, node_id: str | None = None) -> Node:
-        """Set the VAE on a ``VAELoader`` node."""
+    def with_vae(self, vae_name: str, *, node_id: str | None = None) -> Self:
+        """Set the VAE on a ``VAELoader`` node; return *self* for chaining."""
         node = self._resolve(_VAE_LOADER, node_id)
         node.set_input("vae_name", vae_name)
-        return node
-
-
-# ------------------------------------------------------------------
-# PromptOps — positive / negative CLIPTextEncode
-# ------------------------------------------------------------------
+        return self
 
 
 class PromptOps(WorkflowAccess, ABC):
-    """Typed setters for positive / negative ``CLIPTextEncode`` nodes."""
+    """Chainable builders for positive / negative ``CLIPTextEncode`` nodes."""
 
-    def set_positive_prompt(self, text: str, *, node_id: str | None = None) -> Node:
-        """Set the positive prompt text on a ``CLIPTextEncode`` node."""
-        return self._set_prompt(text, node_id, index=0)
+    def with_positive_prompt(self, text: str, *, node_id: str | None = None) -> Self:
+        """Set the positive prompt text on a ``CLIPTextEncode`` node; return *self* for chaining."""
+        self._set_prompt(text, node_id, index=0)
+        return self
 
-    def set_negative_prompt(self, text: str, *, node_id: str | None = None) -> Node:
-        """Set the negative prompt text on a ``CLIPTextEncode`` node (second one)."""
-        return self._set_prompt(text, node_id, index=1)
+    def with_negative_prompt(self, text: str, *, node_id: str | None = None) -> Self:
+        """Set the negative prompt text on the second ``CLIPTextEncode`` node; return *self*."""
+        self._set_prompt(text, node_id, index=1)
+        return self
 
     def _set_prompt(self, text: str, node_id: str | None, *, index: int) -> Node:
         if node_id is not None:
@@ -123,15 +126,10 @@ class PromptOps(WorkflowAccess, ABC):
         return node
 
 
-# ------------------------------------------------------------------
-# SamplerOps — KSampler / KSamplerAdvanced
-# ------------------------------------------------------------------
-
-
 class SamplerOps(WorkflowAccess, ABC):
-    """Typed setter for ``KSampler`` / ``KSamplerAdvanced`` parameters."""
+    """Chainable builder for ``KSampler`` / ``KSamplerAdvanced`` parameters."""
 
-    def set_sampler(
+    def with_sampler(
         self,
         *,
         seed: int | None = None,
@@ -141,8 +139,8 @@ class SamplerOps(WorkflowAccess, ABC):
         scheduler: str | None = None,
         denoise: float | None = None,
         node_id: str | None = None,
-    ) -> Node:
-        """Update sampler parameters on a ``KSampler`` or ``KSamplerAdvanced`` node."""
+    ) -> Self:
+        """Update sampler parameters on a ``KSampler`` or ``KSamplerAdvanced`` node; return *self*."""
         node = self._find_sampler(node_id)
         if seed is not None:
             if "noise_seed" in node.inputs:
@@ -159,7 +157,7 @@ class SamplerOps(WorkflowAccess, ABC):
             node.set_input("scheduler", scheduler)
         if denoise is not None:
             node.set_input("denoise", denoise)
-        return node
+        return self
 
     def _find_sampler(self, node_id: str | None) -> Node:
         if node_id is not None:
@@ -177,32 +175,32 @@ class SamplerOps(WorkflowAccess, ABC):
 
 
 class ResolutionOps(WorkflowAccess, ABC):
-    """Typed setters for ``EmptyLatentImage`` and ``ResolutionSelector`` nodes."""
+    """Chainable builders for ``EmptyLatentImage`` and ``ResolutionSelector`` nodes."""
 
-    def set_resolution(
+    def with_resolution(
         self,
         *,
         width: int | None = None,
         height: int | None = None,
         node_id: str | None = None,
-    ) -> Node:
-        """Set width/height on an ``EmptyLatentImage`` node."""
+    ) -> Self:
+        """Set width/height on an ``EmptyLatentImage`` node; return *self* for chaining."""
         node = self._resolve(_EMPTY_LATENT_IMAGE, node_id)
         if width is not None:
             node.set_input("width", width)
         if height is not None:
             node.set_input("height", height)
-        return node
+        return self
 
-    def set_chart_proportion(
+    def with_aspect_ratio(
         self,
         *,
         aspect_ratio: str | None = None,
         megapixels: float | None = None,
         multiple: int | None = None,
         node_id: str | None = None,
-    ) -> Node:
-        """Set the chart proportion on a ``ResolutionSelector`` node.
+    ) -> Self:
+        """Set the aspect ratio on a ``ResolutionSelector`` node; return *self* for chaining.
 
         Updates the ``aspect_ratio``, ``megapixels``, and/or ``multiple`` inputs
         on a :class:`Workflow`'s ``ResolutionSelector`` node.  Only the parameters
@@ -210,7 +208,7 @@ class ResolutionOps(WorkflowAccess, ABC):
         current value unchanged.
 
         If no ``ResolutionSelector`` exists in the workflow, raises :class:`KeyError`
-        with a message pointing to :meth:`set_resolution` for literal dimension mode.
+        with a message pointing to :meth:`with_resolution` for literal dimension mode.
 
         Args:
             aspect_ratio: ComfyUI aspect ratio string, e.g. ``"16:9 (Widescreen)"``.
@@ -220,7 +218,7 @@ class ResolutionOps(WorkflowAccess, ABC):
             node_id: Explicit node ID.  If omitted, uses the first ``ResolutionSelector``.
 
         Returns:
-            The matched :class:`Node`.
+            *self*, for chaining.
 
         Raises:
             KeyError: If no ``ResolutionSelector`` node exists and no *node_id* is given,
@@ -236,7 +234,7 @@ class ResolutionOps(WorkflowAccess, ABC):
             if not matches:
                 raise KeyError(
                     "No ResolutionSelector node found in workflow. "
-                    "Use set_resolution() for literal dimensions, or add a ResolutionSelector node.",
+                    "Use with_resolution() for literal dimensions, or add a ResolutionSelector node.",
                 )
             node = matches[0]
 
@@ -252,4 +250,4 @@ class ResolutionOps(WorkflowAccess, ABC):
             node.set_input("megapixels", megapixels)
         if multiple is not None:
             node.set_input("multiple", multiple)
-        return node
+        return self

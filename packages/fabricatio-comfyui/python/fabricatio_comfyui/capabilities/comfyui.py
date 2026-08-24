@@ -23,7 +23,7 @@ from fabricatio_core.journal import logger
 
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import ComfyuiHTTPClient
-from fabricatio_comfyui.models.workflow import Workflow
+from fabricatio_comfyui.utils import load_template
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -71,22 +71,6 @@ class Comfyui:
             self._comfyui_client = None
 
     # ------------------------------------------------------------------
-    # Template loading — internal, picks the right bundled workflow
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _load_template(template: str | None) -> Workflow:
-        """Load a bundled workflow template by name.
-
-        ``template`` is the stem of a ``.json`` file under
-        :mod:`fabricatio_comfyui.workflows` (``"default"`` → ``default.json``).
-        When ``None``, falls back to :meth:`Workflow.default`.
-        """
-        if template is None:
-            return Workflow.default()
-        return Workflow.from_template(template)
-
-    # ------------------------------------------------------------------
     # High-level public surface — only typed knobs, no raw workflow dicts
     # ------------------------------------------------------------------
 
@@ -111,16 +95,16 @@ class Comfyui:
             describing the executed prompt.  When *download_dir* is provided,
             output images are written there.
         """
-        wf = self._load_template(template)
+        wf = load_template(template)
 
         if prompt:
-            wf.set_positive_prompt(prompt)
+            wf.with_positive_prompt(prompt)
         if negative_prompt is not None:
-            wf.set_negative_prompt(negative_prompt)
+            wf.with_negative_prompt(negative_prompt)
         if width is not None or height is not None:
-            wf.set_resolution(width=width, height=height)
+            wf.with_resolution(width=width, height=height)
         if seed is not None or steps is not None or cfg is not None:
-            wf.set_sampler(seed=seed, steps=steps, cfg=cfg)
+            wf.with_sampler(seed=seed, steps=steps, cfg=cfg)
 
         effective_timeout = timeout or comfyui_config.timeout
 

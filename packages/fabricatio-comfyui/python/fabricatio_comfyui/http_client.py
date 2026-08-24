@@ -8,7 +8,7 @@ pool is always closed::
 
     async with ComfyuiHTTPClient.create() as client:
         wf = Workflow.default()
-        wf.set_positive_prompt("a mountain landscape")
+        wf.with_positive_prompt("a mountain landscape")
         resp = await client.queue_prompt(wf)
         result = await client.wait_for_completion(resp.prompt_id)
 
