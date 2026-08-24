@@ -169,7 +169,7 @@ impl Router {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
-        #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
+        #[gen_stub(override_type(type_repr = "list[bytes] | None"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
             message,
@@ -227,7 +227,7 @@ impl Router {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
-        #[gen_stub(override_type(type_repr = "list[bytes]"))] images: Option<Vec<Vec<u8>>>,
+        #[gen_stub(override_type(type_repr = "list[bytes] | None"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let data_uris: Vec<String> = images
             .unwrap_or_default()
