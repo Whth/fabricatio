@@ -2,12 +2,12 @@
 
 ## New capability
 
-- [ ] Add `RatingImage` capability — rate images against criteria via a vision-capable LLM
-    - [ ] `RatingImage(Rating)` mixin mirroring `rate()` but accepting image input (`str | Path` local path or URL) alongside the rating manual
-    - [ ] Vision-LLM plumbing: encode/attach image(s) in the completion request (extend `UseLLM` call path or reuse existing multimodal support in the router)
-    - [ ] `built-in/rate_image` Handlebars template + config entry `rate_image_template` under `[ext.capabilities]`
-    - [ ] Reuse `build_rating_model` from `utils.py` for the bounded-score result model
-    - [ ] Mocked tests via `LLMTestRole` (single/batch/fallback branches, same shape as the `rate()` coverage TODO above)
+- [x] Add `RatingImage` capability — rate images against criteria via a vision-capable LLM
+    - [x] `RatingImage(Rating)` mixin: `rate_image(image, topic, criteria, ...)` accepting `str | Path`
+    - [x] Vision plumbing via `LLMKwargs.images` (router auto-base64s bytes); `send_to` defaults to the `VISION` variant slot
+    - [x] `built-in/rate_image` Handlebars template + config entry `rate_image_template`
+    - [x] Reuses `build_rating_model` from `utils.py` for the bounded-score result model
+    - [x] Mocked tests via `LLMTestRole` (`tests/test_rating_image.py`, 4 cases)
 
 ## Reduce CRAP scores flagged by `pytest --cov=fabricatio_capabilities --crap` (threshold 30)
 

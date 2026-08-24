@@ -23,6 +23,9 @@ class CapabilitiesConfig:
     rate_fine_grind_template: str = "built-in/rate_fine_grind"
     """The name of the rate fine grind template which will be used to rate fine grind."""
 
+    rate_image_template: str = "built-in/rate_image"
+    """The name of the rate image template which will be used to rate an attached image."""
+
     draft_rating_manual_template: str = "built-in/draft_rating_manual"
     """The name of the draft rating manual template which will be used to draft rating manual."""
 

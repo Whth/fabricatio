@@ -42,6 +42,7 @@ fabricatio_capabilities/
  ├── capabilities/         # Mixin classes
  │   ├── extract.py        # Extract — structured extraction from text
  │   ├── rating.py         # Rating — multi-criteria rating, criteria drafting, composite scoring, best-k selection
+ │   ├── rating_image.py   # RatingImage — rate attached images via a vision-capable LLM
  │   ├── order.py          # Ordering — LLM-based and score-based sequence ordering
  │   └── task.py           # ProposeTask, DispatchTask — task proposal and delegation
  ├── models/               # Reusable Pydantic base models
@@ -59,6 +60,7 @@ fabricatio_capabilities/
 | `Extract` | `Propose` | Extracts one or more Pydantic model instances from a string or list of strings. Uses configurable prompt templates. |
 | `Rating` | `Propose` | Fine-grained rating against a manual and score range. Can draft rating manuals, criteria, and weights (Klee method AHP). Computes composite scores and picks best-*k* candidates. |
 | `Ordering` | `Rating` | Orders a sequence of strings or `WithBriefing` items by a natural-language requirement or by computed composite scores. |
+| `RatingImage` | `Rating` | Rates an attached image against criteria via a vision-capable LLM. Routes to the `VISION` variant slot by default; reuses the bounded-score model builder. |
 | `ProposeTask` | `Propose` | Proposes a `Task` object from a natural-language prompt. |
 | `DispatchTask` | `UseLLM` | Dispatches a `Task` to the best-matching candidate `Role` based on briefing text and event subscriptions. |
 
