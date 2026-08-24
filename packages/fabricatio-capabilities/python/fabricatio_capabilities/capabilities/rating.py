@@ -7,42 +7,16 @@ from typing import Unpack, overload
 
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.journal import logger
-from fabricatio_core.models.generic import Display, ProposedAble
+from fabricatio_core.models.generic import Display
 from fabricatio_core.models.kwargs_types import LLMKwargs, ValidateKwargs
 from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, json_parser
 from fabricatio_core.utils import no_default, ok
 from more_itertools import flatten, windowed
-from pydantic import Field, NonNegativeInt, PositiveInt, create_model
+from pydantic import NonNegativeInt, PositiveInt
 
 from fabricatio_capabilities.config import capabilities_config
 from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs
-
-
-def _build_rating_model(rating_manual: dict[str, str], min_score: float, max_score: float) -> type[ProposedAble]:
-    """Build the per-call rating result model: one bounded float field per criterion.
-
-    Each field is clamped to ``[min_score, max_score]`` and carries the criterion's
-    manual entry as its description plus ten evenly-spaced example scores, steering
-    the LLM toward calibrated values.
-    """
-    tip = (max_score - min_score) / 9
-    return create_model(  # pyright: ignore [reportCallIssue]
-        "RatingResult",
-        __base__=ProposedAble,
-        __doc__=f"The rating result contains the scores against each criterion, with min_score={min_score} and max_score={max_score}.",
-        **{  # pyright: ignore [reportArgumentType]
-            criterion: (
-                float,
-                Field(
-                    ge=min_score,
-                    le=max_score,
-                    description=desc,
-                    examples=[round(min_score + tip * i, 2) for i in range(10)],
-                ),
-            )
-            for criterion, desc in rating_manual.items()
-        },
-    )
+from fabricatio_capabilities.utils import build_rating_model
 
 
 class Rating(Propose, ABC):
@@ -88,8 +62,7 @@ class Rating(Propose, ABC):
         )
 
         min_score, max_score = score_range
-        model = _build_rating_model(ok(manual), min_score, max_score)
-
+        model = build_rating_model(ok(manual), min_score, max_score)
         texts = [to_rate] if isinstance(to_rate, str) else list(to_rate)
         rendered = [
             TEMPLATE_MANAGER.render_template(
