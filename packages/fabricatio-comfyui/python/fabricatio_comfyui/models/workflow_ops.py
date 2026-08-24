@@ -27,6 +27,7 @@ nominal inheritance — no duck typing, no attribute sniffing.
 """
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Self
 
 from fabricatio_comfyui.models.workflow_core import (
@@ -35,6 +36,7 @@ from fabricatio_comfyui.models.workflow_core import (
 )
 
 __all__ = [
+    "AspectRatioSpec",
     "LoaderOps",
     "PromptOps",
     "ResolutionOps",
@@ -170,6 +172,56 @@ class SamplerOps(WorkflowAccess, ABC):
 
 
 # ------------------------------------------------------------------
+# AspectRatioSpec — validated knob bundle for a ResolutionSelector node
+# ------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class AspectRatioSpec:
+    """Validated knob bundle for a ComfyUI ``ResolutionSelector`` node.
+
+    Parse-don't-validate: build the spec from raw knobs, call :meth:`validated`
+    to reject bad aspect tokens up front, then :meth:`apply_to` writes only the
+    provided (non-``None``) values onto the node.
+    """
+
+    aspect_ratio: str | None = None
+    """ComfyUI aspect token, e.g. ``"16:9 (Widescreen)"``; ``None`` leaves it unchanged."""
+
+    megapixels: float | None = None
+    """Target megapixels e.g. ``1.7``; ``None`` leaves it unchanged."""
+
+    multiple: int | None = None
+    """Pixel-alignment multiple e.g. ``12``; ``None`` leaves it unchanged."""
+
+    @classmethod
+    def from_knobs(
+        cls, aspect_ratio: str | None = None, megapixels: float | None = None, multiple: int | None = None
+    ) -> Self:
+        """Build a spec from raw caller knobs."""
+        return cls(aspect_ratio=aspect_ratio, megapixels=megapixels, multiple=multiple)
+
+    def validated(self) -> Self:
+        """Return *self* unless *aspect_ratio* is outside :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`."""
+        if self.aspect_ratio is not None and self.aspect_ratio not in RESOLUTION_SELECTOR_ASPECT_RATIOS:
+            valid = ", ".join(sorted(RESOLUTION_SELECTOR_ASPECT_RATIOS, key=lambda s: float(s.split(":")[0])))
+            raise ValueError(
+                f"Invalid aspect_ratio {self.aspect_ratio!r}. Valid values for the current ResolutionSelector: {valid}.",
+            )
+        return self
+
+    def apply_to(self, node: Node) -> None:
+        """Write the provided (non-``None``) knobs onto *node*."""
+        for name, value in (
+            ("aspect_ratio", self.aspect_ratio),
+            ("megapixels", self.megapixels),
+            ("multiple", self.multiple),
+        ):
+            if value is not None:
+                node.set_input(name, value)
+
+
+# ------------------------------------------------------------------
 # ResolutionOps — EmptyLatentImage + ResolutionSelector
 # ------------------------------------------------------------------
 
@@ -202,13 +254,9 @@ class ResolutionOps(WorkflowAccess, ABC):
     ) -> Self:
         """Set the aspect ratio on a ``ResolutionSelector`` node; return *self* for chaining.
 
-        Updates the ``aspect_ratio``, ``megapixels``, and/or ``multiple`` inputs
-        on a :class:`Workflow`'s ``ResolutionSelector`` node.  Only the parameters
-        that are provided (not ``None``) get written — pass ``None`` to leave the
-        current value unchanged.
-
-        If no ``ResolutionSelector`` exists in the workflow, raises :class:`KeyError`
-        with a message pointing to :meth:`with_resolution` for literal dimension mode.
+        Only the parameters that are provided (not ``None``) get written — pass
+        ``None`` to leave the current value unchanged.  Validation and writing are
+        delegated to :class:`AspectRatioSpec`.
 
         Args:
             aspect_ratio: ComfyUI aspect ratio string, e.g. ``"16:9 (Widescreen)"``.
@@ -225,29 +273,21 @@ class ResolutionOps(WorkflowAccess, ABC):
                 or *node_id* does not exist.
             ValueError: If *aspect_ratio* is not in :data:`RESOLUTION_SELECTOR_ASPECT_RATIOS`.
         """
+        node = self._resolve_selector(node_id)
+        AspectRatioSpec.from_knobs(aspect_ratio, megapixels, multiple).validated().apply_to(node)
+        return self
+
+    def _resolve_selector(self, node_id: str | None) -> Node:
+        """Locate the target ``ResolutionSelector`` — by explicit ID or first match."""
         if node_id is not None:
             node = self._require_node(node_id)
             if node.type != _RESOLUTION_SELECTOR:
                 raise KeyError(f"Node {node_id!r} is {node.type!r}, not ResolutionSelector")
-        else:
-            matches = self.by_type(_RESOLUTION_SELECTOR)
-            if not matches:
-                raise KeyError(
-                    "No ResolutionSelector node found in workflow. "
-                    "Use with_resolution() for literal dimensions, or add a ResolutionSelector node.",
-                )
-            node = matches[0]
-
-        if aspect_ratio is not None and aspect_ratio not in RESOLUTION_SELECTOR_ASPECT_RATIOS:
-            valid = ", ".join(sorted(RESOLUTION_SELECTOR_ASPECT_RATIOS, key=lambda s: float(s.split(":")[0])))
-            raise ValueError(
-                f"Invalid aspect_ratio {aspect_ratio!r}. Valid values for the current ResolutionSelector: {valid}.",
+            return node
+        matches = self.by_type(_RESOLUTION_SELECTOR)
+        if not matches:
+            raise KeyError(
+                "No ResolutionSelector node found in workflow. "
+                "Use with_resolution() for literal dimensions, or add a ResolutionSelector node.",
             )
-
-        if aspect_ratio is not None:
-            node.set_input("aspect_ratio", aspect_ratio)
-        if megapixels is not None:
-            node.set_input("megapixels", megapixels)
-        if multiple is not None:
-            node.set_input("multiple", multiple)
-        return self
+        return matches[0]
