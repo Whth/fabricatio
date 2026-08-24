@@ -46,7 +46,7 @@ essence last — never the full corpus.
 ## Key Features
 
 - **Markdown-native skills** — author skills as `.md` files with YAML frontmatter; no schema lock-in beyond three metadata keys.
-- **Three-level pipeline** — Level 1 (Rust): free file scanning (`scan_skills`) and keyword search (`search_skills`); Level 2 (Python): LLM-powered relevance selection (`select_skills`) and essence distillation (`distill_skills`); Level 3: the composed `use_skill` pipeline (select → distill → ask).
+- **Three-level pipeline** — Level 1 (Rust): free file scanning (`scan_skills`) and keyword search (`search_skills`); Level 2 (Python): LLM-powered relevance selection (`select_skills`) and essence distillation (`distill_skills`); Level 3: the composed `consult_skills` pipeline (select → distill → consulted knowledge). Consultation only — answering stays in your Action.
 - **Progressive disclosure dial** — every call trades fidelity for tokens via `select=` / `distill=` / forced `names=`.
 - **Lightweight composition** — heavy `Skill` objects live in a process-wide `SkillRegistry`; your roles/actions carry only a list of name handles.
 - **Rust-backed performance** — parsing, lookup, and keyword matching are PyO3 (`fabricatio_skill.rust`).
@@ -76,9 +76,12 @@ skills = scan_skills("skills")   # parse all .md files → Skill objects
 
 ### 3. Compose the capability onto an Action (aligned style)
 
-In the fabricatio philosophy you never script capabilities imperatively — mix
-`UseSkill` into an `Action`, register the skill names at composition time, and
-run the pipeline inside `_execute` behind a `Role` / `Event` / `WorkFlow`:
+`fabricatio-skill` is a **skill consultant**: it selects relevant skills and
+distills what they say about a question, then stops — answering is your
+Action's job. Mix `UseSkill` into an `Action`, register the skill names at
+composition time, consult the library inside `_execute`, then feed the
+returned knowledge into your own LLM call, all behind a
+`Role` / `Event` / `WorkFlow`:
 
 ```python
 from fabricatio_core import Action, Event, Role, WorkFlow
@@ -86,12 +89,14 @@ from fabricatio_skill import UseSkill, scan_skills
 
 
 class AnswerWithSkills(Action, UseSkill):
-    """Answer the task briefing through progressive skill resolution."""
+    """Answer the task briefing grounded in consulted skill knowledge."""
 
     output_key: str = "task_output"
 
     async def _execute(self, task_input: str, **_) -> str:
-        return await self.use_skill(task_input)   # select → distill → ask
+        knowledge = await self.consult_skills(task_input)   # select → distill (pkg ends here)
+        prompt = f"{knowledge}\n\n---\n\n{task_input}" if knowledge else task_input
+        return await self.aask(prompt)                      # the actual job — yours
 
 
 skills = scan_skills("skills")
@@ -110,21 +115,22 @@ role = (
 
 ### 4. Tune the disclosure level per call
 
-`use_skill()` is the progressive-disclosure dial:
+`consult_skills()` is the progressive-disclosure dial; it returns what the
+relevant skills say (or `""` when nothing is relevant):
 
-| Call | Behavior |
+| Call | Returns |
 |---|---|
-| `await self.use_skill(q)` | Full pipeline: LLM selects relevant skills, then distills their essence into the prompt (2 extra LLM calls). |
-| `await self.use_skill(q, names=["rust-async"])` | Force specific skills — skips LLM selection. |
-| `await self.use_skill(q, distill=False)` | Inject full bodies of selected skills — no compression call. |
-| `await self.use_skill(q, select=False, distill=False)` | Disclose all registered skills verbatim. |
+| `await self.consult_skills(q)` | Distilled essence of LLM-selected skills (2 extra LLM calls). |
+| `await self.consult_skills(q, names=["rust-async"])` | Forced skills — skips LLM selection. |
+| `await self.consult_skills(q, distill=False)` | Full bodies of selected skills — no compression call. |
+| `await self.consult_skills(q, select=False, distill=False)` | All registered skills verbatim. |
 
 For finer control, step through the levels manually:
 
 ```python
 picked = await agent.select_skills(question)             # LLM relevance over metadata
 essence = await agent.distill_skills(question, picked)   # LLM compression of bodies
-answer = await agent.aask_with_context(question, essence)
+answer = await agent.aask(f"{essence}\n\n---\n\n{question}")
 ```
 
 ## Configuration

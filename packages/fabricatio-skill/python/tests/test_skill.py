@@ -187,17 +187,17 @@ class TestUseSkill:
         assert len(role.skills) == 2
 
     @pytest.mark.asyncio
-    async def test_use_skill_no_skills(self) -> None:
-        """Test use_skill with no skills loaded proceeds without context."""
+    async def test_consult_skills_no_skills(self) -> None:
+        """Test consult_skills returns empty string when no skills resolve."""
         role = SkillRole(name="skill")
         role.mock_llm_response("plain answer")
 
-        result = await role.use_skill("What is Python?")
-        assert result == "plain answer"
+        result = await role.consult_skills("What is Python?")
+        assert result == ""
 
     @pytest.mark.asyncio
-    async def test_use_skill_forced_names(self) -> None:
-        """Test use_skill with forced skill names and no distill."""
+    async def test_consult_skills_forced_names_raw(self) -> None:
+        """Test consult_skills with forced names and no distill returns raw content."""
         role = SkillRole(name="skill")
         role.add_skills(
             [
@@ -218,12 +218,30 @@ class TestUseSkill:
             ],
         )
 
-        role.mock_llm_response("reviewed answer")
-
-        result = await role.use_skill(
+        result = await role.consult_skills(
             "Review auth.py",
             names=["review"],
             select=False,
             distill=False,
         )
-        assert result == "reviewed answer"
+        assert result == "# Review\nCheck quality."
+
+    @pytest.mark.asyncio
+    async def test_consult_skills_distills_via_llm(self) -> None:
+        """Test consult_skills routes through distill_skills when distill=True."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [
+                Skill(
+                    name="review",
+                    description="Code review",
+                    tags=["code"],
+                    content="# Review\nCheck quality.",
+                    path="review.md",
+                ),
+            ],
+        )
+        role.mock_llm_response("Check quality.")
+
+        result = await role.consult_skills("Review auth.py", names=["review"])
+        assert result == "Check quality."

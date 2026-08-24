@@ -15,7 +15,7 @@ from fabricatio_skill.rust import Skill, get_skill
 
 
 class UseSkill(UseLLM, ABC):
-    """Mixin that provides progressive skill resolution for LLM calls.
+    """Mixin that provides progressive skill consultation.
 
     Skills are text-based instruction files (markdown) that provide context
     to LLM agents.  Skill objects live in the global ``SkillRegistry``;
@@ -25,7 +25,8 @@ class UseSkill(UseLLM, ABC):
 
     Level 1 (Rust):   scan / search / get — file discovery + keyword matching
     Level 2 (Python): select / distill — LLM-powered relevance + extraction
-    Level 3 (Python): use_skill — full progressive pipeline (select → distill → ask)
+    Level 3 (Python): consult_skills — full progressive pipeline (select → distill),
+                      returning the consulted knowledge; answering is the caller's job.
     """
 
     skill_names: list[str] = Field(default_factory=list)
@@ -151,39 +152,41 @@ class UseSkill(UseLLM, ABC):
 
     # ── Level 3: Full pipeline ───────────────────────────────────────
 
-    async def use_skill(
+    async def consult_skills(
         self,
         question: str,
         *,
         names: list[str] | None = None,
         select: bool = True,
         distill: bool = True,
-        in_content: bool = False,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
-        """Progressive skill resolution pipeline, then ask LLM.
+        """Consult the skill library about a question.
+
+        Progressively resolves relevant skills and returns what they say —
+        distilled essence by default, raw bodies with ``distill=False``.
+        This package consults only: it never answers the question itself.
+        Callers feed the returned knowledge into their own LLM call.
 
         Pipeline stages:
         1. SELECT: pick relevant skills (forced by names, or LLM-powered)
         2. DISTILL: extract essence (LLM-powered, or raw content)
-        3. RENDER: prepend distilled context to question, send to LLM
 
         Args:
             send_to (str | None): Routing-group variant for the LLM call. Resolved against
                     the agent variant registry (see ``fabricatio_core.rust``). Defaults to
                     ``TASK``.
-            question: The question/task to solve.
+            question: The question/task to consult the skills about.
             names: Force-select these skill names (skips LLM selection).
                    If None and select=True, uses LLM to pick from self.skill_names.
                    If None and select=False, uses all self.skill_names.
             select: Whether to use LLM for skill selection (default True).
             distill: Whether to use LLM for distillation (default True).
-            in_content: Whether search_skills also matches within content body.
             **kwargs: LLM parameters.
 
         Returns:
-            LLM response with skill context injected.
+            Consulted skill knowledge, or ``""`` when nothing is relevant.
         """
         # Stage 1: SELECT
         if names:
@@ -198,39 +201,10 @@ class UseSkill(UseLLM, ABC):
             selected = self._resolve_skills()
 
         if not selected:
-            logger.warn("No skills selected. Proceeding without skill context.")
-            return await self.aask(question, send_to=send_to, **kwargs)
+            logger.warn("No skills selected.")
+            return ""
 
         # Stage 2: DISTILL
         if distill:
-            context = await self.distill_skills(question, selected, **kwargs)
-        else:
-            context = "\n\n".join(s.content for s in selected)
-
-        # Stage 3: RENDER — prepend context and ask
-        return await self.aask_with_context(question, context, send_to=send_to, **kwargs)
-
-    # ── Level 3: Composable ──────────────────────────────────────────
-
-    async def aask_with_context(
-        self,
-        question: str,
-        context: str,
-        send_to: str | None = TASK,
-        **kwargs: Unpack[LLMKwargs],
-    ) -> str:
-        """Ask LLM with arbitrary context prepended to the question.
-
-        Args:
-            send_to (str | None): Routing-group variant for the LLM call. Resolved against
-                    the agent variant registry (see ``fabricatio_core.rust``). Defaults to
-                    ``TASK``.
-            question: The question/task.
-            context: Context text to prepend.
-            **kwargs: LLM parameters.
-
-        Returns:
-            LLM response.
-        """
-        enriched = f"{context}\n\n---\n\n{question}" if context else question
-        return await self.aask(enriched, send_to=send_to, **kwargs)
+            return await self.distill_skills(question, selected, **kwargs)
+        return "\n\n".join(s.content for s in selected)
