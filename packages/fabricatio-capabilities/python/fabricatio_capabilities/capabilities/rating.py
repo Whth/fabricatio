@@ -64,13 +64,10 @@ class Rating(Propose, ABC):
         min_score, max_score = score_range
         model = build_rating_model(ok(manual), min_score, max_score)
         texts = [to_rate] if isinstance(to_rate, str) else list(to_rate)
-        rendered = [
-            TEMPLATE_MANAGER.render_template(
-                capabilities_config.rate_fine_grind_template,
-                {"to_rate": text, "min_score": min_score, "max_score": max_score},
-            )
-            for text in texts
-        ]
+        rendered = TEMPLATE_MANAGER.render_template(
+            capabilities_config.rate_fine_grind_template,
+            [{"to_rate": text, "min_score": min_score, "max_score": max_score} for text in texts],
+        )
 
         res = await self.propose(
             model,
