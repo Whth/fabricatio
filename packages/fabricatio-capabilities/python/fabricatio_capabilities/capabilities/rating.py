@@ -18,6 +18,33 @@ from fabricatio_capabilities.config import capabilities_config
 from fabricatio_capabilities.models.kwargs_types import CompositeScoreKwargs
 
 
+def _build_rating_model(rating_manual: dict[str, str], min_score: float, max_score: float) -> type[ProposedAble]:
+    """Build the per-call rating result model: one bounded float field per criterion.
+
+    Each field is clamped to ``[min_score, max_score]`` and carries the criterion's
+    manual entry as its description plus ten evenly-spaced example scores, steering
+    the LLM toward calibrated values.
+    """
+    tip = (max_score - min_score) / 9
+    return create_model(  # pyright: ignore [reportCallIssue]
+        "RatingResult",
+        __base__=ProposedAble,
+        __doc__=f"The rating result contains the scores against each criterion, with min_score={min_score} and max_score={max_score}.",
+        **{  # pyright: ignore [reportArgumentType]
+            criterion: (
+                float,
+                Field(
+                    ge=min_score,
+                    le=max_score,
+                    description=desc,
+                    examples=[round(min_score + tip * i, 2) for i in range(10)],
+                ),
+            )
+            for criterion, desc in rating_manual.items()
+        },
+    )
+
+
 class Rating(Propose, ABC):
     """A class that provides functionality to rate tasks based on a rating manual and score range.
 
@@ -25,96 +52,28 @@ class Rating(Propose, ABC):
         Lu X, Li J, Takeuchi K, et al. AHP-powered LLM reasoning for multi-criteria evaluation of open-ended responses[A/OL]. arXiv, 2024. DOI: 10.48550/arXiv.2410.01246.
     """
 
-    async def rate_fine_grind(
+    async def _rate_rendered(
         self,
-        to_rate: str | list[str],
-        rating_manual: dict[str, str],
-        score_range: tuple[float, float],
-        send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
+        model: type[ProposedAble],
+        rendered: list[str],
+        send_to: str | None,
+        okwargs: "ValidateKwargs[dict[str, float]]",
+        default: dict[str, float] | None,
     ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
-        """Rate a given string based on a rating manual and score range.
+        """Propose against rendered prompts and normalize the result shapes.
 
-        Args:
-            to_rate (str): The string to be rated.
-            rating_manual (Dict[str, str]): A dictionary containing the rating criteria.
-            score_range (Tuple[float, float]): A tuple representing the valid score range.
-            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
-                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
-                to steer to a different model tier.
-            **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
-
-        Returns:
-            Dict[str, float]: A dictionary with the ratings for each dimension.
+        Single prompt → single ``dict | None``; multiple prompts → a list with
+        ``default`` substituting for each failed item.
         """
-        min_score, max_score = score_range
-        tip = (max_score - min_score) / 9
-
-        model = create_model(  # pyright: ignore [reportCallIssue]
-            "RatingResult",
-            __base__=ProposedAble,
-            __doc__=f"The rating result contains the scores against each criterion, with min_score={min_score} and max_score={max_score}.",
-            **{  # pyright: ignore [reportArgumentType]
-                criterion: (
-                    float,
-                    Field(
-                        ge=min_score,
-                        le=max_score,
-                        description=desc,
-                        examples=[round(min_score + tip * i, 2) for i in range(10)],
-                    ),
-                )
-                for criterion, desc in rating_manual.items()
-            },
-        )
-
         res = await self.propose(
             model,
-            TEMPLATE_MANAGER.render_template(
-                capabilities_config.rate_fine_grind_template,
-                {"to_rate": to_rate, "min_score": min_score, "max_score": max_score},
-            )
-            if isinstance(to_rate, str)
-            else [
-                TEMPLATE_MANAGER.render_template(
-                    capabilities_config.rate_fine_grind_template,
-                    {"to_rate": t, "min_score": min_score, "max_score": max_score},
-                )
-                for t in to_rate
-            ],
+            rendered[0] if len(rendered) == 1 else rendered,
             send_to=send_to,
-            **no_default(kwargs),
+            **okwargs,
         )
-        default = kwargs.get("default")
         if isinstance(res, list):
             return [r.model_dump() if r else default for r in res]
-        if res is None:
-            return default
-        return res.model_dump()
-
-    @overload
-    async def rate(
-        self,
-        to_rate: str,
-        topic: str,
-        criteria: set[str],
-        manual: dict[str, str] | None = None,
-        score_range: tuple[float, float] = (0.0, 1.0),
-        send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
-    ) -> dict[str, float]: ...
-
-    @overload
-    async def rate(
-        self,
-        to_rate: list[str],
-        topic: str,
-        criteria: set[str],
-        manual: dict[str, str] | None = None,
-        score_range: tuple[float, float] = (0.0, 1.0),
-        send_to: str | None = TASK,
-        **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
-    ) -> list[dict[str, float]]: ...
+        return default if res is None else res.model_dump()
 
     async def rate(
         self,
@@ -123,10 +82,13 @@ class Rating(Propose, ABC):
         criteria: set[str],
         manual: dict[str, str] | None = None,
         score_range: tuple[float, float] = (0.0, 1.0),
-        send_to: str | None = TASK,
+        send_to: str | None = None,
         **kwargs: Unpack[ValidateKwargs[dict[str, float]]],
     ) -> dict[str, float] | list[dict[str, float]] | list[dict[str, float] | None] | None:
         """Rate a given string or a sequence of strings based on a topic, criteria, and score range.
+
+        When *manual* is not provided, one is drafted from the topic and criteria
+        via the LLM (falling back to identity descriptions when drafting fails).
 
         Args:
             to_rate (Union[str, List[str]]): The string or sequence of strings to be rated.
@@ -134,9 +96,8 @@ class Rating(Propose, ABC):
             criteria (Set[str]): A set of criteria for rating.
             manual (Optional[Dict[str, str]]): A dictionary containing the rating criteria. If not provided, then this method will draft the criteria automatically.
             score_range (Tuple[float, float], optional): A tuple representing the valid score range. Defaults to (0.0, 1.0).
-            send_to: Routing-group variant for the LLM call. Resolved against the agent variant
-                registry (see `fabricatio_core.rust`). Defaults to `TASK`; pass `SMOL`/`TINY`/`PLAN`
-                to steer to a different model tier.
+            send_to: Routing-group variant for the LLM call; ``None`` defers to the
+                role-level ``llm_send_to``, then the configured variant slots / global default.
             **kwargs (Unpack[ValidateKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
@@ -150,7 +111,20 @@ class Rating(Propose, ABC):
             or dict(zip(criteria, criteria, strict=True))
         )
 
-        return await self.rate_fine_grind(to_rate, ok(manual), score_range, send_to=send_to, **okwargs)
+        min_score, max_score = score_range
+        model = _build_rating_model(ok(manual), min_score, max_score)
+
+        was_str = isinstance(to_rate, str)
+        texts = [to_rate] if was_str else list(to_rate)
+        rendered = [
+            TEMPLATE_MANAGER.render_template(
+                capabilities_config.rate_fine_grind_template,
+                {"to_rate": text, "min_score": min_score, "max_score": max_score},
+            )
+            for text in texts
+        ]
+
+        return await self._rate_rendered(model, rendered, send_to, okwargs, kwargs.get("default"))
 
     async def draft_rating_manual(
         self,
