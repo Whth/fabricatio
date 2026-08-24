@@ -6,12 +6,50 @@ chunk, then merges mini-chunks by those indices. Supports both single-string
 and batch (list of strings) input.
 """
 
-from typing import overload
+from typing import cast, overload
 
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.rust import TASK, TEMPLATE_MANAGER, split_into_chunks
 
 from fabricatio_rag.config import rag_config
+
+
+def normalize_splits(
+    splits_seq: "list[int] | list[list[int]] | None",
+    expected_len: int,
+) -> "list[list[int] | None]":
+    """Reconcile :meth:`UseLLM.alist_v`'s shape-polymorphic return with the batch length.
+
+    Single-text calls yield ``list[int] | None``; batch calls yield
+    ``list[list[int]]``.  Either way the result here is one entry per input text.
+    """
+    if splits_seq is None:
+        return [None] * expected_len
+    if expected_len == 1:
+        return [cast("list[int]", splits_seq)]
+    return cast("list[list[int] | None]", splits_seq)
+
+
+def merge_mini_chunks(mini_chunks: "list[str]", splits: "list[int] | None") -> "list[str]":
+    """Merge mini-chunks into output chunks at the given start indices.
+
+    Each index in *splits* is the mini-chunk where a new output chunk begins.
+    Out-of-bounds indices are skipped.  Fallbacks: no usable splits (``None``,
+    empty, or all out-of-bounds) yields the whole text as one chunk; empty input
+    yields no chunks.
+    """
+    if not splits or not mini_chunks:
+        merged = "".join(mini_chunks)
+        return [merged] if merged else []
+
+    chunks: list[str] = []
+    for i, start in enumerate(splits):
+        if start >= len(mini_chunks):
+            continue  # skip out-of-bounds split index
+        end = splits[i + 1] if i + 1 < len(splits) else len(mini_chunks)
+        chunks.append("".join(mini_chunks[start:end]))
+
+    return chunks or ["".join(mini_chunks)]
 
 
 class PreciseChunkText(UseLLM):
@@ -80,7 +118,7 @@ class PreciseChunkText(UseLLM):
         m_chunk_size = mini_chunk_size or rag_config.mini_chunk_size
 
         was_str = isinstance(text, str)
-        texts = [text] if was_str else text
+        texts: list[str] = [text] if was_str else [*text]
 
         # Phase 1: split each input text into mini-chunks (no overlap)
         para_seq: list[list[str]] = [split_into_chunks(s, m_chunk_size, max_overlapping_rate=0.0) for s in texts]
@@ -103,38 +141,15 @@ class PreciseChunkText(UseLLM):
         )
 
         # Phase 4: LLM determines split-point indices
-        # When len(para_seq)==1 → alist_v(str, int) → List[int] | None
-        # When len(para_seq)>1  → alist_v(list[str], int) → List[List[int] | None] | None
-        splits_seq = await self.alist_v(rendered, int, send_to=send_to)
+        splits_seq = cast(
+            "list[int] | list[list[int]] | None",
+            await self.alist_v(rendered, int, send_to=send_to),
+        )
 
-        # Phase 5: normalize splits_seq to list[list[int] | None] matching para_seq length
-        if splits_seq is None:
-            normalized_splits: list[list[int] | None] = [None] * len(para_seq)
-        elif len(para_seq) == 1:
-            # Single-text path: alist_v returned List[int]; wrap for uniform iteration
-            normalized_splits = [splits_seq]  # type: ignore[list-item]
-        else:
-            # Batch path: alist_v returned List[List[int] | None]
-            normalized_splits = splits_seq  # type: ignore[assignment]
-
-        # Phase 6: merge mini-chunks by split indices
-        final_chunks: list[list[str]] = []
-        for mini_chunks, splits in zip(para_seq, normalized_splits, strict=True):
-            if not splits or len(mini_chunks) == 0:
-                # Fallback: no splits or empty input → treat entire text as one chunk
-                merged = "".join(mini_chunks)
-                final_chunks.append([merged] if merged else [])
-                continue
-
-            merged: list[str] = []
-            for i, start in enumerate(splits):
-                if start >= len(mini_chunks):
-                    continue  # skip out-of-bounds split index
-                end = splits[i + 1] if i + 1 < len(splits) else len(mini_chunks)
-                merged.append("".join(mini_chunks[start:end]))
-
-            if not merged:
-                merged = ["".join(mini_chunks)]  # all splits were out of bounds
-            final_chunks.append(merged)
+        # Phase 5 + 6: normalize the LLM's shape-polymorphic return, then merge
+        final_chunks = [
+            merge_mini_chunks(mini, splits)
+            for mini, splits in zip(para_seq, normalize_splits(splits_seq, len(para_seq)), strict=True)
+        ]
 
         return final_chunks[0] if was_str else final_chunks
