@@ -615,6 +615,7 @@ class DedupThreadRole(LancedbRAG):
     """LancedbRAG role routed to the mock embedding group."""
 
     embedding_send_to: str | None = "embedding"
+    embedding_ndim: int = NDIM
 
 
 class TestFetchConfigDedup:
