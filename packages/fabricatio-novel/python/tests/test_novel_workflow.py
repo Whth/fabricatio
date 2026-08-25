@@ -3,10 +3,17 @@
 from pathlib import Path
 
 from _support import raw_value
+from fabricatio_core.rust import CONFIG, TASK
+from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
+
+# Workflow tests subscribe a plain ``Role`` (no scoped ``llm_send_to``), so the real
+# resolver runs: route the ``task`` agent variant to the dummy router group so explicit
+# ``send_to=TASK`` in the staged actions resolves to what ``install_router_usage`` seeds.
+CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
 
 
 class TestNovelWorkflow:
