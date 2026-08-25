@@ -3,9 +3,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Failed to get release info: {0}")]
-    ReleaseInfo(#[from] octocrab::Error),
-
     #[error("Release not found, please check the version number.")]
     ReleaseNotFound,
 

@@ -1,9 +1,9 @@
 use crate::error::Error;
-use crate::repo::REPO;
 use colored::Colorize;
+use fabricatio_constants::{REPO_NAME, REPO_OWNER};
 use human_units::iec::Byte;
-use octocrab::models::repos::Asset;
-use reqwest::Url;
+use reqwest::{Client, Url};
+use serde::Deserialize;
 use std::fmt::Display;
 
 pub const TEMPLATES_ASSET_NAME: &str = "templates.tar.gz";
@@ -20,16 +20,35 @@ impl Display for TemplateAssetItem {
             f,
             "{:<15}  {:<6}  {:}",
             self.tag.to_string().bright_green(),
-            Byte::from_iec(self.source.size as u64)
-                .format_iec()
-                .to_string(),
+            Byte::from_iec(self.source.size).format_iec().to_string(),
             self.source.updated_at.to_string().bright_blue()
         )
     }
 }
 
-pub async fn show_releases() -> crate::error::Result<()> {
-    let s = get_releases(Query::default())
+#[derive(Debug, Deserialize)]
+struct Release {
+    tag_name: String,
+    assets: Vec<Asset>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Asset {
+    name: String,
+    size: u64,
+    updated_at: String,
+    browser_download_url: Url,
+}
+
+fn releases_url() -> Url {
+    Url::parse(&format!(
+        "https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases"
+    ))
+    .expect("static GitHub releases URL is valid")
+}
+
+pub async fn show_releases(client: &Client) -> crate::error::Result<()> {
+    let s = get_releases(client, Query::default())
         .await?
         .into_iter()
         .map(|item| item.to_string())
@@ -60,26 +79,35 @@ impl Default for Query {
     }
 }
 
-pub(crate) async fn get_releases(query: Query) -> crate::error::Result<Vec<TemplateAssetItem>> {
+pub(crate) async fn get_releases(
+    client: &Client,
+    query: Query,
+) -> crate::error::Result<Vec<TemplateAssetItem>> {
     println!("Fetching releases...");
-    Ok(REPO
-        .releases()
-        .list()
-        .per_page(query.page_size)
-        .page(query.page_num)
+
+    let params = [
+        ("per_page", query.page_size.to_string()),
+        ("page", query.page_num.to_string()),
+    ];
+    let releases: Vec<Release> = client
+        .get(releases_url())
+        .query(&params)
         .send()
-        .await
-        .map_err(Error::from)?
-        .items
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    Ok(releases
         .into_iter()
         .filter_map(|release| {
-            release
-                .assets
+            let Release { tag_name, assets } = release;
+            assets
                 .into_iter()
                 .rev()
                 .find(|asset| asset.name == TEMPLATES_ASSET_NAME)
                 .map(|asset| TemplateAssetItem {
-                    tag: release.tag_name,
+                    tag: tag_name,
                     source: asset,
                 })
         })
@@ -87,8 +115,8 @@ pub(crate) async fn get_releases(query: Query) -> crate::error::Result<Vec<Templ
 }
 
 /// Get asset url
-pub async fn get_asset_url(version: Option<&str>) -> crate::error::Result<Url> {
-    let releases = get_releases(Query::default()).await?;
+pub async fn get_asset_url(client: &Client, version: Option<&str>) -> crate::error::Result<Url> {
+    let releases = get_releases(client, Query::default()).await?;
 
     let url = if let Some(v) = version {
         releases

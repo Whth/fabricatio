@@ -23,7 +23,7 @@ pub async fn handle_download(
     }
 
     let tar_gz_path = output_dir.join(TEMPLATES_ASSET_NAME);
-    let download_url = crate::releases::get_asset_url(version).await?;
+    let download_url = crate::releases::get_asset_url(client, version).await?;
 
     download_release(client, &download_url, &tar_gz_path, verbose, mirror).await?;
 
@@ -94,7 +94,7 @@ pub async fn handle_update(
 
     let tar_gz_path = template_dir.join(TEMPLATES_ASSET_NAME);
 
-    let download_url = crate::releases::get_asset_url(None).await?;
+    let download_url = crate::releases::get_asset_url(client, None).await?;
     download_release(client, &download_url, &tar_gz_path, verbose, mirror).await?;
     crate::extract_release(&tar_gz_path, template_dir, verbose)?;
     fs::remove_file(tar_gz_path)?;

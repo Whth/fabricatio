@@ -1,7 +1,6 @@
 mod download;
 mod error;
 mod releases;
-mod repo;
 
 use clap::{Parser, Subcommand};
 use colored::*;
@@ -35,6 +34,10 @@ struct Cli {
     /// Use a GitHub mirror for downloading releases, the string will be added as prefix to the asset download url.
     #[arg(short, long, global = true, env = "GITHUB_MIRROR")]
     mirror: Option<String>,
+
+    /// Skip TLS certificate verification for all network requests
+    #[arg(short = 'k', long, global = true, env = "TDOWN_INSECURE")]
+    insecure: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -310,7 +313,11 @@ async fn main() -> Result<(), error::Error> {
         .ok();
 
     let cli = Cli::parse();
-    let client = Client::builder().user_agent(CLI_NAME).build()?;
+    let mut builder = Client::builder().user_agent(CLI_NAME);
+    if cli.insecure {
+        builder = builder.tls_danger_accept_invalid_certs(true);
+    }
+    let client = builder.build()?;
 
     match &cli.command {
         Commands::Download {
@@ -339,7 +346,7 @@ async fn main() -> Result<(), error::Error> {
         } => remove_templates(templates, template_dir, cli.force, cli.verbose)?,
 
         Commands::Info {} => {
-            releases::show_releases().await?;
+            releases::show_releases(&client).await?;
         }
 
         Commands::Update {
