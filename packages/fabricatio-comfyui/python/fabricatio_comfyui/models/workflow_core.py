@@ -219,7 +219,7 @@ class Node(BaseModel):
 class WorkflowCore:
     """ComfyUI workflow graph container.
 
-    Owns the node map, ID counter, construction (``from_api`` /
+    Owns the node map, ID counter, construction (``from_raw`` /
     ``from_file`` / ``default``), CRUD (``add`` / ``get`` / ``by_type`` /
     ``remove``), and serialization (``to_api``).  Domain-specific setters
     are deliberately absent — they live on the ``*Ops`` ABCs in
@@ -245,7 +245,7 @@ class WorkflowCore:
         return cls()
 
     @classmethod
-    def from_api(cls, data: WorkflowDict) -> Self:
+    def from_raw(cls, data: WorkflowDict) -> Self:
         """Load from a ComfyUI API-format JSON dict."""
         wf = cls()
         max_id = 0
@@ -266,7 +266,7 @@ class WorkflowCore:
     def from_file(cls, path: str | Path) -> Self:
         """Load from a ``.json`` file."""
         p = Path(path)
-        return cls.from_api(json.loads(p.read_text(encoding="utf-8")))
+        return cls.from_raw(json.loads(p.read_text(encoding="utf-8")))
 
     @classmethod
     def default(cls) -> Self:

@@ -112,26 +112,26 @@ class TestWorkflow:
         },
     }
 
-    def test_from_api_preserves_structure(self) -> None:
-        """from_api round-trips the demo JSON exactly."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+    def test_from_raw_preserves_structure(self) -> None:
+        """from_raw round-trips the demo JSON exactly."""
+        wf = Workflow.from_raw(self.DEMO_JSON)
         assert wf.to_api() == self.DEMO_JSON
 
-    def test_from_api_preserves_node_ids(self) -> None:
-        """from_api keeps original node IDs."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+    def test_from_raw_preserves_node_ids(self) -> None:
+        """from_raw keeps original node IDs."""
+        wf = Workflow.from_raw(self.DEMO_JSON)
         assert wf.node_ids == ["42", "46", "49", "50", "51", "79", "85"]
 
-    def test_from_api_preserves_node_references(self) -> None:
-        """from_api preserves [node_id, output_index] references in inputs."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+    def test_from_raw_preserves_node_references(self) -> None:
+        """from_raw preserves [node_id, output_index] references in inputs."""
+        wf = Workflow.from_raw(self.DEMO_JSON)
         node = wf.get("49")
         assert node.inputs["width"] == ["79", 0]
         assert node.inputs["height"] == ["79", 1]
 
-    def test_from_api_preserves_title(self) -> None:
-        """from_api preserves _meta.title as Node.title."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+    def test_from_raw_preserves_title(self) -> None:
+        """from_raw preserves _meta.title as Node.title."""
+        wf = Workflow.from_raw(self.DEMO_JSON)
         assert wf.get("42").title == "Load Checkpoint"
 
     def test_from_file(self, tmp_path: Path) -> None:
@@ -158,25 +158,25 @@ class TestWorkflow:
 
     def test_add_to_loaded_workflow(self) -> None:
         """Add on a loaded workflow uses the next available ID."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         new_node = wf.add("SaveImage")
         assert new_node.id == "86"  # max existing is 85
 
     def test_get(self) -> None:
         """Get returns the correct node."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         node = wf.get("42")
         assert node.type == "CheckpointLoaderSimple"
 
     def test_get_missing(self) -> None:
         """Get raises KeyError for missing node."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         with pytest.raises(KeyError):
             wf.get("999")
 
     def test_by_type(self) -> None:
         """by_type finds all nodes of a given type."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         clip_nodes = wf.by_type("CLIPTextEncode")
         assert len(clip_nodes) == 2
         assert clip_nodes[0].id == "50"
@@ -184,7 +184,7 @@ class TestWorkflow:
 
     def test_remove(self) -> None:
         """Remove removes the node and disconnects references."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.remove("79")  # ResolutionSelector
         assert "79" not in wf.node_ids
         # Node 49 had references to 79 — those should be gone
@@ -194,13 +194,13 @@ class TestWorkflow:
 
     def test_with_checkpoint(self) -> None:
         """with_checkpoint updates the checkpoint name."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_checkpoint("new_model.safetensors")
         assert wf.get("42").inputs["ckpt_name"] == "new_model.safetensors"
 
     def test_with_checkpoint_specific_node(self) -> None:
         """with_checkpoint with node_id targets a specific node."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_checkpoint("model_v2.safetensors", node_id="42")
         assert wf.get("42").inputs["ckpt_name"] == "model_v2.safetensors"
 
@@ -212,19 +212,19 @@ class TestWorkflow:
 
     def test_with_positive_prompt(self) -> None:
         """with_positive_prompt updates the first CLIPTextEncode node."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_positive_prompt("a beautiful landscape")
         assert wf.get("50").inputs["text"] == "a beautiful landscape"
 
     def test_with_negative_prompt(self) -> None:
         """with_negative_prompt updates the second CLIPTextEncode node."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_negative_prompt("bad quality, blurry")
         assert wf.get("51").inputs["text"] == "bad quality, blurry"
 
     def test_builders_chain(self) -> None:
         """with_* builders return *self*, so calls chain Rust-builder style."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         result = wf.with_positive_prompt("chained").with_sampler(seed=1).with_resolution(width=64, height=64)
         assert result is wf
         assert wf.get("50").inputs["text"] == "chained"
@@ -232,7 +232,7 @@ class TestWorkflow:
 
     def test_with_sampler_ksampler_advanced(self) -> None:
         """with_sampler updates KSamplerAdvanced parameters."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_sampler(seed=999, steps=30, cfg=7.5, sampler_name="ddim")
         node = wf.get("85")
         assert node.inputs["noise_seed"] == 999
@@ -242,7 +242,7 @@ class TestWorkflow:
 
     def test_with_sampler_partial_update(self) -> None:
         """with_sampler only updates provided parameters."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         original_steps = wf.get("85").inputs["steps"]
         wf.with_sampler(cfg=12.0)
         assert wf.get("85").inputs["cfg"] == 12.0
@@ -259,7 +259,7 @@ class TestWorkflow:
 
     def test_with_aspect_ratio_updates_selector(self) -> None:
         """with_aspect_ratio updates ResolutionSelector inputs."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_aspect_ratio(aspect_ratio="16:9 (Widescreen)", megapixels=2.0, multiple=16)
         node = wf.get("79")
         assert node.inputs["aspect_ratio"] == "16:9 (Widescreen)"
@@ -271,7 +271,7 @@ class TestWorkflow:
 
     def test_with_aspect_ratio_partial(self) -> None:
         """with_aspect_ratio only updates provided parameters."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         original_megapixels = wf.get("79").inputs["megapixels"]
         wf.with_aspect_ratio(aspect_ratio="1:1 (Square)")
         node = wf.get("79")
@@ -281,13 +281,13 @@ class TestWorkflow:
 
     def test_with_aspect_ratio_by_node_id(self) -> None:
         """with_aspect_ratio with explicit node_id."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         wf.with_aspect_ratio(aspect_ratio="3:2 (Photo)", node_id="79")
         assert wf.get("79").inputs["aspect_ratio"] == "3:2 (Photo)"
 
     def test_with_aspect_ratio_wrong_type_raises(self) -> None:
         """with_aspect_ratio with node_id that is not a ResolutionSelector."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         with pytest.raises(KeyError, match="not ResolutionSelector"):
             wf.with_aspect_ratio(aspect_ratio="1:1 (Square)", node_id="42")
 
@@ -302,7 +302,7 @@ class TestWorkflow:
         """with_aspect_ratio rejects aspect_ratio values outside the live server's enum."""
         from fabricatio_comfyui.models.workflow import RESOLUTION_SELECTOR_ASPECT_RATIOS
 
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         with pytest.raises(ValueError, match="Invalid aspect_ratio"):
             wf.with_aspect_ratio(aspect_ratio="bogus")
         # Sanity: the constant matches the live server's enum of 8 values.
@@ -319,7 +319,7 @@ class TestWorkflow:
 
     def test_node_get_ref(self) -> None:
         """Node.get_ref returns the NodeRef."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         node = wf.get("49")
         ref = node.get_ref("width")
         assert ref is not None
@@ -328,7 +328,7 @@ class TestWorkflow:
 
     def test_node_get_ref_literal(self) -> None:
         """Node.get_ref returns None for literal inputs."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         node = wf.get("49")
         assert node.get_ref("batch_size") is None
 
@@ -357,7 +357,7 @@ class TestWorkflow:
 
     def test_workflow_repr(self) -> None:
         """Workflow repr includes node count."""
-        wf = Workflow.from_api(self.DEMO_JSON)
+        wf = Workflow.from_raw(self.DEMO_JSON)
         assert "7 nodes" in repr(wf)
 
 
@@ -596,7 +596,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_generate_accepts_workflow() -> None:
     """queue_prompt accepts a Workflow and converts it to dict."""
-    wf = Workflow.from_api({"3": {"class_type": "KSampler", "inputs": {"seed": 42}, "_meta": {"title": "Sampler"}}})
+    wf = Workflow.from_raw({"3": {"class_type": "KSampler", "inputs": {"seed": 42}, "_meta": {"title": "Sampler"}}})
 
     client = ComfyuiHTTPClient.create(None)
 
@@ -643,7 +643,7 @@ async def test_upload_image(tmp_path: Path) -> None:
 async def test_queue_returns_typed() -> None:
     """queue_prompt returns a PromptResponse, not a raw dict."""
     client = ComfyuiHTTPClient.create(None)
-    wf = Workflow.from_api({"1": {"class_type": "VAELoader", "inputs": {}}})
+    wf = Workflow.from_raw({"1": {"class_type": "VAELoader", "inputs": {}}})
 
     with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
         resp = await client.queue_prompt(wf)
@@ -655,7 +655,7 @@ async def test_queue_returns_typed() -> None:
 async def test_queue_accepts_workflow() -> None:
     """queue_prompt accepts a Workflow and auto-injects client_id."""
     client = ComfyuiHTTPClient.create(None)
-    wf = Workflow.from_api({"1": {"class_type": "VAELoader", "inputs": {}}})
+    wf = Workflow.from_raw({"1": {"class_type": "VAELoader", "inputs": {}}})
 
     with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 1}) as mock_post:
         await client.queue_prompt(wf, front=True)
@@ -783,7 +783,7 @@ def _fresh_client() -> "ComfyuiHTTPClient":
 async def test_integration_queue_and_history(tmp_path: Path) -> None:
     """Integration: queue a valid workflow, poll history, verify result structure."""
     # Minimal valid txt2img workflow; uses first available checkpoint on the live server.
-    wf = Workflow.from_api(
+    wf = Workflow.from_raw(
         {
             "1": {
                 "class_type": "CheckpointLoaderSimple",
