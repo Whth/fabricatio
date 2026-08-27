@@ -11,8 +11,14 @@ class CapabilitiesConfig:
 
     extract_template: str = "built-in/extract"
     """The name of the extract template which will be used to extract model from string."""
+
     as_prompt_template: str = "built-in/as_prompt"
     """The name of the as prompt template which will be used to convert a string to a prompt."""
+
+    # Text Processing Templates
+
+    compact_template: str = "built-in/compact"
+    """The name of the compact template which will be used to compact raw text to a target length."""
 
     # Code Generation Templates
 

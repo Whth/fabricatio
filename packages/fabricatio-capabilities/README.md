@@ -7,7 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-capabilities)](https://pepy.tech/projects/fabricatio-capabilities)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-High-level LLM agent capabilities for structured extraction, content rating, sequence ordering, and task dispatch. Built on `fabricatio-core`.
+High-level LLM agent capabilities for structured extraction, content rating, sequence ordering, text compaction, and task dispatch. Built on `fabricatio-core`.
 
 ## Installation
 
@@ -30,6 +30,7 @@ pip install fabricatio[full]
 - **Extract** structured data from unstructured text into Pydantic models.
 - **Rate** content against multi-criteria rubrics, including automated criteria drafting, weighted composite scoring, and top-*k* selection.
 - **Order** sequences of items (strings or `WithBriefing` objects) by a requirement or by computed scores.
+- **Compact** raw text to a target length (characters, words, or sentences) while preserving its core meaning.
 - **Propose & dispatch** tasks to candidate roles based on semantic matching.
 - **Patch** and **persist** Pydantic models with type-safe update mechanisms.
 
@@ -43,7 +44,7 @@ fabricatio_capabilities/
  │   ├── extract.py        # Extract — structured extraction from text
  │   ├── rating.py         # Rating — multi-criteria rating, criteria drafting, composite scoring, best-k selection
  │   ├── rating_image.py   # RatingImage — rate attached images via a vision-capable LLM
- │   ├── order.py          # Ordering — LLM-based and score-based sequence ordering
+ │   ├── compact.py        # Compact + LengthType — length-constrained text compaction
  │   └── task.py           # ProposeTask, DispatchTask — task proposal and delegation
  ├── models/               # Reusable Pydantic base models
  │   ├── generic.py        # Patch, SequencePatch, PersistentAble, FinalizedDumpAble, ModelHash, UpdateFrom, etc.
@@ -61,6 +62,7 @@ fabricatio_capabilities/
 | `Rating` | `Propose` | Fine-grained rating against a manual and score range. Can draft rating manuals, criteria, and weights (Klee method AHP). Computes composite scores and picks best-*k* candidates. |
 | `Ordering` | `Rating` | Orders a sequence of strings or `WithBriefing` items by a natural-language requirement or by computed composite scores. |
 | `RatingImage` | `Rating` | Rates an attached image against criteria via a vision-capable LLM. Routes to the `VISION` variant slot by default; reuses the bounded-score model builder. |
+| `Compact` | `Propose` | Compacts raw text to at most a target length in characters, words, or sentences (`LengthType`). Re-validates the LLM output against the bound, retrying up to three times. |
 | `ProposeTask` | `Propose` | Proposes a `Task` object from a natural-language prompt. |
 | `DispatchTask` | `UseLLM` | Dispatches a `Task` to the best-matching candidate `Role` based on briefing text and event subscriptions. |
 
@@ -105,6 +107,7 @@ extract_criteria_from_reasons_template = "built-in/extract_criteria_from_reasons
 draft_rating_weights_klee_template = "built-in/draft_rating_weights_klee"
 order_string_template = "built-in/order_string"
 order_briefed_template = "built-in/order_briefed"
+compact_template = "built-in/compact"
 ```
 
 | Option | Type | Default | Description |
@@ -121,6 +124,7 @@ order_briefed_template = "built-in/order_briefed"
 | `draft_rating_weights_klee_template` | `str` | `"built-in/draft_rating_weights_klee"` | The name of the draft rating weights klee template which will be used to draft rating weights with Klee method. |
 | `order_string_template` | `str` | `"built-in/order_string"` | The name of the order string template which will be used to order string. |
 | `order_briefed_template` | `str` | `"built-in/order_briefed"` | The name of the order briefed template which will be used to order briefed. |
+| `compact_template` | `str` | `"built-in/compact"` | The name of the compact template which will be used to compact raw text to a target length. |
 
 
 ## Usage
@@ -156,6 +160,27 @@ agent = MyAgent()
 manual = await agent.draft_rating_manual("essay quality", {"clarity", "argument"})
 scores = await agent.rate("The essay is well-structured.", manual, (0.0, 10.0))
 ```
+
+### Text Compaction
+
+```python
+from fabricatio_capabilities.capabilities.compact import Compact, LengthType
+
+class MyAgent(Compact, YourBaseAgent):
+    ...
+
+agent = MyAgent()
+compacted = await agent.compact(
+    raw,
+    requirement="keep the key facts and the formal tone",
+    target_length=200,
+    length_type=LengthType.Chars,  # Chars (default), Words, or Sentences
+)
+```
+
+The output is validated to be at most `target_length` units (measured after
+stripping); oversized LLM responses are retried and, after three failed
+attempts, the method returns `None`.
 
 ### Sequence Ordering
 
