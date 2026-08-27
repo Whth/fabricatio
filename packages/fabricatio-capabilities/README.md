@@ -62,7 +62,7 @@ fabricatio_capabilities/
 | `Rating` | `Propose` | Fine-grained rating against a manual and score range. Can draft rating manuals, criteria, and weights (Klee method AHP). Computes composite scores and picks best-*k* candidates. |
 | `Ordering` | `Rating` | Orders a sequence of strings or `WithBriefing` items by a natural-language requirement or by computed composite scores. |
 | `RatingImage` | `Rating` | Rates an attached image against criteria via a vision-capable LLM. Routes to the `VISION` variant slot by default; reuses the bounded-score model builder. |
-| `Compact` | `Propose` | Compacts raw text to at most a target length in characters, words, or sentences (`LengthType`). Re-validates the LLM output against the bound, retrying up to three times. |
+| `Compact` | `Propose` | Compacts raw text to at most a target length in characters, words, or sentences (`LengthType`). `compact` re-validates the LLM output against the bound (up to three retries); `force_compact` iteratively re-compacts the output until the bound is met. |
 | `ProposeTask` | `Propose` | Proposes a `Task` object from a natural-language prompt. |
 | `DispatchTask` | `UseLLM` | Dispatches a `Task` to the best-matching candidate `Role` based on briefing text and event subscriptions. |
 
@@ -181,6 +181,20 @@ compacted = await agent.compact(
 The output is validated to be at most `target_length` units (measured after
 stripping); oversized LLM responses are retried and, after three failed
 attempts, the method returns `None`.
+
+When a single pass keeps missing the bound, `force_compact` feeds each
+oversized output back as the input of the next pass until the bound is met
+(`max_iterations=5` by default); if the bound stays unreachable it returns the
+shortest attempt:
+
+```python
+compacted = await agent.force_compact(
+    raw,
+    requirement="keep the key facts and the formal tone",
+    target_length=200,
+    max_iterations=5,
+)
+```
 
 ### Sequence Ordering
 

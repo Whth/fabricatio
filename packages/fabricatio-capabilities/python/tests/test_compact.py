@@ -103,9 +103,22 @@ async def test_compact_measures_words(role: CompactTestRole) -> None:
 
 
 @pytest.mark.asyncio
+async def test_compact_measures_sentences(role: CompactTestRole) -> None:
+    """The Sentences unit counts sentence-ending punctuation."""
+    with install_router_usage("First sentence. Second sentence!"):
+        result = await role.compact(
+            "A much longer piece of raw text that needs shortening.",
+            "keep the main idea",
+            target_length=2,
+            length_type=LengthType.Sentences,
+        )
+    assert result == "First sentence. Second sentence!"
+
+
+@pytest.mark.asyncio
 async def test_compact_embeds_raw_text_in_prompt(role: CompactTestRole, mocker: "pytest_mock.MockerFixture") -> None:
     """The raw text, requirement, and length bound reach the rendered prompt."""
-    spy = mocker.patch.object(Compact, "aask_validate", autospec=True)
+    spy = mocker.patch.object(Compact, "aask", autospec=True)
     spy.return_value = "ok"
 
     result = await role.compact(
@@ -120,3 +133,42 @@ async def test_compact_embeds_raw_text_in_prompt(role: CompactTestRole, mocker: 
     assert "RAW TEXT TO COMPACT" in question
     assert "keep the main idea" in question
     assert "10 words" in question
+
+
+@pytest.mark.asyncio
+async def test_force_compact_returns_when_bound_met_first_pass(role: CompactTestRole) -> None:
+    """A within-bound first response is returned after a single pass."""
+    with install_router_usage("ok text"):
+        result = await role.force_compact("RAW SOURCE", "keep it", target_length=10)
+    assert result == "ok text"
+
+
+@pytest.mark.asyncio
+async def test_force_compact_recompacts_until_within_bound(
+    role: CompactTestRole, mocker: "pytest_mock.MockerFixture"
+) -> None:
+    """An oversized output is fed back as the input of the next pass."""
+    spy = mocker.patch.object(Compact, "aask", autospec=True)
+    spy.side_effect = ["way too long content here", "ok text"]
+
+    result = await role.force_compact("RAW SOURCE", "keep it", target_length=10)
+
+    assert result == "ok text"
+    questions = [call.kwargs["question"] for call in spy.call_args_list]
+    assert len(questions) == 2
+    assert "RAW SOURCE" in questions[0]
+    assert "way too long content here" in questions[1]
+
+
+@pytest.mark.asyncio
+async def test_force_compact_returns_shortest_when_bound_unreachable(role: CompactTestRole) -> None:
+    """The shortest attempt is returned when the bound stays unreachable."""
+    with install_router_usage("twenty chars long text!", "still too long!!", "over bound!"):
+        result = await role.force_compact(
+            "RAW SOURCE",
+            "keep it",
+            target_length=5,
+            max_iterations=3,
+        )
+    assert result == "over bound!"
+    assert len(result) > 5
