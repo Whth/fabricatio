@@ -1,39 +1,45 @@
-"""Minimal fabricatio-comfyui example against a local ComfyUI server.
+"""Minimal fabricatio-comfyui example: one image via the class-based integration.
 
 Boot ComfyUI on 127.0.0.1:8188 (the default), then run:
 
     uv run --no-sync python examples/comfyui/single_image.py
 
-The bundled template's default checkpoint is not installed on every
-server, so we pick one from the local ``models/checkpoints`` list via
-``Workflow.with_checkpoint`` (list yours with ``GET /object_info``).
+Image generation runs through the ``GenerateImage`` action composed into a
+``WorkFlow`` behind a ``Role`` — the same class you use inside larger
+pipelines.  The workflow graph itself is internal to the package; you only
+ever supply high-level knobs (prompt, negative_prompt, checkpoint, ...) on
+the action.
 """
 
-import asyncio
+from fabricatio import Event, Role, Task, WorkFlow
+from fabricatio_comfyui import GenerateImage
+from fabricatio_comfyui.models import ExecutionResult
+from fabricatio_core.utils import ok
 
-from fabricatio_comfyui import ComfyuiHTTPClient, Workflow
-
-# Any checkpoint installed on your server (see /object_info)
+# Any checkpoint installed on your server (see GET /object_info)
 CHECKPOINT = "pasanctuarySDXL_v50.safetensors"
 
-
-async def main() -> None:
-    """Queue a single SDXL image generation and download the result."""
-    wf = (
-        Workflow.default()
-        .with_checkpoint(CHECKPOINT)
-        .with_positive_prompt("masterpiece, best quality, a calm mountain landscape at sunrise")
-        .with_negative_prompt("worst quality, blurry")
+(
+    Role.with_bio(name="painter", description="generates images via ComfyUI")
+    .subscribe(
+        Event.quick_instantiate(ns := "draw"),
+        WorkFlow(
+            name="ComfyUI single image",
+            steps=(
+                GenerateImage(
+                    prompt="masterpiece, best quality, a calm mountain landscape at sunrise",
+                    negative_prompt="worst quality, blurry",
+                    checkpoint=CHECKPOINT,
+                    download_dir="./outputs",
+                ).to_task_output(),
+            ),
+        ),
     )
+    .dispatch()
+)
 
-    async with ComfyuiHTTPClient.create() as client:
-        resp = await client.queue_prompt(wf)
-        result = await client.wait_for_completion(resp.prompt_id)
-        if not result.succeeded:
-            raise SystemExit(f"generation failed: {result.error}")
-        await client.download_images(result, "./outputs")
-        for _img in result.all_images:
-            pass
-
-
-asyncio.run(main())
+result: ExecutionResult = ok(Task(name="draw a mountain").delegate_blocking(ns))
+if not result.succeeded:
+    raise SystemExit(f"generation failed: {result.error}")
+for img in result.all_images:
+    print(img.filename)  # noqa: T201
