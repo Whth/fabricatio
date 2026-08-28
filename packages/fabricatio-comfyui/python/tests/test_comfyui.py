@@ -2,28 +2,36 @@
 
 import json
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import cast
 from unittest.mock import patch
 
 import pytest
-from fabricatio_comfyui.capabilities.comfyui import Comfyui
+from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.http_client import ComfyuiHTTPClient
+from fabricatio_comfyui.http_client import ComfyUIHttpClient
 from fabricatio_comfyui.models.comfyui import (
-    ComfyuiExecutionResult,
-    ComfyuiOutputImage,
+    ExecutionResult,
     HistoryEntry,
+    OutputImage,
     PromptResponse,
     QueueInfo,
     UploadResponse,
 )
-from fabricatio_comfyui.models.workflow import (
-    RESOLUTION_SELECTOR_ASPECT_RATIOS,
-    FrameAspect,
-    Node,
-    NodeRef,
-    Workflow,
-)
+from fabricatio_comfyui.models.graph import Graph, NodeRef
+from pydantic import ValidationError
+
+GRAPH_JSON = Path(__file__).resolve().parents[1] / "fabricatio_comfyui" / "graphs" / "default.json"
+
+
+def _bundled_raw() -> dict[str, object]:
+    """Load the bundled graph JSON as a raw dict."""
+    raw = json.loads(GRAPH_JSON.read_text(encoding="utf-8"))
+    return cast("dict[str, object]", raw)
+
+
+def _node_payload(raw: dict[str, object], node_id: str) -> dict[str, object]:
+    """Narrow the raw API-format graph to one node's mutable payload."""
+    return cast("dict[str, object]", raw[node_id])
 
 
 class TestFactories:
@@ -31,402 +39,131 @@ class TestFactories:
 
     def test_with_comfyui_client_injects(self) -> None:
         """with_comfyui_client binds a pre-built client without manual __init__."""
-        client = ComfyuiHTTPClient.create(None)
-        role = Comfyui.with_comfyui_client(client)
+        client = ComfyUIHttpClient.create(None)
+        role = UseComfyUI.with_comfyui_client(client)
         assert role.comfyui_client is client
 
     def test_default_client_is_lazy(self) -> None:
         """Plain construction leaves the client unset until first access."""
-        role = Comfyui()
+        role = UseComfyUI()
         assert role._comfyui_client is None
-        assert isinstance(role.comfyui_client, ComfyuiHTTPClient)
 
-    def test_from_template_default(self) -> None:
-        """from_template loads the bundled default template."""
-        wf = Workflow.from_template("default")
-        assert len(wf.node_map) > 0
-
-    def test_from_template_missing(self) -> None:
-        """from_template raises FileNotFoundError for unknown template names."""
-        with pytest.raises(FileNotFoundError):
-            Workflow.from_template("no-such-template")
+    def test_bundled_loads_default_json(self) -> None:
+        """bundled() parses the bundled default graph template."""
+        graph = Graph.bundled()
+        assert len(graph.to_api()) > 0
 
 
 # ======================================================================
-# Workflow tests
+# Graph tests — the typed deserializer of the bundled workflow JSON
 # ======================================================================
 
 
-class TestWorkflow:
-    """Workflow and Node unit tests."""
+class TestGraph:
+    """Graph models the bundled graphs/default.json exactly."""
 
-    DEMO_JSON: ClassVar[dict[str, Any]] = {
-        "42": {
-            "inputs": {"ckpt_name": "catTowerNoobaiXL_v15Vpred.safetensors"},
-            "class_type": "CheckpointLoaderSimple",
-            "_meta": {"title": "Load Checkpoint"},
-        },
-        "46": {
-            "inputs": {"vae_name": "sdxl_vae.safetensors"},
-            "class_type": "VAELoader",
-            "_meta": {"title": "Load VAE"},
-        },
-        "49": {
-            "inputs": {"width": ["79", 0], "height": ["79", 1], "batch_size": 1},
-            "class_type": "EmptyLatentImage",
-            "_meta": {"title": "Empty Latent Image"},
-        },
-        "50": {
-            "inputs": {"text": "positive prompt", "clip": ["65", 1]},
-            "class_type": "CLIPTextEncode",
-            "_meta": {"title": "CLIP Text Encode (Prompt)"},
-        },
-        "51": {
-            "inputs": {"text": "negative prompt", "clip": ["65", 1]},
-            "class_type": "CLIPTextEncode",
-            "_meta": {"title": "CLIP Text Encode (Prompt)"},
-        },
-        "79": {
-            "inputs": {"aspect_ratio": "9:16", "megapixels": 1},
-            "class_type": "ResolutionSelector",
-            "_meta": {"title": "Resolution Selector"},
-        },
-        "85": {
-            "inputs": {
-                "add_noise": "enable",
-                "noise_seed": 123456,
-                "steps": 25,
-                "cfg": 8,
-                "sampler_name": "euler",
-                "scheduler": "simple",
-                "start_at_step": 0,
-                "end_at_step": 999,
-                "return_with_leftover_noise": "disable",
-                "model": ["65", 0],
-                "positive": ["50", 0],
-                "negative": ["51", 0],
-                "latent_image": ["49", 0],
-            },
-            "class_type": "KSamplerAdvanced",
-            "_meta": {"title": "KSampler (Advanced)"},
-        },
-    }
+    def test_bundled_round_trips_json(self) -> None:
+        """bundled() parses the bundled JSON and serializes back equal."""
+        assert Graph.bundled().to_api() == _bundled_raw()
 
-    def test_from_raw_preserves_structure(self) -> None:
-        """from_raw round-trips the demo JSON exactly."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        assert wf.to_api() == self.DEMO_JSON
+    def test_typed_node_access(self) -> None:
+        """Nodes are reachable through typed fields, not lookups."""
+        graph = Graph.bundled()
+        assert graph.loader.class_type == "CheckpointLoaderSimple"
+        assert graph.loader.inputs.ckpt_name == "catTowerNoobaiXL_v15Vpred.safetensors"
+        assert graph.latent.inputs.width == 768
+        assert graph.latent.inputs.height == 512
+        assert graph.latent.inputs.batch_size == 1
+        assert graph.positive.class_type == "CLIPTextEncode"
+        assert graph.negative.class_type == "CLIPTextEncode"
+        assert graph.preview.inputs.images.node_id == "15"
+        assert graph.sampler_base.class_type == "KSamplerAdvanced"
+        assert graph.sampler_refine.class_type == "KSamplerAdvanced"
 
-    def test_from_raw_preserves_node_ids(self) -> None:
-        """from_raw keeps original node IDs."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        assert wf.node_ids == ["42", "46", "49", "50", "51", "79", "85"]
+    def test_node_ref_round_trip(self) -> None:
+        """NodeRef parses the API list form and serializes back to it."""
+        ref = NodeRef.model_validate(["4", 1])
+        assert ref.node_id == "4"
+        assert ref.output_index == 1
+        assert ref.model_dump() == ["4", 1]
 
-    def test_from_raw_preserves_node_references(self) -> None:
-        """from_raw preserves [node_id, output_index] references in inputs."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        node = wf.get("49")
-        assert node.inputs["width"] == ["79", 0]
-        assert node.inputs["height"] == ["79", 1]
-
-    def test_from_raw_preserves_title(self) -> None:
-        """from_raw preserves _meta.title as Node.title."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        assert wf.get("42").title == "Load Checkpoint"
-
-    def test_from_file(self, tmp_path: Path) -> None:
-        """from_file loads from a .json file."""
-        p = tmp_path / "test.json"
-        p.write_text(json.dumps(self.DEMO_JSON), encoding="utf-8")
-        wf = Workflow.from_file(p)
-        assert wf.to_api() == self.DEMO_JSON
-
-    def test_default(self) -> None:
-        """default() loads the bundled demo workflow."""
-        wf = Workflow.default()
-        assert len(wf.nodes) > 0
-        assert wf.to_api() is not None
-
-    def test_add(self) -> None:
-        """Add creates a node with auto-incremented ID."""
-        wf = Workflow.new()
-        n1 = wf.add("KSampler", title="Sampler", inputs={"seed": 42})
-        n2 = wf.add("VAEDecode")
-        assert n1.id == "1"
-        assert n2.id == "2"
-        assert len(wf.nodes) == 2
-
-    def test_add_to_loaded_workflow(self) -> None:
-        """Add on a loaded workflow uses the next available ID."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        new_node = wf.add("SaveImage")
-        assert new_node.id == "86"  # max existing is 85
-
-    def test_get(self) -> None:
-        """Get returns the correct node."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        node = wf.get("42")
-        assert node.type == "CheckpointLoaderSimple"
-
-    def test_get_missing(self) -> None:
-        """Get raises KeyError for missing node."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        with pytest.raises(KeyError):
-            wf.get("999")
-
-    def test_by_type(self) -> None:
-        """by_type finds all nodes of a given type."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        clip_nodes = wf.by_type("CLIPTextEncode")
-        assert len(clip_nodes) == 2
-        assert clip_nodes[0].id == "50"
-        assert clip_nodes[1].id == "51"
-
-    def test_remove(self) -> None:
-        """Remove removes the node and disconnects references."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.remove("79")  # ResolutionSelector
-        assert "79" not in wf.node_ids
-        # Node 49 had references to 79 — those should be gone
-        node_49 = wf.get("49")
-        assert "width" not in node_49.inputs
-        assert "height" not in node_49.inputs
+    def test_node_ref_rejects_short_list(self) -> None:
+        """A node reference without an output index is invalid."""
+        with pytest.raises(ValidationError):
+            NodeRef.model_validate(["5"])
 
     def test_with_checkpoint(self) -> None:
-        """with_checkpoint updates the checkpoint name."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_checkpoint("new_model.safetensors")
-        assert wf.get("42").inputs["ckpt_name"] == "new_model.safetensors"
+        """with_checkpoint updates the loader's ckpt_name."""
+        graph = Graph.bundled().with_checkpoint("model_v2.safetensors")
+        assert graph.loader.inputs.ckpt_name == "model_v2.safetensors"
 
-    def test_with_checkpoint_specific_node(self) -> None:
-        """with_checkpoint with node_id targets a specific node."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_checkpoint("model_v2.safetensors", node_id="42")
-        assert wf.get("42").inputs["ckpt_name"] == "model_v2.safetensors"
-
-    def test_with_checkpoint_missing(self) -> None:
-        """with_checkpoint raises if no matching node exists."""
-        wf = Workflow.new()
-        with pytest.raises(KeyError, match="No node with type"):
-            wf.with_checkpoint("model.safetensors")
-
-    def test_with_positive_prompt(self) -> None:
-        """with_positive_prompt updates the first CLIPTextEncode node."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_positive_prompt("a beautiful landscape")
-        assert wf.get("50").inputs["text"] == "a beautiful landscape"
-
-    def test_with_negative_prompt(self) -> None:
-        """with_negative_prompt updates the second CLIPTextEncode node."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_negative_prompt("bad quality, blurry")
-        assert wf.get("51").inputs["text"] == "bad quality, blurry"
-
-    def test_builders_chain(self) -> None:
-        """with_* builders return *self*, so calls chain Rust-builder style."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        result = wf.with_positive_prompt("chained").with_sampler(seed=1).with_resolution(width=64, height=64)
-        assert result is wf
-        assert wf.get("50").inputs["text"] == "chained"
-        assert wf.get("85").inputs["noise_seed"] == 1
-
-    def test_with_sampler_ksampler_advanced(self) -> None:
-        """with_sampler updates KSamplerAdvanced parameters."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_sampler(seed=999, steps=30, cfg=7.5, sampler_name="ddim")
-        node = wf.get("85")
-        assert node.inputs["noise_seed"] == 999
-        assert node.inputs["steps"] == 30
-        assert node.inputs["cfg"] == 7.5
-        assert node.inputs["sampler_name"] == "ddim"
-
-    def test_with_sampler_partial_update(self) -> None:
-        """with_sampler only updates provided parameters."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        original_steps = wf.get("85").inputs["steps"]
-        wf.with_sampler(cfg=12.0)
-        assert wf.get("85").inputs["cfg"] == 12.0
-        assert wf.get("85").inputs["steps"] == original_steps
+    def test_with_prompts(self) -> None:
+        """with_positive_prompt / with_negative_prompt set the typed nodes."""
+        graph = Graph.bundled().with_positive_prompt("a landscape").with_negative_prompt("blurry")
+        assert graph.positive.inputs.text == "a landscape"
+        assert graph.negative.inputs.text == "blurry"
 
     def test_with_resolution(self) -> None:
-        """with_resolution updates EmptyLatentImage dimensions."""
-        wf = Workflow.new()
-        wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
-        wf.with_resolution(width=1024, height=768)
-        node = wf.by_type("EmptyLatentImage")[0]
-        assert node.inputs["width"] == 1024
-        assert node.inputs["height"] == 768
+        """with_resolution updates the latent canvas dimensions."""
+        graph = Graph.bundled().with_resolution(width=1024, height=768)
+        assert graph.latent.inputs.width == 1024
+        assert graph.latent.inputs.height == 768
 
-    def test_with_aspect_ratio_updates_selector(self) -> None:
-        """with_aspect_ratio updates ResolutionSelector inputs."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_aspect_ratio(aspect_ratio="16:9 (Widescreen)", megapixels=2.0, multiple=16)
-        node = wf.get("79")
-        assert node.inputs["aspect_ratio"] == "16:9 (Widescreen)"
-        assert node.inputs["megapixels"] == 2.0
-        assert node.inputs["multiple"] == 16
-        # EmptyLatentImage node refs to ResolutionSelector must be preserved
-        assert wf.get("49").inputs["width"] == ["79", 0]
-        assert wf.get("49").inputs["height"] == ["79", 1]
+    def test_with_resolution_partial(self) -> None:
+        """with_resolution only updates the provided dimension."""
+        graph = Graph.bundled().with_resolution(height=640)
+        assert graph.latent.inputs.width == 768  # unchanged
+        assert graph.latent.inputs.height == 640
 
-    def test_with_aspect_ratio_partial(self) -> None:
-        """with_aspect_ratio only updates provided parameters."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        original_megapixels = wf.get("79").inputs["megapixels"]
-        wf.with_aspect_ratio(aspect_ratio="1:1 (Square)")
-        node = wf.get("79")
-        assert node.inputs["aspect_ratio"] == "1:1 (Square)"
-        assert node.inputs["megapixels"] == original_megapixels
-        assert "multiple" not in node.inputs
+    def test_with_sampler_updates_both_stages(self) -> None:
+        """with_sampler aligns the base and refine samplers."""
+        graph = Graph.bundled().with_sampler(seed=999, steps=30, cfg=7.5)
+        for sampler in (graph.sampler_base, graph.sampler_refine):
+            assert sampler.inputs.noise_seed == 999
+            assert sampler.inputs.steps == 30
+            assert sampler.inputs.cfg == 7.5
 
-    def test_with_aspect_ratio_by_node_id(self) -> None:
-        """with_aspect_ratio with explicit node_id."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        wf.with_aspect_ratio(aspect_ratio="3:2 (Photo)", node_id="79")
-        assert wf.get("79").inputs["aspect_ratio"] == "3:2 (Photo)"
+    def test_with_sampler_partial(self) -> None:
+        """with_sampler only updates the provided parameters."""
+        graph = Graph.bundled()
+        original_steps = graph.sampler_base.inputs.steps
+        graph.with_sampler(cfg=12.0)
+        assert graph.sampler_base.inputs.cfg == 12.0
+        assert graph.sampler_base.inputs.steps == original_steps
 
-    def test_with_aspect_ratio_wrong_type_raises(self) -> None:
-        """with_aspect_ratio with node_id that is not a ResolutionSelector."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        with pytest.raises(KeyError, match="not ResolutionSelector"):
-            wf.with_aspect_ratio(aspect_ratio="1:1 (Square)", node_id="42")
+    def test_mutators_chain(self) -> None:
+        """with_* builders return self, so calls chain."""
+        graph = Graph.bundled()
+        result = graph.with_checkpoint("x.safetensors").with_positive_prompt("chained")
+        assert result is graph
 
-    def test_with_aspect_ratio_missing_raises(self) -> None:
-        """with_aspect_ratio raises KeyError when no ResolutionSelector exists."""
-        wf = Workflow.new()
-        wf.add("EmptyLatentImage", inputs={"width": 512, "height": 512, "batch_size": 1})
-        with pytest.raises(KeyError, match="No ResolutionSelector"):
-            wf.with_aspect_ratio(aspect_ratio="1:1 (Square)")
+    def test_unknown_input_key_rejected(self) -> None:
+        """A node input outside the known shape fails loudly at load."""
+        raw = _bundled_raw()
+        _node_payload(raw, "4").setdefault("inputs", {})["bogus_knob"] = 1
+        with pytest.raises(ValidationError):
+            Graph.model_validate(raw)
 
-    def test_with_aspect_ratio_invalid_raises(self) -> None:
-        """with_aspect_ratio rejects aspect_ratio values outside the live server's enum."""
-        from fabricatio_comfyui.models.workflow import RESOLUTION_SELECTOR_ASPECT_RATIOS
+    def test_wrong_class_type_rejected(self) -> None:
+        """A class_type outside the literal union fails loudly at load."""
+        raw = _bundled_raw()
+        _node_payload(raw, "4")["class_type"] = "KSampler"
+        with pytest.raises(ValidationError):
+            Graph.model_validate(raw)
 
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        with pytest.raises(ValueError, match="Invalid aspect_ratio"):
-            wf.with_aspect_ratio(aspect_ratio="bogus")
-        # Sanity: the constant matches the live server's enum of 8 values.
-        assert "16:9 (Widescreen)" in RESOLUTION_SELECTOR_ASPECT_RATIOS
-        assert len(RESOLUTION_SELECTOR_ASPECT_RATIOS) == 8
+    def test_missing_node_rejected(self) -> None:
+        """A missing node id fails loudly at load."""
+        raw = _bundled_raw()
+        del raw["26"]
+        with pytest.raises(ValidationError):
+            Graph.model_validate(raw)
 
-    def test_node_connect(self) -> None:
-        """Node.connect wires inputs to source node outputs."""
-        wf = Workflow.new()
-        src = wf.add("CheckpointLoaderSimple")
-        dst = wf.add("CLIPTextEncode")
-        dst.connect("clip", src, output_index=1)
-        assert dst.inputs["clip"] == [src.id, 1]
-
-    def test_node_get_ref(self) -> None:
-        """Node.get_ref returns the NodeRef."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        node = wf.get("49")
-        ref = node.get_ref("width")
-        assert ref is not None
-        assert ref.node_id == "79"
-        assert ref.output_index == 0
-
-    def test_node_get_ref_literal(self) -> None:
-        """Node.get_ref returns None for literal inputs."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        node = wf.get("49")
-        assert node.get_ref("batch_size") is None
-
-    def test_node_to_api(self) -> None:
-        """Node.to_api serializes to ComfyUI API format."""
-        node = Node(id="1", type="KSampler", inputs={"seed": 42, "model": ["2", 0]}, title="Sampler")
-        d = node.to_api()
-        assert d == {
-            "inputs": {"seed": 42, "model": ["2", 0]},
-            "class_type": "KSampler",
-            "_meta": {"title": "Sampler"},
-        }
-
-    def test_node_to_api_no_title(self) -> None:
-        """Node.to_api omits _meta when title is empty."""
-        node = Node(id="1", type="VAEDecode")
-        d = node.to_api()
-        assert "_meta" not in d
-
-    def test_repr(self) -> None:
-        """Repr includes node ID and type."""
-        node = Node(id="42", type="CheckpointLoaderSimple", title="Load Checkpoint")
-        assert "42" in repr(node)
-        assert "CheckpointLoaderSimple" in repr(node)
-        assert "Load Checkpoint" in repr(node)
-
-    def test_workflow_repr(self) -> None:
-        """Workflow repr includes node count."""
-        wf = Workflow.from_raw(self.DEMO_JSON)
-        assert "7 nodes" in repr(wf)
-
-
-# ======================================================================
-# FrameAspect tests (moved from fabricatio-novel)
-# ======================================================================
-
-
-class TestFrameAspect:
-    """Tests for the FrameAspect StrEnum — values must match ComfyUI tokens."""
-
-    def test_all_values_verbatim(self) -> None:
-        """Each FrameAspect value is the exact ComfyUI ResolutionSelector token."""
-        assert FrameAspect.SQUARE.value == "1:1 (Square)"
-        assert FrameAspect.PHOTO.value == "3:2 (Photo)"
-        assert FrameAspect.PORTRAIT_PHOTO.value == "2:3 (Portrait Photo)"
-        assert FrameAspect.PORTRAIT_STANDARD.value == "3:4 (Portrait Standard)"
-        assert FrameAspect.STANDARD.value == "4:3 (Standard)"
-        assert FrameAspect.WIDESCREEN_PORTRAIT.value == "9:16 (Portrait Widescreen)"
-        assert FrameAspect.WIDESCREEN.value == "16:9 (Widescreen)"
-        assert FrameAspect.ULTRAWIDE.value == "21:9 (Ultrawide)"
-
-    def test_ratio_method(self) -> None:
-        """Each FrameAspect exposes a numeric (w, h) ratio for the literal-dimension fallback."""
-        assert FrameAspect.SQUARE.ratio == (1, 1)
-        assert FrameAspect.PHOTO.ratio == (3, 2)
-        assert FrameAspect.PORTRAIT_PHOTO.ratio == (2, 3)
-        assert FrameAspect.PORTRAIT_STANDARD.ratio == (3, 4)
-        assert FrameAspect.STANDARD.ratio == (4, 3)
-        assert FrameAspect.WIDESCREEN_PORTRAIT.ratio == (9, 16)
-        assert FrameAspect.WIDESCREEN.ratio == (16, 9)
-        assert FrameAspect.ULTRAWIDE.ratio == (21, 9)
-
-    def test_member_count(self) -> None:
-        """Exactly 8 ComfyUI tokens exposed."""
-        assert len(FrameAspect) == 8
-
-    def test_matches_resolution_selector_enum(self) -> None:
-        """FrameAspect values exactly match RESOLUTION_SELECTOR_ASPECT_RATIOS."""
-        enum_values = {m.value for m in FrameAspect}
-        server_values = set(RESOLUTION_SELECTOR_ASPECT_RATIOS)
-        assert enum_values == server_values, (
-            f"FrameAspect mismatch: missing {enum_values - server_values}, extra {server_values - enum_values}"
-        )
-
-
-class TestFrameAspectDimensions:
-    """Tests for enum-owned literal pixel dimension calculation."""
-
-    def test_widescreen_one_megapixel(self) -> None:
-        """1.0 MP at widescreen produces aligned dimensions near 1332x748."""
-        w, h = FrameAspect.WIDESCREEN.to_dimensions(1.0)
-        assert w % 8 == 0
-        assert h % 8 == 0
-        assert 1328 <= w <= 1340
-        assert 744 <= h <= 752
-
-    def test_square_two_megapixel(self) -> None:
-        """2.0 MP at square produces equal, aligned dimensions near 1416px."""
-        w, h = FrameAspect.SQUARE.to_dimensions(2.0)
-        assert w == h
-        assert w % 8 == 0
-        assert 1412 <= w <= 1420
-
-    def test_minimum_dim_floor(self) -> None:
-        """Very small megapixel targets still produce at least 64x64."""
-        w, h = FrameAspect.SQUARE.to_dimensions(0.001)
-        assert w >= 64
-        assert h >= 64
+    def test_unknown_node_id_rejected(self) -> None:
+        """An unexpected extra node id fails loudly at load."""
+        raw = _bundled_raw()
+        raw["999"] = {"class_type": "PreviewImage", "inputs": {"images": ["15", 0]}, "_meta": {"title": "x"}}
+        with pytest.raises(ValidationError):
+            Graph.model_validate(raw)
 
 
 # ======================================================================
@@ -437,30 +174,20 @@ class TestFrameAspectDimensions:
 class TestModels:
     """Model unit tests."""
 
-    def test_node_ref_to_api(self) -> None:
-        """Convert node reference to ComfyUI link list."""
-        ref = NodeRef(node_id="3", output_index=0)
-        assert ref.to_api() == ["3", 0]
-
-    def test_node_ref_default_index(self) -> None:
-        """Node reference defaults to output index 0."""
-        ref = NodeRef(node_id="5")
-        assert ref.output_index == 0
-
     def test_output_image_url_path(self) -> None:
         """Output image URL path encodes all fields."""
-        img = ComfyuiOutputImage(filename="test.png", subfolder="sub", type="output")
+        img = OutputImage(filename="test.png", subfolder="sub", type="output")
         assert "filename=test.png" in img.url_path
         assert "subfolder=sub" in img.url_path
         assert "type=output" in img.url_path
 
     def test_execution_result_all_images(self) -> None:
         """Flatten images from multiple output nodes."""
-        result = ComfyuiExecutionResult(
+        result = ExecutionResult(
             prompt_id="abc",
             outputs={
-                "9": [ComfyuiOutputImage(filename="img1.png"), ComfyuiOutputImage(filename="img2.png")],
-                "12": [ComfyuiOutputImage(filename="img3.png")],
+                "9": [OutputImage(filename="img1.png"), OutputImage(filename="img2.png")],
+                "12": [OutputImage(filename="img3.png")],
             },
             status="completed",
         )
@@ -469,24 +196,47 @@ class TestModels:
 
     def test_execution_result_succeeded_with_success_status(self) -> None:
         """ComfyUI returns status_str='success' (not 'completed') — succeeded must accept it."""
-        result = ComfyuiExecutionResult(
+        result = ExecutionResult(
             prompt_id="abc",
-            outputs={"9": [ComfyuiOutputImage(filename="img.png")]},
+            outputs={"9": [OutputImage(filename="img.png")]},
             status="success",
         )
         assert result.succeeded is True
 
     def test_execution_result_failed(self) -> None:
         """Failed result exposes error message."""
-        result = ComfyuiExecutionResult(prompt_id="abc", status="error", error="CUDA out of memory")
+        result = ExecutionResult(prompt_id="abc", status="error", error="CUDA out of memory")
         assert result.succeeded is False
         assert result.error == "CUDA out of memory"
 
     def test_execution_result_empty(self) -> None:
         """Empty result yields no images and not succeeded."""
-        result = ComfyuiExecutionResult(prompt_id="abc")
+        result = ExecutionResult(prompt_id="abc")
         assert result.all_images == []
         assert result.succeeded is False
+
+    def test_execution_result_from_history(self) -> None:
+        """from_history builds a result from a history entry."""
+        entry = HistoryEntry.from_raw(
+            {
+                "status": {"status_str": "completed", "completed": True},
+                "outputs": {"9": {"images": [{"filename": "img.png", "subfolder": "", "type": "output"}]}},
+            },
+        )
+        result = ExecutionResult.from_history("pid-1", entry)
+        assert result.prompt_id == "pid-1"
+        assert result.status == "completed"
+        assert result.error is None
+        assert [img.filename for img in result.all_images] == ["img.png"]
+
+    def test_execution_result_from_history_failed(self) -> None:
+        """from_history carries the exception message on failure."""
+        entry = HistoryEntry.from_raw(
+            {"status": {"status_str": "error", "completed": True, "exception": "CUDA OOM"}, "outputs": {}},
+        )
+        result = ExecutionResult.from_history("pid-1", entry)
+        assert result.succeeded is False
+        assert result.error == "CUDA OOM"
 
     def test_history_entry_from_raw(self) -> None:
         """Parse history entry from raw API response."""
@@ -513,6 +263,18 @@ class TestModels:
         entry = HistoryEntry.from_raw(raw)
         assert entry.status.status_str == "error"
         assert entry.status.exception == "CUDA OOM"
+
+    def test_history_entry_filters_empty_outputs(self) -> None:
+        """History entries without filenames are stripped from outputs."""
+        raw = {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {
+                "9": {"images": [{"filename": "img.png"}]},
+                "12": {"images": [{"filename": ""}]},
+            },
+        }
+        entry = HistoryEntry.from_raw(raw)
+        assert list(entry.outputs.keys()) == ["9"]
 
     def test_queue_info_from_raw(self) -> None:
         """Parse queue info with running and pending entries."""
@@ -553,10 +315,10 @@ class TestModels:
 
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
-    """End-to-end flow via the high-level capability: prompt -> queue -> poll -> download."""
-    client = ComfyuiHTTPClient.create(None)
+    """End-to-end flow via the high-level capability: generate -> poll -> download."""
+    client = ComfyUIHttpClient.create(None)
 
-    mock_history: dict[str, Any] = {
+    mock_history: dict[str, object] = {
         "mock-uuid-123": {
             "status": {"status_str": "completed", "completed": True},
             "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
@@ -570,7 +332,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
     ):
         mock_post.return_value = {"prompt_id": "mock-uuid-123", "number": 1}
 
-        async def get_side_effect(path: str, **kwargs: Any) -> Any:
+        async def get_side_effect(path: str, **kwargs: object) -> object:
             if path.startswith("/history/"):
                 return mock_history
             return {}
@@ -578,8 +340,8 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_get.side_effect = get_side_effect
         mock_img.return_value = b"fake-image-bytes"
 
-        role = Comfyui.with_comfyui_client(client)
-        result = await role.acomfyui_generate(
+        role = UseComfyUI.with_comfyui_client(client)
+        result = await role.generate_image(
             prompt="a mountain landscape",
             download_dir=tmp_path,
             seed=42,
@@ -594,38 +356,92 @@ async def test_generate_flow(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_accepts_workflow() -> None:
-    """queue_prompt accepts a Workflow and converts it to dict."""
-    wf = Workflow.from_raw({"3": {"class_type": "KSampler", "inputs": {"seed": 42}, "_meta": {"title": "Sampler"}}})
+async def test_generate_applies_knobs_to_bundled_graph() -> None:
+    """Generate builds the bundled graph internally and applies every knob."""
+    client = ComfyUIHttpClient.create(None)
 
-    client = ComfyuiHTTPClient.create(None)
+    captured: dict[str, object] = {}
 
-    with patch.object(client, "_post") as mock_post:
-        mock_post.return_value = {"prompt_id": "pid-1", "number": 1}
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured["path"] = path
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
 
-        await client.queue_prompt(wf)
-        call_json = mock_post.call_args.kwargs["json_data"]
-        assert call_json["prompt"]["3"]["class_type"] == "KSampler"
+    completed: dict[str, object] = {
+        "pid-1": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {},
+        },
+    }
+
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate(
+            prompt="a cat",
+            negative_prompt="ugly",
+            width=640,
+            height=640,
+            seed=42,
+            steps=20,
+            cfg=7.0,
+            checkpoint="custom.safetensors",
+            front=True,
+        )
+
+    assert captured["path"] == "/prompt"
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["4"])["inputs"]["ckpt_name"] == "custom.safetensors"
+    assert cast("dict[str, object]", prompt["7"])["inputs"]["text"] == "a cat"
+    assert cast("dict[str, object]", prompt["8"])["inputs"]["text"] == "ugly"
+    assert cast("dict[str, object]", prompt["6"])["inputs"]["width"] == 640
+    assert cast("dict[str, object]", prompt["6"])["inputs"]["height"] == 640
+    assert cast("dict[str, object]", prompt["25"])["inputs"]["noise_seed"] == 42
+    assert cast("dict[str, object]", prompt["25"])["inputs"]["steps"] == 20
+    assert cast("dict[str, object]", prompt["25"])["inputs"]["cfg"] == 7.0
+    assert captured["front"] is True
+    assert captured["client_id"] == client.client_id
+
+
+@pytest.mark.asyncio
+async def test_generate_returns_typed_result() -> None:
+    """Generate returns an ExecutionResult, not a raw dict."""
+    client = ComfyUIHttpClient.create(None)
+    mock_history: dict[str, object] = {
+        "pid-1": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "out.png", "subfolder": "", "type": "output"}]}},
+        },
+    }
+    with (
+        patch.object(client, "_post", return_value={"prompt_id": "pid-1", "number": 1}),
+        patch.object(client, "_get", return_value=mock_history),
+    ):
+        result = await client.generate("hi")
+        assert isinstance(result, ExecutionResult)
+        assert result.prompt_id == "pid-1"
+        assert result.succeeded is True
 
 
 @pytest.mark.asyncio
 async def test_generate_timeout() -> None:
     """Verify timeout raises when polling fails to complete."""
-    client = ComfyuiHTTPClient.create(None)
-    role = Comfyui.with_comfyui_client(client)
+    client = ComfyUIHttpClient.create(None)
+    role = UseComfyUI.with_comfyui_client(client)
 
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
         patch.object(client, "_get", return_value={}),
         pytest.raises(TimeoutError),
     ):
-        await role.acomfyui_generate(prompt="anything", timeout=0.2)
+        await role.generate_image(prompt="anything", timeout=0.2)
 
 
 @pytest.mark.asyncio
 async def test_upload_image(tmp_path: Path) -> None:
     """Upload a local image file and verify the typed response."""
-    client = ComfyuiHTTPClient.create(None)
+    client = ComfyUIHttpClient.create(None)
 
     with patch.object(client, "_upload") as mock_upload:
         mock_upload.return_value = {"name": "test.png", "subfolder": "input"}
@@ -640,35 +456,9 @@ async def test_upload_image(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_queue_returns_typed() -> None:
-    """queue_prompt returns a PromptResponse, not a raw dict."""
-    client = ComfyuiHTTPClient.create(None)
-    wf = Workflow.from_raw({"1": {"class_type": "VAELoader", "inputs": {}}})
-
-    with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 3, "node_errors": {}}):
-        resp = await client.queue_prompt(wf)
-        assert isinstance(resp, PromptResponse)
-        assert resp.prompt_id == "abc"
-
-
-@pytest.mark.asyncio
-async def test_queue_accepts_workflow() -> None:
-    """queue_prompt accepts a Workflow and auto-injects client_id."""
-    client = ComfyuiHTTPClient.create(None)
-    wf = Workflow.from_raw({"1": {"class_type": "VAELoader", "inputs": {}}})
-
-    with patch.object(client, "_post", return_value={"prompt_id": "abc", "number": 1}) as mock_post:
-        await client.queue_prompt(wf, front=True)
-        call_json = mock_post.call_args.kwargs["json_data"]
-        assert call_json["prompt"] == {"1": {"class_type": "VAELoader", "inputs": {}}}
-        assert call_json["client_id"] == client.client_id
-        assert call_json["front"] is True
-
-
-@pytest.mark.asyncio
 async def test_get_history_returns_typed() -> None:
     """get_history returns a HistoryEntry for a known prompt id."""
-    client = ComfyuiHTTPClient.create(None)
+    client = ComfyUIHttpClient.create(None)
 
     raw = {
         "pid-1": {
@@ -685,7 +475,7 @@ async def test_get_history_returns_typed() -> None:
 @pytest.mark.asyncio
 async def test_get_history_missing() -> None:
     """get_history returns None for a nonexistent prompt id."""
-    client = ComfyuiHTTPClient.create(None)
+    client = ComfyUIHttpClient.create(None)
 
     with patch.object(client, "_get", return_value={}):
         entry = await client.get_history("nonexistent")
@@ -695,7 +485,7 @@ async def test_get_history_missing() -> None:
 @pytest.mark.asyncio
 async def test_queue_info_typed() -> None:
     """get_queue_info returns a typed QueueInfo object."""
-    client = ComfyuiHTTPClient.create(None)
+    client = ComfyUIHttpClient.create(None)
 
     raw = {"queue_running": [], "queue_pending": [[1, "pid", {}, {}, []]]}
     with patch.object(client, "_get", return_value=raw):
@@ -707,8 +497,8 @@ async def test_queue_info_typed() -> None:
 @pytest.mark.asyncio
 async def test_client_id_uses_base_url() -> None:
     """client_id is derived from the configured base_url."""
-    c1 = ComfyuiHTTPClient.create(None)
-    c2 = ComfyuiHTTPClient.create(None)
+    c1 = ComfyUIHttpClient.create(None)
+    c2 = ComfyUIHttpClient.create(None)
     assert c1.client_id == c2.client_id
     assert c1.client_id == comfyui_config.base_url.rstrip("/").lower()
 
@@ -716,7 +506,7 @@ async def test_client_id_uses_base_url() -> None:
 @pytest.mark.asyncio
 async def test_wait_for_completion_polling() -> None:
     """wait_for_completion uses HTTP polling."""
-    client = ComfyuiHTTPClient.create(None)
+    client = ComfyUIHttpClient.create(None)
 
     raw = {
         "pid-1": {
@@ -767,72 +557,44 @@ _requires_checkpoint = pytest.mark.skipif(
 )
 
 
-def _fresh_client() -> "ComfyuiHTTPClient":
+def _fresh_client() -> "ComfyUIHttpClient":
     """Build a fresh client for the current pytest-asyncio event loop.
 
-    ``ComfyuiHTTPClient.create`` returns a new client (with its own connection
+    ``ComfyUIHttpClient.create`` returns a new client (with its own connection
     pool) on every call — no ``@lru_cache``.  Integration tests use ``async with``
     to guarantee the pool is closed per-loop.
     """
-    return ComfyuiHTTPClient.create(None)
+    return ComfyUIHttpClient.create(None)
 
 
 @pytest.mark.asyncio
 @_requires_comfyui
 @_requires_checkpoint
-async def test_integration_queue_and_history(tmp_path: Path) -> None:
-    """Integration: queue a valid workflow, poll history, verify result structure."""
-    # Minimal valid txt2img workflow; uses first available checkpoint on the live server.
-    wf = Workflow.from_raw(
-        {
-            "1": {
-                "class_type": "CheckpointLoaderSimple",
-                "inputs": {"ckpt_name": _first_checkpoint()},
-            },
-            "2": {"class_type": "EmptyLatentImage", "inputs": {"width": 64, "height": 64, "batch_size": 1}},
-            "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "test", "clip": ["1", 1]}},
-            "4": {"class_type": "CLIPTextEncode", "inputs": {"text": "bad", "clip": ["1", 1]}},
-            "5": {
-                "class_type": "KSampler",
-                "inputs": {
-                    "model": ["1", 0],
-                    "positive": ["3", 0],
-                    "negative": ["4", 0],
-                    "latent_image": ["2", 0],
-                    "seed": 1,
-                    "steps": 1,
-                    "cfg": 7.0,
-                    "sampler_name": "euler",
-                    "scheduler": "normal",
-                    "denoise": 1.0,
-                },
-            },
-            "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
-            "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "test"}},
-        },
-    )
-
+async def test_integration_generate(tmp_path: Path) -> None:
+    """Integration: generate via the bundled workflow against a real server."""
     async with _fresh_client() as client:
-        resp = await client.queue_prompt(wf)
-        assert resp.prompt_id, "Expected a non-empty prompt_id"
-
-        result = await client.wait_for_completion(resp.prompt_id, poll_interval=0.5, timeout=120.0)
-        assert result.prompt_id == resp.prompt_id
-        assert result.status in ("completed", "success")
+        result = await client.generate(
+            prompt="a cute cat",
+            checkpoint=_first_checkpoint(),
+            timeout=180.0,
+        )
+        assert result.succeeded is True
+        assert len(result.all_images) >= 1
 
 
 @pytest.mark.asyncio
 @_requires_comfyui
 @_requires_checkpoint
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
-    """Integration: end-to-end generate with the high-level capability against a real server."""
+    """Integration: end-to-end generate with download against a real server."""
     client = _fresh_client()
-    role = Comfyui.with_comfyui_client(client)
+    role = UseComfyUI.with_comfyui_client(client)
     try:
-        result = await role.acomfyui_generate(
+        result = await role.generate_image(
             prompt="a cute cat",
+            checkpoint=_first_checkpoint(),
             download_dir=tmp_path,
-            timeout=120.0,
+            timeout=180.0,
         )
     finally:
         await client.aclose()
