@@ -5,31 +5,34 @@
 [![PyPI Version](https://img.shields.io/pypi/v/fabricatio-comfyui)](https://pypi.org/project/fabricatio-comfyui/)
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-comfyui/week)](https://pepy.tech/projects/fabricatio-comfyui)
 
-Async ComfyUI API client for Fabricatio — generate images from typed
-parameters and download results. Built on `httpx` with full Pydantic-typed
+Async ComfyUI API integration for Fabricatio — generate images from typed
+knobs and download the results. Built on `httpx` with full Pydantic-typed
 API coverage.
 
-## Design: bundled workflows only
+## Design: workflows are fully internal
 
-The package owns its workflow JSON files (`workflows/*.json`). Callers never
-pass raw workflow graphs — they supply high-level knobs
-(`prompt`, `negative_prompt`, `width`, `height`, `seed`, `steps`, `cfg`) and
-the package selects and parameterises a bundled template
-(`Workflow.from_template(name)` / `Workflow.default()`).
-This keeps the public surface fully statically typed: no
-`dict[str, Any]` workflow injection anywhere in capability or action signatures.
+The package owns its workflow graph (`graphs/default.json`, modelled by an
+internal `Graph` deserializer). Callers never see, construct, or operate on
+a workflow — they supply high-level knobs (`prompt`, `negative_prompt`,
+`width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`) and the package
+parameterises the bundled template internally. There is no `dict[str, Any]`
+workflow injection anywhere in the public signatures.
+
+Naming follows `fabricatio-skill`: one `Use*` capability mixin
+(`UseComfyUI`), module-level one-shot functions (`generate_image`,
+`upload_image`, …), and bare-noun response models (`ExecutionResult`,
+`QueueInfo`, …). `workflows/` stays a docstring-only namespace, as in
+`fabricatio-skill`.
 
 ## Architecture
 
-| Layer      | Module / Class                                        | Purpose                                                |
-|------------|-------------------------------------------------------|--------------------------------------------------------|
-| Graph core | `WorkflowCore` (`models/workflow_core.py`)            | Graph container: CRUD, construction, serialization     |
-| Graph ops  | `LoaderOps` / `PromptOps` / `SamplerOps` / `ResolutionOps` (`models/workflow_ops.py`) | Typed node-family setters, composed into `Workflow` |
-| Workflow   | `Workflow` (`models/workflow.py`)                     | Composition: `WorkflowCore` + all `*Ops`; `from_template()` |
-| Client ABC | `ComfyuiClientBase` (`client_base.py`)                | Nominal HTTP client interface                          |
-| Client     | `ComfyuiHTTPClient` (`http_client.py`)                | Concrete `httpx`-backed implementation, `async with`   |
-| Capability | `Comfyui` (`capabilities/comfyui.py`)                 | Mixin: high-level generate (queue → poll → download)   |
-| Action     | `ComfyuiGenerateImage`, `ComfyuiUploadImage`          | Pluggable steps for Fabricatio `WorkFlow`              |
+| Layer      | Module / Class                              | Purpose                                              |
+|------------|---------------------------------------------|------------------------------------------------------|
+| Graph      | `Graph` (`models/graph.py`)                 | Fully typed deserializer of the bundled `graphs/default.json`; internal only |
+| Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client (`async with` lifecycle)            |
+| Capability | `UseComfyUI` (`capabilities/comfyui.py`)    | Mixin: high-level generate (queue → poll → download)  |
+| API        | `api.py`                                    | One-shot functions that hide the client lifecycle     |
+| Actions    | `GenerateImage`, `UploadImage`              | Pluggable steps for Fabricatio `WorkFlow`             |
 
 ## Installation
 
@@ -57,29 +60,23 @@ timeout = 300.0
 |---|---|---|---|
 | `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
+| `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
 
 Access at runtime: `from fabricatio_comfyui.config import comfyui_config`.
 
 ## Usage
 
-### Capability mixin (with a Role)
+### One-shot functions
 
-Mix `Comfyui` into a Role to get the `acomfyui_*` predicate-verb methods
-(following the same `a`-prefix convention as `UseLLM.aask`):
+The lowest-friction entry point — no Role, no client, no workflow:
 
 ```python
 import asyncio
-from fabricatio import Role
-from fabricatio_comfyui import Comfyui
-
-
-class ImageRole(Role, Comfyui):
-    """Role with ComfyUI image generation capability."""
+from fabricatio_comfyui import generate_image
 
 
 async def main() -> None:
-    role = ImageRole(name="ComfyUI Worker")
-    result = await role.acomfyui_generate(
+    result = await generate_image(
         "masterpiece, best quality, a mountain landscape",
         negative_prompt="worst quality, blurry",
         width=1024,
@@ -93,42 +90,34 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-### Standalone client
+### Capability mixin (with a Role or Action)
 
-The HTTP client is a lower-level transport; it accepts `Workflow`
-instances built from the bundled templates:
+Mix `UseComfyUI` into a Role to get the same typed-knob methods:
 
 ```python
-import asyncio
-from fabricatio_comfyui import ComfyuiHTTPClient, Workflow
+from fabricatio import Role
+from fabricatio_comfyui import UseComfyUI
 
 
-async def main() -> None:
-    wf = Workflow.default()
-    wf.with_positive_prompt("a mountain landscape")
-
-    async with ComfyuiHTTPClient.create() as client:
-        resp = await client.queue_prompt(wf)
-        result = await client.wait_for_completion(resp.prompt_id)
-        if result.succeeded:
-            await client.download_images(result, "./outputs")
+class ImageRole(Role, UseComfyUI):
+    """Role with ComfyUI image generation capability."""
 
 
-asyncio.run(main())
+# then: await role.generate_image("a mountain landscape", download_dir="./outputs")
 ```
 
 ### Action (in a WorkFlow)
 
-Use `ComfyuiGenerateImage` and `ComfyuiUploadImage` as composable steps:
+Use `GenerateImage` and `UploadImage` as composable steps:
 
 ```python
 from fabricatio import WorkFlow
-from fabricatio_comfyui import ComfyuiGenerateImage, ComfyuiUploadImage
+from fabricatio_comfyui import GenerateImage
 
-GenerateImage = WorkFlow(
+GenerateImageWorkflow = WorkFlow(
     name="ComfyUI Generate",
     steps=(
-        ComfyuiGenerateImage(
+        GenerateImage(
             prompt="masterpiece, best quality",
             download_dir="./outputs",
         ),
@@ -136,73 +125,77 @@ GenerateImage = WorkFlow(
 )
 ```
 
-### Built-in workflow templates
+### Standalone client (advanced)
 
-Pre-built `WorkFlow` templates are available as quick starting points:
+The HTTP client is a lower-level transport with the same knob surface;
+it builds the bundled graph internally:
 
 ```python
-from fabricatio_comfyui.workflows import Txt2Img, Txt2ImgWithDownload
-```
+import asyncio
+from fabricatio_comfyui import ComfyUIHttpClient
 
-Both run the bundled `default.json` graph; wire your own prompt through the
-step's fields when composing custom pipelines.
+
+async def main() -> None:
+    async with ComfyUIHttpClient.create() as client:
+        result = await client.generate("a mountain landscape", seed=42)
+        if result.succeeded:
+            await client.download_images(result, "./outputs")
+
+
+asyncio.run(main())
+```
 
 ## API Reference
 
-### Capability methods
+### Capability methods (`UseComfyUI`)
 
-| Method                              | Description                                    |
-|-------------------------------------|------------------------------------------------|
-| `acomfyui_generate(prompt, …)`      | Queue a bundled template with overrides → poll → optionally download |
-| `acomfyui_upload(image_path, …)`    | Upload an image for img2img workflows          |
-| `acomfyui_history(prompt_id)`       | Retrieve execution history for a prompt        |
-| `acomfyui_inspect_queue()`          | Fetch current queue status                     |
-| `acomfyui_interrupt()`              | Interrupt the currently running workflow       |
+| Method                        | Description                                                            |
+|-------------------------------|------------------------------------------------------------------------|
+| `generate_image(prompt, …)`   | Queue the bundled graph with overrides → poll → optionally download    |
+| `upload_image(image_path, …)` | Upload an image (e.g. for img2img)                                     |
+| `get_history(prompt_id)`      | Retrieve execution history for a prompt                                |
+| `get_queue_info()`            | Fetch current queue status                                             |
+| `interrupt()`                 | Interrupt the currently running generation                             |
 
-`acomfyui_generate` keyword parameters: `negative_prompt`, `width`,
-`height`, `seed`, `steps`, `cfg`, `template` (bundled template name),
-`download_dir`, `timeout`.
+`generate_image` keyword parameters: `negative_prompt`, `width`, `height`,
+`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`.
 
-### Client methods (`ComfyuiHTTPClient` / `ComfyuiClientBase`)
+The module-level functions in `fabricatio_comfyui.api` (`generate_image`,
+`upload_image`, `get_history`, `get_queue_info`, `interrupt`) share the
+exact same keyword surface and hide the client lifecycle entirely.
 
-| Method                            | Returns                  | Description                             |
-|-----------------------------------|--------------------------|-----------------------------------------|
-| `queue_prompt(workflow)`          | `PromptResponse`         | Submit a `Workflow` for execution       |
-| `get_queue_info()`                | `QueueInfo`              | Fetch current queue status              |
-| `get_history(prompt_id)`          | `HistoryEntry \| None`   | Retrieve execution history for a prompt |
-| `wait_for_completion(prompt_id)`  | `ComfyuiExecutionResult` | Poll until execution finishes           |
-| `get_image(filename, …)`          | `bytes`                  | Download a single generated image       |
-| `upload_image(image_path, …)`     | `UploadResponse`         | Upload an image                         |
-| `interrupt()`                     | `None`                   | Interrupt the running workflow          |
-| `download_images(result, dir)`    | `None`                   | Download all output images concurrently |
+### Client methods (`ComfyUIHttpClient` / `ComfyUIClientBase`)
+
+| Method                            | Returns            | Description                              |
+|-----------------------------------|--------------------|------------------------------------------|
+| `generate(prompt, …)`             | `ExecutionResult`  | Queue the bundled graph and poll         |
+| `get_queue_info()`                | `QueueInfo`        | Fetch current queue status               |
+| `get_history(prompt_id)`          | `HistoryEntry \| None` | Retrieve execution history for a prompt |
+| `wait_for_completion(prompt_id)`  | `ExecutionResult`  | Poll until execution finishes            |
+| `get_image(filename, …)`          | `bytes`            | Download a single generated image        |
+| `upload_image(image_path, …)`     | `UploadResponse`   | Upload an image                          |
+| `interrupt()`                     | `None`             | Interrupt the running generation         |
+| `download_images(result, dir)`    | `None`             | Download all output images concurrently  |
 
 ### Actions
 
-| Class                  | Fields                                                                 | Description                          |
-|------------------------|------------------------------------------------------------------------|--------------------------------------|
-| `ComfyuiGenerateImage` | `prompt`, `negative_prompt`, `width`, `height`, `seed`, `steps`, `cfg`, `template`, `download_dir`, `timeout` | Generate images from typed knobs |
-| `ComfyuiUploadImage`   | `image_path`, `image_type`                                             | Upload an image to the server        |
+| Class          | Fields                                                                                                    | Description                        |
+|----------------|-----------------------------------------------------------------------------------------------------------|------------------------------------|
+| `GenerateImage` | `prompt`, `negative_prompt`, `width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout` | Generate images from typed knobs |
+| `UploadImage`   | `image_path`, `image_type`                                                                                | Upload an image to the server      |
 
 ### Models
 
-All API responses are deserialized into frozen Pydantic models. Key types:
+All API responses are deserialized into frozen Pydantic models:
 
-| Model                    | Description                                             |
-|--------------------------|---------------------------------------------------------|
-| `PromptResponse`         | Response from `POST /prompt` — contains `prompt_id`     |
-| `ComfyuiExecutionResult` | Final result — `outputs`, `all_images`, `succeeded`     |
-| `ComfyuiOutputImage`     | Single image metadata — `filename`, `subfolder`, `type` |
-| `HistoryEntry`           | Execution history — `status`, per-node `outputs`        |
-| `QueueInfo`              | Queue state — `queue_running`, `queue_pending`          |
-| `UploadResponse`         | Upload result — `name`, `subfolder`, `type`             |
-
-### Workflow types (PEP 695)
-
-| Type alias     | Definition            | Description                                      |
-|----------------|-----------------------|--------------------------------------------------|
-| `NodeInputs`   | `dict[str, Any]`      | Per-node input map (literals + node refs)        |
-| `NodeApi`      | `dict[str, Any]`      | Per-node API dict (`class_type`, `inputs`, …)    |
-| `WorkflowDict` | `dict[str, NodeApi]`  | Full ComfyUI API-format workflow graph            |
+| Model            | Description                                              |
+|------------------|----------------------------------------------------------|
+| `PromptResponse` | Response from `POST /prompt` — contains `prompt_id`      |
+| `ExecutionResult`| Final result — `outputs`, `all_images`, `succeeded`      |
+| `OutputImage`    | Single image metadata — `filename`, `subfolder`, `type`  |
+| `HistoryEntry`   | Execution history — `status`, per-node `outputs`         |
+| `QueueInfo`      | Queue state — `queue_running`, `queue_pending`           |
+| `UploadResponse` | Upload result — `name`, `subfolder`, `type`              |
 
 ## License
 
