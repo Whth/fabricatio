@@ -1,7 +1,7 @@
-"""``ComfyuiUploadImage`` action — upload a local image to the ComfyUI server.
+"""``UploadImage`` action — upload a local image to the ComfyUI server.
 
-The uploaded image can be consumed by an upstream bundled img2img workflow;
-this action does not run any workflow itself.
+The uploaded image can be consumed by an upstream img2img workflow; this
+action does not run any workflow itself.
 """
 
 from pathlib import Path
@@ -9,15 +9,15 @@ from typing import TYPE_CHECKING
 
 from fabricatio_core.models.action import Action
 
-from fabricatio_comfyui.capabilities.comfyui import Comfyui
+from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 
 if TYPE_CHECKING:
     from fabricatio_comfyui.models.comfyui import UploadResponse
 
-__all__ = ["ComfyuiUploadImage"]
+__all__ = ["UploadImage"]
 
 
-class ComfyuiUploadImage(Action, Comfyui):
+class UploadImage(Action, UseComfyUI):
     """Upload a local image to the ComfyUI server."""
 
     output_key: str = "comfyui_upload_result"
@@ -29,5 +29,5 @@ class ComfyuiUploadImage(Action, Comfyui):
     """Target directory on the server: ``"input"`` or ``"temp"``."""
 
     async def _execute(self, **_cxt: object) -> "UploadResponse":
-        """Run :meth:`Comfyui.acomfyui_upload` with this action's fields."""
-        return await self.acomfyui_upload(image_path=self.image_path, image_type=self.image_type)
+        """Run :meth:`UseComfyUI.upload_image` with this action's fields."""
+        return await self.upload_image(image_path=self.image_path, image_type=self.image_type)

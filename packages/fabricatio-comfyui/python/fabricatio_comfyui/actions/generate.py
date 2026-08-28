@@ -1,11 +1,11 @@
-"""``ComfyuiGenerateImage`` action — high-level image generation step.
+"""``GenerateImage`` action — high-level image generation step.
 
 Use as a step inside a :class:`fabricatio_core.WorkFlow`::
 
-    GenerateImage = WorkFlow(
+    GenerateImageWorkflow = WorkFlow(
         name="ComfyUI Generate",
         steps=(
-            ComfyuiGenerateImage(
+            GenerateImage(
                 prompt="masterpiece, best quality",
                 download_dir="./outputs",
             ),
@@ -18,22 +18,20 @@ from typing import TYPE_CHECKING
 
 from fabricatio_core.models.action import Action
 
-from fabricatio_comfyui.capabilities.comfyui import Comfyui
-from fabricatio_comfyui.config import comfyui_config
+from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 
 if TYPE_CHECKING:
-    from fabricatio_comfyui.models.comfyui import ComfyuiExecutionResult
+    from fabricatio_comfyui.models.comfyui import ExecutionResult
 
-__all__ = ["ComfyuiGenerateImage"]
+__all__ = ["GenerateImage"]
 
 
-class ComfyuiGenerateImage(Action, Comfyui):
-    """Generate an image via ComfyUI from typed knobs (no raw workflow injection).
+class GenerateImage(Action, UseComfyUI):
+    """Generate an image via ComfyUI from typed knobs (no workflow graphs).
 
-    The action loads a bundled workflow template (``template="default"`` by
-    default) and parameterises it with the prompt/size/sampler overrides
-    supplied at construction time.  See :meth:`Comfyui.acomfyui_generate`
-    for full parameter documentation.
+    The action parameterises the bundled workflow template with the
+    prompt/size/sampler overrides supplied at construction time.  See
+    :meth:`UseComfyUI.generate_image` for full parameter documentation.
     """
 
     output_key: str = "comfyui_result"
@@ -59,8 +57,8 @@ class ComfyuiGenerateImage(Action, Comfyui):
     cfg: float | None = None
     """Classifier-free guidance scale."""
 
-    template: str | None = None
-    """Bundled workflow template name (``"default"`` if unset)."""
+    checkpoint: str | None = None
+    """Checkpoint filename on the server; falls back to config, then the bundled template's checkpoint."""
 
     download_dir: str | Path | None = None
     """If set, output images are written here."""
@@ -68,9 +66,9 @@ class ComfyuiGenerateImage(Action, Comfyui):
     timeout: float | None = None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""
 
-    async def _execute(self, **_cxt: object) -> "ComfyuiExecutionResult":
-        """Run :meth:`Comfyui.acomfyui_generate` with this action's fields."""
-        return await self.acomfyui_generate(
+    async def _execute(self, **_cxt: object) -> "ExecutionResult":
+        """Run :meth:`UseComfyUI.generate_image` with this action's fields."""
+        return await self.generate_image(
             prompt=self.prompt,
             negative_prompt=self.negative_prompt,
             width=self.width,
@@ -78,7 +76,7 @@ class ComfyuiGenerateImage(Action, Comfyui):
             seed=self.seed,
             steps=self.steps,
             cfg=self.cfg,
-            template=self.template,
+            checkpoint=self.checkpoint,
             download_dir=self.download_dir,
-            timeout=self.timeout or comfyui_config.timeout,
+            timeout=self.timeout,
         )

@@ -2,66 +2,70 @@
 
 Mix into a Role to gain ComfyUI image generation methods.  The public
 surface is intentionally **narrow**: callers supply high-level knobs
-(``prompt``, ``width``, ``height``, ``seed``, ``steps``, ``cfg``) and the
-package selects and parameterises a bundled workflow template.  External
-callers cannot inject raw workflow graphs — that keeps the public surface
-fully typed and the LLM-facing parameter set auditable.
+(``prompt``, ``width``, ``height``, ``seed``, ``steps``, ``cfg``,
+``checkpoint``) and the package parameterises a bundled workflow template
+internally.  Workflow graphs are an implementation detail — external
+callers never see or operate on one.
 
-Each instance holds its own :class:`ComfyuiClientBase` (lazily created
-from :class:`ComfyuiHTTPClient`), so tests and alternate backends can
+Method naming follows the ``Use*`` capability pattern of
+:mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``,
+``upload_image``, ``get_history`` ...), no ``a``-prefix.
+
+Each instance holds its own :class:`ComfyUIClientBase` (lazily created
+from :class:`ComfyUIHttpClient`), so tests and alternate backends can
 inject a client via :meth:`with_comfyui_client` — no ``@lru_cache``
 global, no ``hasattr`` sniffing.
-
-Predicate-verb methods (``acomfyui_*``) follow the same naming convention
-as :class:`fabricatio_core.capabilities.usages.UseLLM` — ``a`` prefix +
-domain verb.
 """
 
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, Unpack
 
 from fabricatio_core.journal import logger
 
-from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.http_client import ComfyuiHTTPClient
-from fabricatio_comfyui.utils import load_template
+from fabricatio_comfyui.http_client import ComfyUIHttpClient
+from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from fabricatio_comfyui.client_base import ComfyuiClientBase
+    from fabricatio_comfyui.client_base import ComfyUIClientBase
     from fabricatio_comfyui.models.comfyui import (
-        ComfyuiExecutionResult,
+        ExecutionResult,
         HistoryEntry,
         QueueInfo,
         UploadResponse,
     )
 
-__all__ = ["Comfyui"]
+__all__ = ["UseComfyUI"]
 
 
-class Comfyui:
-    """ComfyUI capability mixin — owns a per-instance :class:`ComfyuiClientBase`.
+class UseComfyUI:
+    """ComfyUI capability mixin — owns a per-instance :class:`ComfyUIClientBase`.
 
-    The client is created lazily on first use from
-    :meth:`ComfyuiHTTPClient.create`.  Inject a custom client (e.g. a mock)
-    via the ``comfyui_client`` constructor argument.  Call :meth:`close`
-    to release the connection pool when the mixin is no longer needed.
+    Mix into a Role or Action to generate images from typed knobs without
+    ever touching a workflow graph::
+
+        class ImageRole(Role, UseComfyUI): ...
+
+        result = await role.generate_image("a mountain landscape", download_dir="./outputs")
+
+    The workflow graph is built internally from the bundled templates;
+    callers supply only high-level knobs.
     """
 
-    _comfyui_client: "ComfyuiClientBase | None" = None
+    _comfyui_client: "ComfyUIClientBase | None" = None
 
     @classmethod
-    def with_comfyui_client(cls, comfyui_client: "ComfyuiClientBase") -> Self:
+    def with_comfyui_client(cls, comfyui_client: "ComfyUIClientBase") -> Self:
         """Create an instance bound to a pre-built client (tests / alternate backends)."""
         instance = cls()
         instance._comfyui_client = comfyui_client
         return instance
 
     @property
-    def comfyui_client(self) -> "ComfyuiClientBase":
-        """The lazily-created (or injected) :class:`ComfyuiClientBase`."""
+    def comfyui_client(self) -> "ComfyUIClientBase":
+        """The lazily-created (or injected) :class:`ComfyUIClientBase`."""
         if self._comfyui_client is None:
-            self._comfyui_client = ComfyuiHTTPClient.create()
+            self._comfyui_client = ComfyUIHttpClient.create()
         return self._comfyui_client
 
     async def close(self) -> None:
@@ -71,46 +75,29 @@ class Comfyui:
             self._comfyui_client = None
 
     # ------------------------------------------------------------------
-    # High-level public surface — only typed knobs, no raw workflow dicts
+    # High-level public surface — only typed knobs, no workflow graphs
     # ------------------------------------------------------------------
 
-    async def acomfyui_generate(  # noqa: PLR0913 — public API keeps every override explicit
+    async def generate_image(
         self,
         prompt: str,
-        *,
-        negative_prompt: str | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        seed: int | None = None,
-        steps: int | None = None,
-        cfg: float | None = None,
-        template: str | None = None,
-        download_dir: "str | Path | None" = None,
-        timeout: float | None = None,
-    ) -> "ComfyuiExecutionResult":
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "ExecutionResult":
         """Generate an image from typed knobs using a bundled workflow.
 
+        Queues a bundled template parameterised with the provided knobs,
+        polls until completion, and — when ``download_dir`` is given —
+        writes the output images there.
+
         Returns:
-            A :class:`~fabricatio_comfyui.models.comfyui.ComfyuiExecutionResult`
-            describing the executed prompt.  When *download_dir* is provided,
-            output images are written there.
+            An :class:`~fabricatio_comfyui.models.comfyui.ExecutionResult`
+            describing the executed prompt.
         """
-        wf = load_template(template)
-
-        if prompt:
-            wf.with_positive_prompt(prompt)
-        if negative_prompt is not None:
-            wf.with_negative_prompt(negative_prompt)
-        if width is not None or height is not None:
-            wf.with_resolution(width=width, height=height)
-        if seed is not None or steps is not None or cfg is not None:
-            wf.with_sampler(seed=seed, steps=steps, cfg=cfg)
-
-        effective_timeout = timeout or comfyui_config.timeout
+        download_dir = kwargs.pop("download_dir", None)
+        timeout = kwargs.pop("timeout", None)
 
         client = self.comfyui_client
-        resp = await client.queue_prompt(wf)
-        result = await client.wait_for_completion(resp.prompt_id, timeout=effective_timeout)
+        result = await client.generate(prompt, timeout=timeout, **kwargs)
 
         if download_dir is not None and result.succeeded:
             await client.download_images(result, download_dir)
@@ -121,27 +108,24 @@ class Comfyui:
             logger.error(f"ComfyUI generation failed: {result.error}")
         return result
 
-    async def acomfyui_upload(
+    async def upload_image(
         self,
         image_path: "str | Path",
         *,
         image_type: str = "input",
-        overwrite: bool = True,
     ) -> "UploadResponse":
         """Upload an image to the server."""
-        resp = await self.comfyui_client.upload_image(image_path, image_type=image_type, overwrite=overwrite)
-        logger.info(f"Uploaded image -> {resp.name}")
-        return resp
+        return await self.comfyui_client.upload_image(image_path, image_type=image_type)
 
-    async def acomfyui_interrupt(self) -> None:
+    async def interrupt(self) -> None:
         """Interrupt the currently running workflow."""
         await self.comfyui_client.interrupt()
         logger.info("ComfyUI execution interrupted")
 
-    async def acomfyui_history(self, prompt_id: str) -> "HistoryEntry | None":
+    async def get_history(self, prompt_id: str) -> "HistoryEntry | None":
         """Retrieve execution history for *prompt_id*."""
         return await self.comfyui_client.get_history(prompt_id)
 
-    async def acomfyui_inspect_queue(self) -> "QueueInfo":
+    async def get_queue_info(self) -> "QueueInfo":
         """Fetch the current execution queue state."""
         return await self.comfyui_client.get_queue_info()

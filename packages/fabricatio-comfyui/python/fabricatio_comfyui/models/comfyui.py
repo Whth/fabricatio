@@ -4,18 +4,17 @@ Every response from the ComfyUI server is deserialized into one of these
 models, eliminating raw ``dict[str, object]`` propagation through call sites.
 """
 
-from typing import Any, Self
+from collections.abc import Mapping
+from typing import Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from fabricatio_comfyui.models.workflow import WorkflowDict
-
 __all__ = [
-    "ComfyuiExecutionResult",
-    "ComfyuiOutputImage",
+    "ExecutionResult",
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
+    "OutputImage",
     "PromptRequest",
     "PromptResponse",
     "QueueEntry",
@@ -34,7 +33,7 @@ class PromptRequest(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    prompt: WorkflowDict
+    prompt: dict[str, object]
     """The ComfyUI workflow graph (node_id -> class_type + inputs)."""
 
     client_id: str | None = None
@@ -78,15 +77,15 @@ class PromptResponse(BaseModel):
     number: int = 0
     """Queue position number."""
 
-    node_errors: dict[str, Any] = Field(default_factory=dict)
+    node_errors: dict[str, object] = Field(default_factory=dict)
     """Per-node validation errors (empty when valid).
 
-    ``Any`` here is server-supplied diagnostic data — ComfyUI does not publish
-    a stable schema for per-node error payloads.
+    Server-supplied diagnostic data — ComfyUI does not publish a stable
+    schema for per-node error payloads.
     """
 
     @classmethod
-    def from_raw(cls, data: dict[str, Any]) -> Self:
+    def from_raw(cls, data: Mapping[str, object]) -> Self:
         """Deserialize from the raw ``POST /prompt`` response."""
         return cls.model_validate(data)
 
@@ -112,14 +111,14 @@ class QueueEntry(BaseModel):
     prompt_id: str = ""
     """Prompt UUID."""
 
-    prompt: WorkflowDict = Field(default_factory=dict)
+    prompt: dict[str, object] = Field(default_factory=dict)
     """The workflow graph submitted."""
 
-    extra_data: dict[str, Any] = Field(default_factory=dict)
+    extra_data: dict[str, object] = Field(default_factory=dict)
     """Extra metadata submitted with the prompt.
 
-    ``Any`` is server-supplied opaque metadata; no client-side schema is
-    published for ``extra_data`` payloads.
+    Server-supplied opaque metadata; no client-side schema is published
+    for ``extra_data`` payloads.
     """
 
     outputs_to_execute: list[str] = Field(default_factory=list)
@@ -127,7 +126,7 @@ class QueueEntry(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _from_tuple(cls, data: Any) -> Any:
+    def _from_tuple(cls, data: object) -> object:
         """Accept ComfyUI's ``[number, prompt_id, …]`` tuple format."""
         if isinstance(data, (list, tuple)):
             return {
@@ -152,7 +151,7 @@ class QueueInfo(BaseModel):
     """Prompts waiting to execute."""
 
     @classmethod
-    def from_raw(cls, data: dict[str, Any]) -> Self:
+    def from_raw(cls, data: Mapping[str, object]) -> Self:
         """Deserialize from the raw API response."""
         return cls.model_validate(data)
 
@@ -177,7 +176,7 @@ class HistoryStatus(BaseModel):
     """Exception message if execution failed."""
 
 
-class ComfyuiOutputImage(BaseModel):
+class OutputImage(BaseModel):
     """Metadata for a single generated output image."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
@@ -210,7 +209,7 @@ class HistoryNodeOutput(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    images: list[ComfyuiOutputImage] = Field(default_factory=list)
+    images: list[OutputImage] = Field(default_factory=list)
     """Images produced by this node."""
 
 
@@ -227,36 +226,44 @@ class HistoryEntry(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _filter_empty_outputs(cls, data: Any) -> Any:
+    def _filter_empty_outputs(cls, data: object) -> object:
         """Strip images without filenames and drop empty output nodes."""
         if not isinstance(data, dict):
             return data
-        outputs = data.get("outputs", {})
-        cleaned: dict[str, Any] = {}
+        data_dict = cast("dict[str, object]", data)
+        raw_outputs = data_dict.get("outputs", {})
+        if not isinstance(raw_outputs, dict):
+            return data_dict
+        outputs = cast("dict[str, object]", raw_outputs)
+        cleaned: dict[str, object] = {}
         for node_id, node_data in outputs.items():
-            images = [img for img in node_data.get("images", []) if img.get("filename")]
+            if not isinstance(node_data, dict):
+                continue
+            images_raw = node_data.get("images", [])
+            images = [img for img in images_raw if isinstance(img, dict) and img.get("filename")]
             if images:
-                cleaned[node_id] = {**node_data, "images": images}
-        return {**data, "outputs": cleaned}
+                cleaned[node_id] = {**cast("dict[str, object]", node_data), "images": images}
+        return {**data_dict, "outputs": cleaned}
 
     @classmethod
-    def from_raw(cls, data: dict[str, Any]) -> Self:
+    def from_raw(cls, data: Mapping[str, object]) -> Self:
         """Deserialize from a single history entry dict."""
         return cls.model_validate(data)
 
     @classmethod
-    def from_history_response(cls, response: dict[str, Any], prompt_id: str) -> Self | None:
+    def from_history_response(cls, response: Mapping[str, object], prompt_id: str) -> Self | None:
         """Look up a prompt_id in a ``GET /history/{prompt_id}`` response.
 
         Returns:
             A :class:`HistoryEntry` if found, ``None`` otherwise.
         """
-        if not response or prompt_id not in response:
+        entry = response.get(prompt_id)
+        if entry is None:
             return None
-        return cls.from_raw(response[prompt_id])
+        return cls.model_validate(entry)
 
 
-class ComfyuiExecutionResult(BaseModel):
+class ExecutionResult(BaseModel):
     """Final result of a workflow execution."""
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
@@ -264,7 +271,7 @@ class ComfyuiExecutionResult(BaseModel):
     prompt_id: str
     """UUID of the executed prompt."""
 
-    outputs: dict[str, list[ComfyuiOutputImage]] = Field(default_factory=dict)
+    outputs: dict[str, list[OutputImage]] = Field(default_factory=dict)
     """Output images keyed by node ID."""
 
     status: str | None = None
@@ -273,8 +280,22 @@ class ComfyuiExecutionResult(BaseModel):
     error: str | None = None
     """Error message if execution failed."""
 
+    @classmethod
+    def from_history(cls, prompt_id: str, entry: HistoryEntry) -> Self:
+        """Build an execution result from a history entry."""
+        outputs: dict[str, list[OutputImage]] = {}
+        for node_id, node_output in entry.outputs.items():
+            if node_output.images:
+                outputs[node_id] = list(node_output.images)
+        return cls(
+            prompt_id=prompt_id,
+            outputs=outputs,
+            status=entry.status.status_str,
+            error=entry.status.exception,
+        )
+
     @property
-    def all_images(self) -> list[ComfyuiOutputImage]:
+    def all_images(self) -> list[OutputImage]:
         """Flatten all output images across all nodes."""
         return [img for imgs in self.outputs.values() for img in imgs]
 
@@ -304,7 +325,7 @@ class UploadResponse(BaseModel):
     """Directory type."""
 
     @classmethod
-    def from_raw(cls, data: dict[str, Any]) -> Self:
+    def from_raw(cls, data: Mapping[str, object]) -> Self:
         """Deserialize from the raw API response."""
         return cls.model_validate(data)
 
@@ -319,12 +340,12 @@ class SystemStats(BaseModel):
 
     model_config = ConfigDict(frozen=True, use_attribute_docstrings=True)
 
-    system: dict[str, Any] = Field(default_factory=dict)
+    system: dict[str, object] = Field(default_factory=dict)
     """System info: OS, RAM, Python/PyTorch versions, etc.
 
-    ``Any`` is intentional — the ComfyUI ``/system_stats`` payload is
-    unstructured and varies by server build.
+    The ComfyUI ``/system_stats`` payload is unstructured and varies by
+    server build.
     """
 
-    devices: list[dict[str, Any]] = Field(default_factory=list)
-    """GPU/device information. ``Any`` per-device keys; no published schema."""
+    devices: list[dict[str, object]] = Field(default_factory=list)
+    """GPU/device information; per-device keys have no published schema."""

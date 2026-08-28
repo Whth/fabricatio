@@ -10,23 +10,41 @@ from typing import TypedDict
 
 
 class GenerateKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`Comfyui.acomfyui_generate`.
+    """Keyword arguments for :meth:`fabricatio_comfyui.capabilities.comfyui.UseComfyUI.generate_image`.
 
-    Controls output destination and execution timeout.
+    Controls generation parameters, output destination, and execution timeout.
     """
 
-    download_dir: str | Path | list[str | Path | None] | None
-    """Download path(s). Single path for one workflow, list for batch. ``None`` skips download."""
+    negative_prompt: str | None
+    """Negative prompt text."""
+
+    width: int | None
+    """Output image width (pixels)."""
+
+    height: int | None
+    """Output image height (pixels)."""
+
+    seed: int | None
+    """Sampler seed; ``None`` keeps the bundled template's seed."""
+
+    steps: int | None
+    """Sampler step count."""
+
+    cfg: float | None
+    """Classifier-free guidance scale."""
+
+    checkpoint: str | None
+    """Checkpoint filename on the server; ``None`` falls back to config, then the bundled template's checkpoint."""
+
+    download_dir: str | Path | None
+    """If set, output images are written here."""
 
     timeout: float | None
     """Maximum seconds to wait for completion. ``None`` uses config default."""
 
-    base_url: str | None
-    """ComfyUI server base URL override. ``None`` uses config default."""
-
 
 class PollKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`ComfyuiClientBase.wait_for_completion`.
+    """Keyword arguments for :meth:`ComfyUIClientBase.wait_for_completion`.
 
     Controls HTTP polling behaviour.
     """
@@ -39,7 +57,7 @@ class PollKwargs(TypedDict, total=False):
 
 
 class ViewImageKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`ComfyuiClientBase.get_image`.
+    """Keyword arguments for :meth:`ComfyUIClientBase.get_image`.
 
     Selects which server-side image to download.
     """
@@ -52,7 +70,7 @@ class ViewImageKwargs(TypedDict, total=False):
 
 
 class UploadKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`ComfyuiClientBase.upload_image`.
+    """Keyword arguments for :meth:`ComfyUIClientBase.upload_image`.
 
     Controls upload destination and overwrite behaviour.
     """
@@ -62,13 +80,3 @@ class UploadKwargs(TypedDict, total=False):
 
     overwrite: bool
     """Whether to overwrite an existing file with the same name."""
-
-
-class QueueKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`ComfyuiClientBase.queue_prompt`.
-
-    Controls queue placement.
-    """
-
-    front: bool
-    """If ``True``, enqueue at the front of the queue."""

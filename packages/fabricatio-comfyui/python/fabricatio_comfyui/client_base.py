@@ -1,15 +1,16 @@
 """Abstract interface for the ComfyUI HTTP client.
 
-:class:`ComfyuiClientBase` is the nominal contract every ComfyUI HTTP
-client must satisfy.  The :class:`Comfyui` capability mixin depends on
-this ABC — never on the concrete :class:`ComfyuiHTTPClient` — so that
+:class:`ComfyUIClientBase` is the nominal contract every ComfyUI HTTP
+client must satisfy.  The :class:`UseComfyUI` capability mixin depends on
+this ABC — never on the concrete :class:`ComfyUIHttpClient` — so that
 tests and alternate backends can be wired in through regular inheritance
 rather than ``hasattr`` / ``Protocol`` duck-typing.
 
 The ABC owns only the *interface*: typed API wrappers, the async
 lifecycle (``__aenter__`` / ``__aexit__`` / ``aclose``), and the concurrent
-image download helper.  Workflow *orchestration* (queue → poll → download
-as a single call) is deliberately absent — it lives on the capability mixin.
+image download helper.  Workflow graphs never cross this surface — the
+client accepts high-level knobs (:meth:`generate`) and builds the bundled
+workflow internally.
 """
 
 from abc import ABC, abstractmethod
@@ -17,30 +18,27 @@ from pathlib import Path
 from typing import Self, Unpack
 
 from fabricatio_comfyui.models.comfyui import (
-    ComfyuiExecutionResult,
+    ExecutionResult,
     HistoryEntry,
-    PromptResponse,
     QueueInfo,
     UploadResponse,
 )
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
-    QueueKwargs,
     UploadKwargs,
     ViewImageKwargs,
 )
-from fabricatio_comfyui.models.workflow import Workflow
 
-__all__ = ["ComfyuiClientBase"]
+__all__ = ["ComfyUIClientBase"]
 
 
-class ComfyuiClientBase(ABC):
+class ComfyUIClientBase(ABC):
     """Abstract async ComfyUI HTTP client.
 
     Every method corresponds to a single ComfyUI REST endpoint (or a thin
     convenience over one, in the case of :meth:`wait_for_completion` and
     :meth:`download_images`).  No orchestration logic — that belongs to the
-    :class:`Comfyui` capability mixin.
+    :class:`UseComfyUI` capability mixin.
     """
 
     # ------------------------------------------------------------------
@@ -64,19 +62,28 @@ class ComfyuiClientBase(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def queue_prompt(
+    async def generate(  # noqa: PLR0913 — public API keeps every override explicit
         self,
-        workflow: Workflow,
-        **kwargs: Unpack[QueueKwargs],
-    ) -> PromptResponse:
-        """Submit a bundled workflow for execution via ``POST /prompt``.
+        prompt: str,
+        *,
+        negative_prompt: str | None = None,
+        width: int | None = None,
+        height: int | None = None,
+        seed: int | None = None,
+        steps: int | None = None,
+        cfg: float | None = None,
+        checkpoint: str | None = None,
+        front: bool = False,
+        timeout: float | None = None,
+    ) -> ExecutionResult:
+        """Generate an image from typed knobs: queue a bundled workflow and poll until completion.
 
-        The caller owns *workflow* — typically obtained via
-        :meth:`fabricatio_comfyui.models.workflow.Workflow.default` or
-        :meth:`fabricatio_comfyui.models.workflow.Workflow.from_template`.
-        Raw API-format dicts are no longer accepted at the public surface:
-        the package narrows input to fully-typed ``Workflow`` instances so
-        callers cannot inject unchecked workflow graphs.
+        The workflow graph is built internally from the bundled template —
+        callers never see or construct one.  Only the provided (non-``None``)
+        knobs override the template; ``None`` keeps the template's value.
+        *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
+        the template's own checkpoint.  *front* enqueues at the head of the
+        queue.  Returns the execution result without downloading images.
         """
 
     @abstractmethod
@@ -116,9 +123,9 @@ class ComfyuiClientBase(ABC):
         self,
         prompt_id: str,
         **kwargs: Unpack[PollKwargs],
-    ) -> ComfyuiExecutionResult:
+    ) -> ExecutionResult:
         """Poll ``GET /history/{prompt_id}`` until completion."""
 
     @abstractmethod
-    async def download_images(self, result: ComfyuiExecutionResult, download_dir: str | Path) -> None:
+    async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> None:
         """Download all output images from *result* to *download_dir* concurrently."""

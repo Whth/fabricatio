@@ -1,53 +1,63 @@
 """ComfyUI API integration for Fabricatio.
 
-The package exposes a deliberately narrow public surface:
+The package exposes a deliberately narrow, skill-style surface (mirroring
+:mod:`fabricatio_skill`): one ``Use*`` capability mixin, module-level
+one-shot functions, and bare-noun response models.  Workflow graphs are
+an internal implementation detail — external callers supply high-level
+knobs (prompt, size, sampler, checkpoint) and never see or operate on a
+workflow.
 
-* :class:`Comfyui` — capability mixin: typed knobs (prompt, size, sampler)
-  mapped onto a bundled workflow template.
-* :class:`ComfyuiGenerateImage` / :class:`ComfyuiUploadImage` — fabricatio
-  ``Action`` subclasses usable as ``WorkFlow`` steps.
-* :class:`ComfyuiHTTPClient` / :class:`ComfyuiClientBase` — async REST client.
-* :class:`Workflow` — typed graph container for the bundled templates.
-* :data:`comfyui_config` / :class:`ComfyuiConfig` — config singleton.
-
-External callers cannot inject raw workflow graphs at the public surface;
-the package owns the workflow JSON files under :mod:`fabricatio_comfyui.workflows`.
+* :class:`UseComfyUI` — capability mixin: ``generate_image`` and friends.
+* :func:`generate_image` / :func:`upload_image` / ... — one-shot
+  module-level functions that hide the client lifecycle entirely.
+* :class:`ComfyUIHttpClient` / :class:`ComfyUIClientBase` — async REST
+  transport (advanced use; accepts only typed knobs, never workflows).
+* :class:`GenerateImage` / :class:`UploadImage` — ``Action`` subclasses
+  usable as ``WorkFlow`` steps.
+* :data:`comfyui_config` / :class:`ComfyUIConfig` — config singleton
+  (``from fabricatio_comfyui.config import comfyui_config``).
 """
 
-from fabricatio_comfyui.actions import ComfyuiGenerateImage, ComfyuiUploadImage
-from fabricatio_comfyui.capabilities.comfyui import Comfyui
-from fabricatio_comfyui.client_base import ComfyuiClientBase
-from fabricatio_comfyui.config import ComfyuiConfig, comfyui_config
-from fabricatio_comfyui.http_client import ComfyuiHTTPClient
+from fabricatio_comfyui.actions import GenerateImage, UploadImage
+from fabricatio_comfyui.api import (
+    generate_image,
+    get_history,
+    get_queue_info,
+    interrupt,
+    upload_image,
+)
+from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.client_base import ComfyUIClientBase
+from fabricatio_comfyui.config import ComfyUIConfig, comfyui_config
+from fabricatio_comfyui.http_client import ComfyUIHttpClient
 from fabricatio_comfyui.models import (
-    RESOLUTION_SELECTOR_ASPECT_RATIOS,
-    ComfyuiExecutionResult,
-    ComfyuiOutputImage,
-    FrameAspect,
-    Node,
+    ExecutionResult,
+    HistoryEntry,
+    OutputImage,
     PromptResponse,
     QueueInfo,
+    SystemStats,
     UploadResponse,
-    Workflow,
-    WorkflowDict,
 )
 
 __all__ = [
-    "RESOLUTION_SELECTOR_ASPECT_RATIOS",
-    "Comfyui",
-    "ComfyuiClientBase",
-    "ComfyuiConfig",
-    "ComfyuiExecutionResult",
-    "ComfyuiGenerateImage",
-    "ComfyuiHTTPClient",
-    "ComfyuiOutputImage",
-    "ComfyuiUploadImage",
-    "FrameAspect",
-    "Node",
+    "ComfyUIClientBase",
+    "ComfyUIConfig",
+    "ComfyUIHttpClient",
+    "ExecutionResult",
+    "GenerateImage",
+    "HistoryEntry",
+    "OutputImage",
     "PromptResponse",
     "QueueInfo",
+    "SystemStats",
+    "UploadImage",
     "UploadResponse",
-    "Workflow",
-    "WorkflowDict",
+    "UseComfyUI",
     "comfyui_config",
+    "generate_image",
+    "get_history",
+    "get_queue_info",
+    "interrupt",
+    "upload_image",
 ]

@@ -1,18 +1,17 @@
-"""ComfyUI API data models and workflow graph types.
+"""ComfyUI API data models and keyword-argument specifications.
 
 API response models live in :mod:`fabricatio_comfyui.models.comfyui`.
-The graph container (:class:`Workflow`), its nodes, and the per-node-family
-setter mixins (``LoaderOps`` etc.) live in :mod:`fabricatio_comfyui.models.workflow`
-and :mod:`fabricatio_comfyui.models.workflow_ops`; this ``__init__`` re-exports
-the user-facing names for ergonomic ``from fabricatio_comfyui.models import …``.
+The bundled graph (``models/graph``) is an internal implementation detail
+and is *not* re-exported here — external callers interact with the package
+through high-level knobs (:meth:`UseComfyUI.generate_image` and friends).
 """
 
 from fabricatio_comfyui.models.comfyui import (
-    ComfyuiExecutionResult,
-    ComfyuiOutputImage,
+    ExecutionResult,
     HistoryEntry,
     HistoryNodeOutput,
     HistoryStatus,
+    OutputImage,
     PromptRequest,
     PromptResponse,
     QueueEntry,
@@ -24,45 +23,25 @@ from fabricatio_comfyui.models.comfyui import (
 from fabricatio_comfyui.models.kwargs_types import (
     GenerateKwargs,
     PollKwargs,
-    QueueKwargs,
     UploadKwargs,
     ViewImageKwargs,
 )
-from fabricatio_comfyui.models.workflow import (
-    RESOLUTION_SELECTOR_ASPECT_RATIOS,
-    FrameAspect,
-    Node,
-    NodeApi,
-    NodeInputs,
-    NodeRef,
-    Workflow,
-    WorkflowDict,
-)
 
 __all__ = [
-    "RESOLUTION_SELECTOR_ASPECT_RATIOS",
-    "ComfyuiExecutionResult",
-    "ComfyuiOutputImage",
-    "FrameAspect",
+    "ExecutionResult",
     "GenerateKwargs",
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
-    "Node",
-    "NodeApi",
-    "NodeInputs",
-    "NodeRef",
+    "OutputImage",
     "PollKwargs",
     "PromptRequest",
     "PromptResponse",
     "QueueEntry",
     "QueueInfo",
-    "QueueKwargs",
     "SystemStats",
     "UploadKwargs",
     "UploadResponse",
     "ViewImageKwargs",
     "ViewImageParams",
-    "Workflow",
-    "WorkflowDict",
 ]
