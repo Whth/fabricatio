@@ -61,148 +61,217 @@ class NodeInputs(BaseModel):
 class CheckpointLoaderInputs(NodeInputs):
     """Inputs of ``CheckpointLoaderSimple``."""
 
-    ckpt_name: str
+    ckpt_name: str = "catTowerNoobaiXL_v15Vpred.safetensors"
 
 
 class CheckpointLoaderNode(BaseModel):
-    """``CheckpointLoaderSimple`` node (id ``"4"``)."""
+    """``CheckpointLoaderSimple`` node."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["CheckpointLoaderSimple"]
-    inputs: CheckpointLoaderInputs
+    class_type: Literal["CheckpointLoaderSimple"] = "CheckpointLoaderSimple"
+    inputs: CheckpointLoaderInputs = Field(default_factory=CheckpointLoaderInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template loader node."""
+        return cls(meta=NodeMeta(title="Load Checkpoint"))
 
 
 class EmptyLatentInputs(NodeInputs):
     """Inputs of ``EmptyLatentImage``."""
 
-    width: int
-    height: int
-    batch_size: int
+    width: int = 768
+    height: int = 512
+    batch_size: int = 1
 
 
 class EmptyLatentNode(BaseModel):
-    """``EmptyLatentImage`` node (id ``"6"``)."""
+    """``EmptyLatentImage`` node."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["EmptyLatentImage"]
-    inputs: EmptyLatentInputs
+    class_type: Literal["EmptyLatentImage"] = "EmptyLatentImage"
+    inputs: EmptyLatentInputs = Field(default_factory=EmptyLatentInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template latent node."""
+        return cls(meta=NodeMeta(title="Empty Latent Image"))
 
 
 class CLIPEncodeInputs(NodeInputs):
     """Inputs of ``CLIPTextEncode``."""
 
     text: str
-    clip: NodeRef
+    clip: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=1))
 
 
 class CLIPEncodeNode(BaseModel):
-    """``CLIPTextEncode`` node (ids ``"7"`` positive / ``"8"`` negative)."""
+    """``CLIPTextEncode`` node — used for both prompt encodes."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["CLIPTextEncode"]
-    inputs: CLIPEncodeInputs
+    class_type: Literal["CLIPTextEncode"] = "CLIPTextEncode"
+    inputs: CLIPEncodeInputs = Field(default_factory=CLIPEncodeInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls, *, text: str) -> Self:
+        """Template prompt-encode node carrying *text*."""
+        return cls(inputs=CLIPEncodeInputs(text=text), meta=NodeMeta(title="CLIP Text Encode (Prompt)"))
 
 
 class VAEDecodeInputs(NodeInputs):
     """Inputs of ``VAEDecode``."""
 
     samples: NodeRef
-    vae: NodeRef
+    vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=2))
 
 
 class VAEDecodeNode(BaseModel):
-    """``VAEDecode`` node (ids ``"9"`` / ``"15"``)."""
+    """``VAEDecode`` node — base pass and refine pass."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["VAEDecode"]
-    inputs: VAEDecodeInputs
+    class_type: Literal["VAEDecode"] = "VAEDecode"
+    inputs: VAEDecodeInputs = Field(default_factory=VAEDecodeInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls, *, samples: NodeRef) -> Self:
+        """Template decode node fed from the given sampler."""
+        return cls(inputs=VAEDecodeInputs(samples=samples), meta=NodeMeta(title="VAE Decode"))
 
 
 class VAEEncodeInputs(NodeInputs):
     """Inputs of ``VAEEncode``."""
 
-    pixels: NodeRef
-    vae: NodeRef
+    pixels: NodeRef = Field(default_factory=lambda: NodeRef(node_id="upscale", output_index=0))
+    vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=2))
 
 
 class VAEEncodeNode(BaseModel):
-    """``VAEEncode`` node (id ``"13"``)."""
+    """``VAEEncode`` node."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["VAEEncode"]
-    inputs: VAEEncodeInputs
+    class_type: Literal["VAEEncode"] = "VAEEncode"
+    inputs: VAEEncodeInputs = Field(default_factory=VAEEncodeInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template re-encode node."""
+        return cls(meta=NodeMeta(title="VAE Encode"))
 
 
 class PreviewImageInputs(NodeInputs):
     """Inputs of ``PreviewImage``."""
 
-    images: NodeRef
+    images: NodeRef = Field(default_factory=lambda: NodeRef(node_id="refine_decode", output_index=0))
 
 
 class PreviewImageNode(BaseModel):
-    """``PreviewImage`` node (id ``"16"``)."""
+    """``PreviewImage`` node."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["PreviewImage"]
-    inputs: PreviewImageInputs
+    class_type: Literal["PreviewImage"] = "PreviewImage"
+    inputs: PreviewImageInputs = Field(default_factory=PreviewImageInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template preview node."""
+        return cls(meta=NodeMeta(title="Preview Image"))
 
 
 class ImageScaleByInputs(NodeInputs):
     """Inputs of ``ImageScaleBy``."""
 
-    upscale_method: str
-    scale_by: float
-    image: NodeRef
+    upscale_method: str = "nearest-exact"
+    scale_by: float = 2.3
+    image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="decode", output_index=0))
 
 
 class ImageScaleByNode(BaseModel):
-    """``ImageScaleBy`` node (id ``"19"``)."""
+    """``ImageScaleBy`` node."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["ImageScaleBy"]
-    inputs: ImageScaleByInputs
+    class_type: Literal["ImageScaleBy"] = "ImageScaleBy"
+    inputs: ImageScaleByInputs = Field(default_factory=ImageScaleByInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template upscale node."""
+        return cls(meta=NodeMeta(title="Upscale Image By"))
 
 
 class SamplerInputs(NodeInputs):
     """Inputs of ``KSamplerAdvanced``."""
 
-    add_noise: Literal["enable"]
-    noise_seed: int
+    add_noise: Literal["enable"] = "enable"
+    noise_seed: int = 1072236688235494
     steps: int
     cfg: float
-    sampler_name: str
-    scheduler: str
+    sampler_name: str = "er_sde"
+    scheduler: str = "beta"
     start_at_step: int
     end_at_step: int
-    return_with_leftover_noise: Literal["disable"]
-    model: NodeRef
-    positive: NodeRef
-    negative: NodeRef
+    return_with_leftover_noise: Literal["disable"] = "disable"
+    model: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=0))
+    positive: NodeRef = Field(default_factory=lambda: NodeRef(node_id="positive", output_index=0))
+    negative: NodeRef = Field(default_factory=lambda: NodeRef(node_id="negative", output_index=0))
     latent_image: NodeRef
 
 
 class KSamplerAdvancedNode(BaseModel):
-    """``KSamplerAdvanced`` node (ids ``"25"`` base / ``"26"`` refine)."""
+    """``KSamplerAdvanced`` node — base pass and refine pass."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    class_type: Literal["KSamplerAdvanced"]
-    inputs: SamplerInputs
+    class_type: Literal["KSamplerAdvanced"] = "KSamplerAdvanced"
+    inputs: SamplerInputs = Field(default_factory=SamplerInputs)
     meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def default(
+        cls,
+        *,
+        latent_image: NodeRef,
+        steps: int,
+        cfg: float,
+        start_at_step: int,
+        end_at_step: int,
+    ) -> Self:
+        """Template sampler node with per-pass schedule values."""
+        return cls(
+            inputs=SamplerInputs(
+                latent_image=latent_image,
+                steps=steps,
+                cfg=cfg,
+                start_at_step=start_at_step,
+                end_at_step=end_at_step,
+            ),
+            meta=NodeMeta(title="KSampler (Advanced)"),
+        )
+
+
+_POSITIVE_PROMPT = (
+    "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
+    "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
+    "blunt bangs, waist-length twin tails, violet eyes,"
+)
+_NEGATIVE_PROMPT = (
+    "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
+    "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
+    "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
+)
 
 
 class Graph(BaseModel):
@@ -217,155 +286,68 @@ class Graph(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     loader: CheckpointLoaderNode
-    """Checkpoint loader (id ``"4"``)."""
+    """Checkpoint loader node."""
 
     latent: EmptyLatentNode
-    """Empty latent canvas (id ``"6"``)."""
+    """Empty latent canvas node."""
 
     positive: CLIPEncodeNode
-    """Positive prompt encode (id ``"7"``)."""
+    """Positive prompt encode node."""
 
     negative: CLIPEncodeNode
-    """Negative prompt encode (id ``"8"``)."""
+    """Negative prompt encode node."""
 
     decode: VAEDecodeNode
-    """Base-pass decode feeding the upscaler (id ``"9"``)."""
+    """Base-pass decode feeding the upscaler."""
 
     encode: VAEEncodeNode
-    """Re-encode of the upscaled image for the refine pass (id ``"13"``)."""
+    """Re-encode of the upscaled image for the refine pass."""
 
     refine_decode: VAEDecodeNode
-    """Refine-pass decode (id ``"15"``)."""
+    """Refine-pass decode node."""
 
     preview: PreviewImageNode
-    """Preview image (id ``"16"``)."""
+    """Preview image node."""
 
     upscale: ImageScaleByNode
-    """Upscale step (id ``"19"``)."""
+    """Upscale step node."""
 
     sampler_base: KSamplerAdvancedNode
-    """Base-pass sampler (id ``"25"``)."""
+    """Base-pass sampler node."""
 
     sampler_refine: KSamplerAdvancedNode
-    """Refine-pass sampler (id ``"26"``)."""
+    """Refine-pass sampler node."""
 
     @classmethod
     def default(cls) -> Self:
-        """Build the bundled graph entirely in Python code.
+        """Assemble the bundled template from each node class's own default.
 
-        Values mirror the original ComfyUI UI export; generation knobs
-        (prompt, size, sampler, checkpoint) are overridden per request by
-        the client via the ``with_*`` builders.
+        Generation knobs (prompt, size, sampler, checkpoint) are
+        overridden per request by the client via the ``with_*`` builders.
         """
-        clip_prompt = NodeMeta(title="CLIP Text Encode (Prompt)")
-        sampler_meta = NodeMeta(title="KSampler (Advanced)")
         return cls(
-            loader=CheckpointLoaderNode(
-                class_type="CheckpointLoaderSimple",
-                inputs=CheckpointLoaderInputs(ckpt_name="catTowerNoobaiXL_v15Vpred.safetensors"),
-                meta=NodeMeta(title="Load Checkpoint"),
+            loader=CheckpointLoaderNode.default(),
+            latent=EmptyLatentNode.default(),
+            positive=CLIPEncodeNode.default(text=_POSITIVE_PROMPT),
+            negative=CLIPEncodeNode.default(text=_NEGATIVE_PROMPT),
+            decode=VAEDecodeNode.default(samples=NodeRef(node_id="sampler_base", output_index=0)),
+            encode=VAEEncodeNode.default(),
+            refine_decode=VAEDecodeNode.default(samples=NodeRef(node_id="sampler_refine", output_index=0)),
+            preview=PreviewImageNode.default(),
+            upscale=ImageScaleByNode.default(),
+            sampler_base=KSamplerAdvancedNode.default(
+                latent_image=NodeRef(node_id="latent", output_index=0),
+                steps=21,
+                cfg=7.9,
+                start_at_step=0,
+                end_at_step=990,
             ),
-            latent=EmptyLatentNode(
-                class_type="EmptyLatentImage",
-                inputs=EmptyLatentInputs(width=768, height=512, batch_size=1),
-                meta=NodeMeta(title="Empty Latent Image"),
-            ),
-            positive=CLIPEncodeNode(
-                class_type="CLIPTextEncode",
-                inputs=CLIPEncodeInputs(
-                    text=(
-                        "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
-                        "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
-                        "blunt bangs, waist-length twin tails, violet eyes,"
-                    ),
-                    clip=NodeRef(node_id="loader", output_index=1),
-                ),
-                meta=clip_prompt,
-            ),
-            negative=CLIPEncodeNode(
-                class_type="CLIPTextEncode",
-                inputs=CLIPEncodeInputs(
-                    text=(
-                        "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
-                        "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
-                        "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
-                    ),
-                    clip=NodeRef(node_id="loader", output_index=1),
-                ),
-                meta=clip_prompt,
-            ),
-            decode=VAEDecodeNode(
-                class_type="VAEDecode",
-                inputs=VAEDecodeInputs(
-                    samples=NodeRef(node_id="sampler_base", output_index=0),
-                    vae=NodeRef(node_id="loader", output_index=2),
-                ),
-                meta=NodeMeta(title="VAE Decode"),
-            ),
-            encode=VAEEncodeNode(
-                class_type="VAEEncode",
-                inputs=VAEEncodeInputs(
-                    pixels=NodeRef(node_id="upscale", output_index=0), vae=NodeRef(node_id="loader", output_index=2)
-                ),
-                meta=NodeMeta(title="VAE Encode"),
-            ),
-            refine_decode=VAEDecodeNode(
-                class_type="VAEDecode",
-                inputs=VAEDecodeInputs(
-                    samples=NodeRef(node_id="sampler_refine", output_index=0),
-                    vae=NodeRef(node_id="loader", output_index=2),
-                ),
-                meta=NodeMeta(title="VAE Decode"),
-            ),
-            preview=PreviewImageNode(
-                class_type="PreviewImage",
-                inputs=PreviewImageInputs(images=NodeRef(node_id="refine_decode", output_index=0)),
-                meta=NodeMeta(title="Preview Image"),
-            ),
-            upscale=ImageScaleByNode(
-                class_type="ImageScaleBy",
-                inputs=ImageScaleByInputs(
-                    upscale_method="nearest-exact", scale_by=2.3, image=NodeRef(node_id="decode", output_index=0)
-                ),
-                meta=NodeMeta(title="Upscale Image By"),
-            ),
-            sampler_base=KSamplerAdvancedNode(
-                class_type="KSamplerAdvanced",
-                inputs=SamplerInputs(
-                    add_noise="enable",
-                    noise_seed=1072236688235494,
-                    steps=21,
-                    cfg=7.9,
-                    sampler_name="er_sde",
-                    scheduler="beta",
-                    start_at_step=0,
-                    end_at_step=990,
-                    return_with_leftover_noise="disable",
-                    model=NodeRef(node_id="loader", output_index=0),
-                    positive=NodeRef(node_id="positive", output_index=0),
-                    negative=NodeRef(node_id="negative", output_index=0),
-                    latent_image=NodeRef(node_id="latent", output_index=0),
-                ),
-                meta=sampler_meta,
-            ),
-            sampler_refine=KSamplerAdvancedNode(
-                class_type="KSamplerAdvanced",
-                inputs=SamplerInputs(
-                    add_noise="enable",
-                    noise_seed=1072236688235494,
-                    steps=42,
-                    cfg=8.5,
-                    sampler_name="er_sde",
-                    scheduler="beta",
-                    start_at_step=20,
-                    end_at_step=999,
-                    return_with_leftover_noise="disable",
-                    model=NodeRef(node_id="loader", output_index=0),
-                    positive=NodeRef(node_id="positive", output_index=0),
-                    negative=NodeRef(node_id="negative", output_index=0),
-                    latent_image=NodeRef(node_id="encode", output_index=0),
-                ),
-                meta=sampler_meta,
+            sampler_refine=KSamplerAdvancedNode.default(
+                latent_image=NodeRef(node_id="encode", output_index=0),
+                steps=42,
+                cfg=8.5,
+                start_at_step=20,
+                end_at_step=999,
             ),
         )
 
