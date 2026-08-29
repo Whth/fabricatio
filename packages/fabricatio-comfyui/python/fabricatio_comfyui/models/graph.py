@@ -105,8 +105,28 @@ class EmptyLatentNode(BaseModel):
 class CLIPEncodeInputs(NodeInputs):
     """Inputs of ``CLIPTextEncode``."""
 
-    text: str
+    text: str = ""
     clip: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=1))
+
+
+class _PositivePromptInputs(CLIPEncodeInputs):
+    """Positive prompt of the bundled template."""
+
+    text: str = (
+        "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
+        "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
+        "blunt bangs, waist-length twin tails, violet eyes,"
+    )
+
+
+class _NegativePromptInputs(CLIPEncodeInputs):
+    """Negative prompt of the bundled template."""
+
+    text: str = (
+        "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
+        "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
+        "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
+    )
 
 
 class CLIPEncodeNode(BaseModel):
@@ -119,15 +139,27 @@ class CLIPEncodeNode(BaseModel):
     meta: NodeMeta = Field(validation_alias="_meta")
 
     @classmethod
-    def default(cls, *, text: str) -> Self:
-        """Template prompt-encode node carrying *text*."""
-        return cls(inputs=CLIPEncodeInputs(text=text), meta=NodeMeta(title="CLIP Text Encode (Prompt)"))
+    def default(cls) -> Self:
+        """Template prompt-encode node."""
+        return cls(meta=NodeMeta(title="CLIP Text Encode (Prompt)"))
+
+
+class PositivePromptNode(CLIPEncodeNode):
+    """``positive`` node of the bundled template."""
+
+    inputs: _PositivePromptInputs = Field(default_factory=_PositivePromptInputs)
+
+
+class NegativePromptNode(CLIPEncodeNode):
+    """``negative`` node of the bundled template."""
+
+    inputs: _NegativePromptInputs = Field(default_factory=_NegativePromptInputs)
 
 
 class VAEDecodeInputs(NodeInputs):
     """Inputs of ``VAEDecode``."""
 
-    samples: NodeRef
+    samples: NodeRef = Field(default_factory=lambda: NodeRef(node_id="sampler_base", output_index=0))
     vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=2))
 
 
@@ -141,9 +173,21 @@ class VAEDecodeNode(BaseModel):
     meta: NodeMeta = Field(validation_alias="_meta")
 
     @classmethod
-    def default(cls, *, samples: NodeRef) -> Self:
-        """Template decode node fed from the given sampler."""
-        return cls(inputs=VAEDecodeInputs(samples=samples), meta=NodeMeta(title="VAE Decode"))
+    def default(cls) -> Self:
+        """Template decode node fed from the base sampler."""
+        return cls(meta=NodeMeta(title="VAE Decode"))
+
+
+class _RefineDecodeInputs(VAEDecodeInputs):
+    """Refine-pass decode source of the bundled template."""
+
+    samples: NodeRef = Field(default_factory=lambda: NodeRef(node_id="sampler_refine", output_index=0))
+
+
+class RefineDecodeNode(VAEDecodeNode):
+    """``refine_decode`` node of the bundled template."""
+
+    inputs: _RefineDecodeInputs = Field(default_factory=_RefineDecodeInputs)
 
 
 class VAEEncodeInputs(NodeInputs):
@@ -217,21 +261,31 @@ class SamplerInputs(NodeInputs):
 
     add_noise: Literal["enable"] = "enable"
     noise_seed: int = 1072236688235494
-    steps: int
-    cfg: float
+    steps: int = 21
+    cfg: float = 7.9
     sampler_name: str = "er_sde"
     scheduler: str = "beta"
-    start_at_step: int
-    end_at_step: int
+    start_at_step: int = 0
+    end_at_step: int = 990
     return_with_leftover_noise: Literal["disable"] = "disable"
     model: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=0))
     positive: NodeRef = Field(default_factory=lambda: NodeRef(node_id="positive", output_index=0))
     negative: NodeRef = Field(default_factory=lambda: NodeRef(node_id="negative", output_index=0))
-    latent_image: NodeRef
+    latent_image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="latent", output_index=0))
+
+
+class _RefineSamplerInputs(SamplerInputs):
+    """Refine-pass schedule of the bundled template."""
+
+    steps: int = 42
+    cfg: float = 8.5
+    start_at_step: int = 20
+    end_at_step: int = 999
+    latent_image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="encode", output_index=0))
 
 
 class KSamplerAdvancedNode(BaseModel):
-    """``KSamplerAdvanced`` node — base pass and refine pass."""
+    """``KSamplerAdvanced`` node — the base pass."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
@@ -240,38 +294,15 @@ class KSamplerAdvancedNode(BaseModel):
     meta: NodeMeta = Field(validation_alias="_meta")
 
     @classmethod
-    def default(
-        cls,
-        *,
-        latent_image: NodeRef,
-        steps: int,
-        cfg: float,
-        start_at_step: int,
-        end_at_step: int,
-    ) -> Self:
-        """Template sampler node with per-pass schedule values."""
-        return cls(
-            inputs=SamplerInputs(
-                latent_image=latent_image,
-                steps=steps,
-                cfg=cfg,
-                start_at_step=start_at_step,
-                end_at_step=end_at_step,
-            ),
-            meta=NodeMeta(title="KSampler (Advanced)"),
-        )
+    def default(cls) -> Self:
+        """Template base-pass sampler node."""
+        return cls(meta=NodeMeta(title="KSampler (Advanced)"))
 
 
-_POSITIVE_PROMPT = (
-    "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
-    "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
-    "blunt bangs, waist-length twin tails, violet eyes,"
-)
-_NEGATIVE_PROMPT = (
-    "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
-    "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
-    "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
-)
+class RefineSamplerNode(KSamplerAdvancedNode):
+    """``sampler_refine`` node of the bundled template."""
+
+    inputs: _RefineSamplerInputs = Field(default_factory=_RefineSamplerInputs)
 
 
 class Graph(BaseModel):
@@ -291,10 +322,10 @@ class Graph(BaseModel):
     latent: EmptyLatentNode
     """Empty latent canvas node."""
 
-    positive: CLIPEncodeNode
+    positive: PositivePromptNode
     """Positive prompt encode node."""
 
-    negative: CLIPEncodeNode
+    negative: NegativePromptNode
     """Negative prompt encode node."""
 
     decode: VAEDecodeNode
@@ -303,7 +334,7 @@ class Graph(BaseModel):
     encode: VAEEncodeNode
     """Re-encode of the upscaled image for the refine pass."""
 
-    refine_decode: VAEDecodeNode
+    refine_decode: RefineDecodeNode
     """Refine-pass decode node."""
 
     preview: PreviewImageNode
@@ -315,7 +346,7 @@ class Graph(BaseModel):
     sampler_base: KSamplerAdvancedNode
     """Base-pass sampler node."""
 
-    sampler_refine: KSamplerAdvancedNode
+    sampler_refine: RefineSamplerNode
     """Refine-pass sampler node."""
 
     @classmethod
@@ -328,27 +359,15 @@ class Graph(BaseModel):
         return cls(
             loader=CheckpointLoaderNode.default(),
             latent=EmptyLatentNode.default(),
-            positive=CLIPEncodeNode.default(text=_POSITIVE_PROMPT),
-            negative=CLIPEncodeNode.default(text=_NEGATIVE_PROMPT),
-            decode=VAEDecodeNode.default(samples=NodeRef(node_id="sampler_base", output_index=0)),
+            positive=PositivePromptNode.default(),
+            negative=NegativePromptNode.default(),
+            decode=VAEDecodeNode.default(),
             encode=VAEEncodeNode.default(),
-            refine_decode=VAEDecodeNode.default(samples=NodeRef(node_id="sampler_refine", output_index=0)),
+            refine_decode=RefineDecodeNode.default(),
             preview=PreviewImageNode.default(),
             upscale=ImageScaleByNode.default(),
-            sampler_base=KSamplerAdvancedNode.default(
-                latent_image=NodeRef(node_id="latent", output_index=0),
-                steps=21,
-                cfg=7.9,
-                start_at_step=0,
-                end_at_step=990,
-            ),
-            sampler_refine=KSamplerAdvancedNode.default(
-                latent_image=NodeRef(node_id="encode", output_index=0),
-                steps=42,
-                cfg=8.5,
-                start_at_step=20,
-                end_at_step=999,
-            ),
+            sampler_base=KSamplerAdvancedNode.default(),
+            sampler_refine=RefineSamplerNode.default(),
         )
 
     def to_api(self) -> dict[str, object]:
