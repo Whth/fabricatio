@@ -1,6 +1,8 @@
 """Tests for the fabricatio-comfyui subpackage."""
 
+import asyncio
 import json
+import threading
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -8,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.http_client import ComfyUIHttpClient
+from fabricatio_comfyui.http_client import ComfyUIHttpClient, get_comfyui_client
 from fabricatio_comfyui.models.comfyui import (
     ExecutionResult,
     HistoryEntry,
@@ -35,23 +37,48 @@ def _node_payload(raw: dict[str, object], node_id: str) -> dict[str, object]:
 
 
 class TestFactories:
-    """Classmethod factory construction paths."""
+    """Cached-factory and bundled-template construction paths."""
 
-    def test_with_comfyui_client_injects(self) -> None:
-        """with_comfyui_client binds a pre-built client without manual __init__."""
-        client = ComfyUIHttpClient.create(None)
-        role = UseComfyUI.with_comfyui_client(client)
-        assert role.comfyui_client is client
+    @pytest.mark.asyncio
+    async def test_comfyui_client_is_shared(self) -> None:
+        """The mixin holds no client; the cached factory hands out one shared instance."""
+        role_a, role_b = UseComfyUI(), UseComfyUI()
+        assert role_a.comfyui_client is role_b.comfyui_client
 
-    def test_default_client_is_lazy(self) -> None:
-        """Plain construction leaves the client unset until first access."""
-        role = UseComfyUI()
-        assert role._comfyui_client is None
+    @pytest.mark.asyncio
+    async def test_client_factory_caches_per_url(self) -> None:
+        """get_comfyui_client returns the same client per (loop, URL) pair, distinct per URL."""
+        other = "http://127.0.0.1:9999"
+
+        url = comfyui_config.base_url
+        assert get_comfyui_client(url) is get_comfyui_client(url)
+        assert get_comfyui_client(other) is not get_comfyui_client(url)
+
+    @pytest.mark.asyncio
+    async def test_client_factory_scoped_to_event_loop(self) -> None:
+        """Identity holds within one loop; another loop gets a distinct pool instance."""
+        url = comfyui_config.base_url
+        first = get_comfyui_client(url)
+        assert get_comfyui_client(url) is first  # cached within this loop
+
+        # A different event loop must not inherit this loop's client: run the
+        # factory on its own loop in a side thread.
+        seen: list[object] = []
+
+        def side_loop() -> None:
+            async def grab() -> None:
+                seen.append(get_comfyui_client(url))
+
+            asyncio.run(grab())
+
+        worker = threading.Thread(target=side_loop)
+        worker.start()
+        worker.join()
+        assert seen[0] is not first
 
     def test_bundled_loads_default_json(self) -> None:
         """bundled() parses the bundled default graph template."""
-        graph = Graph.bundled()
-        assert len(graph.to_api()) > 0
+        assert len(Graph.bundled().to_api()) > 0
 
 
 # ======================================================================
@@ -316,7 +343,7 @@ class TestModels:
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
     """End-to-end flow via the high-level capability: generate -> poll -> download."""
-    client = ComfyUIHttpClient.create(None)
+    client = UseComfyUI().comfyui_client
 
     mock_history: dict[str, object] = {
         "mock-uuid-123": {
@@ -340,7 +367,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_get.side_effect = get_side_effect
         mock_img.return_value = b"fake-image-bytes"
 
-        role = UseComfyUI.with_comfyui_client(client)
+        role = UseComfyUI()
         result = await role.generate_image(
             prompt="a mountain landscape",
             download_dir=tmp_path,
@@ -427,9 +454,8 @@ async def test_generate_returns_typed_result() -> None:
 @pytest.mark.asyncio
 async def test_generate_timeout() -> None:
     """Verify timeout raises when polling fails to complete."""
-    client = ComfyUIHttpClient.create(None)
-    role = UseComfyUI.with_comfyui_client(client)
-
+    role = UseComfyUI()
+    client = role.comfyui_client
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
         patch.object(client, "_get", return_value={}),
@@ -557,29 +583,19 @@ _requires_checkpoint = pytest.mark.skipif(
 )
 
 
-def _fresh_client() -> "ComfyUIHttpClient":
-    """Build a fresh client for the current pytest-asyncio event loop.
-
-    ``ComfyUIHttpClient.create`` returns a new client (with its own connection
-    pool) on every call — no ``@lru_cache``.  Integration tests use ``async with``
-    to guarantee the pool is closed per-loop.
-    """
-    return ComfyUIHttpClient.create(None)
-
-
 @pytest.mark.asyncio
 @_requires_comfyui
 @_requires_checkpoint
 async def test_integration_generate(tmp_path: Path) -> None:
     """Integration: generate via the bundled workflow against a real server."""
-    async with _fresh_client() as client:
-        result = await client.generate(
-            prompt="a cute cat",
-            checkpoint=_first_checkpoint(),
-            timeout=180.0,
-        )
-        assert result.succeeded is True
-        assert len(result.all_images) >= 1
+    client = get_comfyui_client(comfyui_config.base_url)
+    result = await client.generate(
+        prompt="a cute cat",
+        checkpoint=_first_checkpoint(),
+        timeout=180.0,
+    )
+    assert result.succeeded is True
+    assert len(result.all_images) >= 1
 
 
 @pytest.mark.asyncio
@@ -587,17 +603,13 @@ async def test_integration_generate(tmp_path: Path) -> None:
 @_requires_checkpoint
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
     """Integration: end-to-end generate with download against a real server."""
-    client = _fresh_client()
-    role = UseComfyUI.with_comfyui_client(client)
-    try:
-        result = await role.generate_image(
-            prompt="a cute cat",
-            checkpoint=_first_checkpoint(),
-            download_dir=tmp_path,
-            timeout=180.0,
-        )
-    finally:
-        await client.aclose()
+    role = UseComfyUI()
+    result = await role.generate_image(
+        prompt="a cute cat",
+        checkpoint=_first_checkpoint(),
+        download_dir=tmp_path,
+        timeout=180.0,
+    )
 
     assert result.succeeded is True
 
