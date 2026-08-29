@@ -45,7 +45,7 @@ class NodeRef(BaseModel):
 class NodeMeta(BaseModel):
     """The ``_meta`` block of a node (display metadata, ignored by the server)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     title: str
 
@@ -53,7 +53,7 @@ class NodeMeta(BaseModel):
 class NodeInputs(BaseModel):
     """Base for node input blocks — exact keys only, no silent extras."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
 
 class CheckpointLoaderInputs(NodeInputs):
@@ -65,7 +65,7 @@ class CheckpointLoaderInputs(NodeInputs):
 class CheckpointLoaderNode(BaseModel):
     """``CheckpointLoaderSimple`` node (id ``"4"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["CheckpointLoaderSimple"]
     inputs: CheckpointLoaderInputs
@@ -83,7 +83,7 @@ class EmptyLatentInputs(NodeInputs):
 class EmptyLatentNode(BaseModel):
     """``EmptyLatentImage`` node (id ``"6"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["EmptyLatentImage"]
     inputs: EmptyLatentInputs
@@ -100,7 +100,7 @@ class CLIPEncodeInputs(NodeInputs):
 class CLIPEncodeNode(BaseModel):
     """``CLIPTextEncode`` node (ids ``"7"`` positive / ``"8"`` negative)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["CLIPTextEncode"]
     inputs: CLIPEncodeInputs
@@ -117,7 +117,7 @@ class VAEDecodeInputs(NodeInputs):
 class VAEDecodeNode(BaseModel):
     """``VAEDecode`` node (ids ``"9"`` / ``"15"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAEDecode"]
     inputs: VAEDecodeInputs
@@ -134,7 +134,7 @@ class VAEEncodeInputs(NodeInputs):
 class VAEEncodeNode(BaseModel):
     """``VAEEncode`` node (id ``"13"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAEEncode"]
     inputs: VAEEncodeInputs
@@ -150,7 +150,7 @@ class PreviewImageInputs(NodeInputs):
 class PreviewImageNode(BaseModel):
     """``PreviewImage`` node (id ``"16"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["PreviewImage"]
     inputs: PreviewImageInputs
@@ -168,7 +168,7 @@ class ImageScaleByInputs(NodeInputs):
 class ImageScaleByNode(BaseModel):
     """``ImageScaleBy`` node (id ``"19"``)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["ImageScaleBy"]
     inputs: ImageScaleByInputs
@@ -196,7 +196,7 @@ class SamplerInputs(NodeInputs):
 class KSamplerAdvancedNode(BaseModel):
     """``KSamplerAdvanced`` node (ids ``"25"`` base / ``"26"`` refine)."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", validate_assignment=True)
 
     class_type: Literal["KSamplerAdvanced"]
     inputs: SamplerInputs
@@ -214,7 +214,7 @@ class Graph(BaseModel):
     payload for ``POST /prompt``.
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     loader: CheckpointLoaderNode = Field(alias="4")
     """Checkpoint loader (id ``"4"``)."""
