@@ -8,7 +8,8 @@ API format via :meth:`Graph.to_api` on submission.
 One pydantic class per node type; fixed wire node IDs live solely as
 serialization aliases, so Python code reads/writes named fields
 (``graph.loader.inputs.ckpt_name``) while the wire emits
-``{"4": {"class_type": ..., "inputs": {...}, "_meta": ...}}`` exactly.
+``{"loader": {"class_type": ..., "inputs": {...}, "_meta": ...}}`` —
+the Python field name *is* the node ID.
 ``validate_assignment`` keeps the typed invariants true for the whole
 object lifetime.
 """
@@ -70,7 +71,7 @@ class CheckpointLoaderNode(BaseModel):
 
     class_type: Literal["CheckpointLoaderSimple"]
     inputs: CheckpointLoaderInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class EmptyLatentInputs(NodeInputs):
@@ -88,7 +89,7 @@ class EmptyLatentNode(BaseModel):
 
     class_type: Literal["EmptyLatentImage"]
     inputs: EmptyLatentInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class CLIPEncodeInputs(NodeInputs):
@@ -105,7 +106,7 @@ class CLIPEncodeNode(BaseModel):
 
     class_type: Literal["CLIPTextEncode"]
     inputs: CLIPEncodeInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class VAEDecodeInputs(NodeInputs):
@@ -122,7 +123,7 @@ class VAEDecodeNode(BaseModel):
 
     class_type: Literal["VAEDecode"]
     inputs: VAEDecodeInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class VAEEncodeInputs(NodeInputs):
@@ -139,7 +140,7 @@ class VAEEncodeNode(BaseModel):
 
     class_type: Literal["VAEEncode"]
     inputs: VAEEncodeInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class PreviewImageInputs(NodeInputs):
@@ -155,7 +156,7 @@ class PreviewImageNode(BaseModel):
 
     class_type: Literal["PreviewImage"]
     inputs: PreviewImageInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class ImageScaleByInputs(NodeInputs):
@@ -173,7 +174,7 @@ class ImageScaleByNode(BaseModel):
 
     class_type: Literal["ImageScaleBy"]
     inputs: ImageScaleByInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class SamplerInputs(NodeInputs):
@@ -201,50 +202,51 @@ class KSamplerAdvancedNode(BaseModel):
 
     class_type: Literal["KSamplerAdvanced"]
     inputs: SamplerInputs
-    meta: NodeMeta = Field(alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta")
 
 
 class Graph(BaseModel):
     """The bundled txt2img → upscale → refine graph, initialised in Python.
 
-    Fixed wire node IDs exist only as serialization aliases; all Python
-    access goes through named typed fields.  :meth:`to_api` produces the
-    exact ComfyUI API-format payload for ``POST /prompt``.
+    ComfyUI node IDs are arbitrary unique strings, so the Python field
+    names double as the wire node IDs — no numeric aliases anywhere.
+    :meth:`to_api` produces the exact ComfyUI API-format payload for
+    ``POST /prompt``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
-    loader: CheckpointLoaderNode = Field(alias="4")
+    loader: CheckpointLoaderNode
     """Checkpoint loader (id ``"4"``)."""
 
-    latent: EmptyLatentNode = Field(alias="6")
+    latent: EmptyLatentNode
     """Empty latent canvas (id ``"6"``)."""
 
-    positive: CLIPEncodeNode = Field(alias="7")
+    positive: CLIPEncodeNode
     """Positive prompt encode (id ``"7"``)."""
 
-    negative: CLIPEncodeNode = Field(alias="8")
+    negative: CLIPEncodeNode
     """Negative prompt encode (id ``"8"``)."""
 
-    decode: VAEDecodeNode = Field(alias="9")
+    decode: VAEDecodeNode
     """Base-pass decode feeding the upscaler (id ``"9"``)."""
 
-    encode: VAEEncodeNode = Field(alias="13")
+    encode: VAEEncodeNode
     """Re-encode of the upscaled image for the refine pass (id ``"13"``)."""
 
-    refine_decode: VAEDecodeNode = Field(alias="15")
+    refine_decode: VAEDecodeNode
     """Refine-pass decode (id ``"15"``)."""
 
-    preview: PreviewImageNode = Field(alias="16")
+    preview: PreviewImageNode
     """Preview image (id ``"16"``)."""
 
-    upscale: ImageScaleByNode = Field(alias="19")
+    upscale: ImageScaleByNode
     """Upscale step (id ``"19"``)."""
 
-    sampler_base: KSamplerAdvancedNode = Field(alias="25")
+    sampler_base: KSamplerAdvancedNode
     """Base-pass sampler (id ``"25"``)."""
 
-    sampler_refine: KSamplerAdvancedNode = Field(alias="26")
+    sampler_refine: KSamplerAdvancedNode
     """Refine-pass sampler (id ``"26"``)."""
 
     @classmethod
@@ -276,7 +278,7 @@ class Graph(BaseModel):
                         "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
                         "blunt bangs, waist-length twin tails, violet eyes,"
                     ),
-                    clip=NodeRef(node_id="4", output_index=1),
+                    clip=NodeRef(node_id="loader", output_index=1),
                 ),
                 meta=clip_prompt,
             ),
@@ -288,33 +290,43 @@ class Graph(BaseModel):
                         "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
                         "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
                     ),
-                    clip=NodeRef(node_id="4", output_index=1),
+                    clip=NodeRef(node_id="loader", output_index=1),
                 ),
                 meta=clip_prompt,
             ),
             decode=VAEDecodeNode(
                 class_type="VAEDecode",
-                inputs=VAEDecodeInputs(samples=NodeRef(node_id="25", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                inputs=VAEDecodeInputs(
+                    samples=NodeRef(node_id="sampler_base", output_index=0),
+                    vae=NodeRef(node_id="loader", output_index=2),
+                ),
                 meta=NodeMeta(title="VAE Decode"),
             ),
             encode=VAEEncodeNode(
                 class_type="VAEEncode",
-                inputs=VAEEncodeInputs(pixels=NodeRef(node_id="19", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                inputs=VAEEncodeInputs(
+                    pixels=NodeRef(node_id="upscale", output_index=0), vae=NodeRef(node_id="loader", output_index=2)
+                ),
                 meta=NodeMeta(title="VAE Encode"),
             ),
             refine_decode=VAEDecodeNode(
                 class_type="VAEDecode",
-                inputs=VAEDecodeInputs(samples=NodeRef(node_id="26", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                inputs=VAEDecodeInputs(
+                    samples=NodeRef(node_id="sampler_refine", output_index=0),
+                    vae=NodeRef(node_id="loader", output_index=2),
+                ),
                 meta=NodeMeta(title="VAE Decode"),
             ),
             preview=PreviewImageNode(
                 class_type="PreviewImage",
-                inputs=PreviewImageInputs(images=NodeRef(node_id="15", output_index=0)),
+                inputs=PreviewImageInputs(images=NodeRef(node_id="refine_decode", output_index=0)),
                 meta=NodeMeta(title="Preview Image"),
             ),
             upscale=ImageScaleByNode(
                 class_type="ImageScaleBy",
-                inputs=ImageScaleByInputs(upscale_method="nearest-exact", scale_by=2.3, image=NodeRef(node_id="9", output_index=0)),
+                inputs=ImageScaleByInputs(
+                    upscale_method="nearest-exact", scale_by=2.3, image=NodeRef(node_id="decode", output_index=0)
+                ),
                 meta=NodeMeta(title="Upscale Image By"),
             ),
             sampler_base=KSamplerAdvancedNode(
@@ -329,10 +341,10 @@ class Graph(BaseModel):
                     start_at_step=0,
                     end_at_step=990,
                     return_with_leftover_noise="disable",
-                    model=NodeRef(node_id="4", output_index=0),
-                    positive=NodeRef(node_id="7", output_index=0),
-                    negative=NodeRef(node_id="8", output_index=0),
-                    latent_image=NodeRef(node_id="6", output_index=0),
+                    model=NodeRef(node_id="loader", output_index=0),
+                    positive=NodeRef(node_id="positive", output_index=0),
+                    negative=NodeRef(node_id="negative", output_index=0),
+                    latent_image=NodeRef(node_id="latent", output_index=0),
                 ),
                 meta=sampler_meta,
             ),
@@ -348,18 +360,29 @@ class Graph(BaseModel):
                     start_at_step=20,
                     end_at_step=999,
                     return_with_leftover_noise="disable",
-                    model=NodeRef(node_id="4", output_index=0),
-                    positive=NodeRef(node_id="7", output_index=0),
-                    negative=NodeRef(node_id="8", output_index=0),
-                    latent_image=NodeRef(node_id="13", output_index=0),
+                    model=NodeRef(node_id="loader", output_index=0),
+                    positive=NodeRef(node_id="positive", output_index=0),
+                    negative=NodeRef(node_id="negative", output_index=0),
+                    latent_image=NodeRef(node_id="encode", output_index=0),
                 ),
                 meta=sampler_meta,
             ),
         )
 
     def to_api(self) -> dict[str, object]:
-        """Serialize to ComfyUI API format (``node_id -> {class_type, inputs, _meta}``)."""
-        return self.model_dump(by_alias=True)
+        """Serialize to ComfyUI API format (``node_id -> {class_type, inputs, _meta}``).
+
+        The field name doubles as the wire node ID, so serialization is a
+        plain per-field projection; ``NodeRef`` fields serialize to
+        ``[node_id, output_index]`` lists.
+        """
+        out: dict[str, object] = {}
+        for name in type(self).model_fields:
+            node = getattr(self, name)
+            payload = node.model_dump(exclude={"meta"})
+            payload["_meta"] = node.meta.model_dump()
+            out[name] = payload
+        return out
 
     # ------------------------------------------------------------------
     # Chainable parameterisation — direct typed mutation, no lookups

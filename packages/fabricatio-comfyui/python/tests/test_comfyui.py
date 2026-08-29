@@ -95,16 +95,16 @@ class TestGraph:
         assert graph.latent.inputs.batch_size == 1
         assert graph.positive.class_type == "CLIPTextEncode"
         assert graph.negative.class_type == "CLIPTextEncode"
-        assert graph.preview.inputs.images.node_id == "15"
+        assert graph.preview.inputs.images.node_id == "refine_decode"
         assert graph.sampler_base.class_type == "KSamplerAdvanced"
         assert graph.sampler_refine.class_type == "KSamplerAdvanced"
 
     def test_node_ref_round_trip(self) -> None:
         """NodeRef parses the API list form and serializes back to it."""
-        ref = NodeRef.model_validate(["4", 1])
-        assert ref.node_id == "4"
+        ref = NodeRef.model_validate(["sampler_base", 1])
+        assert ref.node_id == "sampler_base"
         assert ref.output_index == 1
-        assert ref.model_dump() == ["4", 1]
+        assert ref.model_dump() == ["sampler_base", 1]
 
     def test_node_ref_rejects_short_list(self) -> None:
         """A node reference without an output index is invalid."""
@@ -180,21 +180,21 @@ class TestGraph:
     def test_unknown_input_key_rejected(self) -> None:
         """A node input outside the known shape fails loudly at load."""
         raw = Graph.default().to_api()
-        _node_payload(raw, "4").setdefault("inputs", {})["bogus_knob"] = 1
+        _node_payload(raw, "loader").setdefault("inputs", {})["bogus_knob"] = 1
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
     def test_wrong_class_type_rejected(self) -> None:
         """A class_type outside the literal union fails loudly at load."""
         raw = Graph.default().to_api()
-        _node_payload(raw, "4")["class_type"] = "KSampler"
+        _node_payload(raw, "loader")["class_type"] = "KSampler"
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
     def test_missing_node_rejected(self) -> None:
         """A missing node id fails loudly at load."""
         raw = Graph.default().to_api()
-        del raw["26"]
+        del raw["sampler_refine"]
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
@@ -432,14 +432,14 @@ async def test_generate_applies_knobs_to_bundled_graph() -> None:
 
     assert captured["path"] == "/prompt"
     prompt = cast("dict[str, object]", captured["prompt"])
-    assert cast("dict[str, object]", prompt["4"])["inputs"]["ckpt_name"] == "custom.safetensors"
-    assert cast("dict[str, object]", prompt["7"])["inputs"]["text"] == "a cat"
-    assert cast("dict[str, object]", prompt["8"])["inputs"]["text"] == "ugly"
-    assert cast("dict[str, object]", prompt["6"])["inputs"]["width"] == 640
-    assert cast("dict[str, object]", prompt["6"])["inputs"]["height"] == 640
-    assert cast("dict[str, object]", prompt["25"])["inputs"]["noise_seed"] == 42
-    assert cast("dict[str, object]", prompt["25"])["inputs"]["steps"] == 20
-    assert cast("dict[str, object]", prompt["25"])["inputs"]["cfg"] == 7.0
+    assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "custom.safetensors"
+    assert cast("dict[str, object]", prompt["positive"])["inputs"]["text"] == "a cat"
+    assert cast("dict[str, object]", prompt["negative"])["inputs"]["text"] == "ugly"
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 640
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 640
+    assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["noise_seed"] == 42
+    assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["steps"] == 20
+    assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["cfg"] == 7.0
     assert captured["front"] is True
     assert captured["client_id"] == client.client_id
 
