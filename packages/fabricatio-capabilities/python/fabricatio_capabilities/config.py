@@ -17,8 +17,8 @@ class CapabilitiesConfig:
 
     # Text Processing Templates
 
-    compact_template: str = "built-in/compact"
-    """The name of the compact template which will be used to compact raw text to a target length."""
+    summarize_template: str = "built-in/summarize"
+    """The name of the summarize template which will be used to summarize raw text into a length-bounded summary."""
 
     # Code Generation Templates
 

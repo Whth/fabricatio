@@ -1,14 +1,20 @@
-# Task: Compact Text to a Target Length
+# Task: Summarize Text into a Length-Bounded Summary
 
-Compress the text below into a shorter version that preserves its core meaning, key facts, and tone.
-Output ONLY the compacted text itself, with no explanations, quotation marks, or code fences.
+Summarize the text below into a shorter passage that preserves its core meaning, key facts, and tone.
+The summary MUST be at least {{min_length}} {{length_type}} long and at most {{max_length}} {{length_type}} long.
+Aim to fill the length window: do not stop far below {{min_length}} {{length_type}}, and never exceed {{max_length}}.
+Output ONLY the summary itself, with no explanations, quotation marks, or code fences.
 
-## Compaction Requirement
+{{#if requirement}}
+## Summarization Requirement
 {{ requirement }}
+{{/if}}
 
 ## Length Constraint
-The output MUST NOT exceed {{ target_length }} {{ length_type }}.
+- Unit: {{ length_type }}
+- Minimum: {{ min_length }}
+- Maximum: {{ max_length }}
 
------ Start of raw text to compact -----
+----- Start of raw text to summarize -----
 {{ text }}
------ End of raw text to compact -----
+----- End of raw text to summarize -----

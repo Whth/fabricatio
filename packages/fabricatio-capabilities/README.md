@@ -7,7 +7,7 @@
 [![PyPI Downloads](https://static.pepy.tech/badge/fabricatio-capabilities)](https://pepy.tech/projects/fabricatio-capabilities)
 [![Build Tool: uv](https://img.shields.io/badge/built%20with-uv-orange)](https://github.com/astral-sh/uv)
 
-High-level LLM agent capabilities for structured extraction, content rating, sequence ordering, text compaction, and task dispatch. Built on `fabricatio-core`.
+High-level LLM agent capabilities for structured extraction, content rating, sequence ordering, text summarization, and task dispatch. Built on `fabricatio-core`.
 
 ## Installation
 
@@ -30,7 +30,7 @@ pip install fabricatio[full]
 - **Extract** structured data from unstructured text into Pydantic models.
 - **Rate** content against multi-criteria rubrics, including automated criteria drafting, weighted composite scoring, and top-*k* selection.
 - **Order** sequences of items (strings or `WithBriefing` objects) by a requirement or by computed scores.
-- **Compact** raw text to a target length (characters, words, or sentences) while preserving its core meaning.
+- **Summarize** raw text into a length-bounded summary (characters, words, or sentences).
 - **Propose & dispatch** tasks to candidate roles based on semantic matching.
 - **Patch** and **persist** Pydantic models with type-safe update mechanisms.
 
@@ -44,7 +44,7 @@ fabricatio_capabilities/
  │   ├── extract.py        # Extract — structured extraction from text
  │   ├── rating.py         # Rating — multi-criteria rating, criteria drafting, composite scoring, best-k selection
  │   ├── rating_image.py   # RatingImage — rate attached images via a vision-capable LLM
- │   ├── compact.py        # Compact + LengthType — length-constrained text compaction
+ │   ├── summarize.py      # Summarize + LengthType — length-window-bounded summarization
  │   └── task.py           # ProposeTask, DispatchTask — task proposal and delegation
  ├── models/               # Reusable Pydantic base models
  │   ├── generic.py        # Patch, SequencePatch, PersistentAble, FinalizedDumpAble, ModelHash, UpdateFrom, etc.
@@ -62,7 +62,7 @@ fabricatio_capabilities/
 | `Rating` | `Propose` | Fine-grained rating against a manual and score range. Can draft rating manuals, criteria, and weights (Klee method AHP). Computes composite scores and picks best-*k* candidates. |
 | `Ordering` | `Rating` | Orders a sequence of strings or `WithBriefing` items by a natural-language requirement or by computed composite scores. |
 | `RatingImage` | `Rating` | Rates an attached image against criteria via a vision-capable LLM. Routes to the `VISION` variant slot by default; reuses the bounded-score model builder. |
-| `Compact` | `Propose` | Compacts raw text to at most a target length in characters, words, or sentences (`LengthType`). `compact` re-validates the LLM output against the bound (up to three retries); `force_compact` iteratively re-compacts the output until the bound is met. |
+| `Summarize` | `Propose` | Summarizes raw text into a summary whose length (chars/words/sentences) must land inside a [min, max] window; the default floor is 80% of the ceiling. `summarize` re-validates the output against the window; `force_summarize` iterates (feeding over-long attempts back, restarting from the raw text after under-min attempts) and falls back to the closest attempt. |
 | `ProposeTask` | `Propose` | Proposes a `Task` object from a natural-language prompt. |
 | `DispatchTask` | `UseLLM` | Dispatches a `Task` to the best-matching candidate `Role` based on briefing text and event subscriptions. |
 
@@ -107,7 +107,7 @@ extract_criteria_from_reasons_template = "built-in/extract_criteria_from_reasons
 draft_rating_weights_klee_template = "built-in/draft_rating_weights_klee"
 order_string_template = "built-in/order_string"
 order_briefed_template = "built-in/order_briefed"
-compact_template = "built-in/compact"
+summarize_template = "built-in/summarize"
 ```
 
 | Option | Type | Default | Description |
@@ -124,7 +124,7 @@ compact_template = "built-in/compact"
 | `draft_rating_weights_klee_template` | `str` | `"built-in/draft_rating_weights_klee"` | The name of the draft rating weights klee template which will be used to draft rating weights with Klee method. |
 | `order_string_template` | `str` | `"built-in/order_string"` | The name of the order string template which will be used to order string. |
 | `order_briefed_template` | `str` | `"built-in/order_briefed"` | The name of the order briefed template which will be used to order briefed. |
-| `compact_template` | `str` | `"built-in/compact"` | The name of the compact template which will be used to compact raw text to a target length. |
+| `summarize_template` | `str` | `"built-in/summarize"` | The name of the summarize template which will be used to summarize raw text into a length-bounded summary. |
 
 
 ## Usage
@@ -161,37 +161,37 @@ manual = await agent.draft_rating_manual("essay quality", {"clarity", "argument"
 scores = await agent.rate("The essay is well-structured.", manual, (0.0, 10.0))
 ```
 
-### Text Compaction
+### Text Summarization
 
 ```python
-from fabricatio_capabilities.capabilities.compact import Compact, LengthType
+from fabricatio_capabilities.capabilities.summarize import LengthType, Summarize
 
-class MyAgent(Compact, YourBaseAgent):
+class MyAgent(Summarize, YourBaseAgent):
     ...
 
-agent = MyAgent()
-compacted = await agent.compact(
+caption = await agent.summarize(
     raw,
+    max_length=200,                # box width, in length_type units
+    min_length=160,                # optional floor; default = 80% of max_length
     requirement="keep the key facts and the formal tone",
-    target_length=200,
     length_type=LengthType.Chars,  # Chars (default), Words, or Sentences
 )
 ```
 
-The output is validated to be at most `target_length` units (measured after
-stripping); oversized LLM responses are retried and, after three failed
-attempts, the method returns `None`.
+The output is validated to land inside the `[min_length, max_length]` window
+(measured after stripping); out-of-window responses are retried and, after
+three failed attempts, the method returns `None`.
 
-When a single pass keeps missing the bound, `force_compact` feeds each
-oversized output back as the input of the next pass until the bound is met
-(`max_iterations=5` by default); if the bound stays unreachable it returns the
-shortest attempt:
+When a single pass keeps missing the window, `force_summarize` feeds each
+oversized output back as the input of the next pass and restarts from the raw
+text after under-min outputs (`max_iterations=5` by default); if the window
+stays unreachable it returns the attempt closest to the window:
 
 ```python
-compacted = await agent.force_compact(
+summary = await agent.force_summarize(
     raw,
+    max_length=200,
     requirement="keep the key facts and the formal tone",
-    target_length=200,
     max_iterations=5,
 )
 ```
