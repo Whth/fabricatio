@@ -8,6 +8,10 @@ The intended use is prompt prefix management: stable boilerplate enters the log
 first (the *head*), per-request content branches off it, and ``render`` joins
 bodies deterministically — identical logs always render byte-identical text,
 which keeps provider prefix caches warm.
+
+Subclassing is supported: every factory method preserves ``type(self)``, so
+packages may narrow ``kind`` (e.g. to a ``Literal`` vocabulary) without losing
+their type through ``with_entry``/``branch``/``clear``.
 """
 
 from collections.abc import Iterable
@@ -48,26 +52,26 @@ class ContextLog(BaseModel):
     forked_at: int = 0
     """Length of the branched-from history at branch time; snapshot traceability only."""
 
-    def with_entry(self, entry: ContextEntry) -> "ContextLog":
-        """Return a new log with one entry appended; this log is unchanged."""
-        return ContextLog(entries=(*self.entries, entry), forked_at=self.forked_at)
+    def with_entry(self, entry: ContextEntry) -> Self:
+        """Return a new log of the same type with one entry appended; this log is unchanged."""
+        return self.__class__(entries=(*self.entries, entry), forked_at=self.forked_at)
 
-    def with_entries(self, entries: Iterable[ContextEntry]) -> "ContextLog":
-        """Return a new log with every entry appended in sequence; this log is unchanged."""
-        return ContextLog(entries=(*self.entries, *entries), forked_at=self.forked_at)
+    def with_entries(self, entries: Iterable[ContextEntry]) -> Self:
+        """Return a new log of the same type with every entry appended in sequence; this log is unchanged."""
+        return self.__class__(entries=(*self.entries, *entries), forked_at=self.forked_at)
 
     def append(self, entry: ContextEntry) -> Self:
         """Append one entry in place and return self; single-owner code only."""
         self.entries = (*self.entries, entry)
         return self
 
-    def branch(self) -> "ContextLog":
-        """Return a fork sharing this history; both sides append independently."""
-        return ContextLog(entries=self.entries, forked_at=len(self.entries))
+    def branch(self) -> Self:
+        """Return a fork of the same type sharing this history; both sides append independently."""
+        return self.__class__(entries=self.entries, forked_at=len(self.entries))
 
-    def clear(self) -> "ContextLog":
-        """Return a fresh empty log; this log keeps its history intact."""
-        return ContextLog()
+    def clear(self) -> Self:
+        """Return a fresh empty log of the same type; this log keeps its history intact."""
+        return self.__class__()
 
     def render(self) -> str:
         """Join non-empty bodies with blank lines; identical logs render identical bytes."""
