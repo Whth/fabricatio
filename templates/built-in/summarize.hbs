@@ -1,4 +1,7 @@
-Summarize the text below into {{min_length}}-{{max_length}} {{length_type}}, preserving its core meaning, key facts, and tone.
+Summarize the text below, preserving its core meaning, key facts, and tone.
+{{#if min_length}}
+The summary MUST be at least {{min_length}} {{length_type}} long{{#if max_length}} and at most {{max_length}} {{length_type}} long{{/if}}.
+{{/if}}
 Output ONLY the summary itself, with no explanations, quotation marks, or code fences.
 
 {{#if requirement}}

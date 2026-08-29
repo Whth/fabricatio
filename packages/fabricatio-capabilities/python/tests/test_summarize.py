@@ -8,7 +8,7 @@ from fabricatio_capabilities.capabilities.summarize import (
     Summarize,
     _length,
     _render_summarize_prompt,
-    _resolve_min_length,
+    _resolve_bounds,
 )
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_router_usage
@@ -47,16 +47,23 @@ def test_length_counts(text: str, length_type: LengthType, expected: int) -> Non
     assert _length(text, length_type) == expected
 
 
-def test_resolve_min_length() -> None:
-    """The default floor is 80% of the ceiling (at least 1); explicit bounds are validated."""
-    assert _resolve_min_length(None, 10) == 8
-    assert _resolve_min_length(None, 1) == 1
-    assert _resolve_min_length(None, 4) == 3
-    assert _resolve_min_length(5, 10) == 5
+def test_resolve_bounds() -> None:
+    """Open bounds stay open; a set ceiling derives an 80% floor; invalid windows raise."""
+    assert _resolve_bounds(None, None) == (None, None)
+    assert _resolve_bounds(None, 10) == (8, 10)
+    assert _resolve_bounds(None, 1) == (1, 1)
+    assert _resolve_bounds(None, 4) == (3, 4)
+    assert _resolve_bounds(5, 10) == (5, 10)
+    assert _resolve_bounds(5, None) == (5, None)
+    assert _resolve_bounds(10, 10) == (10, 10)
+    with pytest.raises(ValueError, match="max_length"):
+        _resolve_bounds(None, 0)
     with pytest.raises(ValueError, match="min_length"):
-        _resolve_min_length(11, 10)
-    with pytest.raises(ValueError, match="min_length"):
-        _resolve_min_length(0, 10)
+        _resolve_bounds(0, 10)
+    with pytest.raises(ValueError, match="exceed"):
+        _resolve_bounds(11, 10)
+    with pytest.raises(ValueError, match="exceed"):
+        _resolve_bounds(5, 4)
 
 
 @pytest.mark.asyncio
@@ -116,6 +123,36 @@ async def test_summarize_derived_min_enforced(role: SummarizeTestRole) -> None:
             max_length=100,
         )
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_summarize_unconstrained_returns_any_response(role: SummarizeTestRole) -> None:
+    """With both bounds omitted the output length is free and any non-empty response passes."""
+    with install_router_usage("tiny"):
+        result = await role.summarize(
+            "A much longer piece of raw text that needs shortening.",
+            requirement="keep the main idea",
+        )
+    assert result == "tiny"
+
+
+@pytest.mark.asyncio
+async def test_summarize_without_ceiling_enforces_floor(role: SummarizeTestRole) -> None:
+    """A floor without a ceiling rejects under-min output and accepts sufficient output."""
+    with install_router_usage(*return_router_usage("tiny", "tiny", "tiny")):
+        result = await role.summarize(
+            "A much longer piece of raw text that needs shortening.",
+            min_length=50,
+        )
+    assert result is None
+
+    sufficient = "This response is long enough to satisfy the fifty character floor."
+    with install_router_usage(sufficient):
+        result = await role.summarize(
+            "A much longer piece of raw text that needs shortening.",
+            min_length=50,
+        )
+    assert result == sufficient
 
 
 @pytest.mark.asyncio
@@ -186,6 +223,14 @@ async def test_force_summarize_returns_when_window_met_first_pass(role: Summariz
 
 
 @pytest.mark.asyncio
+async def test_force_summarize_unconstrained_returns_first_pass(role: SummarizeTestRole) -> None:
+    """With no bounds the first non-empty pass returns immediately."""
+    with install_router_usage("anything goes"):
+        result = await role.force_summarize("RAW SOURCE")
+    assert result == "anything goes"
+
+
+@pytest.mark.asyncio
 async def test_force_summarize_feeds_back_overlong_attempt(
     role: SummarizeTestRole, mocker: "pytest_mock.MockerFixture"
 ) -> None:
@@ -247,10 +292,19 @@ async def test_force_summarize_returns_none_when_all_passes_fail(role: Summarize
 def test_render_prompt_contains_bounds_and_text() -> None:
     """The rendered prompt carries the length window, raw text, and conditional requirement."""
     p = _render_summarize_prompt("hello world", "keep tone", 5, 10, LengthType.Words)
-    assert "5-10 words" in p
+    assert "at least 5 words long and at most 10 words long" in p
     assert "hello world" in p
     assert "keep tone" in p
     assert "{{" not in p
 
     q = _render_summarize_prompt("hello world", "", 5, 10, LengthType.Words)
     assert "Requirement:" not in q
+
+    free = _render_summarize_prompt("hello world", "", None, None, LengthType.Words)
+    assert "MUST" not in free
+    assert "{{" not in free
+    assert "hello world" in free
+
+    floor_only = _render_summarize_prompt("hello world", "", 5, None, LengthType.Words)
+    assert "at least 5 words long" in floor_only
+    assert "at most" not in floor_only

@@ -62,7 +62,7 @@ fabricatio_capabilities/
 | `Rating` | `Propose` | Fine-grained rating against a manual and score range. Can draft rating manuals, criteria, and weights (Klee method AHP). Computes composite scores and picks best-*k* candidates. |
 | `Ordering` | `Rating` | Orders a sequence of strings or `WithBriefing` items by a natural-language requirement or by computed composite scores. |
 | `RatingImage` | `Rating` | Rates an attached image against criteria via a vision-capable LLM. Routes to the `VISION` variant slot by default; reuses the bounded-score model builder. |
-| `Summarize` | `Propose` | Summarizes raw text into a summary whose length (chars/words/sentences) must land inside a [min, max] window; the default floor is 80% of the ceiling. `summarize` re-validates the output against the window; `force_summarize` iterates (feeding over-long attempts back, restarting from the raw text after under-min attempts) and falls back to the closest attempt. |
+| `Summarize` | `Propose` | Summarizes raw text into a summary whose length (chars/words/sentences) must land inside a [min, max] window — pass neither bound for unconstrained output; the default floor is 80% of the ceiling. `summarize` re-validates the output against the window; `force_summarize` iterates (feeding over-long attempts back, restarting from the raw text after under-min attempts) and falls back to the closest attempt. |
 | `ProposeTask` | `Propose` | Proposes a `Task` object from a natural-language prompt. |
 | `DispatchTask` | `UseLLM` | Dispatches a `Task` to the best-matching candidate `Role` based on briefing text and event subscriptions. |
 
@@ -180,7 +180,9 @@ caption = await agent.summarize(
 
 The output is validated to land inside the `[min_length, max_length]` window
 (measured after stripping); out-of-window responses are retried and, after
-three failed attempts, the method returns `None`.
+three failed attempts, the method returns `None`. Bounds are optional: pass
+neither `max_length` nor `min_length` for unconstrained summarization, or pass
+only `min_length` for a floor with no ceiling.
 
 When a single pass keeps missing the window, `force_summarize` feeds each
 oversized output back as the input of the next pass and restarts from the raw

@@ -39,26 +39,39 @@ def _length(text: str, length_type: LengthType) -> int:
             return len(_SENTENCE_SPLIT.findall(text))
 
 
-def _resolve_min_length(min_length: int | None, max_length: int) -> int:
-    """Resolve the effective lower length bound.
+def _resolve_bounds(min_length: int | None, max_length: int | None) -> tuple[int | None, int | None]:
+    """Resolve the effective [min, max] length window.
 
-    ``None`` derives a floor of 80% of *max_length* (integer floor, at least 1) so a
-    fixed-width display box never receives an overly short caption by default.
+    ``None`` bounds stay open; a ``None`` floor with a set ceiling derives 80% of
+    the ceiling (integer floor, at least 1). Both bounds ``None`` means the output
+    length is unconstrained.
+
+    Raises:
+        ValueError: If any explicit bound is not a positive integer, or the
+            explicit window is empty (``min_length > max_length``).
     """
-    if min_length is None:
-        return max(1, max_length * 4 // 5)
-    if not 1 <= min_length <= max_length:
-        raise ValueError(f"min_length must be within [1, {max_length}], got {min_length}.")
-    return min_length
+    if max_length is not None and max_length < 1:
+        raise ValueError(f"max_length must be a positive integer, got {max_length}.")
+    if min_length is not None and min_length < 1:
+        raise ValueError(f"min_length must be a positive integer, got {min_length}.")
+    if min_length is not None and max_length is not None and min_length > max_length:
+        raise ValueError(f"min_length must not exceed max_length, got {min_length} > {max_length}.")
+    if min_length is None and max_length is not None:
+        min_length = max(1, max_length * 4 // 5)
+    return min_length, max_length
 
 
-def _distance_to_range(length: int, min_length: int, max_length: int) -> int:
-    """Distance from *length* to the closed interval [*min_length*, *max_length*]."""
-    return max(0, min_length - length, length - max_length)
+def _distance_to_range(length: int, min_length: int | None, max_length: int | None) -> int:
+    """Distance from *length* to the closed interval [*min_length*, *max_length*]; ``None`` bounds are open."""
+    return max(
+        0,
+        min_length - length if min_length is not None else 0,
+        length - max_length if max_length is not None else 0,
+    )
 
 
 def _render_summarize_prompt(
-    raw: str, requirement: str, min_length: int, max_length: int, length_type: LengthType
+    raw: str, requirement: str, min_length: int | None, max_length: int | None, length_type: LengthType
 ) -> str:
     """Render the summarization prompt for *raw*."""
     return TEMPLATE_MANAGER.render_template(
@@ -79,7 +92,7 @@ class Summarize(Propose, ABC):
     async def summarize(
         self,
         raw: str,
-        max_length: PositiveInt,
+        max_length: PositiveInt | None = None,
         requirement: str = "",
         min_length: int | None = None,
         length_type: LengthType = LengthType.Chars,
@@ -88,13 +101,18 @@ class Summarize(Propose, ABC):
     ) -> str | None:
         """Summarize *raw* text into a summary whose length lands inside a [min, max] window.
 
+        Both bounds ``None`` summarize without any length control; a set ceiling
+        without a floor derives a floor of 80% of the ceiling.
+
         Args:
             raw: The raw text to be summarized.
             max_length: The upper bound of the summary length, in *length_type* units.
+                ``None`` leaves the length unconstrained above.
             requirement: What must be preserved in the summary (key points, tone,
                 language, etc.). Empty adds no requirement section to the prompt.
             min_length: The lower bound of the summary length, in *length_type*
-                units. ``None`` (default) derives ``max(1, max_length * 4 // 5)``.
+                units. ``None`` derives ``max(1, max_length * 4 // 5)`` when
+                *max_length* is set, and stays open otherwise.
             length_type: The unit used to measure the output length.
                 Defaults to ``LengthType.Chars``.
             send_to: Routing-group variant for the LLM call; ``None`` defers to the
@@ -102,17 +120,17 @@ class Summarize(Propose, ABC):
             **kwargs (Unpack[LLMKwargs]): Additional keyword arguments for the LLM usage.
 
         Returns:
-            The summary if its length falls within the window, otherwise ``None``
+            The summary if its length falls inside the window, otherwise ``None``
             after the validation attempts are exhausted.
         """
-        min_len = _resolve_min_length(min_length, max_length)
+        min_len, max_len = _resolve_bounds(min_length, max_length)
 
         def _validator(response: str) -> str | None:
             summary = response.strip()
-            return summary if _distance_to_range(_length(summary, length_type), min_len, max_length) == 0 else None
+            return summary if _distance_to_range(_length(summary, length_type), min_len, max_len) == 0 else None
 
         return await self.aask_validate(
-            question=_render_summarize_prompt(raw, requirement, min_len, max_length, length_type),
+            question=_render_summarize_prompt(raw, requirement, min_len, max_len, length_type),
             validator=_validator,
             send_to=send_to,
             **kwargs,
@@ -121,7 +139,7 @@ class Summarize(Propose, ABC):
     async def force_summarize(
         self,
         raw: str,
-        max_length: PositiveInt,
+        max_length: PositiveInt | None = None,
         requirement: str = "",
         min_length: int | None = None,
         length_type: LengthType = LengthType.Chars,
@@ -137,10 +155,12 @@ class Summarize(Propose, ABC):
         Args:
             raw: The raw text to be summarized.
             max_length: The upper bound of the summary length, in *length_type* units.
+                ``None`` leaves the length unconstrained above.
             requirement: What must be preserved in the summary (key points, tone,
                 language, etc.). Empty adds no requirement section to the prompt.
             min_length: The lower bound of the summary length, in *length_type*
-                units. ``None`` (default) derives ``max(1, max_length * 4 // 5)``.
+                units. ``None`` derives ``max(1, max_length * 4 // 5)`` when
+                *max_length* is set, and stays open otherwise.
             length_type: The unit used to measure the output length.
                 Defaults to ``LengthType.Chars``.
             max_iterations: The maximum number of summarization passes.
@@ -154,27 +174,27 @@ class Summarize(Propose, ABC):
             is closest to the window if the window could not be reached within
             *max_iterations*, or ``None`` if every pass failed.
         """
-        min_len = _resolve_min_length(min_length, max_length)
+        min_len, max_len = _resolve_bounds(min_length, max_length)
         source = raw
         best: str | None = None
         for _ in range(max_iterations):
             candidate = await self.aask_validate(
-                question=_render_summarize_prompt(source, requirement, min_len, max_length, length_type),
+                question=_render_summarize_prompt(source, requirement, min_len, max_len, length_type),
                 validator=lambda response: response.strip() or None,
                 send_to=send_to,
                 **kwargs,
             )
             if candidate is None:
                 break
-            distance = _distance_to_range(_length(candidate, length_type), min_len, max_length)
+            distance = _distance_to_range(_length(candidate, length_type), min_len, max_len)
             if distance == 0:
                 return candidate
-            if best is None or distance < _distance_to_range(_length(best, length_type), min_len, max_length):
+            if best is None or distance < _distance_to_range(_length(best, length_type), min_len, max_len):
                 best = candidate
-            source = candidate if _length(candidate, length_type) > max_length else raw
+            source = candidate if max_len is not None and _length(candidate, length_type) > max_len else raw
         if best is not None:
             logger.warn(
-                f"force_summarize could not reach the [{min_len}, {max_length}] {length_type.value} window within "
-                f"{max_iterations} iterations; returning the closest attempt."
+                f"force_summarize could not reach the length window (min={min_len}, max={max_len} "
+                f"{length_type.value}) within {max_iterations} iterations; returning the closest attempt."
             )
         return best
