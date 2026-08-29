@@ -2,7 +2,7 @@
 
 Mix into a Role to gain ComfyUI image generation methods.  The public
 surface is intentionally **narrow**: callers supply high-level knobs
-(``prompt``, ``width``, ``height``, ``seed``, ``steps``, ``cfg``,
+(``prompt``, ``width``, ``height``, ``seed``, ``steps``, ``cfg```,
 ``checkpoint``) and the package parameterises a bundled workflow template
 internally.  Workflow graphs are an implementation detail — external
 callers never see or operate on one.
@@ -11,68 +11,50 @@ Method naming follows the ``Use*`` capability pattern of
 :mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``,
 ``upload_image``, ``get_history`` ...), no ``a``-prefix.
 
-Each instance holds its own :class:`ComfyUIClientBase` (lazily created
-from :class:`ComfyUIHttpClient`), so tests and alternate backends can
-inject a client via :meth:`with_comfyui_client` — no ``@lru_cache``
-global, no ``hasattr`` sniffing.
+Client lifecycle follows the ``fabricatio-milvus`` pattern: the mixin
+holds no client at all.  A module-level ``@cache`` factory keeps one
+process-wide shared client (and ``httpx`` connection pool) per base URL,
+and :attr:`comfyui_client` fetches it when needed — stateless mixins, no
+per-instance binding, no leak-prone ownership.
 """
 
-from typing import TYPE_CHECKING, Self, Unpack
+from typing import TYPE_CHECKING, Unpack
 
 from fabricatio_core.journal import logger
 
-from fabricatio_comfyui.http_client import ComfyUIHttpClient
+from fabricatio_comfyui.config import comfyui_config
+from fabricatio_comfyui.http_client import ComfyUIClientBase, get_comfyui_client
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from fabricatio_comfyui.client_base import ComfyUIClientBase
-    from fabricatio_comfyui.models.comfyui import (
-        ExecutionResult,
-        HistoryEntry,
-        QueueInfo,
-        UploadResponse,
-    )
+    from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo, UploadResponse
 
 __all__ = ["UseComfyUI"]
 
 
 class UseComfyUI:
-    """ComfyUI capability mixin — owns a per-instance :class:`ComfyUIClientBase`.
+    """ComfyUI capability mixin — fetches the shared client on demand.
 
-    Mix into a Role or Action to generate images from typed knobs without
-    ever touching a workflow graph::
+    Usage::
 
         class ImageRole(Role, UseComfyUI): ...
 
-        result = await role.generate_image("a mountain landscape", download_dir="./outputs")
+        result = await ImageRole(name="painter").generate_image(
+            "a mountain landscape", download_dir="./outputs",
+        )
 
-    The workflow graph is built internally from the bundled templates;
-    callers supply only high-level knobs.
+    All ComfyUI method calls go through the shared cached client
+    (:func:`fabricatio_comfyui.http_client.get_comfyui_client`); tests and
+    alternate backends patch the factory or pass a custom client to the
+    lower-level transport directly.
     """
 
-    _comfyui_client: "ComfyUIClientBase | None" = None
-
-    @classmethod
-    def with_comfyui_client(cls, comfyui_client: "ComfyUIClientBase") -> Self:
-        """Create an instance bound to a pre-built client (tests / alternate backends)."""
-        instance = cls()
-        instance._comfyui_client = comfyui_client
-        return instance
-
     @property
-    def comfyui_client(self) -> "ComfyUIClientBase":
-        """The lazily-created (or injected) :class:`ComfyUIClientBase`."""
-        if self._comfyui_client is None:
-            self._comfyui_client = ComfyUIHttpClient.create()
-        return self._comfyui_client
-
-    async def close(self) -> None:
-        """Close the underlying client if this mixin owns one."""
-        if self._comfyui_client is not None:
-            await self._comfyui_client.aclose()
-            self._comfyui_client = None
+    def comfyui_client(self) -> ComfyUIClientBase:
+        """The process-wide shared ComfyUI client for the configured base URL."""
+        return get_comfyui_client(comfyui_config.base_url)
 
     # ------------------------------------------------------------------
     # High-level public surface — only typed knobs, no workflow graphs

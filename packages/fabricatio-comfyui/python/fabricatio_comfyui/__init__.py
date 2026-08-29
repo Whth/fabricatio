@@ -12,6 +12,8 @@ workflow.
   module-level functions that hide the client lifecycle entirely.
 * :class:`ComfyUIHttpClient` / :class:`ComfyUIClientBase` — async REST
   transport (advanced use; accepts only typed knobs, never workflows).
+  :func:`fabricatio_comfyui.http_client.get_comfyui_client` keeps one
+  process-wide shared client per server URL.
 * :class:`GenerateImage` / :class:`UploadImage` — ``Action`` subclasses
   usable as ``WorkFlow`` steps.
 * :data:`comfyui_config` / :class:`ComfyUIConfig` — config singleton

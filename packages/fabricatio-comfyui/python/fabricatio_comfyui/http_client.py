@@ -2,22 +2,23 @@
 
 :class:`ComfyUIHttpClient` is the sole implementation of
 :class:`ComfyUIClientBase`.  It owns the ``httpx.AsyncClient`` lifecycle
-and all REST endpoints.  Construct it via :meth:`create` and manage it
-as an async context manager (``async with client:``) so the connection
-pool is always closed::
+and all REST endpoints.
+
+Clients are process-wide singletons per base URL via the cached
+:func:`get_comfyui_client` factory (the ``fabricatio-milvus`` pattern):
+the mixin fetches the shared client when needed and the connection pool
+is reused across every instance instead of being bound (and leaked) per
+instance.  Direct construction / ``async with`` stays available for
+tests and alternate backends that want a private pool::
 
     async with ComfyUIHttpClient.create() as client:
         result = await client.generate("a mountain landscape")
         await client.download_images(result, "./outputs")
-
-No ``@lru_cache`` — each :meth:`create` call returns a fresh client with
-its own connection pool, so long-running apps no longer leak connections
-and each event loop gets its own pool (fixing the
-``RuntimeError: Event loop is closed`` that plagued pytest-asyncio).
 """
 
 import asyncio
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import IO, Self, Unpack
 
@@ -43,17 +44,39 @@ from fabricatio_comfyui.models.kwargs_types import (
     ViewImageKwargs,
 )
 
-__all__ = ["ComfyUIHttpClient"]
+__all__ = ["ComfyUIHttpClient", "get_comfyui_client"]
+
+
+@cache
+def _cached_client_for_loop(loop: asyncio.AbstractEventLoop, base_url: str) -> "ComfyUIHttpClient":
+    """Build the shared client for *base_url* bound to *loop*'s lifetime."""
+    return ComfyUIHttpClient.create(base_url)
+
+
+def get_comfyui_client(base_url: str) -> "ComfyUIHttpClient":
+    """Return the shared client for *base_url* on the current event loop.
+
+    One client (and therefore one ``httpx`` connection pool) per distinct
+    (event loop, base URL) pair — the ``fabricatio-milvus`` pattern, with
+    one extra key: ``httpx.AsyncClient`` pools are event-loop-bound, so a
+    plain per-URL ``@cache`` would hand a pool from a closed loop to the
+    next one (``RuntimeError: Event loop is closed``).  Within a single
+    loop the pool is created once and reused by every holder; a fresh
+    loop gets a fresh pool, keeping pytest-asyncio and multi-loop apps
+    safe.  Never ``aclose`` the returned client — other holders on the
+    same loop may still be using it.
+    """
+    return _cached_client_for_loop(asyncio.get_running_loop(), base_url)
 
 
 @dataclass
 class ComfyUIHttpClient(ComfyUIClientBase):
     """Async HTTP client for the ComfyUI REST API.
 
-    Manages an ``httpx.AsyncClient`` connection pool.  Always instantiate
-    via :meth:`create`; direct construction is supported but the caller
-    then owns the ``httpx.AsyncClient`` lifecycle.  Use ``async with`` to
-    guarantee cleanup.
+    Manages an ``httpx.AsyncClient`` connection pool.  Prefer the shared
+    :func:`get_comfyui_client` factory for normal use; construct directly
+    (or via :meth:`create` with ``async with``) only when a private pool
+    is wanted.
     """
 
     source: httpx.AsyncClient
