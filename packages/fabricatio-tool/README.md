@@ -60,8 +60,7 @@ The package also includes built-in filesystem tools, MCP (Model Context Protocol
 
 ### `fabricatio_tool.capabilities`
 
-- **`UseTool`** — LLM-driven selection: `choose_toolboxes(request)`, `choose_tools(request)`, `gather_tools(request)`, `gather_tools_fine_grind(request)`.
-- **`Handle`** — `draft_tool_usage_code(request, tools, data)` generates Python code via LLM. `handle(request, data)` and `handle_fine_grind(request, data)` run the full pipeline.
+- **`Handle`** — `draft_tool_usage_code(request, tools, data)` generates Python code via LLM. `handle(request, data)` and `handle_fine_grind(request, data)` run the full pipeline; on execution failure they re-draft with the partial results, error, and failed source appended to the prompt (`max_feedback_rounds`, default off).
 - **`HandleTask`** — extends `Handle` with `handle_task(task, data)` for Fabricatio `Task` objects.
 
 ### `fabricatio_tool.fs`
@@ -111,6 +110,8 @@ draft_tool_usage_code_template = "built-in/draft_tool_usage_code"
 confirm_on_ops = true
 logging_on_ops = true
 error_key = "__error__"
+max_feedback_rounds = 0
+feedback_max_chars = 6000
 ```
 
 | Option | Type | Default | Description |
@@ -122,7 +123,8 @@ error_key = "__error__"
 | `mcp_servers` | `Dict[str, ServiceConfig]` | `{}` | MCP servers that are allowed to be used. |
 | `confirm_on_ops` | `bool` | `True` | Whether to confirm operations before executing them. |
 | `logging_on_ops` | `bool` | `True` | Whether to log operations before executing them. |
-| `error_key` | `str` | `"__error__"` | The key to use for error reporting. |
+| `max_feedback_rounds` | `int` | `0` | Extra re-drafting rounds when tool code execution fails; results and errors are fed back to the LLM. `0` disables the loop. |
+| `feedback_max_chars` | `int` | `6000` | Per-item character cap when summarizing execution results/errors for LLM feedback. |
 
 `CheckConfigModel` fields:
 

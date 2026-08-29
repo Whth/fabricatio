@@ -71,6 +71,12 @@ class ToolConfig(BaseModel):
     error_key: str = "__error__"
     """The key to use for error reporting."""
 
+    max_feedback_rounds: int = 0
+    """How many extra rounds to re-draft tool usage code when execution fails, feeding results/errors back to the LLM. 0 disables the loop."""
+
+    feedback_max_chars: int = 6000
+    """Per-item character cap when summarizing execution results/errors for LLM feedback."""
+
 
 tool_config = CONFIG.load("tool", ToolConfig)
 

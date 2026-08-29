@@ -1,3 +1,15 @@
+**ResultCollector Usage Help:**
+{{collector_help}}
+
+I have set up a global variable called `{{collector_varname}}` which is an instance of the ResultCollector class. You can use it to submit the result if required.
+
+## Response Rules
+
+Your response SHALL only contain the body of the function, no signature or return statement.
+Your code will be placed between `# -----`.
+You SHALL never use package that needs import, while any import here is considered as treason. Use ONLY the provided `Available Tools` to finish the job.
+You SHALL aim to satisfy all the `Vital Requirements` has claimed.
+
 ## Available Resources
 **Available Data:**
 {{#each data }}
@@ -9,21 +21,6 @@
 {{#each tools}}
 {{block this.briefing this.name}}
 {{/each}}
-
-**ResultCollector Usage Help:**
-{{collector_help}}
-
-I have set up a global variable called `{{collector_varname}}` which is an instance of the ResultCollector class. You can use it to submit the result if required.
-
-{{#if last_error}}
-## Previous Execution Failed
-
-```
-{{last_error}}
-```
-
-**Please fix the code above, taking the error into account.**
-{{/if}}
 
 ## Constrain
 
@@ -45,8 +42,10 @@ I have set up a global variable called `{{collector_varname}}` which is an insta
 
 ```
 
-Your response SHALL only contain the body of the function, no signature or return statement.
-Your code will be placed between `# -----`.
-You SHALL never use package that needs import, while any import here is considered as treason. Use ONLY the provided `Available Tools` above to finish the job.
-You SHALL aim to satisfy all the `Vital Requirements` has claimed.
+{{#if exec_feedback}}
+## Previous Execution Feedback
 
+{{{exec_feedback}}}
+
+**Please fix the code above, taking the feedback into account. Reuse the results that were already collected instead of recomputing them.**
+{{/if}}
