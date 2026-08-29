@@ -244,15 +244,13 @@ async def test_force_summarize_returns_none_when_all_passes_fail(role: Summarize
     assert result is None
 
 
-@pytest.mark.asyncio
-async def test_render_prompt_contains_bounds_and_text() -> None:
-    """The rendered prompt carries the window bounds, raw text, and conditional requirement."""
+def test_render_prompt_contains_bounds_and_text() -> None:
+    """The rendered prompt carries the length window, raw text, and conditional requirement."""
     p = _render_summarize_prompt("hello world", "keep tone", 5, 10, LengthType.Words)
-    assert "Minimum: 5" in p
-    assert "Maximum: 10" in p
+    assert "5-10 words" in p
     assert "hello world" in p
-    assert "Summarization Requirement" in p
+    assert "keep tone" in p
     assert "{{" not in p
 
     q = _render_summarize_prompt("hello world", "", 5, 10, LengthType.Words)
-    assert "Summarization Requirement" not in q
+    assert "Requirement:" not in q

@@ -1,20 +1,10 @@
-# Task: Summarize Text into a Length-Bounded Summary
-
-Summarize the text below into a shorter passage that preserves its core meaning, key facts, and tone.
-The summary MUST be at least {{min_length}} {{length_type}} long and at most {{max_length}} {{length_type}} long.
-Aim to fill the length window: do not stop far below {{min_length}} {{length_type}}, and never exceed {{max_length}}.
+Summarize the text below into {{min_length}}-{{max_length}} {{length_type}}, preserving its core meaning, key facts, and tone.
 Output ONLY the summary itself, with no explanations, quotation marks, or code fences.
 
 {{#if requirement}}
-## Summarization Requirement
-{{ requirement }}
+Requirement: {{ requirement }}
 {{/if}}
 
-## Length Constraint
-- Unit: {{ length_type }}
-- Minimum: {{ min_length }}
-- Maximum: {{ max_length }}
-
------ Start of raw text to summarize -----
+----- Raw text to summarize -----
 {{ text }}
 ----- End of raw text to summarize -----
