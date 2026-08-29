@@ -29,9 +29,9 @@ Naming follows `fabricatio-skill`: one `Use*` capability mixin
 | Layer      | Module / Class                              | Purpose                                              |
 |------------|---------------------------------------------|------------------------------------------------------|
 | Graph      | `Graph` (`models/graph.py`)                 | Fully typed deserializer of the bundled `graphs/default.json`; internal only |
-| Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client (`async with` lifecycle)            |
+| Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client; shared per-URL via `get_comfyui_client` |
 | Capability | `UseComfyUI` (`capabilities/comfyui.py`)    | Mixin: high-level generate (queue → poll → download)  |
-| API        | `api.py`                                    | One-shot functions that hide the client lifecycle     |
+| API        | `api.py`                                    | One-shot functions that run on the shared pooled client |
 | Actions    | `GenerateImage`, `UploadImage`              | Pluggable steps for Fabricatio `WorkFlow`             |
 
 ## Installation
@@ -127,8 +127,11 @@ GenerateImageWorkflow = WorkFlow(
 
 ### Standalone client (advanced)
 
-The HTTP client is a lower-level transport with the same knob surface;
-it builds the bundled graph internally:
+The mixin and the one-shot functions share one pooled client per server
+URL, obtained from the cached factory
+`fabricatio_comfyui.http_client.get_comfyui_client` — never close the
+client it returns.  When you need a *private* pool instead (tests,
+alternate backends), build a scoped one with `async with`:
 
 ```python
 import asyncio
