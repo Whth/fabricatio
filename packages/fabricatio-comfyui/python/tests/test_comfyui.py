@@ -1,7 +1,6 @@
 """Tests for the fabricatio-comfyui subpackage."""
 
 import asyncio
-import json
 import threading
 from pathlib import Path
 from typing import cast
@@ -21,14 +20,6 @@ from fabricatio_comfyui.models.comfyui import (
 )
 from fabricatio_comfyui.models.graph import Graph, NodeRef
 from pydantic import ValidationError
-
-GRAPH_JSON = Path(__file__).resolve().parents[1] / "fabricatio_comfyui" / "graphs" / "default.json"
-
-
-def _bundled_raw() -> dict[str, object]:
-    """Load the bundled graph JSON as a raw dict."""
-    raw = json.loads(GRAPH_JSON.read_text(encoding="utf-8"))
-    return cast("dict[str, object]", raw)
 
 
 def _node_payload(raw: dict[str, object], node_id: str) -> dict[str, object]:
@@ -76,26 +67,27 @@ class TestFactories:
         worker.join()
         assert seen[0] is not first
 
-    def test_bundled_loads_default_json(self) -> None:
-        """bundled() parses the bundled default graph template."""
-        assert len(Graph.bundled().to_api()) > 0
+    def test_default_builds_full_graph(self) -> None:
+        """default() builds all eleven nodes in Python, no JSON asset."""
+        assert len(Graph.default().to_api()) == 11
 
 
 # ======================================================================
-# Graph tests — the typed deserializer of the bundled workflow JSON
+# Graph tests — the Python-initialised typed graph and its wire format
 # ======================================================================
 
 
 class TestGraph:
-    """Graph models the bundled graphs/default.json exactly."""
+    """Graph is initialised in Python and serializes to exact wire format."""
 
-    def test_bundled_round_trips_json(self) -> None:
-        """bundled() parses the bundled JSON and serializes back equal."""
-        assert Graph.bundled().to_api() == _bundled_raw()
+    def test_wire_round_trip(self) -> None:
+        """to_api() emits the ComfyUI wire format and revalidates to an equal graph."""
+        graph = Graph.default()
+        assert Graph.model_validate(graph.to_api()) == graph
 
     def test_typed_node_access(self) -> None:
         """Nodes are reachable through typed fields, not lookups."""
-        graph = Graph.bundled()
+        graph = Graph.default()
         assert graph.loader.class_type == "CheckpointLoaderSimple"
         assert graph.loader.inputs.ckpt_name == "catTowerNoobaiXL_v15Vpred.safetensors"
         assert graph.latent.inputs.width == 768
@@ -121,30 +113,30 @@ class TestGraph:
 
     def test_with_checkpoint(self) -> None:
         """with_checkpoint updates the loader's ckpt_name."""
-        graph = Graph.bundled().with_checkpoint("model_v2.safetensors")
+        graph = Graph.default().with_checkpoint("model_v2.safetensors")
         assert graph.loader.inputs.ckpt_name == "model_v2.safetensors"
 
     def test_with_prompts(self) -> None:
         """with_positive_prompt / with_negative_prompt set the typed nodes."""
-        graph = Graph.bundled().with_positive_prompt("a landscape").with_negative_prompt("blurry")
+        graph = Graph.default().with_positive_prompt("a landscape").with_negative_prompt("blurry")
         assert graph.positive.inputs.text == "a landscape"
         assert graph.negative.inputs.text == "blurry"
 
     def test_with_resolution(self) -> None:
         """with_resolution updates the latent canvas dimensions."""
-        graph = Graph.bundled().with_resolution(width=1024, height=768)
+        graph = Graph.default().with_resolution(width=1024, height=768)
         assert graph.latent.inputs.width == 1024
         assert graph.latent.inputs.height == 768
 
     def test_with_resolution_partial(self) -> None:
         """with_resolution only updates the provided dimension."""
-        graph = Graph.bundled().with_resolution(height=640)
+        graph = Graph.default().with_resolution(height=640)
         assert graph.latent.inputs.width == 768  # unchanged
         assert graph.latent.inputs.height == 640
 
     def test_with_sampler_updates_both_stages(self) -> None:
         """with_sampler aligns the base and refine samplers."""
-        graph = Graph.bundled().with_sampler(seed=999, steps=30, cfg=7.5)
+        graph = Graph.default().with_sampler(seed=999, steps=30, cfg=7.5)
         for sampler in (graph.sampler_base, graph.sampler_refine):
             assert sampler.inputs.noise_seed == 999
             assert sampler.inputs.steps == 30
@@ -152,7 +144,7 @@ class TestGraph:
 
     def test_with_sampler_partial(self) -> None:
         """with_sampler only updates the provided parameters."""
-        graph = Graph.bundled()
+        graph = Graph.default()
         original_steps = graph.sampler_base.inputs.steps
         graph.with_sampler(cfg=12.0)
         assert graph.sampler_base.inputs.cfg == 12.0
@@ -160,13 +152,13 @@ class TestGraph:
 
     def test_mutators_chain(self) -> None:
         """with_* builders return self, so calls chain."""
-        graph = Graph.bundled()
+        graph = Graph.default()
         result = graph.with_checkpoint("x.safetensors").with_positive_prompt("chained")
         assert result is graph
 
     def test_mutators_validate_assignment(self) -> None:
         """The typed contract holds for the whole lifetime, not just at load."""
-        graph = Graph.bundled()
+        graph = Graph.default()
         with pytest.raises(ValidationError):
             graph.with_resolution(width=cast("int", "abc"))
         with pytest.raises(ValidationError):
@@ -178,7 +170,7 @@ class TestGraph:
 
     def test_mutators_accept_typed_knobs(self) -> None:
         """Legitimate typed values pass assignment validation."""
-        graph = Graph.bundled()
+        graph = Graph.default()
         graph.with_checkpoint("x.safetensors").with_resolution(width=1024, height=768)
         graph.with_sampler(seed=42, steps=20, cfg=7.0)
         assert graph.loader.inputs.ckpt_name == "x.safetensors"
@@ -187,28 +179,28 @@ class TestGraph:
 
     def test_unknown_input_key_rejected(self) -> None:
         """A node input outside the known shape fails loudly at load."""
-        raw = _bundled_raw()
+        raw = Graph.default().to_api()
         _node_payload(raw, "4").setdefault("inputs", {})["bogus_knob"] = 1
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
     def test_wrong_class_type_rejected(self) -> None:
         """A class_type outside the literal union fails loudly at load."""
-        raw = _bundled_raw()
+        raw = Graph.default().to_api()
         _node_payload(raw, "4")["class_type"] = "KSampler"
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
     def test_missing_node_rejected(self) -> None:
         """A missing node id fails loudly at load."""
-        raw = _bundled_raw()
+        raw = Graph.default().to_api()
         del raw["26"]
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
 
     def test_unknown_node_id_rejected(self) -> None:
         """An unexpected extra node id fails loudly at load."""
-        raw = _bundled_raw()
+        raw = Graph.default().to_api()
         raw["999"] = {"class_type": "PreviewImage", "inputs": {"images": ["15", 0]}, "_meta": {"title": "x"}}
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
@@ -405,7 +397,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_generate_applies_knobs_to_bundled_graph() -> None:
-    """Generate builds the bundled graph internally and applies every knob."""
+    """Generate builds the internal graph and applies every knob."""
     client = ComfyUIHttpClient.create(None)
 
     captured: dict[str, object] = {}

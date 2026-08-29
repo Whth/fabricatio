@@ -200,7 +200,7 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         the template's own checkpoint.  *front* enqueues at the head of the
         queue.  Returns the execution result without downloading images.
         """
-        graph = Graph.bundled()
+        graph = Graph.default()
         if prompt:
             graph.with_positive_prompt(prompt)
         if negative_prompt is not None:

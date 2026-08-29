@@ -11,11 +11,12 @@ API coverage.
 
 ## Design: workflows are fully internal
 
-The package owns its workflow graph (`graphs/default.json`, modelled by an
-internal `Graph` deserializer). Callers never see, construct, or operate on
-a workflow — they supply high-level knobs (`prompt`, `negative_prompt`,
+The package owns its workflow graph: it is initialised entirely in Python
+code (an internal typed `Graph` model) and serialized to ComfyUI's API
+format only on submission. Callers never see, construct, or operate on a
+workflow — they supply high-level knobs (`prompt`, `negative_prompt`,
 `width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`) and the package
-parameterises the bundled template internally. There is no `dict[str, Any]`
+parameterises the built-in template internally. There is no `dict[str, Any]`
 workflow injection anywhere in the public signatures.
 
 Naming follows `fabricatio-skill`: one `Use*` capability mixin
@@ -27,8 +28,7 @@ Naming follows `fabricatio-skill`: one `Use*` capability mixin
 ## Architecture
 
 | Layer      | Module / Class                              | Purpose                                              |
-|------------|---------------------------------------------|------------------------------------------------------|
-| Graph      | `Graph` (`models/graph.py`)                 | Fully typed deserializer of the bundled `graphs/default.json`; internal only |
+| Graph      | `Graph` (`models/graph.py`)                 | Typed graph initialised in Python, serialized to the ComfyUI wire format; internal only |
 | Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client; shared per-URL via `get_comfyui_client` |
 | Capability | `UseComfyUI` (`capabilities/comfyui.py`)    | Mixin: high-level generate (queue → poll → download)  |
 | API        | `api.py`                                    | One-shot functions that run on the shared pooled client |

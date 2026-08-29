@@ -1,17 +1,18 @@
-"""Typed deserializer of the bundled ComfyUI workflow graph.
+"""Typed model of the bundled ComfyUI workflow graph, built in code.
 
-The bundled ``graphs/default.json`` is fully internal — external callers
-never see or operate on a workflow graph — so its shape is known at
-compile time.  This module models it **exactly**: one pydantic class per
-node type, fixed node IDs as field aliases, strict ``extra`` handling at
-every level so any drift in the JSON fails loudly at load time.
+The graph is fully internal — external callers never see or operate on a
+workflow — and statically known, so it is *initialised in Python* (no
+JSON asset to keep in sync) and only ever **serialized** to ComfyUI's
+API format via :meth:`Graph.to_api` on submission.
 
-Parameterisation is plain typed attribute access plus chainable ``with_*``
-mutators (the repo's mutator convention: in-place, return ``self``).  No
-generic graph container, no ``get``-by-type lookup, no ``Any``.
+One pydantic class per node type; fixed wire node IDs live solely as
+serialization aliases, so Python code reads/writes named fields
+(``graph.loader.inputs.ckpt_name``) while the wire emits
+``{"4": {"class_type": ..., "inputs": {...}, "_meta": ...}}`` exactly.
+``validate_assignment`` keeps the typed invariants true for the whole
+object lifetime.
 """
 
-from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
@@ -45,7 +46,7 @@ class NodeRef(BaseModel):
 class NodeMeta(BaseModel):
     """The ``_meta`` block of a node (display metadata, ignored by the server)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     title: str
 
@@ -53,7 +54,7 @@ class NodeMeta(BaseModel):
 class NodeInputs(BaseModel):
     """Base for node input blocks — exact keys only, no silent extras."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
 
 class CheckpointLoaderInputs(NodeInputs):
@@ -65,7 +66,7 @@ class CheckpointLoaderInputs(NodeInputs):
 class CheckpointLoaderNode(BaseModel):
     """``CheckpointLoaderSimple`` node (id ``"4"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CheckpointLoaderSimple"]
     inputs: CheckpointLoaderInputs
@@ -83,7 +84,7 @@ class EmptyLatentInputs(NodeInputs):
 class EmptyLatentNode(BaseModel):
     """``EmptyLatentImage`` node (id ``"6"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["EmptyLatentImage"]
     inputs: EmptyLatentInputs
@@ -100,7 +101,7 @@ class CLIPEncodeInputs(NodeInputs):
 class CLIPEncodeNode(BaseModel):
     """``CLIPTextEncode`` node (ids ``"7"`` positive / ``"8"`` negative)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CLIPTextEncode"]
     inputs: CLIPEncodeInputs
@@ -117,7 +118,7 @@ class VAEDecodeInputs(NodeInputs):
 class VAEDecodeNode(BaseModel):
     """``VAEDecode`` node (ids ``"9"`` / ``"15"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAEDecode"]
     inputs: VAEDecodeInputs
@@ -134,7 +135,7 @@ class VAEEncodeInputs(NodeInputs):
 class VAEEncodeNode(BaseModel):
     """``VAEEncode`` node (id ``"13"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAEEncode"]
     inputs: VAEEncodeInputs
@@ -150,7 +151,7 @@ class PreviewImageInputs(NodeInputs):
 class PreviewImageNode(BaseModel):
     """``PreviewImage`` node (id ``"16"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["PreviewImage"]
     inputs: PreviewImageInputs
@@ -168,7 +169,7 @@ class ImageScaleByInputs(NodeInputs):
 class ImageScaleByNode(BaseModel):
     """``ImageScaleBy`` node (id ``"19"``)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["ImageScaleBy"]
     inputs: ImageScaleByInputs
@@ -196,7 +197,7 @@ class SamplerInputs(NodeInputs):
 class KSamplerAdvancedNode(BaseModel):
     """``KSamplerAdvanced`` node (ids ``"25"`` base / ``"26"`` refine)."""
 
-    model_config = ConfigDict(extra="forbid", validate_assignment=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["KSamplerAdvanced"]
     inputs: SamplerInputs
@@ -204,14 +205,11 @@ class KSamplerAdvancedNode(BaseModel):
 
 
 class Graph(BaseModel):
-    """Exact model of ``graphs/default.json`` — fixed node IDs as field aliases.
+    """The bundled txt2img → upscale → refine graph, initialised in Python.
 
-    Loading validates the bundled JSON against this schema (every node,
-    input key, and ``class_type`` literal), so template drift fails loudly
-    instead of surfacing as a server-side 400.
-
-    Serialization via :meth:`to_api` produces the exact ComfyUI API-format
-    payload for ``POST /prompt``.
+    Fixed wire node IDs exist only as serialization aliases; all Python
+    access goes through named typed fields.  :meth:`to_api` produces the
+    exact ComfyUI API-format payload for ``POST /prompt``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
@@ -250,10 +248,114 @@ class Graph(BaseModel):
     """Refine-pass sampler (id ``"26"``)."""
 
     @classmethod
-    def bundled(cls) -> Self:
-        """Load and validate the bundled ``graphs/default.json`` template."""
-        path = Path(__file__).resolve().parent.parent / "graphs" / "default.json"
-        return cls.model_validate_json(path.read_text(encoding="utf-8"))
+    def default(cls) -> Self:
+        """Build the bundled graph entirely in Python code.
+
+        Values mirror the original ComfyUI UI export; generation knobs
+        (prompt, size, sampler, checkpoint) are overridden per request by
+        the client via the ``with_*`` builders.
+        """
+        clip_prompt = NodeMeta(title="CLIP Text Encode (Prompt)")
+        sampler_meta = NodeMeta(title="KSampler (Advanced)")
+        return cls(
+            loader=CheckpointLoaderNode(
+                class_type="CheckpointLoaderSimple",
+                inputs=CheckpointLoaderInputs(ckpt_name="catTowerNoobaiXL_v15Vpred.safetensors"),
+                meta=NodeMeta(title="Load Checkpoint"),
+            ),
+            latent=EmptyLatentNode(
+                class_type="EmptyLatentImage",
+                inputs=EmptyLatentInputs(width=768, height=512, batch_size=1),
+                meta=NodeMeta(title="Empty Latent Image"),
+            ),
+            positive=CLIPEncodeNode(
+                class_type="CLIPTextEncode",
+                inputs=CLIPEncodeInputs(
+                    text=(
+                        "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
+                        "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
+                        "blunt bangs, waist-length twin tails, violet eyes,"
+                    ),
+                    clip=NodeRef(node_id="4", output_index=1),
+                ),
+                meta=clip_prompt,
+            ),
+            negative=CLIPEncodeNode(
+                class_type="CLIPTextEncode",
+                inputs=CLIPEncodeInputs(
+                    text=(
+                        "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
+                        "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
+                        "jpeg artifacts, out of frame, watermark, signature,blurry,texts"
+                    ),
+                    clip=NodeRef(node_id="4", output_index=1),
+                ),
+                meta=clip_prompt,
+            ),
+            decode=VAEDecodeNode(
+                class_type="VAEDecode",
+                inputs=VAEDecodeInputs(samples=NodeRef(node_id="25", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                meta=NodeMeta(title="VAE Decode"),
+            ),
+            encode=VAEEncodeNode(
+                class_type="VAEEncode",
+                inputs=VAEEncodeInputs(pixels=NodeRef(node_id="19", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                meta=NodeMeta(title="VAE Encode"),
+            ),
+            refine_decode=VAEDecodeNode(
+                class_type="VAEDecode",
+                inputs=VAEDecodeInputs(samples=NodeRef(node_id="26", output_index=0), vae=NodeRef(node_id="4", output_index=2)),
+                meta=NodeMeta(title="VAE Decode"),
+            ),
+            preview=PreviewImageNode(
+                class_type="PreviewImage",
+                inputs=PreviewImageInputs(images=NodeRef(node_id="15", output_index=0)),
+                meta=NodeMeta(title="Preview Image"),
+            ),
+            upscale=ImageScaleByNode(
+                class_type="ImageScaleBy",
+                inputs=ImageScaleByInputs(upscale_method="nearest-exact", scale_by=2.3, image=NodeRef(node_id="9", output_index=0)),
+                meta=NodeMeta(title="Upscale Image By"),
+            ),
+            sampler_base=KSamplerAdvancedNode(
+                class_type="KSamplerAdvanced",
+                inputs=SamplerInputs(
+                    add_noise="enable",
+                    noise_seed=1072236688235494,
+                    steps=21,
+                    cfg=7.9,
+                    sampler_name="er_sde",
+                    scheduler="beta",
+                    start_at_step=0,
+                    end_at_step=990,
+                    return_with_leftover_noise="disable",
+                    model=NodeRef(node_id="4", output_index=0),
+                    positive=NodeRef(node_id="7", output_index=0),
+                    negative=NodeRef(node_id="8", output_index=0),
+                    latent_image=NodeRef(node_id="6", output_index=0),
+                ),
+                meta=sampler_meta,
+            ),
+            sampler_refine=KSamplerAdvancedNode(
+                class_type="KSamplerAdvanced",
+                inputs=SamplerInputs(
+                    add_noise="enable",
+                    noise_seed=1072236688235494,
+                    steps=42,
+                    cfg=8.5,
+                    sampler_name="er_sde",
+                    scheduler="beta",
+                    start_at_step=20,
+                    end_at_step=999,
+                    return_with_leftover_noise="disable",
+                    model=NodeRef(node_id="4", output_index=0),
+                    positive=NodeRef(node_id="7", output_index=0),
+                    negative=NodeRef(node_id="8", output_index=0),
+                    latent_image=NodeRef(node_id="13", output_index=0),
+                ),
+                meta=sampler_meta,
+            ),
+        )
 
     def to_api(self) -> dict[str, object]:
         """Serialize to ComfyUI API format (``node_id -> {class_type, inputs, _meta}``)."""
