@@ -164,6 +164,27 @@ class TestGraph:
         result = graph.with_checkpoint("x.safetensors").with_positive_prompt("chained")
         assert result is graph
 
+    def test_mutators_validate_assignment(self) -> None:
+        """The typed contract holds for the whole lifetime, not just at load."""
+        graph = Graph.bundled()
+        with pytest.raises(ValidationError):
+            graph.with_resolution(width=cast("int", "abc"))
+        with pytest.raises(ValidationError):
+            graph.with_sampler(steps=cast("int", "twenty"))
+        with pytest.raises(ValidationError):
+            graph.with_checkpoint(cast("str", 123))
+        with pytest.raises(ValidationError):
+            graph.positive.inputs.text = cast("str", None)
+
+    def test_mutators_accept_typed_knobs(self) -> None:
+        """Legitimate typed values pass assignment validation."""
+        graph = Graph.bundled()
+        graph.with_checkpoint("x.safetensors").with_resolution(width=1024, height=768)
+        graph.with_sampler(seed=42, steps=20, cfg=7.0)
+        assert graph.loader.inputs.ckpt_name == "x.safetensors"
+        assert graph.latent.inputs.width == 1024
+        assert graph.sampler_base.inputs.noise_seed == 42
+
     def test_unknown_input_key_rejected(self) -> None:
         """A node input outside the known shape fails loudly at load."""
         raw = _bundled_raw()
