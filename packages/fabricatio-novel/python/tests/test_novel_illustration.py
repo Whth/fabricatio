@@ -215,4 +215,42 @@ class TestAttachIllustrations:
         assert out_scenes[0].illustration_prompt == "a lone rider at dawn"
         assert out_scenes[0].illustration_image == str(tmp_path / "img.png")
         assert out_scenes[0].content == "He left."
-        assert type(out_scenes[1]) is Scene
+
+
+class TestPostProcessNovelHook:
+    """Test suite for the ``post_process_novel`` integration point."""
+
+    async def test_post_process_novel_is_identity_without_persist_dir(self, tmp_path: Path) -> None:
+        """Assert the hook returns the novel untouched when no ``persist_dir`` is passed."""
+        role = IllustrationRole(name="illustrator")
+        ctx = build_novel_ctx("S1", "S2")
+        novel = Novel.from_context(ctx)
+
+        out = await role.post_process_novel(ctx, novel)
+
+        assert out is novel
+        assert not (tmp_path / "images").exists()
+        assert type(out.chapter[0].story[0].scenes[0]) is Scene
+
+    async def test_post_process_novel_renders_and_attaches(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the hook runs the phase and attaches every rendered scene to the novel."""
+        ctx = build_novel_ctx("S1", "S2")
+        prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
+        role = IllustrationRole(name="illustrator")
+        proposals = [
+            SceneIllustration(prompt="a lone rider at dawn"),
+            SceneIllustration(prompt="a stranger at the gate"),
+        ]
+        novel = Novel.from_context(ctx)
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            out = await role.post_process_novel(ctx, novel, persist_dir=tmp_path)
+
+        assert prompts == ["a lone rider at dawn", "a stranger at the gate"]
+        out_scenes = out.chapter[0].story[0].scenes
+        assert isinstance(out_scenes[0], IllustratedScene)
+        assert out_scenes[0].illustration_prompt == "a lone rider at dawn"
+        assert out_scenes[1].illustration_prompt == "a stranger at the gate"
+        assert (tmp_path / "images" / "scene_01_01.png").is_file()
+        assert (tmp_path / "images" / "scene_01_02.png").is_file()
