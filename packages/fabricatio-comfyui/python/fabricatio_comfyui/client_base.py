@@ -15,6 +15,7 @@ workflow internally.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
+from types import TracebackType
 from typing import Self, Unpack
 
 from fabricatio_comfyui.models.comfyui import (
@@ -49,13 +50,18 @@ class ComfyUIClientBase(ABC):
     async def aclose(self) -> None:
         """Close the underlying connection pool."""
 
-    @abstractmethod
     async def __aenter__(self) -> Self:
         """Enter async context — returns ``self``."""
+        return self
 
-    @abstractmethod
-    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit async context — closes the connection pool."""
+        await self.aclose()
 
     # ------------------------------------------------------------------
     # REST endpoints

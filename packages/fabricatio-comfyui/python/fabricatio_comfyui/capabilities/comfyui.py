@@ -22,8 +22,9 @@ from typing import TYPE_CHECKING, Unpack
 
 from fabricatio_core.journal import logger
 
+from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.http_client import ComfyUIClientBase, get_comfyui_client
+from fabricatio_comfyui.http_client import get_comfyui_client
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:

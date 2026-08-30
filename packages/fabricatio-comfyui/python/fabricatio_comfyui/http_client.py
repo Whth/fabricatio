@@ -101,20 +101,13 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         return comfyui_config.base_url.rstrip("/").lower()
 
     # ------------------------------------------------------------------
-    # Lifecycle — async context manager + explicit aclose
+    # Lifecycle — explicit close; the context-manager pair is inherited
+    # from :class:`ComfyUIClientBase` and delegates here
     # ------------------------------------------------------------------
 
     async def aclose(self) -> None:
         """Close the underlying ``httpx.AsyncClient`` connection pool."""
         await self.source.aclose()
-
-    async def __aenter__(self) -> Self:
-        """Enter async context — returns ``self``."""
-        return self
-
-    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
-        """Exit async context — closes the connection pool."""
-        await self.aclose()
 
     # ------------------------------------------------------------------
     # Low-level HTTP
