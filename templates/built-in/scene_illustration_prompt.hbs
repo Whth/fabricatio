@@ -1,0 +1,42 @@
+# Scene Illustration
+
+## Goal
+Turn the novel scene below into ONE image-generation prompt for a text-to-image model.
+
+## Requirements
+- Write the prompt in English regardless of the novel's language; diffusion checkpoints are trained on English captions.
+- Capture the scene's single most visual moment: subject, action, setting, lighting, mood, and composition.
+- Keep characters consistent with their descriptions in the cast list below.
+- Output ONLY the prompt text as one plain paragraph — no quotes, no JSON, no labels, no commentary, no line breaks.
+
+{{#if novel_title}}
+## Novel
+{{ novel_title }}
+
+{{/if}}
+{{#if chapter_title}}
+## Chapter
+{{ chapter_title }}
+
+{{/if}}
+{{#if story_title}}
+## Story
+{{ story_title }}
+
+{{/if}}
+## Scene
+Title: {{ scene_title }}
+
+{{#if scene_description}}
+Description: {{ scene_description }}
+
+{{/if}}
+{{#if scene_content}}
+## Scene Content
+{{ scene_content }}
+
+{{/if}}
+{{#if cast}}
+## Cast
+{{ cast }}
+{{/if}}

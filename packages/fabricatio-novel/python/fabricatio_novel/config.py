@@ -61,6 +61,24 @@ class NovelConfig:
     story_character_span_template: str = "built-in/story_character_span"
     """template used to draft the S-1 story-boundary cards from the chapter's spans."""
 
+    scene_illustration_prompt_template: str = "built-in/scene_illustration_prompt"
+    """template used to propose one image-generation prompt for a composed scene."""
+
+    illustration_negative_prompt: str = ""
+    """negative prompt forwarded to ComfyUI for every scene illustration; empty when unset."""
+
+    illustration_width: int | None = None
+    """scene illustration width in pixels; ``None`` keeps the bundled ComfyUI template's value."""
+
+    illustration_height: int | None = None
+    """scene illustration height in pixels; ``None`` keeps the bundled ComfyUI template's value."""
+
+    illustration_seed: int | None = None
+    """scene illustration sampler seed; ``None`` keeps the bundled ComfyUI template's seed."""
+
+    illustration_skip_existing: bool = True
+    """skip scenes that already carry an illustration so re-runs fill only the gaps."""
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 

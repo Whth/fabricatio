@@ -4,6 +4,7 @@ Simple typer app wrapping the novel composition chain:
 
 - ``w``           — generate a novel from an outline
 - ``wr``          — generate a novel with writing style RAG (lancedb)
+- ``wri``         — generate a novel with writing style RAG and per-scene ComfyUI illustrations
 - ``bible``       — create / update / show the setting bible
 - ``store-refs``  — ingest text files as writing style references (lancedb)
 - ``enrich-refs`` — chunk, enrich into QA pairs, and store references (lancedb)

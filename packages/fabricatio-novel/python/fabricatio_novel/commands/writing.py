@@ -12,7 +12,11 @@ from fabricatio_core.rust import TASK
 
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline
-from fabricatio_novel.workflows.novel import DebugNovelWorkflow, RagDebugNovelWorkflow
+from fabricatio_novel.workflows.novel import (
+    DebugNovelWorkflow,
+    RagDebugNovelWorkflow,
+    RagIllustrationDebugNovelWorkflow,
+)
 
 
 def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Path | None:
@@ -222,6 +226,99 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         send_to=send_to,
     )
     artifact = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
+    if artifact is None:
+        typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    _report_generation(run_dir, artifact, export_format)
+
+
+@app.command(name="wri")
+def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature required by typer option derivation
+    *,
+    outline: str | None = typer.Argument(None, help="Novel outline text."),
+    outline_file: Path | None = typer.Option(
+        None,
+        "--outline-file",
+        "-of",
+        help="Read the outline from a file instead of the positional argument.",
+    ),
+    language: str | None = typer.Option(
+        None,
+        "--language",
+        "--lang",
+        "-l",
+        help="Written language. Auto-detected from the outline when omitted.",
+    ),
+    persist_dir: Path = typer.Option(
+        Path("novels"),
+        "--persist-dir",
+        "-p",
+        help="Root directory for run outputs; each run is written into its own timestamped subdirectory.",
+    ),
+    flat: bool = typer.Option(
+        False,
+        "--flat",
+        help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+    rag_query: str | None = typer.Option(
+        None,
+        "--rag-query",
+        "-rq",
+        help="Custom query guideline for writing style retrieval; defaults to the story description.",
+    ),
+    retrieve_limit: int = typer.Option(
+        0,
+        "--retrieve-limit",
+        "-rl",
+        help="Final reference documents kept after reranking (0 = default 15).",
+    ),
+    font: Path | None = typer.Option(
+        None,
+        "--font",
+        "-f",
+        help="Font file (.ttf) to embed in the EPUB and apply to its body text.",
+    ),
+    cover: Path | None = typer.Option(None, "--cover", help="Cover image file to embed in the EPUB."),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="EPUB output file name (relative to the run directory).",
+    ),
+    export_format: ExportFormat = typer.Option(
+        ExportFormat.EPUB,
+        "--format",
+        help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
+    ),
+    bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
+    constraint: str | None = typer.Option(
+        None,
+        "--constraint",
+        "-c",
+        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
+    ),
+) -> None:
+    """Generate a novel with writing style RAG and per-scene ComfyUI illustrations from an outline."""
+    if bible is not None and not bible.is_file():
+        typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
+    task = Task(name="write novel with rag and illustration").update_init_context(
+        novel_outline=_resolve_outline(outline, outline_file),
+        novel_language=language,
+        writing_constraint=constraint or "",
+        bible_path=bible,
+        rag_query=rag_query or "",
+        rag_limit=retrieve_limit or 15,
+        persist_dir=run_dir,
+        output_path=output,
+        format=export_format.value,
+        font=font,
+        cover=cover,
+        send_to=send_to,
+    )
+    artifact = _run_workflow(task, RagIllustrationDebugNovelWorkflow, "write_rag_illustration")
     if artifact is None:
         typer.secho("❌ Failed to generate novel.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)

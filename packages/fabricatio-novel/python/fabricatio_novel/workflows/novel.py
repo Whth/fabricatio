@@ -7,6 +7,9 @@ from fabricatio_novel.actions.novel import (
     ChapterPlanStage,
     CharactersStage,
     DumpNovelStage,
+    IllustratedAssembleStage,
+    IllustratedRagScenePlanStage,
+    IllustrateScenesStage,
     InitNovelContext,
     MetadataStage,
     RagScenePlanStage,
@@ -16,7 +19,7 @@ from fabricatio_novel.actions.novel import (
     StoryPlanStage,
 )
 
-__all__ = ["DebugNovelWorkflow", "RagDebugNovelWorkflow"]
+__all__ = ["DebugNovelWorkflow", "RagDebugNovelWorkflow", "RagIllustrationDebugNovelWorkflow"]
 
 DebugNovelWorkflow = WorkFlow(
     name="Debug Novel",
@@ -53,6 +56,27 @@ RagDebugNovelWorkflow = WorkFlow(
         RagScenePlanStage,
         RagSceneWriteStage,
         AssembleStage,
+        DumpNovelStage,
+    ),
+)
+
+RagIllustrationDebugNovelWorkflow = WorkFlow(
+    name="Debug Novel (RAG + Illustration)",
+    description=(
+        "Step-by-step novel generation with writing style RAG and a per-scene ComfyUI "
+        "illustration rendered into the EPUB; every stage persists a whole-tree snapshot "
+        "into the given persist_dir. Returns the exported artifact path."
+    ),
+    steps=(
+        InitNovelContext,
+        MetadataStage,
+        CharactersStage,
+        ChapterPlanStage,
+        StoryPlanStage,
+        IllustratedRagScenePlanStage,
+        RagSceneWriteStage,
+        IllustrateScenesStage,
+        IllustratedAssembleStage,
         DumpNovelStage,
     ),
 )

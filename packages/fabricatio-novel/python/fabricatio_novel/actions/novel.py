@@ -14,19 +14,24 @@ from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
 
 from fabricatio_novel.capabilities.chapter import ChapterCompose
+from fabricatio_novel.capabilities.illustration import IllustrateScenes
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.capabilities.story import StoryCompose
+from fabricatio_novel.models.context.illustration import IllustratedSceneContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.plan import ScenePlan
 from fabricatio_novel.models.series_book import SeriesBible
 
 __all__ = [
     "AssembleStage",
     "ChapterPlanStage",
     "CharactersStage",
-    "DumpNovelStage",
+    "IllustrateScenesStage",
+    "IllustratedAssembleStage",
+    "IllustratedRagScenePlanStage",
     "InitNovelContext",
     "MetadataStage",
     "RagScenePlanStage",
@@ -205,3 +210,33 @@ class RagScenePlanStage(ScenePlanStage, RAGCompose):
 
 class RagSceneWriteStage(SceneWriteStage, RAGCompose):
     """Scene write preparation with the story's style digest."""
+
+
+class IllustratedRagScenePlanStage(RagScenePlanStage, IllustrateScenes):
+    """RAG scene planning that materializes the illustration channel on every planned scene."""
+
+    def build_scene_context(self, plan: ScenePlan, expected_word_count: int) -> IllustratedSceneContext:
+        """Build an illustrated-channel scene context from the planned scene."""
+        return IllustratedSceneContext.from_plan(plan, expected_word_count)
+
+
+class IllustrateScenesStage(StageAction, IllustrateScenes):
+    """Render a ComfyUI illustration for every illustrated-channel scene and record it on the context."""
+
+    output_key: str = "illustrate_scenes_ok"
+    stage: ClassVar[str] = "08_illustrate_scenes"
+
+    async def _execute(self, novel_ctx: NovelContext, *_, **cxt) -> bool:  # noqa: ANN002 - framework `_execute` seam is untyped; `Any` is banned
+        persist_dir = Path(ok(cxt.get("persist_dir"), "`persist_dir` is required in the task init context"))
+        await self.illustrate_scenes_phase(novel_ctx, persist_dir=persist_dir, send_to=cxt.get("send_to", TASK))
+        await self.snapshot(novel_ctx, cxt)
+        return True
+
+
+class IllustratedAssembleStage(AssembleStage, IllustrateScenes):
+    """Novel assembly that swaps illustrated-channel scenes for their illustrated outputs."""
+
+    async def _execute(self, novel_ctx: NovelContext, *_, **cxt) -> Novel:  # noqa: ANN002 - framework `_execute` seam is untyped; `Any` is banned
+        novel = self.materialize_illustrated(novel_ctx, self.assemble_novel(novel_ctx))
+        await self.snapshot(novel_ctx, cxt)
+        return novel
