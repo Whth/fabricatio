@@ -2,13 +2,12 @@
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
-from fabricatio_core.models.task import Task
 from fabricatio_core.rust import CONFIG
 from fabricatio_core.utils import ok
 
-from fabricatio_milvus.capabilities.milvus import AddConfig, FetchConfig, MilvusRAG
+from fabricatio_milvus.capabilities.milvus import AddConfig, MilvusRAG
 from fabricatio_milvus.config import milvus_config
-from fabricatio_milvus.models.milvus import MilvusClassicModel, MilvusDataBase
+from fabricatio_milvus.models.milvus import MilvusDataBase
 
 
 class InjectToDB(Action, MilvusRAG):
@@ -55,59 +54,3 @@ class InjectToDB(Action, MilvusRAG):
         await self.add_document(seq, AddConfig(collection_name=self.collection_name, flush=True))
 
         return self.collection_name
-
-
-class MilvusRAGTalk(Action, MilvusRAG):
-    """RAG-enabled conversational action that processes user questions based on a given task.
-
-    This action establishes an interactive conversation loop where it retrieves context-relevant
-    information to answer user queries according to the assigned task briefing.
-
-    Notes:
-        task_input: Task briefing that guides how to respond to user questions
-        collection_name: Name of the vector collection to use for retrieval (default: "my_collection")
-
-    Returns:
-        Number of conversation turns completed before termination
-    """
-
-    output_key: str = "task_output"
-
-    async def _execute(self, task_input: Task[str], **kwargs) -> int:
-        from questionary import text
-
-        collection_name = kwargs.get("collection_name", "my_collection")
-        counter = 0
-
-        if not self.client.has_collection(collection_name):
-            self.client.create_collection(
-                collection_name,
-                auto_id=True,
-                dimension=ok(
-                    self.milvus_dimensions or milvus_config.milvus_dimensions,
-                    "`dimension` is not set at any level.",
-                ),
-            )
-
-        try:
-            while True:
-                user_say = await text("User: ").ask_async()
-                if user_say is None:
-                    break
-                ret: list[MilvusClassicModel] = await self.aretrieve(
-                    user_say,
-                    config=FetchConfig(
-                        document_model=MilvusClassicModel,
-                        collection_name=collection_name,
-                    ),
-                )
-
-                gpt_say = await self.aask(
-                    user_say,
-                    system_message="\n".join(m.text for m in ret) + "\nYou can refer facts provided above.",
-                )
-                print(f"GPT: {gpt_say}")  # noqa: T201
-                counter += 1
-        except KeyboardInterrupt:
-            logger.info(f"executed talk action {counter} times")
-        return counter

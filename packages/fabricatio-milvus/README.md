@@ -27,7 +27,7 @@ pip install fabricatio[full]
 
 - Pydantic-based document models that auto-generate Milvus collection schemas from field type annotations.
 - A `MilvusRAG` capability class implementing the `add_document`/`afetch_document`/`aretrieve` contract backed by `pymilvus`.
-- Ready-to-use `Action` subclasses (`InjectToDB`, `MilvusRAGTalk`) for building agent pipelines.
+- Ready-to-use `Action` subclass (`InjectToDB`) for building agent pipelines.
 
 ## Configuration
 
@@ -85,7 +85,6 @@ Access at runtime: `from fabricatio_milvus.config import milvus_config`.
 | Action | Description |
 |---|---|
 | `InjectToDB` | Action that injects `MilvusDataBase` instances into a Milvus collection. Automatically creates the collection with the correct schema and index if needed. Supports `override_inject` to drop and recreate. |
-| `MilvusRAGTalk` | Interactive RAG conversation loop. Queries Milvus with user input, retrieves relevant documents, augments the LLM prompt, and returns generated responses. Runs until the user exits. |
 
 ## Usage Example
 

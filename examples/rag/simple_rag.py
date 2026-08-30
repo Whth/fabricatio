@@ -2,11 +2,10 @@
 
 import asyncio
 
-from fabricatio import Action, Event, Task, WorkFlow, logger
+from fabricatio import Action, Event, Task, WorkFlow
 from fabricatio import Role as BaseRole
 from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_milvus.capabilities.milvus import MilvusRAG
-from questionary import text
 
 
 class Role(ProposeTask, BaseRole):
@@ -14,7 +13,7 @@ class Role(ProposeTask, BaseRole):
 
 
 class Talk(Action, MilvusRAG):
-    """Interactive RAG chat action. Loads documents into Milvus on first run, retrieves relevant context for each user query, then generates LLM answers grounded in the retrieved documents."""
+    """RAG chat action. Loads documents into Milvus on first run, retrieves relevant context for each user question, then generates LLM answers grounded in the retrieved documents."""
 
     output_key: str = "task_output"
 
@@ -36,25 +35,23 @@ class Talk(Action, MilvusRAG):
                 "Employees who are late more than three times will receive a formal warning, which may affect their year-end performance evaluation.",
             ],
         )
-        try:
-            while True:
-                user_say = await text("User: ").ask_async()
-                if user_say is None:
-                    break
-                gpt_say = await self.aask_retrieved(
-                    user_say,
-                    user_say,
-                    extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
-                )
-                print(f"GPT: {gpt_say}")  # noqa: T201
-                counter += 1
-        except KeyboardInterrupt:
-            logger.info(f"executed talk action {counter} times")
+        for user_say in [
+            "When must employees arrive at the headquarters building?",
+            "Are pets allowed in the office area?",
+            "How many days of remote work can I apply for per month?",
+        ]:
+            gpt_say = await self.aask_retrieved(
+                user_say,
+                user_say,
+                extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+            )
+            print(f"GPT: {gpt_say}")
+            counter += 1
         return counter
 
 
 async def main() -> None:
-    """Demonstrate a RAG chat: propose a task describing the assistant's role, then enter an interactive loop where each user question triggers document retrieval + LLM response."""
+    """Demonstrate a RAG chat: propose a task describing the assistant's role, then answer a fixed set of questions, each triggering document retrieval + LLM response."""
     role = (
         Role.with_bio(name="talker", description="talker role but with rag")
         .subscribe(Event.quick_instantiate("talk"), WorkFlow(name="talk", steps=(Talk,)))
