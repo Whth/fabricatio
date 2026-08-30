@@ -17,7 +17,6 @@ from fabricatio_comfyui.models.comfyui import (
     ExecutionResult,
     HistoryEntry,
     QueueInfo,
-    UploadResponse,
 )
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
@@ -26,7 +25,6 @@ __all__ = [
     "get_history",
     "get_queue_info",
     "interrupt",
-    "upload_image",
 ]
 
 
@@ -48,15 +46,6 @@ async def generate_image(
     if download_dir is not None and result.succeeded():
         await client.download_images(result, download_dir)
     return result
-
-
-async def upload_image(
-    image_path: str | Path,
-    *,
-    image_type: str = "input",
-) -> UploadResponse:
-    """Upload an image to the configured ComfyUI server."""
-    return await get_comfyui_client(comfyui_config.base_url).upload_image(image_path, image_type=image_type)
 
 
 async def get_history(prompt_id: str) -> HistoryEntry | None:

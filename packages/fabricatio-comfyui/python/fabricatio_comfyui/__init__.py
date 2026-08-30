@@ -8,25 +8,24 @@ knobs (prompt, size, sampler, checkpoint) and never see or operate on a
 workflow.
 
 * :class:`UseComfyUI` — capability mixin: ``generate_image`` and friends.
-* :func:`generate_image` / :func:`upload_image` / ... — one-shot
+* :func:`generate_image` / :func:`get_history` / ... — one-shot
   module-level functions that hide the client lifecycle entirely.
 * :class:`ComfyUIHttpClient` / :class:`ComfyUIClientBase` — async REST
   transport (advanced use; accepts only typed knobs, never workflows).
   :func:`fabricatio_comfyui.http_client.get_comfyui_client` keeps one
   process-wide shared client per server URL.
-* :class:`GenerateImage` / :class:`UploadImage` — ``Action`` subclasses
-  usable as ``WorkFlow`` steps.
+* :class:`GenerateImage` — an ``Action`` subclass usable as a
+  ``WorkFlow`` step.
 * :data:`comfyui_config` / :class:`ComfyUIConfig` — config singleton
   (``from fabricatio_comfyui.config import comfyui_config``).
 """
 
-from fabricatio_comfyui.actions import GenerateImage, UploadImage
+from fabricatio_comfyui.actions import GenerateImage
 from fabricatio_comfyui.api import (
     generate_image,
     get_history,
     get_queue_info,
     interrupt,
-    upload_image,
 )
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.client_base import ComfyUIClientBase
@@ -53,7 +52,6 @@ __all__ = [
     "PromptResponse",
     "QueueInfo",
     "SystemStats",
-    "UploadImage",
     "UploadResponse",
     "UseComfyUI",
     "comfyui_config",
@@ -61,5 +59,4 @@ __all__ = [
     "get_history",
     "get_queue_info",
     "interrupt",
-    "upload_image",
 ]

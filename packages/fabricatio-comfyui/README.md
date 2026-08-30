@@ -21,7 +21,7 @@ workflow injection anywhere in the public signatures.
 
 Naming follows `fabricatio-skill`: one `Use*` capability mixin
 (`UseComfyUI`), module-level one-shot functions (`generate_image`,
-`upload_image`, …), and bare-noun response models (`ExecutionResult`,
+`get_history`, …), and bare-noun response models (`ExecutionResult`,
 `QueueInfo`, …). `workflows/` stays a docstring-only namespace, as in
 `fabricatio-skill`.
 
@@ -32,7 +32,7 @@ Naming follows `fabricatio-skill`: one `Use*` capability mixin
 | Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client; shared per-URL via `get_comfyui_client` |
 | Capability | `UseComfyUI` (`capabilities/comfyui.py`)    | Mixin: high-level generate (queue → poll → download)  |
 | API        | `api.py`                                    | One-shot functions that run on the shared pooled client |
-| Actions    | `GenerateImage`, `UploadImage`              | Pluggable steps for Fabricatio `WorkFlow`             |
+| Actions    | `GenerateImage`                             | Pluggable step for Fabricatio `WorkFlow`              |
 
 ## Installation
 
@@ -108,7 +108,7 @@ class ImageRole(Role, UseComfyUI):
 
 ### Action (in a WorkFlow)
 
-Use `GenerateImage` and `UploadImage` as composable steps:
+Use `GenerateImage` as a composable step:
 
 ```python
 from fabricatio import WorkFlow
@@ -155,7 +155,6 @@ asyncio.run(main())
 | Method                        | Description                                                            |
 |-------------------------------|------------------------------------------------------------------------|
 | `generate_image(prompt, …)`   | Queue the bundled graph with overrides → poll → optionally download    |
-| `upload_image(image_path, …)` | Upload an image (e.g. for img2img)                                     |
 | `get_history(prompt_id)`      | Retrieve execution history for a prompt                                |
 | `get_queue_info()`            | Fetch current queue status                                             |
 | `interrupt()`                 | Interrupt the currently running generation                             |
@@ -164,8 +163,8 @@ asyncio.run(main())
 `seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`.
 
 The module-level functions in `fabricatio_comfyui.api` (`generate_image`,
-`upload_image`, `get_history`, `get_queue_info`, `interrupt`) share the
-exact same keyword surface and hide the client lifecycle entirely.
+`get_history`, `get_queue_info`, `interrupt`) share the exact same
+keyword surface and hide the client lifecycle entirely.
 
 ### Client methods (`ComfyUIHttpClient` / `ComfyUIClientBase`)
 
@@ -185,7 +184,6 @@ exact same keyword surface and hide the client lifecycle entirely.
 | Class          | Fields                                                                                                    | Description                        |
 |----------------|-----------------------------------------------------------------------------------------------------------|------------------------------------|
 | `GenerateImage` | `prompt`, `negative_prompt`, `width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout` | Generate images from typed knobs |
-| `UploadImage`   | `image_path`, `image_type`                                                                                | Upload an image to the server      |
 
 ### Models
 

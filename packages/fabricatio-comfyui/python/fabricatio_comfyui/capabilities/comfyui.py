@@ -9,7 +9,7 @@ callers never see or operate on one.
 
 Method naming follows the ``Use*`` capability pattern of
 :mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``,
-``upload_image``, ``get_history`` ...), no ``a``-prefix.
+        ``get_history`` ...), no ``a``-prefix.
 
 Client lifecycle follows the ``fabricatio-milvus`` pattern: the mixin
 holds no client at all.  A module-level ``@cache`` factory keeps one
@@ -29,7 +29,7 @@ from fabricatio_comfyui.http_client import get_comfyui_client
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
-    from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo, UploadResponse
+    from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo
 
 __all__ = ["UseComfyUI"]
 
@@ -88,15 +88,6 @@ class UseComfyUI:
         else:
             logger.error(f"ComfyUI generation failed: {result.error}")
         return result
-
-    async def upload_image(
-        self,
-        image_path: "str | Path",
-        *,
-        image_type: str = "input",
-    ) -> "UploadResponse":
-        """Upload an image to the server."""
-        return await self.comfyui_client().upload_image(image_path, image_type=image_type)
 
     async def interrupt(self) -> None:
         """Interrupt the currently running workflow."""
