@@ -304,18 +304,6 @@ class TestModels:
         assert entry.status.status_str == "error"
         assert entry.status.exception == "CUDA OOM"
 
-    def test_history_entry_filters_empty_outputs(self) -> None:
-        """History entries without filenames are stripped from outputs."""
-        raw = {
-            "status": {"status_str": "completed", "completed": True},
-            "outputs": {
-                "9": {"images": [{"filename": "img.png"}]},
-                "12": {"images": [{"filename": ""}]},
-            },
-        }
-        entry = HistoryEntry.from_raw(raw)
-        assert list(entry.outputs.keys()) == ["9"]
-
     def test_queue_info_from_raw(self) -> None:
         """Parse queue info with running and pending entries."""
         raw = {

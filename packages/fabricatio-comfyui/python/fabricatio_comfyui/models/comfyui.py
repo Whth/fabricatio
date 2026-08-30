@@ -5,7 +5,7 @@ models, eliminating raw ``dict[str, object]`` propagation through call sites.
 """
 
 from collections.abc import Mapping
-from typing import Self, cast
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -222,27 +222,6 @@ class HistoryEntry(BaseModel):
 
     outputs: dict[str, HistoryNodeOutput] = Field(default_factory=dict)
     """Per-node outputs keyed by node ID."""
-
-    @model_validator(mode="before")
-    @classmethod
-    def _filter_empty_outputs(cls, data: object) -> object:
-        """Strip images without filenames and drop empty output nodes."""
-        if not isinstance(data, dict):
-            return data
-        data_dict = cast("dict[str, object]", data)
-        raw_outputs = data_dict.get("outputs", {})
-        if not isinstance(raw_outputs, dict):
-            return data_dict
-        outputs = cast("dict[str, object]", raw_outputs)
-        cleaned: dict[str, object] = {}
-        for node_id, node_data in outputs.items():
-            if not isinstance(node_data, dict):
-                continue
-            images_raw = node_data.get("images", [])
-            images = [img for img in images_raw if isinstance(img, dict) and img.get("filename")]
-            if images:
-                cleaned[node_id] = {**cast("dict[str, object]", node_data), "images": images}
-        return {**data_dict, "outputs": cleaned}
 
     @classmethod
     def from_raw(cls, data: Mapping[str, object]) -> Self:
