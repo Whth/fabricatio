@@ -108,6 +108,56 @@ class TestNovelWorkflow:
         assert artifact == persist_dir / "chapters"
         assert not (persist_dir / "novel.epub").exists()
 
+    async def test_dump_stage_fires_post_process_novel_hook(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert DumpNovelStage runs post_process_novel on the assembled novel before export."""
+        from fabricatio_core import Event, Role, Task
+        from fabricatio_novel.actions.novel import DumpNovelStage
+        from fabricatio_novel.models.context.novel import NovelContext
+        from fabricatio_novel.models.novel import Novel
+        from fabricatio_novel.workflows.novel import DebugNovelWorkflow
+
+        async def mark_hook(self: object, ctx: NovelContext, novel: Novel, **kwargs: object) -> Novel:
+            novel.chapter[0].story[0].scenes[0].content += " HOOKED"
+            return novel
+
+        monkeypatch.setattr(DumpNovelStage, "post_process_novel", mark_hook)
+
+        namespace = "write_test_hook"
+        persist_dir = tmp_path / "persist"
+        Role.with_bio(name="writer_hook").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
+        task = Task(name="wf novel hook").update_init_context(
+            novel_outline="The hero seeks his father.",
+            novel_language="English",
+            persist_dir=persist_dir,
+            format="txt",
+        )
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching for his father.",
+            expected_word_count=100,
+            series_bible=SeriesBible(),
+        )
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                Value(chapter_plans_json, "json"),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("He left."),
+            ),
+        ):
+            artifact = await task.delegate(namespace)
+
+        assert artifact == persist_dir / "chapters"
+        texts = list((persist_dir / "chapters").glob("*.txt"))
+        assert texts, "chapter texts must be exported"
+        assert any("HOOKED" in p.read_text(encoding="utf-8") for p in texts)
+
     async def test_rag_illustration_workflow_embeds_scene_images(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
