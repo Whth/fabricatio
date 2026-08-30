@@ -7,9 +7,11 @@ models, eliminating raw ``dict[str, object]`` propagation through call sites.
 from collections.abc import Mapping
 from typing import Self
 
+from fabricatio_core.models.generic import ScopedConfig
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 __all__ = [
+    "ComfyUIScopedConfig",
     "ExecutionResult",
     "HistoryEntry",
     "HistoryNodeOutput",
@@ -325,3 +327,28 @@ class SystemStats(BaseModel):
 
     devices: list[dict[str, object]] = Field(default_factory=list)
     """GPU/device information; per-device keys have no published schema."""
+
+
+# ------------------------------------------------------------------
+# Scoped configuration
+# ------------------------------------------------------------------
+
+
+class ComfyUIScopedConfig(ScopedConfig):
+    """Per-instance ComfyUI settings with hierarchical fallback.
+
+    Fields default to ``None`` (unset at this scope) and resolve through
+    the framework's scoped-config chain: a per-call argument wins, then
+    this instance's field, then the global
+    :data:`fabricatio_comfyui.config.comfyui_config`.  Capabilities
+    compose this class directly (``class UseComfyUI(ComfyUIScopedConfig)``)
+    and Roles propagate their values to workflows and steps via
+    :meth:`hold_to` / :meth:`fallback_to`.
+    """
+
+    download_dir: str | None = None
+    """Default directory for generated images.
+
+    Used by :meth:`UseComfyUI.generate_image` when no per-call
+    ``download_dir`` is given; the directory is created on demand.
+    """

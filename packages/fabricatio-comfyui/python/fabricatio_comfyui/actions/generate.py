@@ -58,7 +58,10 @@ class GenerateImage(Action, UseComfyUI):
     """Checkpoint filename on the server; falls back to config, then the bundled template's checkpoint."""
 
     download_dir: str | Path | None = None
-    """Output directory; falls back to :data:`comfyui_config.download_dir`."""
+    """Output directory; resolves per-call → scoped config → :data:`comfyui_config.download_dir`.
+
+    Inherited from :class:`~fabricatio_comfyui.models.comfyui.ComfyUIScopedConfig`.
+    """
 
     timeout: float | None = None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""

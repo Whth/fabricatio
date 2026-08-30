@@ -7,6 +7,7 @@ through high-level knobs (:meth:`UseComfyUI.generate_image` and friends).
 """
 
 from fabricatio_comfyui.models.comfyui import (
+    ComfyUIScopedConfig,
     ExecutionResult,
     HistoryEntry,
     HistoryNodeOutput,
@@ -28,6 +29,7 @@ from fabricatio_comfyui.models.kwargs_types import (
 )
 
 __all__ = [
+    "ComfyUIScopedConfig",
     "ExecutionResult",
     "GenerateKwargs",
     "HistoryEntry",
