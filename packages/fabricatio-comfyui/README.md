@@ -139,9 +139,9 @@ from fabricatio_comfyui import ComfyUIHttpClient
 
 async def main() -> None:
     async with ComfyUIHttpClient.create() as client:
-        result = await client.generate("a mountain landscape", seed=42)
-        if result.succeeded():
-            await client.download_images(result, "./outputs")
+        results = await client.generate("a mountain landscape", seed=42)
+        if results[0].succeeded():
+            await client.download_images(results[0], "./outputs")
 
 
 asyncio.run(main())
@@ -183,7 +183,7 @@ its awaiting task is cancelled.
 
 | Method                            | Returns            | Description                              |
 |-----------------------------------|--------------------|------------------------------------------|
-| `generate(prompt, …)`             | `ExecutionResult`  | Queue the bundled graph and poll; cancelling interrupts the running job |
+| `generate(prompt, …)`             | `list[ExecutionResult]` | Queue each prompt (`str` or list) and poll; one result per prompt, in order; cancelling interrupts the running job |
 | `get_queue_info()`                | `QueueInfo`        | Fetch current queue status               |
 | `get_history(prompt_id)`          | `HistoryEntry \| None` | Retrieve execution history for a prompt |
 | `wait_for_completion(prompt_id)`  | `ExecutionResult`  | Poll until execution finishes            |
