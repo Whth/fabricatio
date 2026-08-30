@@ -279,21 +279,20 @@ class ComfyUIHttpClient(ComfyUIClientBase):
 
             await asyncio.sleep(poll_interval)
 
-    async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> None:
-        """Download all output images to *download_dir* concurrently."""
+    async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> list[Path]:
+        """Download all output images to *download_dir* concurrently; returns their local paths."""
         dst = Path(download_dir)
         dst.mkdir(parents=True, exist_ok=True)
 
-        async def _fetch(img: OutputImage) -> None:
+        async def _fetch(img: OutputImage) -> Path:
             data = await self.get_image(filename=img.filename, subfolder=img.subfolder, image_type=img.type)
-            (dst / img.filename).write_bytes(data)
+            path = dst / img.filename
+            path.write_bytes(data)
+            return path
 
-        await asyncio.gather(*(_fetch(img) for img in result.all_images()))
+        return await asyncio.gather(*(_fetch(img) for img in result.all_images()))
 
     async def download_first_image(self, result: ExecutionResult, download_dir: str | Path) -> Path | None:
         """Download the first output image and return its local path (``None`` when empty)."""
-        images = result.all_images()
-        if not images:
-            return None
-        await self.download_images(result, download_dir)
-        return Path(download_dir) / images[0].filename
+        paths = await self.download_images(result, download_dir)
+        return paths[0] if paths else None

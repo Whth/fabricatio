@@ -133,8 +133,11 @@ class ComfyUIClientBase(ABC):
         """Poll ``GET /history/{prompt_id}`` until completion."""
 
     @abstractmethod
-    async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> None:
-        """Download all output images from *result* to *download_dir* concurrently."""
+    async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> list[Path]:
+        """Download all output images from *result* to *download_dir* concurrently.
+
+        Returns the local path of every downloaded image.
+        """
 
     @abstractmethod
     async def download_first_image(self, result: ExecutionResult, download_dir: str | Path) -> Path | None:
