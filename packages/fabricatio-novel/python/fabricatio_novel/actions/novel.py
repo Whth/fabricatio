@@ -209,14 +209,13 @@ class RagSceneWriteStage(SceneWriteStage, RAGCompose):
 
 
 class IllustrateNovelStage(DumpNovelStage, IllustrateScenes):
-    """Complete post-process: illustrate every scene of the finished context, then export."""
+    """Complete post-process: invoke the ``post_process_novel`` illustration hook, then export."""
 
     output_key: str = OUTPUT_KEY
 
     async def _execute(self, novel_ctx: NovelContext, novel: Novel, *_: Any, **cxt: Any) -> Path:
         persist_dir = Path(ok(cxt.get("persist_dir"), "`persist_dir` is required in the task init context"))
-        illustrations = await self.illustrate_novel_phase(
-            novel_ctx, persist_dir=persist_dir, send_to=cxt.get("send_to", TASK)
+        novel = await self.post_process_novel(
+            novel_ctx, novel, persist_dir=persist_dir, send_to=cxt.get("send_to", TASK)
         )
-        self.attach_illustrations(novel_ctx, novel, illustrations)
         return await super()._execute(novel, *_, **cxt)

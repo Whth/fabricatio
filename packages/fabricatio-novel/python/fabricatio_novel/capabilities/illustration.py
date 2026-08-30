@@ -15,6 +15,7 @@ cfg(["comfyui"])
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 
+from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.illustration import IllustratedScene, SceneIllustration
@@ -24,15 +25,22 @@ from fabricatio_novel.utils import scene_image_name
 __all__ = ["IllustrateScenes"]
 
 
-class IllustrateScenes(Propose, UseComfyUI, ABC):
+class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
     """Post-process illustration over a finished context: propose, render, then attach.
 
-    The phase walks every scene of the composed context tree, proposes one
-    image-generation prompt per scene, renders it via ComfyUI into the run's
-    ``images/`` directory, and returns the results keyed by
-    ``(chapter_index, scene_index)``; the attach step swaps those scenes in the
-    assembled novel for :class:`~fabricatio_novel.models.illustration.IllustratedScene`
-    copies. Failures degrade per scene (warn + skip).
+    Walks every scene of the composed context tree, proposes one image-generation
+    prompt per scene, renders it via ComfyUI into the run's ``images/`` directory,
+    and returns the results keyed by ``(chapter_index, scene_index)``; the attach
+    step swaps those scenes in the assembled novel for
+    :class:`~fabricatio_novel.models.illustration.IllustratedScene` copies.
+    Failures degrade per scene (warn + skip).
+
+    Implements the integration via :meth:`NovelCompose.post_process_novel`: when a
+    role mixing this class runs ``compose_novel`` (or the staged
+    :class:`~IllustrateNovelStage` invokes the same hook), illustration fires
+    automatically — callers do not need to call the phase and attach methods
+    separately. Pass ``persist_dir`` through to enable; with no ``persist_dir``
+    the hook is an identity (the base default).
     """
 
     async def illustrate_novel_phase(
@@ -132,3 +140,25 @@ class IllustrateScenes(Propose, UseComfyUI, ABC):
                     )
                 scene_offset += len(story_ctx.scene_context)
         return novel
+
+    async def post_process_novel(
+        self,
+        ctx: NovelContext,
+        novel: Novel,
+        *,
+        persist_dir: str | Path | None = None,
+        send_to: str | None = None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> Novel:
+        """Illustrate every scene and attach the results, returning the transformed novel.
+
+        Identity when ``persist_dir`` is missing (the base ``compose_novel`` caller
+        never sets it); performs the full render + attach when it is. Failures
+        degrade per scene (warn + skip).
+        """
+        if persist_dir is None:
+            return novel
+        illustrations = await self.illustrate_novel_phase(
+            ctx, persist_dir=persist_dir, send_to=send_to or TASK, **kwargs
+        )
+        return self.attach_illustrations(ctx, novel, illustrations)
