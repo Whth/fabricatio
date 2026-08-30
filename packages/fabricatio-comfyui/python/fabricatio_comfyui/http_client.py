@@ -20,9 +20,10 @@ import asyncio
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
-from typing import IO, Self, Unpack
+from typing import IO, Self, Unpack, final
 
 import httpx
+from fabricatio_core.journal import logger
 from fabricatio_core.utils import first_available
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
@@ -191,6 +192,9 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
         the template's own checkpoint.  *front* enqueues at the head of the
         queue.  Returns the execution result without downloading images.
+
+        When the awaiting task is cancelled (e.g. Ctrl+C), the running job
+        is interrupted server-side before the cancellation propagates.
         """
         graph = Graph.default()
         if prompt:
@@ -208,7 +212,15 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
         data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
         resp = PromptResponse.from_raw(data)
-        return await self.wait_for_completion(resp.prompt_id, timeout=timeout)
+        try:
+            return await self.wait_for_completion(resp.prompt_id, timeout=timeout)
+        except asyncio.CancelledError:
+            logger.info("ComfyUI generation cancelled — interrupting the server-side job")
+            try:
+                await self.interrupt()
+            except httpx.HTTPError:
+                logger.warn("Failed to interrupt ComfyUI after cancellation")
+            raise
 
     async def get_queue_info(self) -> QueueInfo:
         """Get current queue status via ``GET /queue``."""
