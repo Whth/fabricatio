@@ -1,7 +1,10 @@
 """Composition-chain tests for fabricatio-novel with mock LLM routers."""
 
+from typing import Unpack
+
 import pytest
 from _support import NovelRole, card, prefix_log, raw_value
+from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage, return_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.models.context.base import CharacterSpan
@@ -460,3 +463,53 @@ class TestPrefixAccumulation:
             chapter_2.story_context[1].scene_context[0].prefix_log.render()
             == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
         )
+
+
+class _HookMutatingRole(NovelRole):
+    """Role whose after-compose hooks rename every level's context before assembly."""
+
+    async def after_compose_novel_context(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> NovelContext:
+        ctx.title = "Hooked Novel"
+        return ctx
+
+    async def after_compose_chapter_context(self, ctx: ChapterContext, **kwargs: Unpack[LLMKwargs]) -> ChapterContext:
+        ctx.title = "Hooked Chapter"
+        return ctx
+
+    async def after_compose_story_context(self, ctx: StoryContext, **kwargs: Unpack[LLMKwargs]) -> StoryContext:
+        ctx.title = "Hooked Story"
+        return ctx
+
+    async def after_compose_scene_context(self, ctx: SceneContext, **kwargs: Unpack[LLMKwargs]) -> SceneContext:
+        ctx.title = "Hooked Scene"
+        return ctx
+
+
+class TestComposeHookOrdering:
+    """Test suite for hook ordering: assembly must run after the after-compose hooks."""
+
+    async def test_after_compose_hooks_land_in_assembled_outputs(self) -> None:
+        """Assert after-compose context mutations reach the assembled tree; assembly used to run first."""
+        role = _HookMutatingRole(name="hook_role")
+        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
+        story_ctx = StoryContext(title="St1", description="The departure.")
+        story_ctx.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=20))
+        chapter_ctx.story_context.append(story_ctx)
+        ctx.chapter_context.append(chapter_ctx)
+
+        meta = NovelPlan(
+            title="The Search",
+            description="A hero searching for his father.",
+            expected_word_count=20,
+            series_bible=SeriesBible(),
+        )
+        with install_router_usage(*return_mixed_router_usage(Value(meta, "model"), raw_value("He left."))):
+            novel = await role.compose_novel(ctx)
+
+        assert novel is not None
+        assert novel.title == "Hooked Novel"
+        assert novel.chapter[0].title == "Hooked Chapter"
+        assert novel.chapter[0].story[0].title == "Hooked Story"
+        assert novel.chapter[0].story[0].scenes[0].title == "Hooked Scene"
+        assert novel.chapter[0].story[0].scenes[0].content == "He left."
