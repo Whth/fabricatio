@@ -8,8 +8,8 @@ internally.  Workflow graphs are an implementation detail — external
 callers never see or operate on one.
 
 Method naming follows the ``Use*`` capability pattern of
-:mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``,
-        ``get_history`` ...), no ``a``-prefix.
+:mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``
+...), no ``a``-prefix.
 
 Client lifecycle follows the ``fabricatio-milvus`` pattern: the mixin
 holds no client at all.  A module-level ``@cache`` factory keeps one
@@ -19,23 +19,19 @@ per-instance binding, no leak-prone ownership.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Unpack
+from typing import Unpack, overload
 
-from fabricatio_core.journal import logger
-from fabricatio_core.utils import ok
+from fabricatio_core.utils import first_available
 
-from fabricatio_comfyui.client_base import ComfyUIClientBase
+from fabricatio_comfyui.api import generate_image
 from fabricatio_comfyui.config import comfyui_config
-from fabricatio_comfyui.http_client import get_comfyui_client
+from fabricatio_comfyui.models.comfyui import ComfyUIScopedConfig
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
-
-if TYPE_CHECKING:
-    from fabricatio_comfyui.models.comfyui import HistoryEntry, QueueInfo
 
 __all__ = ["UseComfyUI"]
 
 
-class UseComfyUI:
+class UseComfyUI(ComfyUIScopedConfig):
     """ComfyUI capability mixin — fetches the shared client on demand.
 
     Usage::
@@ -45,71 +41,70 @@ class UseComfyUI:
         path = await ImageRole(name="painter").generate_image("a mountain landscape")
         # path: Path | None — None when generation failed
 
-    All ComfyUI method calls go through the shared cached client
-    (:func:`fabricatio_comfyui.http_client.get_comfyui_client`); tests and
-    alternate backends patch the factory or pass a custom client to the
-    lower-level transport directly.
-    """
+    Inherits :class:`ComfyUIScopedConfig`; set ``download_dir`` as a
+    subclass default or instance attribute to bind a Role to one output
+    directory::
 
-    def comfyui_client(self) -> ComfyUIClientBase:
-        """Return the process-wide shared ComfyUI client for the configured base URL."""
-        return get_comfyui_client(comfyui_config.base_url)
+        class ArtRole(Role, UseComfyUI):
+            download_dir: str = "./art"
+    """
 
     # ------------------------------------------------------------------
     # High-level public surface — only typed knobs, no workflow graphs
     # ------------------------------------------------------------------
 
+    @overload
     async def generate_image(
         self,
         prompt: str,
         download_dir: str | Path | None = None,
         **kwargs: Unpack[GenerateKwargs],
-    ) -> "Path | None":
-        """Generate one image from typed knobs and return its downloaded path.
+    ) -> "Path | None": ...
+
+    @overload
+    async def generate_image(
+        self,
+        prompt: list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "list[Path | None]": ...
+
+    async def generate_image(
+        self,
+        prompt: str | list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "Path | None | list[Path | None]":
+        """Generate image(s) from typed knobs and return their downloaded paths.
 
         Queues a bundled template parameterised with the provided knobs,
-        polls until completion, then downloads the output image to
-        ``download_dir`` — or, when omitted, to
-        :data:`comfyui_config.download_dir`.  Generation knobs
+        polls until completion, then downloads the output image(s) to
+        ``download_dir`` — or, when omitted, to this instance's scoped
+        :attr:`~fabricatio_comfyui.models.comfyui.ComfyUIScopedConfig.download_dir`,
+        then to :data:`comfyui_config.download_dir`.  Generation knobs
         (:class:`~fabricatio_comfyui.models.kwargs_types.GenerateKwargs`)
         are forwarded verbatim to the client.
 
+        With a list of prompts, the prompts are generated sequentially and
+        the result is one path per prompt — ``None`` at the index of any
+        failed generation, preserving prompt/path correspondence.
+
         Returns:
             The local path of the generated image, or ``None`` when
-            generation failed or produced no output image.
+            generation failed or produced no output image; for a list of
+            prompts, a list with one such value per prompt.
 
         Raises:
-            ValueError: when neither ``download_dir`` nor
-                :data:`comfyui_config.download_dir` is configured.
+            ValueError: when neither ``download_dir``, the scoped
+                :attr:`~fabricatio_comfyui.models.comfyui.ComfyUIScopedConfig.download_dir`,
+                nor :data:`comfyui_config.download_dir` is configured.
+
+        Delegates to :func:`fabricatio_comfyui.api.generate_image`, the
+        single implementation shared with the module-level function.
         """
-        target = ok(
-            download_dir or comfyui_config.download_dir,
-            "generate_image needs a download directory: pass download_dir= or set [ext.comfyui] download_dir",
+        target = first_available(
+            (download_dir, self.download_dir, comfyui_config.download_dir),
+            "generate_image needs a download directory: pass download_dir=, set [ext.comfyui] download_dir, "
+            "or set a download_dir on the Role",
         )
-        client = self.comfyui_client()
-        result = await client.generate(prompt, **kwargs)
-
-        if not result.succeeded():
-            logger.error(f"ComfyUI generation failed: {result.error}")
-            return None
-
-        path = await client.download_first_image(result, target)
-        if path is None:
-            logger.error("ComfyUI generation finished without output images")
-            return None
-
-        logger.info(f"ComfyUI generation completed: {path}")
-        return path
-
-    async def interrupt(self) -> None:
-        """Interrupt the currently running workflow."""
-        await self.comfyui_client().interrupt()
-        logger.info("ComfyUI execution interrupted")
-
-    async def get_history(self, prompt_id: str) -> "HistoryEntry | None":
-        """Retrieve execution history for *prompt_id*."""
-        return await self.comfyui_client().get_history(prompt_id)
-
-    async def get_queue_info(self) -> "QueueInfo":
-        """Fetch the current execution queue state."""
-        return await self.comfyui_client().get_queue_info()
+        return await generate_image(prompt, download_dir=target, **kwargs)

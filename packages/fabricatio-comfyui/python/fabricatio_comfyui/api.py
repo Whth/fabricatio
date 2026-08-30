@@ -9,32 +9,47 @@ of :meth:`UseComfyUI.generate_image`.
 """
 
 from pathlib import Path
-from typing import Unpack
-
-from fabricatio_core.utils import ok
+from typing import Unpack, overload
 
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
-from fabricatio_comfyui.models.comfyui import (
-    HistoryEntry,
-    QueueInfo,
-)
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
+from fabricatio_core.journal import logger
+from fabricatio_core.utils import ok
 
-__all__ = [
-    "generate_image",
-    "get_history",
-    "get_queue_info",
-    "interrupt",
-]
+__all__ = ["generate_image"]
+
+
+@overload
+async def generate_image(
+        prompt: str,
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+) -> Path | None: ...
+
+
+@overload
+async def generate_image(
+        prompt: list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+) -> list[Path | None]: ...
+
+
+@overload
+async def generate_image(
+        prompt: str | list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+) -> Path | None | list[Path | None]: ...
 
 
 async def generate_image(
-    prompt: str,
-    download_dir: str | Path | None = None,
-    **kwargs: Unpack[GenerateKwargs],
-) -> Path | None:
-    """Generate one image against the configured ComfyUI server.
+        prompt: str | list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+) -> Path | None | list[Path | None]:
+    """Generate image(s) against the configured ComfyUI server.
 
     One-shot: queues a bundled workflow parameterised with the knobs,
     polls until completion, downloads the output image to
@@ -45,6 +60,10 @@ async def generate_image(
     (:class:`~fabricatio_comfyui.models.kwargs_types.GenerateKwargs`)
     are forwarded verbatim to the client.
 
+    With a list of prompts, the prompts are generated sequentially and
+    the result is one path per prompt — ``None`` at the index of any
+    failed generation, preserving prompt/path correspondence.
+
     Raises:
         ValueError: when neither ``download_dir`` nor
             :data:`comfyui_config.download_dir` is configured.
@@ -53,23 +72,16 @@ async def generate_image(
         download_dir or comfyui_config.download_dir,
         "generate_image needs a download directory: pass download_dir= or set [ext.comfyui] download_dir",
     )
+    if isinstance(prompt, list):
+        return [await generate_image(p, download_dir=target, **kwargs) for p in prompt]
     client = get_comfyui_client(comfyui_config.base_url)
     result = await client.generate(prompt, **kwargs)
     if not result.succeeded():
+        logger.error(f"ComfyUI generation failed: {result.error}")
         return None
-    return await client.download_first_image(result, target)
-
-
-async def get_history(prompt_id: str) -> HistoryEntry | None:
-    """Retrieve execution history for *prompt_id* from the configured server."""
-    return await get_comfyui_client(comfyui_config.base_url).get_history(prompt_id)
-
-
-async def get_queue_info() -> QueueInfo:
-    """Fetch the current execution queue state from the configured server."""
-    return await get_comfyui_client(comfyui_config.base_url).get_queue_info()
-
-
-async def interrupt() -> None:
-    """Interrupt the currently running workflow on the configured server."""
-    await get_comfyui_client(comfyui_config.base_url).interrupt()
+    path = await client.download_first_image(result, target)
+    if path is None:
+        logger.error("ComfyUI generation finished without output images")
+        return None
+    logger.info(f"ComfyUI generation completed: {path}")
+    return path
