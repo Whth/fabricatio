@@ -77,7 +77,7 @@ class NovelConfig:
     """scene illustration sampler seed; ``None`` keeps the bundled ComfyUI template's seed."""
 
     illustration_skip_existing: bool = True
-    """skip scenes that already carry an illustration so re-runs fill only the gaps."""
+    """skip scenes whose illustration PNG already exists so re-runs fill only the gaps."""
 
 
 novel_config = CONFIG.load("novel", NovelConfig)

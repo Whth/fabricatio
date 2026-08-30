@@ -1120,7 +1120,16 @@ All default to their ``built-in/<name>`` variant:
 ``setting_bible_background_template``, ``setting_bible_context_template``,
 ``setting_bible_export_template``, ``writing_style_as_prompt_template``,
 ``enriched_as_prompt_template``, ``novel_character_span_template``,
-``chapter_character_span_template``, ``story_character_span_template``.
+``chapter_character_span_template``, ``story_character_span_template``,
+``scene_illustration_prompt_template``.
+
+Illustration knobs for the ``wri`` post-process pass: ``illustration_negative_prompt``
+(string, unset by default) forwards a negative prompt to ComfyUI for every scene
+illustration; ``illustration_width``, ``illustration_height`` (int, unset by default)
+override the pixel dimensions and ``illustration_seed`` (int, unset by default) pins the
+sampler seed, with unset values keeping the bundled ComfyUI template's behavior;
+``illustration_skip_existing`` (bool, default ``True``) skips scenes whose illustration
+PNG already exists so re-runs fill only the gaps.
 
 fabricatio-plot
 ^^^^^^^^^^^^^^^

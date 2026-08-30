@@ -1,7 +1,8 @@
-"""Per-scene ComfyUI illustration: propose one image prompt per scene and render it to a PNG."""
+"""Post-process novel illustration: propose one image prompt per scene, render it, then attach."""
 
 from abc import ABC
 from pathlib import Path
+from shutil import copyfile
 from typing import Unpack
 
 from fabricatio_core import TEMPLATE_MANAGER, logger
@@ -15,52 +16,57 @@ cfg(["comfyui"])
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.illustration import IllustratedSceneContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.illustration import IllustratedScene, SceneIllustration
 from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.utils import scene_image_name
 
 __all__ = ["IllustrateScenes"]
 
 
 class IllustrateScenes(Propose, UseComfyUI, ABC):
-    """Per-scene illustration: propose an image-generation prompt, then render it via ComfyUI.
+    """Post-process illustration over a finished context: propose, render, then attach.
 
-    The channel is sealed to :class:`~fabricatio_novel.models.context.illustration.IllustratedSceneContext`:
-    only scenes whose context is that subclass get illustrated, so pipelines composed of
-    plain scene contexts run unchanged and the illustrated/plain choice is made by whichever
-    stages materialize the channel. Failures degrade per scene (warn + skip); the returned
-    count reports the successfully illustrated scenes.
+    The phase walks every scene of the composed context tree, proposes one
+    image-generation prompt per scene, renders it via ComfyUI into the run's
+    ``images/`` directory, and returns the results keyed by
+    ``(chapter_index, scene_index)``; the attach step swaps those scenes in the
+    assembled novel for :class:`~fabricatio_novel.models.illustration.IllustratedScene`
+    copies. Failures degrade per scene (warn + skip).
     """
 
-    async def illustrate_scenes_phase(
+    async def illustrate_novel_phase(
         self,
         novel_ctx: NovelContext,
         *,
         persist_dir: str | Path,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> int:
-        """Illustrate every unillustrated illustrated-channel scene and return the success count.
+    ) -> dict[tuple[int, int], tuple[str, str]]:
+        """Illustrate every scene of the finished context and return the rendered results.
+
+        Scene indices are chapter-scoped and run across stories, matching the
+        naming used by the EPUB exporter.
 
         Args:
-            novel_ctx: The composed novel context whose channel scenes get illustrated.
+            novel_ctx: The composed novel context whose scenes get illustrated.
             persist_dir: Run directory receiving the ``images/`` output subdirectory.
             send_to: Routing group for the illustration-prompt proposals.
             **kwargs: Extra LLM knobs forwarded to the proposal call.
 
         Returns:
-            The number of scenes whose image was rendered and recorded this run.
+            Mapping of ``(chapter_index, scene_index)`` to the proposed prompt and the
+            absolute path of the rendered PNG; only successfully rendered scenes appear.
         """
         images_dir = Path(persist_dir) / "images"
         images_dir.mkdir(parents=True, exist_ok=True)
-        count = 0
-        for chapter in novel_ctx.iter_prefixed_contexts():
+        illustrations: dict[tuple[int, int], tuple[str, str]] = {}
+        for ci, chapter in enumerate(novel_ctx.iter_prefixed_contexts(), 1):
+            scene_offset = 0
             for story in chapter.iter_prefixed_contexts():
-                for scene in story.scene_context:
-                    if not isinstance(scene, IllustratedSceneContext):
-                        continue
-                    if novel_config.illustration_skip_existing and scene.illustration_image:
+                for scene_idx, scene in enumerate(story.scene_context, scene_offset + 1):
+                    target = images_dir / Path(scene_image_name(ci, scene_idx)).name
+                    if novel_config.illustration_skip_existing and target.is_file():
                         continue
                     requirement = TEMPLATE_MANAGER.render_template(
                         novel_config.scene_illustration_prompt_template,
@@ -93,23 +99,36 @@ class IllustrateScenes(Propose, UseComfyUI, ABC):
                     if path is None:
                         logger.warn(f"Image generation failed for scene '{scene.title}'; skipping")
                         continue
-                    scene.set_illustration(si.prompt, str(Path(path).resolve()))
-                    count += 1
-        logger.info(f"Illustrated {count} new scene(s) for novel '{novel_ctx.title}'")
-        return count
+                    copyfile(path, target)
+                    illustrations[(ci, scene_idx)] = (si.prompt, str(target.resolve()))
+                scene_offset += len(story.scene_context)
+        logger.info(f"Illustrated {len(illustrations)} new scene(s) for novel '{novel_ctx.title}'")
+        return illustrations
 
-    def materialize_illustrated(self, ctx: NovelContext, novel: Novel) -> Novel:
-        """Swap every illustrated context's scene in the assembled novel for its illustrated output.
+    def attach_illustrations(
+        self,
+        novel_ctx: NovelContext,
+        novel: Novel,
+        illustrations: dict[tuple[int, int], tuple[str, str]],
+    ) -> Novel:
+        """Swap every rendered scene in the assembled novel for its illustrated output.
 
-        Walks the context tree and the materialized novel in lockstep (both are built in the
-        same prefix order) and replaces scenes whose context carries the illustration channel
-        with :class:`~fabricatio_novel.models.illustration.IllustratedScene` copies; plain
-        scenes pass through untouched.
+        Walks the context tree and the materialized novel in strict lockstep (both
+        are built in the same prefix order) and replaces each scene whose
+        ``(chapter_index, scene_index)`` key was rendered with an
+        :class:`~fabricatio_novel.models.illustration.IllustratedScene` copy; the
+        remaining scenes pass through untouched.
         """
-        for chapter, chapter_ctx in zip(novel.chapter, ctx.chapter_context, strict=True):
+        for ci, (chapter, chapter_ctx) in enumerate(zip(novel.chapter, novel_ctx.chapter_context, strict=True), 1):
+            scene_offset = 0
             for story, story_ctx in zip(chapter.story, chapter_ctx.story_context, strict=True):
                 for index, scene_ctx in enumerate(story_ctx.scene_context):
-                    if not isinstance(scene_ctx, IllustratedSceneContext) or not scene_ctx.illustration_image:
+                    scene_idx = scene_offset + index + 1
+                    if (ci, scene_idx) not in illustrations:
                         continue
-                    story.scenes[index] = IllustratedScene.from_context(scene_ctx)
+                    prompt, image = illustrations[(ci, scene_idx)]
+                    story.scenes[index] = IllustratedScene.from_context(
+                        scene_ctx, illustration_prompt=prompt, illustration_image=image
+                    )
+                scene_offset += len(story_ctx.scene_context)
         return novel

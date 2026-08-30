@@ -4,7 +4,6 @@ from typing import Self
 
 from fabricatio_core.models.generic import SketchedAble
 
-from fabricatio_novel.models.context.illustration import IllustratedSceneContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.scene import Scene
 
@@ -22,7 +21,7 @@ class SceneIllustration(SketchedAble):
 
 
 class IllustratedScene(Scene):
-    """A composed scene carrying its illustration, materialized from an illustrated context."""
+    """A composed scene carrying its rendered illustration."""
 
     illustration_prompt: str = ""
     """The image-generation prompt proposed for this scene; empty until illustrated."""
@@ -31,10 +30,15 @@ class IllustratedScene(Scene):
     """Absolute path of the rendered illustration PNG; empty until illustrated."""
 
     @classmethod
-    def from_context(cls, ctx: SceneContext) -> Self:
-        """Materialize an illustrated scene; the illustration channel copies when the context carries it."""
+    def from_context(
+        cls,
+        ctx: SceneContext,
+        *,
+        illustration_prompt: str = "",
+        illustration_image: str = "",
+    ) -> Self:
+        """Materialize an illustrated scene from its context, recording the rendered illustration."""
         scene = super().from_context(ctx)
-        if isinstance(ctx, IllustratedSceneContext):
-            scene.illustration_prompt = ctx.illustration_prompt
-            scene.illustration_image = ctx.illustration_image
+        scene.illustration_prompt = illustration_prompt
+        scene.illustration_image = illustration_image
         return scene

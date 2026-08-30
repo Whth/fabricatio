@@ -45,6 +45,8 @@ character state proposed by the LLM in batched calls:
    which is where the prose is actually written
 6. **Assembly** — the composed context tree becomes a `Novel`; `NovelBuilder`
    (Rust/PyO3) produces the EPUB
+7. **Illustration** (`wri` only) — one post-process pass proposes an image prompt per
+   scene, renders it via ComfyUI, and embeds the PNGs in the EPUB
 
 Character state is **two pure cards, never an interpolated chain**: the LLM is only
 asked for the coarsest boundary states, and code stitches them so continuity is
@@ -60,6 +62,10 @@ whole-tree JSON snapshot after every stage so any wrong result is traceable:
 
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
 entries from LanceDB once per story and renders them raw into the scene prompts.
+
+The `wri` variant (`RagIllustrationDebugNovelWorkflow`) appends one final post-process
+stage that illustrates every scene of the finished context before export; its stage
+snapshots stay identical to `wr`'s.
 
 ## Data Flow & Prompt Assembly
 
@@ -83,6 +89,7 @@ allocation, character-arc stitching, prefix propagation, assembly — is determi
 | Story boundaries | `story_character_span` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
 | Scene plans | `scene_plan` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
 | Scene prose | `scene_requirement` ← 11 variables, see below | plain prose → `Scene.content` |
+| Scene illustration | `scene_illustration_prompt` ← novel/chapter/story/scene titles, description, content, cast | `SceneIllustration` → rendered PNG per scene (post-process) |
 
 Templates live in `templates/built-in/` and are selectable through the
 [Configuration](#configuration) keys below.
@@ -142,6 +149,7 @@ history stays intact.
 | `NovelPlan` | Novel metadata: title, description, word count, global constraint, bible |
 | `ChapterPlan` / `StoryPlan` / `ScenePlan` | Weighted per-element plans (title, description, weight, style, constraint, cast) |
 | `Scene` / `Story` / `Chapter` / `Novel` | Materialized output tree with word-count satisfaction |
+| `SceneIllustration` / `IllustratedScene` | LLM-proposed image prompt (plus negative prompt); the scene output carrying its rendered illustration |
 | `WritingStyleDocument` / `EnrichedDocument` | LanceDB-backed writing-style references |
 
 ### Capabilities (mixins)
@@ -154,6 +162,7 @@ history stays intact.
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
 | `RAGCompose` | Retrieves style docs once per story; extends scene prompts |
 | `BibleCompose` | Creates/updates the setting bible from an outline |
+| `IllustrateScenes` | Post-process illustration: proposes one image prompt per scene, renders it via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
 
 ### Actions (staged workflow)
 
@@ -167,6 +176,7 @@ history stays intact.
 | `ScenePlanStage` / `RagScenePlanStage` | `06_scene_plans` — plan scenes (with RAG) |
 | `SceneWriteStage` / `RagSceneWriteStage` | `07_scenes` — broadcast spans + write scene prose |
 | `AssembleStage` | `08_novel` — materialize `Novel` |
+| `IllustrateNovelStage` | post-process — illustrate every scene into `images/`, attach, then reuse `DumpNovelStage`'s export; adds no snapshot dir |
 | `DumpNovelStage` | export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
 
 ### Workflows
@@ -175,6 +185,7 @@ history stays intact.
 |---|---|
 | `DebugNovelWorkflow` | Outline → exported novel (`--format epub\|txt\|both`), one stage per action with per-stage snapshots |
 | `RagDebugNovelWorkflow` | Same, with writing-style RAG per story |
+| `RagIllustrationDebugNovelWorkflow` | Same, plus a single post-process pass that renders a ComfyUI illustration for every scene into the EPUB |
 
 ### Rust / PyO3
 
@@ -213,6 +224,12 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `novel_character_span_template` | `str` | `"built-in/novel_character_span"` | template used to propose the novel roster as one CharacterSpan per character. |
 | `chapter_character_span_template` | `str` | `"built-in/chapter_character_span"` | template used to draft the N-1 chapter-boundary cards from the novel roster spans. |
 | `story_character_span_template` | `str` | `"built-in/story_character_span"` | template used to draft the S-1 story-boundary cards from the chapter's spans. |
+| `scene_illustration_prompt_template` | `str` | `"built-in/scene_illustration_prompt"` | template used to propose one image-generation prompt for a composed scene. |
+| `illustration_negative_prompt` | `str` | `""` | negative prompt forwarded to ComfyUI for every scene illustration; empty when unset. |
+| `illustration_width` | `int \| None` | `None` | scene illustration width in pixels; `None` keeps the bundled ComfyUI template's value. |
+| `illustration_height` | `int \| None` | `None` | scene illustration height in pixels; `None` keeps the bundled ComfyUI template's value. |
+| `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |
+| `illustration_skip_existing` | `bool` | `True` | skip scenes whose illustration PNG already exists so re-runs fill only the gaps. |
 
 Access at runtime: `from fabricatio_novel.config import novel_config`.
 
@@ -226,6 +243,9 @@ fanvl w -o "In a world where dreams are currency..."
 
 # Generate with writing style RAG (LanceDB)
 fanvl wr -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
+
+# Generate with RAG + ComfyUI scene illustrations embedded in the EPUB
+fanvl wri -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
 
 # Constrain generation with a setting bible + global writing constraint
 fanvl w -o "..." -b settings/bible.json -c "first person view throughout"

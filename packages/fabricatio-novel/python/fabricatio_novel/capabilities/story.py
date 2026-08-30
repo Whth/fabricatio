@@ -39,10 +39,6 @@ class StoryCompose(SceneCompose, ABC):
         """Identity hook invoked on the composed story; may transform and return the story."""
         return story
 
-    def build_scene_context(self, plan: ScenePlan, expected_word_count: int) -> SceneContext:
-        """Build the context for one planned scene; override to materialize a channel subclass."""
-        return SceneContext.from_plan(plan, expected_word_count)
-
     async def plan_scenes(
         self,
         ctx: StoryContext,
@@ -95,7 +91,7 @@ class StoryCompose(SceneCompose, ABC):
             counts = ctx.allocate([s.weight for s in scene_plans]) if scene_plans else []
             for scene_plan, count in zip(scene_plans, counts, strict=True):
                 ctx.add_scene_context(
-                    self.build_scene_context(scene_plan, count)
+                    SceneContext.from_plan(scene_plan, expected_word_count=count)
                     .set_language(ctx.language)
                     .set_outline(ctx.outline)
                     .set_writing_styles(list(ctx.writing_styles))
