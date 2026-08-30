@@ -11,43 +11,44 @@ of :meth:`UseComfyUI.generate_image`.
 from pathlib import Path
 from typing import Unpack, overload
 
+from fabricatio_core.journal import logger
+from fabricatio_core.utils import ok
+
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
-from fabricatio_core.journal import logger
-from fabricatio_core.utils import ok
 
 __all__ = ["generate_image"]
 
 
 @overload
 async def generate_image(
-        prompt: str,
-        download_dir: str | Path | None = None,
-        **kwargs: Unpack[GenerateKwargs],
+    prompt: str,
+    download_dir: str | Path | None = None,
+    **kwargs: Unpack[GenerateKwargs],
 ) -> Path | None: ...
 
 
 @overload
 async def generate_image(
-        prompt: list[str],
-        download_dir: str | Path | None = None,
-        **kwargs: Unpack[GenerateKwargs],
+    prompt: list[str],
+    download_dir: str | Path | None = None,
+    **kwargs: Unpack[GenerateKwargs],
 ) -> list[Path | None]: ...
 
 
 @overload
 async def generate_image(
-        prompt: str | list[str],
-        download_dir: str | Path | None = None,
-        **kwargs: Unpack[GenerateKwargs],
+    prompt: str | list[str],
+    download_dir: str | Path | None = None,
+    **kwargs: Unpack[GenerateKwargs],
 ) -> Path | None | list[Path | None]: ...
 
 
 async def generate_image(
-        prompt: str | list[str],
-        download_dir: str | Path | None = None,
-        **kwargs: Unpack[GenerateKwargs],
+    prompt: str | list[str],
+    download_dir: str | Path | None = None,
+    **kwargs: Unpack[GenerateKwargs],
 ) -> Path | None | list[Path | None]:
     """Generate image(s) against the configured ComfyUI server.
 
@@ -72,16 +73,21 @@ async def generate_image(
         download_dir or comfyui_config.download_dir,
         "generate_image needs a download directory: pass download_dir= or set [ext.comfyui] download_dir",
     )
-    if isinstance(prompt, list):
-        return [await generate_image(p, download_dir=target, **kwargs) for p in prompt]
     client = get_comfyui_client(comfyui_config.base_url)
-    result = await client.generate(prompt, **kwargs)
-    if not result.succeeded():
-        logger.error(f"ComfyUI generation failed: {result.error}")
-        return None
-    path = await client.download_first_image(result, target)
-    if path is None:
-        logger.error("ComfyUI generation finished without output images")
-        return None
-    logger.info(f"ComfyUI generation completed: {path}")
-    return path
+    results = await client.generate(prompt, **kwargs)
+    paths: list[Path | None] = []
+    for result in results:
+        if not result.succeeded():
+            logger.error(f"ComfyUI generation failed: {result.error}")
+            paths.append(None)
+            continue
+        path = await client.download_first_image(result, target)
+        if path is None:
+            logger.error("ComfyUI generation finished without output images")
+            paths.append(None)
+            continue
+        logger.info(f"ComfyUI generation completed: {path}")
+        paths.append(path)
+    if isinstance(prompt, str):
+        return paths[0]
+    return paths
