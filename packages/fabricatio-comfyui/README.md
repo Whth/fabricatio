@@ -20,10 +20,9 @@ parameterises the built-in template internally. There is no `dict[str, Any]`
 workflow injection anywhere in the public signatures.
 
 Naming follows `fabricatio-skill`: one `Use*` capability mixin
-(`UseComfyUI`), module-level one-shot functions (`generate_image`,
-`get_history`, …), and bare-noun response models (`ExecutionResult`,
-`QueueInfo`, …). `workflows/` stays a docstring-only namespace, as in
-`fabricatio-skill`.
+(`UseComfyUI`), a module-level one-shot function (`generate_image`), and
+bare-noun response models (`ExecutionResult`, `QueueInfo`, …).
+`workflows/` stays a docstring-only namespace, as in `fabricatio-skill`.
 
 ## Architecture
 
@@ -154,34 +153,44 @@ asyncio.run(main())
 
 | Method                        | Description                                                            |
 |-------------------------------|------------------------------------------------------------------------|
-| `generate_image(prompt, …)`   | Queue the bundled graph → poll → download → return the image path (`Path \| None`) |
-| `get_history(prompt_id)`      | Retrieve execution history for a prompt                                |
-| `get_queue_info()`            | Fetch current queue status                                             |
-| `interrupt()`                 | Interrupt the currently running generation                             |
+| `generate_image(prompt, …)`   | Queue the bundled graph → poll → download → return the image path (`Path \| None`); cancelling the call interrupts the running job server-side |
 
 `generate_image` keyword parameters: `negative_prompt`, `width`, `height`,
-`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`;
-`download_dir` falls back to the `[ext.comfyui] download_dir` config value.
+`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`.
+`download_dir` resolution: per-call argument → scoped config on the
+Role (`UseComfyUI` inherits `ComfyUIScopedConfig`; set it as a subclass
+default `class ImageRole(Role, UseComfyUI): download_dir: str = "./outputs"`
+or per instance) → `[ext.comfyui] download_dir` config.
 
 On failure the methods above return `None` — a single prompt yields at most
-one image file path.
+one image file path.  A list of prompts yields a list with one entry per
+prompt (`Path | None` each, `None` marking a failed generation), generated
+sequentially:
 
-The module-level functions in `fabricatio_comfyui.api` (`generate_image`,
-`get_history`, `get_queue_info`, `interrupt`) share the exact same
-keyword surface and hide the client lifecycle entirely.
+```python
+paths = await role.generate_image(["a mountain", "a river"])
+# paths: list[Path | None] — [path, None] when the second generation failed
+```
+
+The module-level function in `fabricatio_comfyui.api` (`generate_image`)
+shares the exact same keyword surface and hides the client lifecycle
+entirely.  Server-side state inspection and control (queue, history,
+interrupt) stay on the client transport, which mirrors the REST API
+one-to-one — `generate` interrupts the running job automatically when
+its awaiting task is cancelled.
 
 ### Client methods (`ComfyUIHttpClient` / `ComfyUIClientBase`)
 
 | Method                            | Returns            | Description                              |
 |-----------------------------------|--------------------|------------------------------------------|
-| `generate(prompt, …)`             | `ExecutionResult`  | Queue the bundled graph and poll         |
+| `generate(prompt, …)`             | `ExecutionResult`  | Queue the bundled graph and poll; cancelling interrupts the running job |
 | `get_queue_info()`                | `QueueInfo`        | Fetch current queue status               |
 | `get_history(prompt_id)`          | `HistoryEntry \| None` | Retrieve execution history for a prompt |
 | `wait_for_completion(prompt_id)`  | `ExecutionResult`  | Poll until execution finishes            |
 | `get_image(filename, …)`          | `bytes`            | Download a single generated image        |
 | `upload_image(image_path, …)`     | `UploadResponse`   | Upload an image                          |
 | `interrupt()`                     | `None`             | Interrupt the running generation         |
-| `download_images(result, dir)`    | `None`             | Download all output images concurrently  |
+| `download_images(result, dir)`    | `list[Path]`       | Download all output images concurrently; returns their local paths |
 | `download_first_image(result, dir)` | `Path \| None`  | Download the first output image and return its local path |
 
 ### Actions
