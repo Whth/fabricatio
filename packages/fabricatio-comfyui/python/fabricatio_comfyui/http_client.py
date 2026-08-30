@@ -70,6 +70,7 @@ def get_comfyui_client(base_url: str) -> "ComfyUIHttpClient":
     return _cached_client_for_loop(asyncio.get_running_loop(), base_url)
 
 
+@final
 @dataclass
 class ComfyUIHttpClient(ComfyUIClientBase):
     """Async HTTP client for the ComfyUI REST API.
