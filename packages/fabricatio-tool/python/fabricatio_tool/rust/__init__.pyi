@@ -8,6 +8,7 @@ import typing
 __all__ = [
     "CheckConfig",
     "MCPManager",
+    "MCPServer",
     "ToolMetaData",
     "gather_violations",
     "treeview",
@@ -122,6 +123,82 @@ class MCPManager:
         """
 
 @typing.final
+class MCPServer:
+    r"""Python-exposed MCP server exposing Python callables as MCP tools."""
+    @property
+    def url(self) -> builtins.str | None:
+        r"""Returns the URL of the running HTTP server, if started.
+
+        Returns:
+            The server URL or None.
+        """
+    @staticmethod
+    def create(name: builtins.str, version: builtins.str, instructions: builtins.str | None) -> MCPServer:
+        r"""Creates a new MCP server with the given identity.
+
+        Args:
+            name: The server name advertised to clients.
+            version: The server version advertised to clients.
+            instructions: Optional server guidance surfaced to clients.
+
+        Returns:
+            A new MCPServer instance.
+        """
+    def add_tool(self, name: builtins.str, description: builtins.str, schema: typing.Any, func: typing.Any) -> None:
+        r"""Registers a Python callable as an MCP tool.
+
+        Args:
+            name: The tool name; registering an existing name replaces it.
+            description: The tool description advertised to clients.
+            schema: The JSON input schema as a Python dict.
+            func: The Python callable to invoke. Async functions are awaited;
+                sync functions run on a worker thread. Return values are
+                rendered as text: `str` verbatim, anything else via
+                `json.dumps`. Raised exceptions surface as tool errors.
+
+        Returns:
+            None on success.
+        """
+    def remove_tool(self, name: builtins.str) -> builtins.bool:
+        r"""Removes a registered tool.
+
+        Args:
+            name: The tool name to remove.
+
+        Returns:
+            True if a tool with that name was registered.
+        """
+    def list_tools(self) -> builtins.list[builtins.str]:
+        r"""Lists the names of all registered tools.
+
+        Returns:
+            A list of tool names.
+        """
+    def serve_http(self, host: builtins.str, port: builtins.int) -> typing.Any:
+        r"""Serves over streamable HTTP on the given host and port.
+
+        Args:
+            host: The interface to bind (e.g. "127.0.0.1").
+            port: The port to bind; 0 picks an ephemeral port.
+
+        Returns:
+            An awaitable resolving to the server URL once the listener is
+            bound; the server task keeps running.
+        """
+    def serve_stdio(self) -> typing.Any:
+        r"""Serves over stdio until the stream closes.
+
+        Returns:
+            An awaitable that resolves when the stdio server exits.
+        """
+    def shutdown(self) -> typing.Any:
+        r"""Stops all running server tasks.
+
+        Returns:
+            An awaitable that resolves once the tasks are aborted.
+        """
+
+@typing.final
 class ToolMetaData:
     r"""Python representation of tool metadata."""
     @property
@@ -203,8 +280,7 @@ def gather_violations(
     r"""Gathers violations in the provided source code based on the given configuration."""
 
 def treeview(
-    directory: builtins.str | os.PathLike | pathlib.Path | None = None,
-    max_depth: builtins.int = 10,
+    directory: builtins.str | os.PathLike | pathlib.Path | None = None, max_depth: builtins.int = 10
 ) -> builtins.str:
     r"""Generates a tree-like string representation of a directory structure.
 

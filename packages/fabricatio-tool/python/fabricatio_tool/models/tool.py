@@ -7,7 +7,7 @@ with additional functionalities such as logging, execution info, and briefing.
 from collections.abc import Callable
 from functools import cached_property
 from inspect import iscoroutinefunction, signature
-from typing import Any, Self, overload
+from typing import TYPE_CHECKING, Any, Self, overload
 
 from fabricatio_core.decorators import logging_execution_info
 from fabricatio_core.journal import logger
@@ -15,7 +15,9 @@ from fabricatio_core.models.generic import WithBriefing
 from pydantic import Field
 
 from fabricatio_tool.config import tool_config
-from fabricatio_tool.decorators import confirm_to_execute
+
+if TYPE_CHECKING:
+    from fabricatio_tool.rust import MCPServer
 
 
 class Tool[**P, R](WithBriefing):
@@ -104,7 +106,6 @@ class ToolBox(WithBriefing):
     def collect_tool[**P, R](
         self,
         *,
-        confirm: bool = tool_config.confirm_on_ops,
         logging: bool = tool_config.logging_on_ops,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
@@ -115,7 +116,6 @@ class ToolBox(WithBriefing):
         self,
         func: Callable[P, R] | None = None,
         *,
-        confirm: bool = tool_config.confirm_on_ops,
         logging: bool = tool_config.logging_on_ops,
     ) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
         """Add a callable function to the toolbox as a tool.
@@ -124,7 +124,6 @@ class ToolBox(WithBriefing):
 
         Args:
             func (Callable[P, R]): The function to be added as a tool.
-            confirm (bool, optional): Whether to confirm before executing the function. Defaults to True.
             logging (bool, optional): Whether to log the execution info. Defaults to True.
 
         Returns:
@@ -133,7 +132,6 @@ class ToolBox(WithBriefing):
 
         def _wrapper(f: Callable[P, R]) -> Callable[P, R]:
             tool = logging_execution_info(f) if logging else f
-            tool = confirm_to_execute(tool) if confirm else tool
             self.tools.append(Tool(source=tool))
             return f
 
@@ -145,7 +143,6 @@ class ToolBox(WithBriefing):
         self,
         func: Callable[P, R],
         *,
-        confirm: bool = tool_config.confirm_on_ops,
         logging: bool = tool_config.logging_on_ops,
     ) -> Self:
         """Add a callable function to the toolbox as a tool.
@@ -154,14 +151,12 @@ class ToolBox(WithBriefing):
 
         Args:
             func (Callable): The function to be added as a tool.
-            confirm (bool, optional): Whether to confirm before executing the function. Defaults to True.
             logging (bool, optional): Whether to log the execution info. Defaults to True.
 
         Returns:
             Self: The current instance of the toolbox.
         """
         tool = logging_execution_info(func) if logging else func
-        tool = confirm_to_execute(tool) if confirm else tool
         self.tools.append(Tool(source=tool))
         return self
 
@@ -190,6 +185,31 @@ class ToolBox(WithBriefing):
             Optional[Tool]: The tool instance with the specified name if found; otherwise, None.
         """
         return next((tool for tool in self.tools if tool.name == name), None)
+
+    def to_mcp_server(self) -> "MCPServer":
+        """Build an MCP server exposing every tool in this toolbox.
+
+        Imports are deferred to avoid a module cycle between
+        ``fabricatio_tool.mcp_server`` and this models module.
+
+        Returns:
+            MCPServer: A server named after the toolbox (or "fabricatio")
+            with every registered tool, ready to serve over HTTP or stdio.
+        """
+        from importlib.metadata import version
+
+        from fabricatio_tool.mcp_server import build_input_schema
+        from fabricatio_tool.rust import MCPServer
+
+        server = MCPServer.create(self.name or "fabricatio", version("fabricatio-tool"), None)
+        for tool in self.tools:
+            server.add_tool(
+                tool.name or getattr(tool.source, "__name__", ""),
+                tool.description or "",
+                build_input_schema(tool.source),
+                tool.source,
+            )
+        return server
 
     def __hash__(self) -> int:
         """Return a hash of the toolbox based on its briefing.
