@@ -17,13 +17,12 @@ app = Typer(
 
 @app.command()
 def compose(
-    requirement: str = Option(None, "-r", "--requirement", help="Song requirement/prompt"),
+    requirement: str = Option(..., "-r", "--requirement", help="Song requirement/prompt"),
     output: Path = Option(Path("song"), "-o", "--output", help="Output file folder"),
 ) -> None:
     """Compose a song based on your requirements."""
     from fabricatio_core import Event, Role, Task, WorkFlow
     from fabricatio_core.utils import ok
-    from questionary import text
 
     from fabricatio_yue.actions.compose import Compose
 
@@ -36,10 +35,7 @@ def compose(
     ok(
         Task(name="compose song")
         .update_init_context(
-            req=(
-                requirement
-                or ok(text("What kind of song would you like to compose?").ask(), "No requirement provided!")
-            ),
+            req=requirement,
             output=output,
         )
         .delegate_blocking(ns),

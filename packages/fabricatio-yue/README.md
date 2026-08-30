@@ -117,7 +117,7 @@ print(song.duration)  # 50
 - `orjson` — fast JSON loading of genre tags
 - `pydantic` — data model validation
 
-Optional CLI extras: `questionary`, `typer`.
+Optional CLI extras: `typer`.
 
 ## Configuration
 
