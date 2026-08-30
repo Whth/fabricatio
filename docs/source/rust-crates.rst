@@ -284,13 +284,22 @@ Additional Crates
    lib["src/lib.rs - cfg-if feature gating, various deps"]
    crate --> lib
 
-**mcp-manager** - Model Context Protocol server management
+**mcp-manager** - Model Context Protocol client management
 
 .. mermaid::
 
    flowchart TD
    crate["mcp-manager/"]
    lib["src/lib.rs - rmcp client, tokio async"]
+   crate --> lib
+
+**mcp-server** - Model Context Protocol server (stdio + streamable HTTP)
+
+.. mermaid::
+
+   flowchart TD
+   crate["mcp-server/"]
+   lib["src/lib.rs - rmcp server, tokio async, axum"]
    crate --> lib
 
 **deck_loader** - Anki deck file loading/generation

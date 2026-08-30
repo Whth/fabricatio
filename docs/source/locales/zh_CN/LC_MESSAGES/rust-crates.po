@@ -319,8 +319,11 @@ msgid "**error-mapping** - Error type mapping between Rust/Python"
 msgstr "**error-mapping** - Rust/Python 间的错误类型映射"
 
 #: ../../source/rust-crates.rst:288
-msgid "**mcp-manager** - Model Context Protocol server management"
-msgstr "**mcp-manager** - Model Context Protocol 服务器管理"
+msgid "**mcp-manager** - Model Context Protocol client management"
+msgstr "**mcp-manager** - Model Context Protocol 客户端管理器"
+#: ../../source/rust-crates.rst:296
+msgid "**mcp-server** - Model Context Protocol server (stdio + streamable HTTP)"
+msgstr "**mcp-server** - Model Context Protocol 服务器（stdio 与流式 HTTP）"
 
 #: ../../source/rust-crates.rst:295
 msgid "**deck_loader** - Anki deck file loading/generation"

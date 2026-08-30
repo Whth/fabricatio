@@ -30,7 +30,7 @@ pip install fabricatio[full]
 
 `fabricatio-tool` enables Fabricatio agents to use arbitrary Python functions as **tools**. Tools are grouped into **toolboxes**, discovered by an LLM-driven selection process, composed into execution code (also LLM-generated), and run inside a `ToolExecutor` with import/call safety checks. Results are collected in a `ResultCollector` for downstream use.
 
-The package also includes built-in filesystem tools and MCP (Model Context Protocol) client integration.
+The package also includes built-in filesystem tools and MCP (Model Context Protocol) client and server integration.
 
 ## Core concepts
 
@@ -86,6 +86,25 @@ Filesystem utilities callable as tools:
 - **`get_global_mcp_manager(conf)`** — singleton MCP manager (Rust-backed).
 - **`mcp_tool_to_function(client_id, tool_name)`** — converts an MCP tool to an async callable.
 - **`mcp_to_toolbox(client_id)`** — converts all tools from an MCP client into a `ToolBox`.
+
+### `fabricatio_tool.mcp_server`
+
+Exposes native Python functions as an MCP **server** (Rust-backed; stdio and streamable HTTP transports):
+
+- **`get_global_mcp_server()`** — singleton `MCPServer` named `"fabricatio"`, versioned with the installed `fabricatio-tool`.
+- **`add_tool(func, *, name=None, description=None)`** — registers a sync or async callable; its JSON input schema is derived from the signature.
+- **`serve(host="127.0.0.1", port=9847)`** — starts the HTTP transport and returns the server URL.
+- **`serve_stdio()`** — serves over stdin/stdout for clients that spawn the process.
+- **`ToolBox.to_mcp_server()`** — exposes an entire toolbox's tools over MCP.
+
+CLI (no console script — use `python -m`):
+
+```bash
+python -m fabricatio_tool.mcp_server --stdio mcp_fixture           # stdio transport
+python -m fabricatio_tool.mcp_server --http 127.0.0.1 9847 pkg.module[:attr]
+```
+
+Targets are import paths: a bare module defaults to its `toolbox` attribute, a `ToolBox` is exported via `to_mcp_server()`, and any callable is registered directly. Logs go to stderr (stdout belongs to the stdio protocol).
 
 ### `fabricatio_tool.toolboxes`
 

@@ -135,6 +135,7 @@ Fabricatio uses a hybrid Python/Rust monorepo structure:
             CSignify["signify"]
             CScanner["scanner"]
             CMCP["mcp-manager"]
+            CMCP2["mcp-server"]
             CMacro["macro-utils"]
             CDeck["deck_loader"]
          end
