@@ -3,6 +3,7 @@
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import Value
+from fabricatio_novel.capabilities.illustration import IllustrateScenes
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
@@ -40,3 +41,7 @@ class NovelRole(LLMTestRole, NovelCompose):
 
 class RAGRole(LLMTestRole, NovelCompose, RAGCompose):
     """Test role combining mock LLM with RAG-extended novel composition."""
+
+
+class IllustrationRole(LLMTestRole, IllustrateScenes):
+    """Test role combining mock LLM with the per-scene illustration chain."""

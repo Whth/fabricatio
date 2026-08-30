@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from _support import raw_value
 from fabricatio_core.rust import CONFIG, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP
@@ -106,3 +107,91 @@ class TestNovelWorkflow:
         assert artifact is not None, "txt-format run must return the texts directory"
         assert artifact == persist_dir / "chapters"
         assert not (persist_dir / "novel.epub").exists()
+
+    async def test_rag_illustration_workflow_embeds_scene_images(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the RAG+illustration workflow renders scene images and embeds them in the EPUB."""
+        import base64
+        import zipfile
+
+        from fabricatio_core import Event, Role, Task
+        from fabricatio_novel.actions.novel import IllustrateScenesStage
+        from fabricatio_novel.capabilities.rag import RAGCompose
+        from fabricatio_novel.models.illustration import SceneIllustration
+        from fabricatio_novel.workflows.novel import RagIllustrationDebugNovelWorkflow
+
+        png_1x1 = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        )
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "scene.png"
+            path.write_bytes(png_1x1)
+            return path
+
+        async def fake_afetch_document(query: object, config: object | None = None) -> list[object]:
+            return []
+
+        monkeypatch.setattr(RAGCompose, "afetch_document", staticmethod(fake_afetch_document))
+
+        monkeypatch.setattr(IllustrateScenesStage, "generate_image", staticmethod(fake_generate_image))
+
+        namespace = "write_rag_illustration_test"
+        persist_dir = tmp_path / "persist"
+        Role.with_bio(name="writer").subscribe(
+            Event.quick_instantiate(namespace), RagIllustrationDebugNovelWorkflow
+        ).dispatch()
+        task = Task(name="wf novel illustration").update_init_context(
+            novel_outline="A cartographer's apprentice charts a floating city.",
+            novel_language="English",
+            persist_dir=persist_dir,
+        )
+        meta = NovelPlan(
+            title="The Floating Atlas",
+            description="An apprentice mapping a city that drifts among the clouds.",
+            expected_word_count=100,
+            series_bible=SeriesBible(),
+        )
+        chapter_plans_json = [
+            {"title": "Harbor", "description": "The apprentice boards the ferry barge.", "weight": 1.0}
+        ]
+        story_plans_json = [{"title": "Departure", "description": "The mooring lines are cut at dawn.", "weight": 1.0}]
+        scene_plans_json = [{"title": "Cut Lines", "description": "The city pulls away from the sea.", "weight": 1.0}]
+        illustration = SceneIllustration(prompt="a lone rider at dawn")
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(meta, "model"),
+                Value(chapter_plans_json, "json"),
+                Value(story_plans_json, "json"),
+                Value(scene_plans_json, "json"),
+                raw_value("He left."),
+                Value(illustration, "model"),
+            ),
+        ):
+            epub = await task.delegate(namespace)
+
+        assert epub == persist_dir / "novel.epub"
+        assert epub is not None
+        assert epub.is_file()
+        stage_dirs = sorted(p.name for p in persist_dir.iterdir() if p.is_dir() and p.name.startswith("stage_"))
+        assert stage_dirs == [
+            "stage_01_init",
+            "stage_02_metadata",
+            "stage_03_characters",
+            "stage_04_chapter_plans",
+            "stage_05_story_plans",
+            "stage_06_scene_plans",
+            "stage_07_scenes",
+            "stage_08_illustrate_scenes",
+            "stage_08_novel",
+        ]
+        with zipfile.ZipFile(epub) as zf:
+            names = zf.namelist()
+            assert any(name.endswith("images/scene_01_01.png") for name in names)
+            assert any(
+                b'<img src="images/scene_01_01.png"' in zf.read(name) for name in names if name.endswith(".xhtml")
+            )
