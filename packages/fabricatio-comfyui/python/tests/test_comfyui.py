@@ -34,7 +34,7 @@ class TestFactories:
     async def test_comfyui_client_is_shared(self) -> None:
         """The mixin holds no client; the cached factory hands out one shared instance."""
         role_a, role_b = UseComfyUI(), UseComfyUI()
-        assert role_a.comfyui_client is role_b.comfyui_client
+        assert role_a.comfyui_client() is role_b.comfyui_client()
 
     @pytest.mark.asyncio
     async def test_client_factory_caches_per_url(self) -> None:
@@ -217,9 +217,9 @@ class TestModels:
     def test_output_image_url_path(self) -> None:
         """Output image URL path encodes all fields."""
         img = OutputImage(filename="test.png", subfolder="sub", type="output")
-        assert "filename=test.png" in img.url_path
-        assert "subfolder=sub" in img.url_path
-        assert "type=output" in img.url_path
+        assert "filename=test.png" in img.url_path()
+        assert "subfolder=sub" in img.url_path()
+        assert "type=output" in img.url_path()
 
     def test_execution_result_all_images(self) -> None:
         """Flatten images from multiple output nodes."""
@@ -231,8 +231,8 @@ class TestModels:
             },
             status="completed",
         )
-        assert len(result.all_images) == 3
-        assert result.succeeded is True
+        assert len(result.all_images()) == 3
+        assert result.succeeded() is True
 
     def test_execution_result_succeeded_with_success_status(self) -> None:
         """ComfyUI returns status_str='success' (not 'completed') — succeeded must accept it."""
@@ -241,19 +241,19 @@ class TestModels:
             outputs={"9": [OutputImage(filename="img.png")]},
             status="success",
         )
-        assert result.succeeded is True
+        assert result.succeeded() is True
 
     def test_execution_result_failed(self) -> None:
         """Failed result exposes error message."""
         result = ExecutionResult(prompt_id="abc", status="error", error="CUDA out of memory")
-        assert result.succeeded is False
+        assert result.succeeded() is False
         assert result.error == "CUDA out of memory"
 
     def test_execution_result_empty(self) -> None:
         """Empty result yields no images and not succeeded."""
         result = ExecutionResult(prompt_id="abc")
-        assert result.all_images == []
-        assert result.succeeded is False
+        assert result.all_images() == []
+        assert result.succeeded() is False
 
     def test_execution_result_from_history(self) -> None:
         """from_history builds a result from a history entry."""
@@ -267,7 +267,7 @@ class TestModels:
         assert result.prompt_id == "pid-1"
         assert result.status == "completed"
         assert result.error is None
-        assert [img.filename for img in result.all_images] == ["img.png"]
+        assert [img.filename for img in result.all_images()] == ["img.png"]
 
     def test_execution_result_from_history_failed(self) -> None:
         """from_history carries the exception message on failure."""
@@ -275,7 +275,7 @@ class TestModels:
             {"status": {"status_str": "error", "completed": True, "exception": "CUDA OOM"}, "outputs": {}},
         )
         result = ExecutionResult.from_history("pid-1", entry)
-        assert result.succeeded is False
+        assert result.succeeded() is False
         assert result.error == "CUDA OOM"
 
     def test_history_entry_from_raw(self) -> None:
@@ -356,7 +356,7 @@ class TestModels:
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
     """End-to-end flow via the high-level capability: generate -> poll -> download."""
-    client = UseComfyUI().comfyui_client
+    client = UseComfyUI().comfyui_client()
 
     mock_history: dict[str, object] = {
         "mock-uuid-123": {
@@ -389,9 +389,9 @@ async def test_generate_flow(tmp_path: Path) -> None:
         )
 
         assert result.prompt_id == "mock-uuid-123"
-        assert result.succeeded is True
-        assert len(result.all_images) == 1
-        assert result.all_images[0].filename == "ComfyUI_00001_.png"
+        assert result.succeeded() is True
+        assert len(result.all_images()) == 1
+        assert result.all_images()[0].filename == "ComfyUI_00001_.png"
         mock_img.assert_called_once()
 
 
@@ -441,7 +441,7 @@ async def test_generate_applies_knobs_to_bundled_graph() -> None:
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["steps"] == 20
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["cfg"] == 7.0
     assert captured["front"] is True
-    assert captured["client_id"] == client.client_id
+    assert captured["client_id"] == client.client_id()
 
 
 @pytest.mark.asyncio
@@ -461,14 +461,14 @@ async def test_generate_returns_typed_result() -> None:
         result = await client.generate("hi")
         assert isinstance(result, ExecutionResult)
         assert result.prompt_id == "pid-1"
-        assert result.succeeded is True
+        assert result.succeeded() is True
 
 
 @pytest.mark.asyncio
 async def test_generate_timeout() -> None:
     """Verify timeout raises when polling fails to complete."""
     role = UseComfyUI()
-    client = role.comfyui_client
+    client = role.comfyui_client()
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
         patch.object(client, "_get", return_value={}),
@@ -538,8 +538,8 @@ async def test_client_id_uses_base_url() -> None:
     """client_id is derived from the configured base_url."""
     c1 = ComfyUIHttpClient.create(None)
     c2 = ComfyUIHttpClient.create(None)
-    assert c1.client_id == c2.client_id
-    assert c1.client_id == comfyui_config.base_url.rstrip("/").lower()
+    assert c1.client_id() == c2.client_id()
+    assert c1.client_id() == comfyui_config.base_url.rstrip("/").lower()
 
 
 @pytest.mark.asyncio
@@ -607,8 +607,8 @@ async def test_integration_generate(tmp_path: Path) -> None:
         checkpoint=_first_checkpoint(),
         timeout=180.0,
     )
-    assert result.succeeded is True
-    assert len(result.all_images) >= 1
+    assert result.succeeded() is True
+    assert len(result.all_images()) >= 1
 
 
 @pytest.mark.asyncio
@@ -624,7 +624,7 @@ async def test_integration_generate_with_download(tmp_path: Path) -> None:
         timeout=180.0,
     )
 
-    assert result.succeeded is True
+    assert result.succeeded() is True
 
     # Verify image was downloaded to disk
     downloaded = list(tmp_path.glob("*.png"))

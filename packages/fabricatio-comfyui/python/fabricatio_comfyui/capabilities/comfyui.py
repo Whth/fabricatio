@@ -14,7 +14,7 @@ Method naming follows the ``Use*`` capability pattern of
 Client lifecycle follows the ``fabricatio-milvus`` pattern: the mixin
 holds no client at all.  A module-level ``@cache`` factory keeps one
 process-wide shared client (and ``httpx`` connection pool) per base URL,
-and :attr:`comfyui_client` fetches it when needed — stateless mixins, no
+and :meth:`comfyui_client` fetches it when needed — stateless mixins, no
 per-instance binding, no leak-prone ownership.
 """
 
@@ -50,9 +50,8 @@ class UseComfyUI:
     lower-level transport directly.
     """
 
-    @property
     def comfyui_client(self) -> ComfyUIClientBase:
-        """The process-wide shared ComfyUI client for the configured base URL."""
+        """Return the process-wide shared ComfyUI client for the configured base URL."""
         return get_comfyui_client(comfyui_config.base_url)
 
     # ------------------------------------------------------------------
@@ -83,7 +82,7 @@ class UseComfyUI:
             An :class:`~fabricatio_comfyui.models.comfyui.ExecutionResult`
             describing the executed prompt.
         """
-        client = self.comfyui_client
+        client = self.comfyui_client()
         result = await client.generate(
             prompt,
             negative_prompt=negative_prompt,
@@ -96,11 +95,11 @@ class UseComfyUI:
             timeout=timeout,
         )
 
-        if download_dir is not None and result.succeeded:
+        if download_dir is not None and result.succeeded():
             await client.download_images(result, download_dir)
 
-        if result.succeeded:
-            logger.info(f"ComfyUI generation completed: {len(result.all_images)} images")
+        if result.succeeded():
+            logger.info(f"ComfyUI generation completed: {len(result.all_images())} images")
         else:
             logger.error(f"ComfyUI generation failed: {result.error}")
         return result
@@ -112,17 +111,17 @@ class UseComfyUI:
         image_type: str = "input",
     ) -> "UploadResponse":
         """Upload an image to the server."""
-        return await self.comfyui_client.upload_image(image_path, image_type=image_type)
+        return await self.comfyui_client().upload_image(image_path, image_type=image_type)
 
     async def interrupt(self) -> None:
         """Interrupt the currently running workflow."""
-        await self.comfyui_client.interrupt()
+        await self.comfyui_client().interrupt()
         logger.info("ComfyUI execution interrupted")
 
     async def get_history(self, prompt_id: str) -> "HistoryEntry | None":
         """Retrieve execution history for *prompt_id*."""
-        return await self.comfyui_client.get_history(prompt_id)
+        return await self.comfyui_client().get_history(prompt_id)
 
     async def get_queue_info(self) -> "QueueInfo":
         """Fetch the current execution queue state."""
-        return await self.comfyui_client.get_queue_info()
+        return await self.comfyui_client().get_queue_info()

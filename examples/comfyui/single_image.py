@@ -39,7 +39,7 @@ CHECKPOINT = "pasanctuarySDXL_v50.safetensors"
 )
 
 result: ExecutionResult = ok(Task(name="draw a mountain").delegate_blocking(ns))
-if not result.succeeded:
+if not result.succeeded():
     raise SystemExit(f"generation failed: {result.error}")
-for img in result.all_images:
+for img in result.all_images():
     print(img.filename)  # noqa: T201

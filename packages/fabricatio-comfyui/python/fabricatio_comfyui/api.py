@@ -59,7 +59,7 @@ async def generate_image(  # noqa: PLR0913 — public knob surface stays explici
         checkpoint=checkpoint,
         timeout=timeout,
     )
-    if download_dir is not None and result.succeeded:
+    if download_dir is not None and result.succeeded():
         await client.download_images(result, download_dir)
     return result
 

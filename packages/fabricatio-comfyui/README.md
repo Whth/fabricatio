@@ -83,7 +83,7 @@ async def main() -> None:
         height=768,
         download_dir="./outputs",
     )
-    for img in result.all_images:
+    for img in result.all_images():
         print(img.filename)
 
 
@@ -141,7 +141,7 @@ from fabricatio_comfyui import ComfyUIHttpClient
 async def main() -> None:
     async with ComfyUIHttpClient.create() as client:
         result = await client.generate("a mountain landscape", seed=42)
-        if result.succeeded:
+        if result.succeeded():
             await client.download_images(result, "./outputs")
 
 

@@ -95,9 +95,8 @@ class ComfyUIHttpClient(ComfyUIClientBase):
             ),
         )
 
-    @property
     def client_id(self) -> str:
-        """Client ID derived from the configured server URL."""
+        """Return the client ID derived from the configured server URL."""
         return comfyui_config.base_url.rstrip("/").lower()
 
     # ------------------------------------------------------------------
@@ -206,7 +205,7 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         if checkpoint_name is not None:
             graph.with_checkpoint(checkpoint_name)
 
-        req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id, front=front)
+        req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
         data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
         resp = PromptResponse.from_raw(data)
         return await self.wait_for_completion(resp.prompt_id, timeout=timeout)
@@ -289,4 +288,4 @@ class ComfyUIHttpClient(ComfyUIClientBase):
             data = await self.get_image(filename=img.filename, subfolder=img.subfolder, image_type=img.type)
             (dst / img.filename).write_bytes(data)
 
-        await asyncio.gather(*(_fetch(img) for img in result.all_images))
+        await asyncio.gather(*(_fetch(img) for img in result.all_images()))

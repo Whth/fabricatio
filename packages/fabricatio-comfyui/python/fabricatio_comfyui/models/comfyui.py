@@ -190,9 +190,8 @@ class OutputImage(BaseModel):
     type: str = "output"
     """Directory type: ``output``, ``input``, or ``temp``."""
 
-    @property
     def url_path(self) -> str:
-        """Query string for the ``/view`` endpoint."""
+        """Return the query string for the ``/view`` endpoint."""
         from urllib.parse import urlencode
 
         return urlencode(
@@ -294,14 +293,12 @@ class ExecutionResult(BaseModel):
             error=entry.status.exception,
         )
 
-    @property
     def all_images(self) -> list[OutputImage]:
-        """Flatten all output images across all nodes."""
+        """Return all output images flattened across all nodes."""
         return [img for imgs in self.outputs.values() for img in imgs]
 
-    @property
     def succeeded(self) -> bool:
-        """Whether the execution completed without error."""
+        """Return whether the execution completed without error."""
         return self.status in ("completed", "success") and self.error is None
 
 
