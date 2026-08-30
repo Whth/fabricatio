@@ -70,7 +70,7 @@ class ComfyUIClientBase(ABC):
     @abstractmethod
     async def generate(  # noqa: PLR0913 — public API keeps every override explicit
         self,
-        prompt: str,
+        prompt: str | list[str],
         *,
         negative_prompt: str | None = None,
         width: int | None = None,
@@ -81,15 +81,16 @@ class ComfyUIClientBase(ABC):
         checkpoint: str | None = None,
         front: bool = False,
         timeout: float | None = None,
-    ) -> ExecutionResult:
-        """Generate an image from typed knobs: queue a bundled workflow and poll until completion.
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts and poll each to completion.
 
         The workflow graph is built internally from the bundled template —
         callers never see or construct one.  Only the provided (non-``None``)
         knobs override the template; ``None`` keeps the template's value.
         *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
         the template's own checkpoint.  *front* enqueues at the head of the
-        queue.  Returns the execution result without downloading images.
+        queue.  Prompts run sequentially; the return holds one execution
+        result per input prompt, in input order, without downloading images.
         """
 
     @abstractmethod

@@ -173,7 +173,7 @@ class ComfyUIHttpClient(ComfyUIClientBase):
 
     async def generate(  # noqa: PLR0913 — public API keeps every override explicit
         self,
-        prompt: str,
+        prompt: str | list[str],
         *,
         negative_prompt: str | None = None,
         width: int | None = None,
@@ -184,44 +184,49 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         checkpoint: str | None = None,
         front: bool = False,
         timeout: float | None = None,
-    ) -> ExecutionResult:
-        """Generate an image from typed knobs: queue a bundled workflow and poll until completion.
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts and poll each to completion.
 
         The workflow graph is built internally from the bundled template —
         callers never see or construct one.  Only the provided (non-``None``)
         knobs override the template; ``None`` keeps the template's value.
         *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
         the template's own checkpoint.  *front* enqueues at the head of the
-        queue.  Returns the execution result without downloading images.
+        queue.  Prompts run sequentially; the return holds one execution
+        result per input prompt, in input order, without downloading images.
 
         When the awaiting task is cancelled (e.g. Ctrl+C), the running job
         is interrupted server-side before the cancellation propagates.
         """
-        graph = Graph.default()
-        if prompt:
-            graph.with_positive_prompt(prompt)
-        if negative_prompt is not None:
-            graph.with_negative_prompt(negative_prompt)
-        if width is not None or height is not None:
-            graph.with_resolution(width=width, height=height)
-        if seed is not None or steps is not None or cfg is not None:
-            graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
-        checkpoint_name = checkpoint or comfyui_config.checkpoint
-        if checkpoint_name is not None:
-            graph.with_checkpoint(checkpoint_name)
+        prompts = [prompt] if isinstance(prompt, str) else list(prompt)
+        results: list[ExecutionResult] = []
+        for one in prompts:
+            graph = Graph.default()
+            if one:
+                graph.with_positive_prompt(one)
+            if negative_prompt is not None:
+                graph.with_negative_prompt(negative_prompt)
+            if width is not None or height is not None:
+                graph.with_resolution(width=width, height=height)
+            if seed is not None or steps is not None or cfg is not None:
+                graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
+            checkpoint_name = checkpoint or comfyui_config.checkpoint
+            if checkpoint_name is not None:
+                graph.with_checkpoint(checkpoint_name)
 
-        req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
-        data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
-        resp = PromptResponse.from_raw(data)
-        try:
-            return await self.wait_for_completion(resp.prompt_id, timeout=timeout)
-        except asyncio.CancelledError:
-            logger.info("ComfyUI generation cancelled — interrupting the server-side job")
+            req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
+            data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
+            resp = PromptResponse.from_raw(data)
             try:
-                await self.interrupt()
-            except httpx.HTTPError:
-                logger.warn("Failed to interrupt ComfyUI after cancellation")
-            raise
+                results.append(await self.wait_for_completion(resp.prompt_id, timeout=timeout))
+            except asyncio.CancelledError:
+                logger.info("ComfyUI generation cancelled — interrupting the server-side job")
+                try:
+                    await self.interrupt()
+                except httpx.HTTPError:
+                    logger.warn("Failed to interrupt ComfyUI after cancellation")
+                raise
+        return results
 
     async def get_queue_info(self) -> QueueInfo:
         """Get current queue status via ``GET /queue``."""
