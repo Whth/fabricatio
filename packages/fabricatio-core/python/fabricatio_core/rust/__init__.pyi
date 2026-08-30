@@ -6,9 +6,6 @@ import os
 import pathlib
 import typing
 
-_T = typing.TypeVar("_T")
-_K = typing.TypeVar("_K")
-_V = typing.TypeVar("_V")
 __all__ = [
     "CONFIG",
     "GENERIC_BLOCK_TYPE",
@@ -1602,6 +1599,8 @@ class ProviderType(enum.Enum):
       falls back to `OPENAI_API_KEY` environment variable.
     * `OpenAICompatible` - Any OpenAI API-compatible provider (Azure OpenAI,
       LocalAI, custom endpoints). Requires name, API key, and endpoint URL.
+    * `OpenAIResponses` - OpenAI Responses API provider (`POST /v1/responses`).
+      Requires name, API key, and endpoint URL.
     * `Dummy` - A provider that doesn't make real HTTP calls. Useful for
       testing and development.
     """
@@ -1613,6 +1612,10 @@ class ProviderType(enum.Enum):
     OpenAICompatible = ...
     r"""
     OpenAI API-compatible provider (Azure, LocalAI, custom endpoints).
+    """
+    OpenAIResponses = ...
+    r"""
+    OpenAI Responses API provider (`POST /v1/responses`).
     """
     Dummy = ...
     r"""

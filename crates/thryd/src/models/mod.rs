@@ -2,6 +2,7 @@
 //!
 //! This module re-exports the available model types:
 //! - [`crate::models::openai::OpenaiModel`] - OpenAI API compatible models
+//! - [`crate::models::responses::OpenaiResponsesModel`] - OpenAI Responses API models
 //! - [`crate::models::dummy::DummyModel`] - Mock models for testing
 //!
 //! # Creating Models
@@ -20,6 +21,8 @@
 
 pub mod dummy;
 pub mod openai;
+pub mod responses;
 
 pub use dummy::*;
 pub use openai::*;
+pub use responses::*;

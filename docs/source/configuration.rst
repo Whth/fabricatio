@@ -338,17 +338,20 @@ Providers, deployments, caching, and retry behavior for all model traffic.
      - One of ``OpenAI`` (official OpenAI; ``key`` may fall back to the
        ``OPENAI_API_KEY`` environment variable; ``name``/``base_url`` ignored),
        ``OpenAICompatible`` (any OpenAI-compatible endpoint; requires ``name``, ``key``
-       and ``base_url``), or ``Dummy`` (makes no real HTTP calls; everything ignored —
-       useful for tests).
+       and ``base_url``), ``OpenAIResponses`` (OpenAI Responses API endpoint,
+       ``POST /v1/responses``; requires ``name``, ``key`` and ``base_url``), or
+       ``Dummy`` (makes no real HTTP calls; everything ignored — useful for tests).
    * - ``name``
      - string
-     - Short identifier used in deployment ids (required for ``OpenAICompatible``).
+     - Short identifier used in deployment ids (required for ``OpenAICompatible``
+       and ``OpenAIResponses``).
    * - ``key``
      - string
      - API key; stored as a secret and redacted in logs/debug output.
    * - ``base_url``
      - string
-     - Endpoint base URL; must be a valid URL (required for ``OpenAICompatible``).
+     - Endpoint base URL; must be a valid URL (required for ``OpenAICompatible``
+       and ``OpenAIResponses``).
 
 **Deployments** — routable models bound to a group. Three independent lists exist:
 ``completion_deployments`` (chat/completion models), ``embedding_deployments``, and
@@ -1610,9 +1613,11 @@ Troubleshooting
 **Provider authentication failures?**
 
 - Verify the API key has no leading/trailing spaces.
-- ``OpenAICompatible`` requires both ``name`` and ``base_url``; ``base_url``
-  must include the version path (e.g. ``https://api.openai.com/v1/``).
-- ``ptype`` accepts only ``OpenAI``, ``OpenAICompatible`` and ``Dummy``.
+- ``OpenAICompatible`` and ``OpenAIResponses`` require both ``name`` and
+  ``base_url``; ``base_url`` must include the version path (e.g.
+  ``https://api.openai.com/v1/``).
+- ``ptype`` accepts only ``OpenAI``, ``OpenAICompatible``, ``OpenAIResponses``
+  and ``Dummy``.
 
 **Rate limit errors (429)?**
 

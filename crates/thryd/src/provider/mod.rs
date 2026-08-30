@@ -1,8 +1,10 @@
 pub mod dummy;
 pub mod openai;
+pub mod responses;
 
 pub use dummy::*;
 pub use openai::*;
+pub use responses::*;
 
 use crate::ThrydError::ModelNotSupported;
 use crate::connections::{CONNECTIONS_POOL, ClientEntry};
@@ -204,6 +206,8 @@ pub trait Provider: Send + Sync {
 ///   falls back to `OPENAI_API_KEY` environment variable.
 /// * `OpenAICompatible` - Any OpenAI API-compatible provider (Azure OpenAI,
 ///   LocalAI, custom endpoints). Requires name, API key, and endpoint URL.
+/// * `OpenAIResponses` - OpenAI Responses API provider (`POST /v1/responses`).
+///   Requires name, API key, and endpoint URL.
 /// * `Dummy` - A provider that doesn't make real HTTP calls. Useful for
 ///   testing and development.
 #[derive(EnumString, Debug, Deserialize, Serialize)]
@@ -214,6 +218,8 @@ pub enum ProviderType {
     OpenAI,
     /// OpenAI API-compatible provider (Azure, LocalAI, custom endpoints).
     OpenAICompatible,
+    /// OpenAI Responses API provider (`POST /v1/responses`).
+    OpenAIResponses,
     /// Dummy provider for testing (does not make real HTTP calls).
     Dummy,
 }
@@ -258,9 +264,12 @@ fn need_all(
 /// # Arguments
 ///
 /// * `provider_type` - The type of provider to create
-/// * `name` - Provider name (required for `OpenAICompatible`, optional for others)
-/// * `api_key` - API key for authentication (required for `OpenAICompatible` and `OpenAI`)
-/// * `endpoint` - Base URL endpoint (required for `OpenAICompatible`, unused for others)
+/// * `name` - Provider name (required for `OpenAICompatible` and `OpenAIResponses`,
+///   optional for others)
+/// * `api_key` - API key for authentication (required for `OpenAICompatible`,
+///   `OpenAIResponses`, and `OpenAI`)
+/// * `endpoint` - Base URL endpoint (required for `OpenAICompatible` and
+///   `OpenAIResponses`, unused for others)
 ///
 /// # Returns
 ///
@@ -273,6 +282,8 @@ fn need_all(
 ///   The `name` and `endpoint` parameters are ignored.
 ///
 /// * `OpenAICompatible` - Creates a custom OpenAI-compatible provider.
+///   All parameters are required.
+/// * `OpenAIResponses` - Creates an OpenAI Responses API provider.
 ///   All parameters are required.
 ///
 /// * `Dummy` - Creates a dummy provider that doesn't make real HTTP calls.
@@ -319,6 +330,11 @@ pub fn create_provider(
             let (name, api_key, endpoint) = need_all(name, api_key, endpoint)?;
 
             Ok(Arc::new(OpenaiCompatible::new(name, api_key, endpoint)))
+        }
+        ProviderType::OpenAIResponses => {
+            let (name, api_key, endpoint) = need_all(name, api_key, endpoint)?;
+
+            Ok(Arc::new(OpenaiResponses::new(name, api_key, endpoint)))
         }
         ProviderType::Dummy => Ok(Arc::new(DummyProvider::default())),
     }

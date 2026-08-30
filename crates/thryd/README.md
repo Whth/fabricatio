@@ -127,6 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Providers represent LLM API services. Thryd includes built-in support for:
 
 - **OpenAICompatible**: Works with OpenAI API and compatible services (Azure OpenAI, LocalAI, etc.)
+- **OpenaiResponses**: Talks to the OpenAI Responses API (`POST /v1/responses`) for gpt-5 and o-series reasoning models
 - **DummyProvider**: For testing and development
 
 Implement the `Provider` trait to add custom providers.

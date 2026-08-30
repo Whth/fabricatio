@@ -163,7 +163,7 @@ pub use model::*;
 /// Re-exports:
 /// - `dummy` submodule with `DummyModel`
 /// - `openai` submodule with `OpenaiModel`
-pub use models::{dummy::*, openai::*};
+pub use models::{dummy::*, openai::*, responses::*};
 
 /// Provider implementations and factory functions.
 ///
@@ -172,7 +172,7 @@ pub use models::{dummy::*, openai::*};
 /// - [`create_provider`] - Factory function for creating providers
 /// - `OpenaiCompatible` - OpenAI-compatible provider
 /// - `DummyProvider` - Dummy provider for testing
-pub use provider::{ProviderType, create_provider, dummy::*, openai::*};
+pub use provider::{ProviderType, create_provider, dummy::*, openai::*, responses::*};
 
 /// Request routing, load balancing, and router implementation.
 ///

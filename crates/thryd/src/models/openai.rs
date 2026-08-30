@@ -61,6 +61,7 @@ use tracing::*;
 /// - [`ListModels`](OpenAiRoute::ListModels) - List available models
 /// - [`Embeddings`](OpenAiRoute::Embeddings) - Generate text embeddings
 /// - [`Reranks`](OpenAiRoute::Reranks) - Rerank documents by relevance
+/// - [`Responses`](OpenAiRoute::Responses) - Responses API for gpt-5 and o-series reasoning models
 /// # Traits Enabled
 ///
 /// - [`Debug`](std::fmt::Debug) - For debug formatting
@@ -132,6 +133,16 @@ pub enum OpenAiRoute {
     /// `POST /v1/reranks`
     #[strum(serialize = "reranks")]
     Reranks,
+
+    /// Responses API: `responses`
+    ///
+    /// Modern endpoint (`POST /v1/responses`) for gpt-5 and o-series reasoning
+    /// models. Supports `reasoning` configuration and usage-bearing streams.
+    ///
+    /// # API Path
+    /// `POST /v1/responses`
+    #[strum(serialize = "responses")]
+    Responses,
 }
 
 /// OpenAI-compatible model implementation.
@@ -197,30 +208,7 @@ impl OpenaiModel {
         response: reqwest::Response,
         endpoint: &str,
     ) -> crate::Result<T> {
-        let status = response.status();
-        let body = response.text().await.map_err(ThrydError::Reqwest)?;
-
-        if !status.is_success() {
-            error!("API error [{}] {}: {}", status.as_u16(), endpoint, body);
-            return Err(ThrydError::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-
-        match serde_json::from_str::<T>(&body) {
-            Ok(result) => Ok(result),
-            Err(e) => {
-                error!(
-                    "Failed to deserialize response from {} (status {}): {} — body: {}",
-                    endpoint,
-                    status.as_u16(),
-                    e,
-                    body,
-                );
-                Err(ThrydError::Json(e))
-            }
-        }
+        parse_json_response(response, endpoint).await
     }
 
     /// Raw single-call embedding: sends one API request and returns the response.
@@ -254,6 +242,41 @@ impl OpenaiModel {
             .map(|e| e.embedding)
             .collect::<Vec<_>>();
         Ok(EmbeddingResponse { embeddings, usage })
+    }
+}
+
+/// Parse an HTTP response body as the expected JSON type, logging the raw
+/// body on API errors or deserialization failures.
+///
+/// Shared by the chat-completions ([`OpenaiModel`]) and Responses
+/// ([`crate::models::responses::OpenaiResponsesModel`]) model implementations.
+pub(crate) async fn parse_json_response<T: serde::de::DeserializeOwned>(
+    response: reqwest::Response,
+    endpoint: &str,
+) -> crate::Result<T> {
+    let status = response.status();
+    let body = response.text().await.map_err(ThrydError::Reqwest)?;
+
+    if !status.is_success() {
+        error!("API error [{}] {}: {}", status.as_u16(), endpoint, body);
+        return Err(ThrydError::ApiError {
+            status: status.as_u16(),
+            body,
+        });
+    }
+
+    match serde_json::from_str::<T>(&body) {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            error!(
+                "Failed to deserialize response from {} (status {}): {} — body: {}",
+                endpoint,
+                status.as_u16(),
+                e,
+                body,
+            );
+            Err(ThrydError::Json(e))
+        }
     }
 }
 
