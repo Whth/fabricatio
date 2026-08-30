@@ -10,7 +10,8 @@
       suffering accumulation, e2e `process_and_respond`
     - [ ] Evaluation framework (EMgine methodology, 3-layer validation, literary character test suite)
 - [ ] Mental novel gen integration with character psychology.
-    - [x] `NovelComposeMental` capability (seed → inject → evolve mental states per chapter)
-    - [x] Actions: `GenerateNovelMental`, `GenerateChaptersFromScriptsWithMental` (+ RAG variants)
-    - [x] Workflows: debug, validated, RAG, illustrated combo pipelines
+    - [ ] Re-introduce mental-state chapter generation in fabricatio-novel (the
+      former `NovelComposeMental` capability, mental actions, and combo workflows
+      were removed with all novel action modules in 08134165; the engine now
+      exposes `UseMind.seed_from`/`observe`/`react` over a model-owned `MentalState`)
     - [ ] Tests: mock-LLM round-trip for mental state chapter generation
