@@ -7,7 +7,6 @@ import typer
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
 from fabricatio.actions import (
-    ArticleConsultRAG,
     DumpFinalizedOutput,
     ExtractOutlineFromRaw,
     GenerateArticleProposal,
@@ -74,11 +73,6 @@ Role.new(
                 RenderedDump(template_name="article").to_task_output(),
             ),
         ),
-        Event.quick_instantiate(ns4 := "consult").collapse(): WorkFlow(
-            name="Consult Article",
-            description="Consult an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(ArticleConsultRAG(ref_q_model={"send_to": "qwen-turbo"}).to_task_output(),),
-        ),
         Event.quick_instantiate(ns5 := "chap-suma").collapse(): WorkFlow(
             name="Chapter Summary",
             description="Generate chapter summary based on given article outline. dump the outline to the given path. in typst format.",
@@ -101,21 +95,6 @@ app = Typer()
 
 
 @app.command()
-def consult(
-    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-    tei_endpoint: str | None = typer.Option(None, "-t", "--tei-endpoint", help="TEI endpoint."),
-) -> None:
-    """Consult an article based on a given article outline."""
-    _ = asyncio.run(
-        Task(name="Answer Question")
-        .update_init_context(collection_name=collection_name, tei_endpoint=tei_endpoint)
-        .delegate(ns4),
-    )
-
-    logger.info("Finished")
-
-
-@app.command()
 def finish(
     article_outline_path: Path = typer.Argument(help="Path to the article outline raw file."),
     dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
@@ -126,7 +105,6 @@ def finish(
         help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Finish an article based on a given article outline."""
     path = ok(
@@ -137,7 +115,6 @@ def finish(
                 dump_path=dump_path,
                 persist_dir=persist_dir,
                 collection_name=collection_name,
-                supervisor=supervisor,
             )
             .delegate(ns3),
         ),
@@ -162,7 +139,6 @@ def completion(
         help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Write an article based on a raw article outline."""
     path = ok(
@@ -173,7 +149,6 @@ def completion(
                 dump_path=dump_path,
                 persist_dir=persist_dir,
                 collection_name=collection_name,
-                supervisor=supervisor,
             )
             .delegate(ns2),
         ),
@@ -198,7 +173,6 @@ def write(
         help="Directory to persist the output.",
     ),
     collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-    supervisor: bool = typer.Option(False, "-s", "--supervisor", help="Whether to use the supervisor mode."),
 ) -> None:
     """Write an article based on a briefing.
 
@@ -213,7 +187,6 @@ def write(
                 dump_path=dump_path,
                 persist_dir=persist_dir,
                 collection_name=collection_name,
-                supervisor=supervisor,
             )
             .delegate(ns),
         ),

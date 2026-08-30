@@ -4,7 +4,6 @@ from collections.abc import Generator
 from typing import ClassVar, Self, override
 
 from fabricatio_capabilities.models.generic import PersistentAble, SequencePatch, WordCount
-from fabricatio_core.decorators import cfg_on_async
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import Described, SketchedAble
 from fabricatio_core.rust import word_count
@@ -266,15 +265,6 @@ class Article(
         self.artifacts.update_outline(article_outline)
         for a, o in zip(self.iter_dfs(), article_outline.iter_dfs(), strict=True):
             a.update_metadata(o)
-        return self
-
-    @cfg_on_async(feats=["qa"])
-    async def edit_titles(self) -> Self:
-        """Edits the titles of the article."""
-        from questionary import text
-
-        for a in self.iter_dfs():
-            a.title = await text(f"Edit `{a.title}`.", default=a.title).ask_async() or a.title
         return self
 
     def check_short_paragraphs(self, threshold: int = 60) -> str:

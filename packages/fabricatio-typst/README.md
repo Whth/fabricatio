@@ -168,7 +168,6 @@ Each action is a Fabricatio `Action` — an async callable unit in the agent wor
 | Action | Description |
 |---|---|
 | `WriteArticleContentRAG` | Write article content with citation-aware RAG |
-| `ArticleConsultRAG` | Retrieve relevant citations for article sections |
 | `TweakArticleLancedbRAG` | Refine article content using LanceDB RAG |
 | `ChunkArticle` | Split an article into storeable chunks |
 | `StoreArticleEssence` | Store article essences into LanceDB |

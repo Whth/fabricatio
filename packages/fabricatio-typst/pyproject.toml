@@ -38,7 +38,6 @@ workflows = ["fabricatio-actions"]
 actions = [
     "fabricatio-improve",
     "fabricatio-rule",
-    "questionary"
 ]
 lancedb = ["fabricatio-lancedb"]
 

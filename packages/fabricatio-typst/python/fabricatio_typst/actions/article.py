@@ -13,15 +13,13 @@ from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.models.task import Task
 from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
-from fabricatio_core.utils import ok, wrap_in_block
+from fabricatio_core.utils import ok
 from fabricatio_improve.capabilities.correct import Correct
-from fabricatio_improve.models.improve import Improvement
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from fabricatio_tool.fs import dump_text
 from more_itertools import filter_map
 from pydantic import Field
-from rich import print as r_print
 
 from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.article_essence import ArticleEssence
@@ -145,16 +143,12 @@ class GenerateInitialOutline(Action, Extract, Correct):
     output_key: str = "initial_article_outline"
     """The key of the output data."""
 
-    supervisor: bool = False
-    """Whether to use the supervisor to fix the outline."""
-
     extract_kwargs: ValidateKwargs[ArticleOutline | None] = Field(default_factory=ValidateKwargs)
     """The kwargs to extract the outline."""
 
     async def _execute(
         self,
         article_proposal: ArticleProposal,
-        supervisor: bool | None = None,
         **_,
     ) -> ArticleOutline | None:
         raw_outline = await self.aask(
@@ -163,25 +157,6 @@ class GenerateInitialOutline(Action, Extract, Correct):
                 {"proposal": article_proposal.as_prompt(), "language": article_proposal.language},
             ),
         )
-
-        if supervisor or (supervisor is None and self.supervisor):
-            from questionary import confirm, text
-
-            r_print(raw_outline)
-            while not await confirm("Accept this version and continue?").ask_async():
-                raw_imp = await text("Enter the improvement:").ask_async()
-
-                imp = ok(
-                    await self.propose(Improvement, f"{wrap_in_block(raw_outline, 'Previous Outline')}\n\n{raw_imp}"),
-                )
-                raw_outline = (
-                    await self.correct_string(
-                        raw_outline,
-                        imp,
-                        wrap_in_block(article_proposal.as_prompt(), "Article Proposal"),
-                    )
-                ) or raw_outline
-                r_print(raw_outline)
 
         outline = ok(
             await self.extract(ArticleOutline, raw_outline, **self.extract_kwargs),

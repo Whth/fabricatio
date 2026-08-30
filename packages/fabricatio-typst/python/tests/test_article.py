@@ -101,7 +101,7 @@ class TestArticle:
         assert converted_content != r"Inline $math$ here"  # Should be modified
 
     async def test_extract_outline(self, article: Article) -> None:
-        """Test asynchronous title editing functionality."""
+        """Test outline extraction preserves chapter/section titles."""
         # Add components to test
         chapter = ArticleChapter(
             heading="Original Chapter",
@@ -128,9 +128,8 @@ class TestArticle:
         chapter.sections.append(section)
         article.chapters.append(chapter)
 
-        # Mock questionary input would go here in real test
         outline = article.extract_outline()
-        # Verify structure remains intact (would check actual edits with mock input)
+        # Verify structure remains intact
         assert outline.chapters[0].title == "Original Chapter"
         assert outline.chapters[0].sections[0].title == "Original Section"
         assert outline.chapters[0].sections[0].subsections[0].title == "Original Subsection"

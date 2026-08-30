@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import ClassVar
 
 from fabricatio_capabilities.capabilities.extract import Extract
-from fabricatio_core.decorators import cfg_on_async
 from fabricatio_core.journal import logger
 from fabricatio_core.models.action import Action
 from fabricatio_core.models.kwargs_types import ListingKwargs, LLMKwargs
@@ -18,7 +17,7 @@ from fabricatio_lancedb.capabilities.lancedb import LancedbAddRAGConfig, Lancedb
 from fabricatio_rag.actions.db import StoreDocuments
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
-from pydantic import Field, PositiveInt
+from pydantic import PositiveInt
 
 from fabricatio_typst.capabilities.citation_rag import CitationLancedbRAG, CitationSearchConfig
 from fabricatio_typst.models.article_essence import ArticleEssence
@@ -68,8 +67,6 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
     """The model to use for extracting the content from the retrieved references."""
     query_model: ListingKwargs[str] | None = None
     """The model to use for querying the database"""
-    supervisor: bool = False
-    """Whether to use supervisor mode"""
     result_per_query: PositiveInt = 4
     """The number of results to be returned per query."""
     cite_req: str = TYPST_CITE_USAGE
@@ -82,57 +79,17 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
         self,
         article_outline: ArticleOutline,
         table_name: str | None = None,
-        supervisor: bool | None = None,
         **cxt,
     ) -> Article:
         article = Article.from_outline(article_outline)
         self.target_table = table_name or self.safe_target_table
-        if supervisor or (supervisor is None and self.supervisor):
-            for chap, sec, subsec in article.iter_subsections():
-                await self._supervisor_inner(article, article_outline, chap, sec, subsec)
-
-        else:
-            await gather(
-                *[
-                    self._inner(article, article_outline, chap, sec, subsec)
-                    for chap, sec, subsec in article.iter_subsections()
-                ],
-            )
+        await gather(
+            *[
+                self._inner(article, article_outline, chap, sec, subsec)
+                for chap, sec, subsec in article.iter_subsections()
+            ],
+        )
         return article.convert_tex()
-
-    @cfg_on_async(feats=["qa"])
-    async def _supervisor_inner(
-        self,
-        article: Article,
-        article_outline: ArticleOutline,
-        chap: ArticleChapter,
-        sec: ArticleSection,
-        subsec: ArticleSubsection,
-    ) -> ArticleSubsection:
-        from questionary import confirm, text
-        from rich import print as r_print
-
-        cm = CitationManager()
-        await self.search_database(article, article_outline, chap, sec, subsec, cm)
-
-        raw_paras = await self.write_raw(article, article_outline, chap, sec, subsec, cm)
-        r_print(raw_paras)
-
-        while not await confirm("Accept this version and continue?").ask_async():
-            if inst := await text("Search for more refs for additional spec.").ask_async():
-                await self.search_database(article, article_outline, chap, sec, subsec, cm, extra_instruction=inst)
-
-            if instruction := await text("Enter the instructions to improve").ask_async():
-                raw_paras = await self.write_raw(article, article_outline, chap, sec, subsec, cm, instruction)
-            if edt := await text("Edit", default=raw_paras).ask_async():
-                raw_paras = edt
-
-            raw_paras = fix_misplaced_labels(raw_paras)
-            raw_paras = convert_all_tex_math(raw_paras)
-
-            r_print(raw_paras)
-
-        return await self.extract_new_subsec(subsec, raw_paras, cm)
 
     async def _inner(
         self,
@@ -233,64 +190,6 @@ class WriteArticleContentRAG(Action, Extract, CitationLancedbRAG):
                 result_per_query=self.result_per_query,
             ),
         )
-
-
-class ArticleConsultRAG(Action, CitationLancedbRAG):
-    """Write an article based on the provided outline."""
-
-    ctx_override: ClassVar[bool] = True
-    output_key: str = "consult_count"
-    search_increment_multiplier: float = 1.6
-    """The multiplier to increase the limit of references to retrieve per query."""
-    ref_limit: int = 26
-    """The final limit of references."""
-    ref_per_q: int = 13
-    """The limit of references to retrieve per query."""
-    similarity_threshold: float = 0.62
-    """The similarity threshold of references to retrieve."""
-    ref_q_model: ListingKwargs[str] = Field(default_factory=ListingKwargs)
-    """The model to use for refining query."""
-    req: str = TYPST_CITE_USAGE
-    """The request for the rag model."""
-
-    @cfg_on_async(feats=["qa"])
-    async def _execute(self, table_name: str | None = None, **cxt) -> int:
-
-        from questionary import confirm, text
-        from rich import print as r_print
-
-        self.target_table = table_name or self.safe_target_table
-
-        cm = CitationManager()
-
-        counter = 0
-        while (req := await text("User: ").ask_async()) is not None:
-            if await confirm("Empty the cm?").ask_async():
-                cm.empty()
-
-            req = convert_all_tex_math(req)
-
-            await self.clued_search(
-                req,
-                cm,
-                config=CitationSearchConfig(
-                    refinery_kwargs=self.ref_q_model,
-                    expand_multiplier=self.search_increment_multiplier,
-                    base_accepted=self.ref_limit,
-                    result_per_query=self.ref_per_q,
-                ),
-            )
-
-            ret = await self.aask(f"{cm.as_prompt()}\n{self.req}\n{req}")
-
-            ret = fix_misplaced_labels(ret)
-            ret = convert_all_tex_math(ret)
-            ret = cm.apply(ret)
-
-            r_print(ret)
-            counter += 1
-        logger.info(f"{counter} rounds of conversation.")
-        return counter
 
 
 class TweakArticleLancedbRAG(Action, LancedbRAG, Censor):
