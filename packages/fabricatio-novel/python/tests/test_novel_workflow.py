@@ -116,7 +116,7 @@ class TestNovelWorkflow:
         import zipfile
 
         from fabricatio_core import Event, Role, Task
-        from fabricatio_novel.actions.novel import IllustrateScenesStage
+        from fabricatio_novel.actions.novel import IllustrateNovelStage
         from fabricatio_novel.capabilities.rag import RAGCompose
         from fabricatio_novel.models.illustration import SceneIllustration
         from fabricatio_novel.workflows.novel import RagIllustrationDebugNovelWorkflow
@@ -138,7 +138,7 @@ class TestNovelWorkflow:
 
         monkeypatch.setattr(RAGCompose, "afetch_document", staticmethod(fake_afetch_document))
 
-        monkeypatch.setattr(IllustrateScenesStage, "generate_image", staticmethod(fake_generate_image))
+        monkeypatch.setattr(IllustrateNovelStage, "generate_image", staticmethod(fake_generate_image))
 
         namespace = "write_rag_illustration_test"
         persist_dir = tmp_path / "persist"
@@ -186,7 +186,6 @@ class TestNovelWorkflow:
             "stage_05_story_plans",
             "stage_06_scene_plans",
             "stage_07_scenes",
-            "stage_08_illustrate_scenes",
             "stage_08_novel",
         ]
         with zipfile.ZipFile(epub) as zf:
@@ -195,3 +194,4 @@ class TestNovelWorkflow:
             assert any(
                 b'<img src="images/scene_01_01.png"' in zf.read(name) for name in names if name.endswith(".xhtml")
             )
+        assert (persist_dir / "images" / "scene_01_01.png").is_file()
