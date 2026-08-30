@@ -631,10 +631,41 @@ async def test_generate_returns_typed_result() -> None:
         patch.object(client, "_post", return_value={"prompt_id": "pid-1", "number": 1}),
         patch.object(client, "_get", return_value=mock_history),
     ):
-        result = await client.generate("hi")
+        results = await client.generate("hi")
+        assert len(results) == 1
+        result = results[0]
         assert isinstance(result, ExecutionResult)
         assert result.prompt_id == "pid-1"
         assert result.succeeded() is True
+
+
+@pytest.mark.asyncio
+async def test_generate_batch_prompts() -> None:
+    """Generate accepts a prompt list and returns one result per prompt, in order."""
+    client = ComfyUIHttpClient.create(None)
+    mock_history: dict[str, object] = {
+        "pid-1": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "a.png", "subfolder": "", "type": "output"}]}},
+        },
+        "pid-2": {
+            "status": {"status_str": "error", "completed": True, "exception": "boom"},
+            "outputs": {},
+        },
+    }
+    with (
+        patch.object(
+            client,
+            "_post",
+            side_effect=[{"prompt_id": "pid-1", "number": 1}, {"prompt_id": "pid-2", "number": 1}],
+        ),
+        patch.object(client, "_get", return_value=mock_history),
+    ):
+        results = await client.generate(["first", "second"])
+
+    assert [r.prompt_id for r in results] == ["pid-1", "pid-2"]
+    assert results[0].succeeded() is True
+    assert results[1].succeeded() is False
 
 
 @pytest.mark.asyncio
@@ -848,13 +879,14 @@ _requires_checkpoint = pytest.mark.skipif(
 async def test_integration_generate(tmp_path: Path) -> None:
     """Integration: generate via the bundled workflow against a real server."""
     client = get_comfyui_client(comfyui_config.base_url)
-    result = await client.generate(
+    results = await client.generate(
         prompt="a cute cat",
         checkpoint=_first_checkpoint(),
         timeout=180.0,
     )
-    assert result.succeeded() is True
-    assert len(result.all_images()) >= 1
+    assert len(results) == 1
+    assert results[0].succeeded() is True
+    assert len(results[0].all_images()) >= 1
 
 
 @pytest.mark.asyncio
