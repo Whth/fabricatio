@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 from unittest.mock import patch
 
+import httpx
 import pytest
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.config import comfyui_config
@@ -33,9 +34,8 @@ class TestFactories:
 
     @pytest.mark.asyncio
     async def test_comfyui_client_is_shared(self) -> None:
-        """The mixin holds no client; the cached factory hands out one shared instance."""
-        role_a, role_b = UseComfyUI(), UseComfyUI()
-        assert role_a.comfyui_client() is role_b.comfyui_client()
+        """The cached factory hands out one shared instance per base URL."""
+        assert get_comfyui_client(comfyui_config.base_url) is get_comfyui_client(comfyui_config.base_url)
 
     @pytest.mark.asyncio
     async def test_client_factory_caches_per_url(self) -> None:
@@ -345,7 +345,7 @@ class TestModels:
 @pytest.mark.asyncio
 async def test_generate_flow(tmp_path: Path) -> None:
     """End-to-end flow via the high-level capability: generate -> poll -> download."""
-    client = UseComfyUI().comfyui_client()
+    client = get_comfyui_client(comfyui_config.base_url)
 
     mock_history: dict[str, object] = {
         "mock-uuid-123": {
@@ -385,7 +385,7 @@ async def test_generate_flow(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_generate_image_config_download_dir(tmp_path: Path) -> None:
     """download_dir falls back to comfyui_config.download_dir when not passed."""
-    client = UseComfyUI().comfyui_client()
+    client = get_comfyui_client(comfyui_config.base_url)
     mock_history: dict[str, object] = {
         "mock-uuid-123": {
             "status": {"status_str": "completed", "completed": True},
@@ -410,6 +410,64 @@ async def test_generate_image_config_download_dir(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_generate_image_class_download_dir(tmp_path: Path) -> None:
+    """A class-level download_dir on the capability beats the global config."""
+    client = get_comfyui_client(comfyui_config.base_url)
+    mock_history: dict[str, object] = {
+        "mock-uuid-123": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
+        },
+    }
+
+    class ScopedRole(UseComfyUI):
+        download_dir: str = str(tmp_path)
+
+    with (
+        patch(
+            "fabricatio_comfyui.capabilities.comfyui.comfyui_config",
+            replace(comfyui_config, download_dir=str(tmp_path / "global")),
+        ),
+        patch.object(client, "_post", return_value={"prompt_id": "mock-uuid-123", "number": 1}),
+        patch.object(client, "_get", return_value=mock_history),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        path = await ScopedRole().generate_image(prompt="a mountain landscape", seed=42)
+
+    assert path is not None
+    assert path == tmp_path / "ComfyUI_00001_.png"
+    assert not (tmp_path / "global").exists()
+
+
+@pytest.mark.asyncio
+async def test_generate_image_instance_download_dir(tmp_path: Path) -> None:
+    """A per-instance scoped download_dir on the capability beats the global config."""
+    client = get_comfyui_client(comfyui_config.base_url)
+    mock_history: dict[str, object] = {
+        "mock-uuid-123": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
+        },
+    }
+    role = UseComfyUI(download_dir=str(tmp_path))
+
+    with (
+        patch(
+            "fabricatio_comfyui.capabilities.comfyui.comfyui_config",
+            replace(comfyui_config, download_dir=str(tmp_path / "global")),
+        ),
+        patch.object(client, "_post", return_value={"prompt_id": "mock-uuid-123", "number": 1}),
+        patch.object(client, "_get", return_value=mock_history),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        path = await role.generate_image(prompt="a mountain landscape", seed=42)
+
+    assert path is not None
+    assert path == tmp_path / "ComfyUI_00001_.png"
+    assert not (tmp_path / "global").exists()
+
+
+@pytest.mark.asyncio
 async def test_generate_image_requires_download_dir() -> None:
     """Missing download dir (param and config) is a loud misuse error, not a silent None."""
     with (
@@ -423,9 +481,75 @@ async def test_generate_image_requires_download_dir() -> None:
 
 
 @pytest.mark.asyncio
+async def test_generate_image_list_prompts(tmp_path: Path) -> None:
+    """A list of prompts yields one downloaded path per prompt, in order."""
+    client = get_comfyui_client(comfyui_config.base_url)
+    histories = [
+        {
+            "pid-1": {
+                "status": {"status_str": "completed", "completed": True},
+                "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
+            },
+        },
+        {
+            "pid-2": {
+                "status": {"status_str": "completed", "completed": True},
+                "outputs": {"9": {"images": [{"filename": "ComfyUI_00002_.png", "subfolder": "", "type": "output"}]}},
+            },
+        },
+    ]
+    with (
+        patch.object(
+            client, "_post", side_effect=[{"prompt_id": "pid-1", "number": 1}, {"prompt_id": "pid-2", "number": 1}]
+        ),
+        patch.object(client, "_get", side_effect=histories),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        paths = await UseComfyUI().generate_image(["a mountain", "a river"], download_dir=tmp_path)
+        assert await UseComfyUI().generate_image([], download_dir=tmp_path) == []
+
+    assert paths == [tmp_path / "ComfyUI_00001_.png", tmp_path / "ComfyUI_00002_.png"]
+    assert paths[0] is not None
+    assert paths[1] is not None
+    assert paths[0].read_bytes() == paths[1].read_bytes() == b"fake-image-bytes"
+
+
+@pytest.mark.asyncio
+async def test_generate_image_list_mixed_failure(tmp_path: Path) -> None:
+    """A failed generation in a list yields None at its index, keeping correspondence."""
+    client = get_comfyui_client(comfyui_config.base_url)
+    histories = [
+        {
+            "pid-1": {
+                "status": {"status_str": "completed", "completed": True},
+                "outputs": {"9": {"images": [{"filename": "ok.png", "subfolder": "", "type": "output"}]}},
+            },
+        },
+        {
+            "pid-2": {
+                "status": {"status_str": "error", "completed": True, "exception": "CUDA out of memory"},
+                "outputs": {},
+            },
+        },
+    ]
+    with (
+        patch.object(
+            client, "_post", side_effect=[{"prompt_id": "pid-1", "number": 1}, {"prompt_id": "pid-2", "number": 1}]
+        ),
+        patch.object(client, "_get", side_effect=histories),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        paths = await UseComfyUI().generate_image(["a mountain", "a river"], download_dir=tmp_path)
+
+    assert paths == [tmp_path / "ok.png", None]
+    assert paths[0] is not None
+    assert paths[0].read_bytes() == b"fake-image-bytes"
+
+
+@pytest.mark.asyncio
 async def test_generate_image_returns_none_on_failure(tmp_path: Path) -> None:
     """Failed generation yields None from the seal, without downloading anything."""
-    client = UseComfyUI().comfyui_client()
+    client = get_comfyui_client(comfyui_config.base_url)
     failed_history: dict[str, object] = {
         "fail-uuid": {
             "status": {"status_str": "error", "completed": True, "exception": "CUDA out of memory"},
@@ -516,14 +640,65 @@ async def test_generate_returns_typed_result() -> None:
 @pytest.mark.asyncio
 async def test_generate_timeout(tmp_path: Path) -> None:
     """Verify timeout raises when polling fails to complete."""
-    role = UseComfyUI()
-    client = role.comfyui_client()
+    client = get_comfyui_client(comfyui_config.base_url)
     with (
         patch.object(client, "_post", return_value={"prompt_id": "timeout-uuid"}),
         patch.object(client, "_get", return_value={}),
         pytest.raises(TimeoutError),
     ):
-        await role.generate_image(prompt="anything", download_dir=tmp_path, timeout=0.2)
+        await UseComfyUI().generate_image(prompt="anything", download_dir=tmp_path, timeout=0.2)
+
+
+@pytest.mark.asyncio
+async def test_generate_interrupts_on_cancellation() -> None:
+    """Cancelling generate interrupts the server-side job before propagating."""
+    client = ComfyUIHttpClient.create(None)
+    calls: list[str] = []
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        calls.append(path)
+        return {"prompt_id": "pid-1", "number": 1}
+
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", side_effect=asyncio.CancelledError),
+        pytest.raises(asyncio.CancelledError),
+    ):
+        await client.generate("a cat")
+
+    assert calls == ["/prompt", "/interrupt"]
+
+
+@pytest.mark.asyncio
+async def test_generate_cancel_cleanup_failure_keeps_cancellation() -> None:
+    """A failed interrupt must not mask the cancellation."""
+    client = ComfyUIHttpClient.create(None)
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        if path == "/prompt":
+            return {"prompt_id": "pid-1", "number": 1}
+        raise httpx.ConnectError("server down")
+
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", side_effect=asyncio.CancelledError),
+        pytest.raises(asyncio.CancelledError),
+    ):
+        await client.generate("a cat")
+
+
+@pytest.mark.asyncio
+async def test_download_images_returns_paths(tmp_path: Path) -> None:
+    """download_images returns the local path of every downloaded image."""
+    client = ComfyUIHttpClient.create(None)
+    result = ExecutionResult(
+        prompt_id="pid",
+        outputs={"9": [OutputImage(filename="a.png"), OutputImage(filename="b.png")]},
+    )
+    with patch.object(client, "get_image", return_value=b"png-bytes"):
+        paths = await client.download_images(result, tmp_path)
+    assert paths == [tmp_path / "a.png", tmp_path / "b.png"]
+    assert all(p.read_bytes() == b"png-bytes" for p in paths)
 
 
 @pytest.mark.asyncio
