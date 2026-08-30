@@ -2,6 +2,7 @@
 
 import asyncio
 import threading
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -368,19 +369,79 @@ async def test_generate_flow(tmp_path: Path) -> None:
         mock_get.side_effect = get_side_effect
         mock_img.return_value = b"fake-image-bytes"
 
-        role = UseComfyUI()
-        result = await role.generate_image(
+        path = await UseComfyUI().generate_image(
             prompt="a mountain landscape",
             download_dir=tmp_path,
             seed=42,
             steps=20,
         )
 
-        assert result.prompt_id == "mock-uuid-123"
-        assert result.succeeded() is True
-        assert len(result.all_images()) == 1
-        assert result.all_images()[0].filename == "ComfyUI_00001_.png"
+        assert path is not None
+        assert path == tmp_path / "ComfyUI_00001_.png"
+        assert path.read_bytes() == b"fake-image-bytes"
         mock_img.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_generate_image_config_download_dir(tmp_path: Path) -> None:
+    """download_dir falls back to comfyui_config.download_dir when not passed."""
+    client = UseComfyUI().comfyui_client()
+    mock_history: dict[str, object] = {
+        "mock-uuid-123": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
+        },
+    }
+
+    with (
+        patch(
+            "fabricatio_comfyui.capabilities.comfyui.comfyui_config",
+            replace(comfyui_config, download_dir=str(tmp_path)),
+        ),
+        patch.object(client, "_post", return_value={"prompt_id": "mock-uuid-123", "number": 1}),
+        patch.object(client, "_get", return_value=mock_history),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        path = await UseComfyUI().generate_image(prompt="a mountain landscape", seed=42)
+
+    assert path is not None
+    assert path == tmp_path / "ComfyUI_00001_.png"
+    assert path.read_bytes() == b"fake-image-bytes"
+
+
+@pytest.mark.asyncio
+async def test_generate_image_requires_download_dir() -> None:
+    """Missing download dir (param and config) is a loud misuse error, not a silent None."""
+    with (
+        patch(
+            "fabricatio_comfyui.capabilities.comfyui.comfyui_config",
+            replace(comfyui_config, download_dir=None),
+        ),
+        pytest.raises(ValueError, match="download directory"),
+    ):
+        await UseComfyUI().generate_image(prompt="a cat")
+
+
+@pytest.mark.asyncio
+async def test_generate_image_returns_none_on_failure(tmp_path: Path) -> None:
+    """Failed generation yields None from the seal, without downloading anything."""
+    client = UseComfyUI().comfyui_client()
+    failed_history: dict[str, object] = {
+        "fail-uuid": {
+            "status": {"status_str": "error", "completed": True, "exception": "CUDA out of memory"},
+            "outputs": {},
+        },
+    }
+
+    with (
+        patch.object(client, "_post", return_value={"prompt_id": "fail-uuid", "number": 1}),
+        patch.object(client, "_get", return_value=failed_history),
+        patch.object(client, "get_image") as mock_img,
+    ):
+        path = await UseComfyUI().generate_image(prompt="a cat", download_dir=tmp_path)
+
+    assert path is None
+    mock_img.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -453,7 +514,7 @@ async def test_generate_returns_typed_result() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_timeout() -> None:
+async def test_generate_timeout(tmp_path: Path) -> None:
     """Verify timeout raises when polling fails to complete."""
     role = UseComfyUI()
     client = role.comfyui_client()
@@ -462,7 +523,29 @@ async def test_generate_timeout() -> None:
         patch.object(client, "_get", return_value={}),
         pytest.raises(TimeoutError),
     ):
-        await role.generate_image(prompt="anything", timeout=0.2)
+        await role.generate_image(prompt="anything", download_dir=tmp_path, timeout=0.2)
+
+
+@pytest.mark.asyncio
+async def test_download_first_image(tmp_path: Path) -> None:
+    """download_first_image downloads the first image and returns its local path."""
+    client = ComfyUIHttpClient.create(None)
+    result = ExecutionResult(prompt_id="pid", outputs={"9": [OutputImage(filename="out.png")]})
+    with patch.object(client, "get_image", return_value=b"png-bytes"):
+        path = await client.download_first_image(result, tmp_path)
+    assert path is not None
+    assert path == tmp_path / "out.png"
+    assert path.read_bytes() == b"png-bytes"
+
+
+@pytest.mark.asyncio
+async def test_download_first_image_empty(tmp_path: Path) -> None:
+    """download_first_image returns None when the result holds no images."""
+    client = ComfyUIHttpClient.create(None)
+    with patch.object(client, "get_image") as mock_img:
+        path = await client.download_first_image(ExecutionResult(prompt_id="pid"), tmp_path)
+    assert path is None
+    mock_img.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -604,17 +687,12 @@ async def test_integration_generate(tmp_path: Path) -> None:
 @_requires_checkpoint
 async def test_integration_generate_with_download(tmp_path: Path) -> None:
     """Integration: end-to-end generate with download against a real server."""
-    role = UseComfyUI()
-    result = await role.generate_image(
+    path = await UseComfyUI().generate_image(
         prompt="a cute cat",
         checkpoint=_first_checkpoint(),
         download_dir=tmp_path,
         timeout=180.0,
     )
 
-    assert result.succeeded() is True
-
-    # Verify image was downloaded to disk
-    downloaded = list(tmp_path.glob("*.png"))
-    assert len(downloaded) >= 1
-    assert downloaded[0].stat().st_size > 0
+    assert path is not None
+    assert path.stat().st_size > 0

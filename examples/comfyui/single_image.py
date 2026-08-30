@@ -13,8 +13,6 @@ the action.
 
 from fabricatio import Event, Role, Task, WorkFlow
 from fabricatio_comfyui import GenerateImage
-from fabricatio_comfyui.models import ExecutionResult
-from fabricatio_core.utils import ok
 
 # Any checkpoint installed on your server (see GET /object_info)
 CHECKPOINT = "pasanctuarySDXL_v50.safetensors"
@@ -38,8 +36,7 @@ CHECKPOINT = "pasanctuarySDXL_v50.safetensors"
     .dispatch()
 )
 
-result: ExecutionResult = ok(Task(name="draw a mountain").delegate_blocking(ns))
-if not result.succeeded():
-    raise SystemExit(f"generation failed: {result.error}")
-for img in result.all_images():
-    print(img.filename)
+path = Task(name="draw a mountain").delegate_blocking(ns)
+if path is None:
+    raise SystemExit("generation failed")
+print(path)

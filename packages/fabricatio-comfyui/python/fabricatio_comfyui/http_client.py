@@ -289,3 +289,11 @@ class ComfyUIHttpClient(ComfyUIClientBase):
             (dst / img.filename).write_bytes(data)
 
         await asyncio.gather(*(_fetch(img) for img in result.all_images()))
+
+    async def download_first_image(self, result: ExecutionResult, download_dir: str | Path) -> Path | None:
+        """Download the first output image and return its local path (``None`` when empty)."""
+        images = result.all_images()
+        if not images:
+            return None
+        await self.download_images(result, download_dir)
+        return Path(download_dir) / images[0].filename

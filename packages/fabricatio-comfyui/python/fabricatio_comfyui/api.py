@@ -11,10 +11,11 @@ of :meth:`UseComfyUI.generate_image`.
 from pathlib import Path
 from typing import Unpack
 
+from fabricatio_core.utils import ok
+
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
 from fabricatio_comfyui.models.comfyui import (
-    ExecutionResult,
     HistoryEntry,
     QueueInfo,
 )
@@ -32,20 +33,31 @@ async def generate_image(
     prompt: str,
     download_dir: str | Path | None = None,
     **kwargs: Unpack[GenerateKwargs],
-) -> ExecutionResult:
-    """Generate an image against the configured ComfyUI server.
+) -> Path | None:
+    """Generate one image against the configured ComfyUI server.
 
     One-shot: queues a bundled workflow parameterised with the knobs,
-    polls until completion, and downloads outputs when ``download_dir``
-    is given.  Runs on the shared pooled client; generation knobs
+    polls until completion, downloads the output image to
+    ``download_dir`` (defaults to :data:`comfyui_config.download_dir`),
+    and returns its local path — ``None`` when generation failed or
+    produced no output image.  Runs on the shared pooled client;
+    generation knobs
     (:class:`~fabricatio_comfyui.models.kwargs_types.GenerateKwargs`)
     are forwarded verbatim to the client.
+
+    Raises:
+        ValueError: when neither ``download_dir`` nor
+            :data:`comfyui_config.download_dir` is configured.
     """
+    target = ok(
+        download_dir or comfyui_config.download_dir,
+        "generate_image needs a download directory: pass download_dir= or set [ext.comfyui] download_dir",
+    )
     client = get_comfyui_client(comfyui_config.base_url)
     result = await client.generate(prompt, **kwargs)
-    if download_dir is not None and result.succeeded():
-        await client.download_images(result, download_dir)
-    return result
+    if not result.succeeded():
+        return None
+    return await client.download_first_image(result, target)
 
 
 async def get_history(prompt_id: str) -> HistoryEntry | None:

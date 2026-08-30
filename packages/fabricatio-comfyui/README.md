@@ -54,6 +54,7 @@ All options below are read through the fabricatio configuration chain (see the
 [ext.comfyui]
 base_url = "http://127.0.0.1:8188"
 timeout = 300.0
+download_dir = "./outputs"
 ```
 
 | Option | Type | Default | Description |
@@ -61,6 +62,7 @@ timeout = 300.0
 | `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
+| `download_dir` | `str \| None` | `None` | Default directory for generated images; a per-call `download_dir=` takes precedence. |
 
 Access at runtime: `from fabricatio_comfyui.config import comfyui_config`.
 
@@ -76,15 +78,13 @@ from fabricatio_comfyui import generate_image
 
 
 async def main() -> None:
-    result = await generate_image(
+    path = await generate_image(
         "masterpiece, best quality, a mountain landscape",
         negative_prompt="worst quality, blurry",
         width=1024,
         height=768,
-        download_dir="./outputs",
     )
-    for img in result.all_images():
-        print(img.filename)
+    print(path)  # Path to the generated image, or None on failure
 
 
 asyncio.run(main())
@@ -103,7 +103,7 @@ class ImageRole(Role, UseComfyUI):
     """Role with ComfyUI image generation capability."""
 
 
-# then: await role.generate_image("a mountain landscape", download_dir="./outputs")
+# then: path = await role.generate_image("a mountain landscape")  # Path | None
 ```
 
 ### Action (in a WorkFlow)
@@ -154,13 +154,17 @@ asyncio.run(main())
 
 | Method                        | Description                                                            |
 |-------------------------------|------------------------------------------------------------------------|
-| `generate_image(prompt, …)`   | Queue the bundled graph with overrides → poll → optionally download    |
+| `generate_image(prompt, …)`   | Queue the bundled graph → poll → download → return the image path (`Path \| None`) |
 | `get_history(prompt_id)`      | Retrieve execution history for a prompt                                |
 | `get_queue_info()`            | Fetch current queue status                                             |
 | `interrupt()`                 | Interrupt the currently running generation                             |
 
 `generate_image` keyword parameters: `negative_prompt`, `width`, `height`,
-`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`.
+`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`;
+`download_dir` falls back to the `[ext.comfyui] download_dir` config value.
+
+On failure the methods above return `None` — a single prompt yields at most
+one image file path.
 
 The module-level functions in `fabricatio_comfyui.api` (`generate_image`,
 `get_history`, `get_queue_info`, `interrupt`) share the exact same
@@ -178,6 +182,7 @@ keyword surface and hide the client lifecycle entirely.
 | `upload_image(image_path, …)`     | `UploadResponse`   | Upload an image                          |
 | `interrupt()`                     | `None`             | Interrupt the running generation         |
 | `download_images(result, dir)`    | `None`             | Download all output images concurrently  |
+| `download_first_image(result, dir)` | `Path \| None`  | Download the first output image and return its local path |
 
 ### Actions
 

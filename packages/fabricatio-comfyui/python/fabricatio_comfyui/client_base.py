@@ -135,3 +135,10 @@ class ComfyUIClientBase(ABC):
     @abstractmethod
     async def download_images(self, result: ExecutionResult, download_dir: str | Path) -> None:
         """Download all output images from *result* to *download_dir* concurrently."""
+
+    @abstractmethod
+    async def download_first_image(self, result: ExecutionResult, download_dir: str | Path) -> Path | None:
+        """Download the first output image from *result* to *download_dir* and return its local path.
+
+        Returns ``None`` when *result* holds no output images.
+        """

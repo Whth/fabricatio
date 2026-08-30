@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Unpack
 
 from fabricatio_core.journal import logger
+from fabricatio_core.utils import ok
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
@@ -29,7 +30,7 @@ from fabricatio_comfyui.http_client import get_comfyui_client
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
-    from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo
+    from fabricatio_comfyui.models.comfyui import HistoryEntry, QueueInfo
 
 __all__ = ["UseComfyUI"]
 
@@ -41,9 +42,8 @@ class UseComfyUI:
 
         class ImageRole(Role, UseComfyUI): ...
 
-        result = await ImageRole(name="painter").generate_image(
-            "a mountain landscape", download_dir="./outputs",
-        )
+        path = await ImageRole(name="painter").generate_image("a mountain landscape")
+        # path: Path | None — None when generation failed
 
     All ComfyUI method calls go through the shared cached client
     (:func:`fabricatio_comfyui.http_client.get_comfyui_client`); tests and
@@ -64,30 +64,42 @@ class UseComfyUI:
         prompt: str,
         download_dir: str | Path | None = None,
         **kwargs: Unpack[GenerateKwargs],
-    ) -> "ExecutionResult":
-        """Generate an image from typed knobs using a bundled workflow.
+    ) -> "Path | None":
+        """Generate one image from typed knobs and return its downloaded path.
 
         Queues a bundled template parameterised with the provided knobs,
-        polls until completion, and — when ``download_dir`` is given —
-        writes the output images there.  Generation knobs
+        polls until completion, then downloads the output image to
+        ``download_dir`` — or, when omitted, to
+        :data:`comfyui_config.download_dir`.  Generation knobs
         (:class:`~fabricatio_comfyui.models.kwargs_types.GenerateKwargs`)
         are forwarded verbatim to the client.
 
         Returns:
-            An :class:`~fabricatio_comfyui.models.comfyui.ExecutionResult`
-            describing the executed prompt.
+            The local path of the generated image, or ``None`` when
+            generation failed or produced no output image.
+
+        Raises:
+            ValueError: when neither ``download_dir`` nor
+                :data:`comfyui_config.download_dir` is configured.
         """
+        target = ok(
+            download_dir or comfyui_config.download_dir,
+            "generate_image needs a download directory: pass download_dir= or set [ext.comfyui] download_dir",
+        )
         client = self.comfyui_client()
         result = await client.generate(prompt, **kwargs)
 
-        if download_dir is not None and result.succeeded():
-            await client.download_images(result, download_dir)
-
-        if result.succeeded():
-            logger.info(f"ComfyUI generation completed: {len(result.all_images())} images")
-        else:
+        if not result.succeeded():
             logger.error(f"ComfyUI generation failed: {result.error}")
-        return result
+            return None
+
+        path = await client.download_first_image(result, target)
+        if path is None:
+            logger.error("ComfyUI generation finished without output images")
+            return None
+
+        logger.info(f"ComfyUI generation completed: {path}")
+        return path
 
     async def interrupt(self) -> None:
         """Interrupt the currently running workflow."""

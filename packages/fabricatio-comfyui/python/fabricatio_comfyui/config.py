@@ -24,6 +24,14 @@ class ComfyUIConfig:
     every generation; a per-call ``checkpoint=`` knob takes precedence.
     """
 
+    download_dir: str | None = None
+    """Default directory for generated images.
+
+    Used by :meth:`UseComfyUI.generate_image` (and
+    :func:`fabricatio_comfyui.api.generate_image`) when no per-call
+    ``download_dir`` is given; the directory is created on demand.
+    """
+
 
 comfyui_config = CONFIG.load("comfyui", ComfyUIConfig)
 """Singleton ComfyUI config loaded from fabricatio config chain."""

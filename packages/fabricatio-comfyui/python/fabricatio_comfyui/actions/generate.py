@@ -14,15 +14,11 @@ Use as a step inside a :class:`fabricatio_core.WorkFlow`::
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from fabricatio_core.models.action import Action
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
-
-if TYPE_CHECKING:
-    from fabricatio_comfyui.models.comfyui import ExecutionResult
 
 __all__ = ["GenerateImage"]
 
@@ -62,12 +58,12 @@ class GenerateImage(Action, UseComfyUI):
     """Checkpoint filename on the server; falls back to config, then the bundled template's checkpoint."""
 
     download_dir: str | Path | None = None
-    """If set, output images are written here."""
+    """Output directory; falls back to :data:`comfyui_config.download_dir`."""
 
     timeout: float | None = None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""
 
-    async def _execute(self, **_cxt: object) -> "ExecutionResult":
+    async def _execute(self, **_cxt: object) -> Path | None:
         """Run :meth:`UseComfyUI.generate_image` with this action's fields."""
         return await self.generate_image(
             prompt=self.prompt,
