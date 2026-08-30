@@ -110,10 +110,6 @@ msgid "``review_string()`` returns a structured review result"
 msgstr "``review_string()`` 返回结构化的审查结果"
 
 #: ../../source/use-cases.rst:213
-msgid "``supervisor_check()`` adds LLM validation layer"
-msgstr "``supervisor_check()`` 添加 LLM 验证层"
-
-#: ../../source/use-cases.rst:214
 msgid "Results have ``display()`` for formatted output"
 msgstr "结果具有 ``display()`` 方法用于格式化输出"
 

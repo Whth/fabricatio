@@ -13,7 +13,6 @@ dependencies = [
 
     "fabricatio-core",
     "fabricatio-capabilities",
-    "fabricatio-question"
 ]
 [dependency-groups]
 dev = [

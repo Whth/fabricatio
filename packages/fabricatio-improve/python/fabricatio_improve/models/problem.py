@@ -4,9 +4,7 @@ from typing import Any, Self
 
 from fabricatio_core.journal import logger
 from fabricatio_core.models.generic import SketchedAble, WithBriefing
-from fabricatio_question.utils import ask_edit
 from pydantic import Field
-from rich import print as r_print
 
 
 class Problem(SketchedAble, WithBriefing):
@@ -70,23 +68,6 @@ class ProblemSolutions(SketchedAble):
     def has_solutions(self) -> bool:
         """Check if the problem-solution pair has any solutions."""
         return len(self.solutions) > 0
-
-    async def edit_problem(self) -> Self:
-        """Interactively edit the problem description."""
-        from questionary import text
-
-        """Interactively edit the problem description."""
-        self.problem = Problem.model_validate_strings(
-            await text("Please edit the problem below:", default=self.problem.display()).ask_async(),
-        )
-        return self
-
-    async def edit_solutions(self) -> Self:
-        """Interactively edit the list of potential solutions."""
-        r_print(self.problem.display())
-        string_seq = await ask_edit([s.display() for s in self.solutions])
-        self.solutions = [Solution.model_validate_strings(s) for s in string_seq]
-        return self
 
     def decided(self) -> bool:
         """Check if the improvement is decided."""

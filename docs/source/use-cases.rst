@@ -16,29 +16,22 @@ The simplest Fabricatio application - a role that responds to user input.
 
     from fabricatio import Action, Event, Role, Task, WorkFlow, logger
     from fabricatio.capabilities import UseLLM
-    from questionary import text
 
 
     class Talk(Action, UseLLM):
-        """Action that says hello to the world."""
+        """Action that answers a fixed set of user messages."""
 
         output_key: str = "task_output"
 
         async def _execute(self, task_input: Task[str], **_) -> int:
             counter = 0
-            try:
-                while True:
-                    # Prompt user for input - questionary provides async text input
-                    user_say = await text("User: ").ask_async()
-                    # Use aask (async ask) to get LLM response with task briefing context
-                    gpt_say = await self.aask(
-                        f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}\n{user_say}",
-                    )
-                    print(f"GPT: {gpt_say}")
-                    counter += 1
-            except KeyboardInterrupt:
-                # Log how many times the action was executed before exiting
-                logger.info(f"executed talk action {counter} times")
+            for user_say in ["Hello!", "What can you help me with?"]:
+                # Use aask (async ask) to get LLM response with task briefing context
+                gpt_say = await self.aask(
+                    f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}\n{user_say}",
+                )
+                print(f"GPT: {gpt_say}")
+                counter += 1
             return counter
 
 
@@ -82,7 +75,6 @@ Combine LLM with your document knowledge base using Milvus vector search.
     from fabricatio import Role as BaseRole
     from fabricatio_capabilities.capabilities.task import ProposeTask
     from fabricatio_milvus.capabilities.milvus import MilvusRAG
-    from questionary import text
 
 
     class Role(ProposeTask, BaseRole):
@@ -110,24 +102,21 @@ Combine LLM with your document knowledge base using Milvus vector search.
                     # ... more documents
                 ]
             )
-            try:
-                while True:
-                    user_say = await text("User: ").ask_async()
-                    if user_say is None:
-                        break
-                    # aask_retrieved combines retrieval with generation:
-                    # - First argument: query for retrieval
-                    # - Second argument: user message for generation
-                    # - extra_system_message: additional context for the LLM
-                    gpt_say = await self.aask_retrieved(
-                        user_say,
-                        user_say,  # query for retrieval
-                        extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
-                    )
-                    print(f"GPT: {gpt_say}")
-                    counter += 1
-            except KeyboardInterrupt:
-                logger.info(f"executed talk action {counter} times")
+            for user_say in [
+                "When must employees arrive at the headquarters building?",
+                "Are pets allowed in the office area?",
+            ]:
+                # aask_retrieved combines retrieval with generation:
+                # - First argument: query for retrieval
+                # - Second argument: user message for generation
+                # - extra_system_message: additional context for the LLM
+                gpt_say = await self.aask_retrieved(
+                    user_say,
+                    user_say,  # query for retrieval
+                    extra_system_message=f"You have to answer to user obeying task assigned to you:\n{task_input.briefing}",
+                )
+                print(f"GPT: {gpt_say}")
+                counter += 1
             return counter
 
 
@@ -190,10 +179,6 @@ Automated code review with structured output.
         res = await role.review_string(code, "If the cli app is of good design")
         logger.info(f"Review: \n{res.display()}")
 
-        # supervisor_check adds LLM validation layer for additional confidence
-        await res.supervisor_check()
-        logger.info(f"Review: \n{res.display()}")
-
 
     if __name__ == "__main__":
         asyncio.run(main())
@@ -202,7 +187,6 @@ Key patterns:
 
 - ``Review`` capability provides structured review methods
 - ``review_string()`` returns a structured review result
-- ``supervisor_check()`` adds LLM validation layer
 - Results have ``display()`` for formatted output
 
 Code Correction

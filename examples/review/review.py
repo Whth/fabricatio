@@ -24,8 +24,6 @@ async def main() -> None:
     logger.info(f"Code: \n{code}")
     res = await role.review_string(code, "If the cli app is of good design")
     logger.info(f"Review: \n{res.display()}")
-    await res.supervisor_check()
-    logger.info(f"Review: \n{res.display()}")
 
 
 if __name__ == "__main__":
