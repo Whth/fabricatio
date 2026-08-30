@@ -35,7 +35,7 @@ class ContextEntry(BaseModel):
     """The rendered text block."""
 
 
-class ContextLog(BaseModel):
+class ContextLog[E: ContextEntry](BaseModel):
     """An append-only sequence of entries with fork and clear support.
 
     Entries are frozen and held in an immutable tuple, so logs share their
@@ -46,21 +46,21 @@ class ContextLog(BaseModel):
     tuple never disturbs other holders.
     """
 
-    entries: tuple[ContextEntry, ...] = ()
+    entries: tuple[E, ...] = ()
     """The accumulated blocks, in composition order."""
 
     forked_at: int = 0
     """Length of the branched-from history at branch time; snapshot traceability only."""
 
-    def with_entry(self, entry: ContextEntry) -> Self:
+    def with_entry(self, entry: E) -> Self:
         """Return a new log of the same type with one entry appended; this log is unchanged."""
         return self.__class__(entries=(*self.entries, entry), forked_at=self.forked_at)
 
-    def with_entries(self, entries: Iterable[ContextEntry]) -> Self:
+    def with_entries(self, entries: Iterable[E]) -> Self:
         """Return a new log of the same type with every entry appended in sequence; this log is unchanged."""
         return self.__class__(entries=(*self.entries, *entries), forked_at=self.forked_at)
 
-    def append(self, entry: ContextEntry) -> Self:
+    def append(self, entry: E) -> Self:
         """Append one entry in place and return self; single-owner code only."""
         self.entries = (*self.entries, entry)
         return self
