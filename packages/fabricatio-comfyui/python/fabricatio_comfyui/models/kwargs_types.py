@@ -5,42 +5,7 @@ method's optional keyword arguments are captured in a frozen ``TypedDict`` so
 callers get full IDE completion and type-checking via ``**kwargs: Unpack[...]``.
 """
 
-from pathlib import Path
 from typing import TypedDict
-
-
-class GenerateKwargs(TypedDict, total=False):
-    """Keyword arguments for :meth:`fabricatio_comfyui.capabilities.comfyui.UseComfyUI.generate_image`.
-
-    Controls generation parameters, output destination, and execution timeout.
-    """
-
-    negative_prompt: str | None
-    """Negative prompt text."""
-
-    width: int | None
-    """Output image width (pixels)."""
-
-    height: int | None
-    """Output image height (pixels)."""
-
-    seed: int | None
-    """Sampler seed; ``None`` keeps the bundled template's seed."""
-
-    steps: int | None
-    """Sampler step count."""
-
-    cfg: float | None
-    """Classifier-free guidance scale."""
-
-    checkpoint: str | None
-    """Checkpoint filename on the server; ``None`` falls back to config, then the bundled template's checkpoint."""
-
-    download_dir: str | Path | None
-    """If set, output images are written here."""
-
-    timeout: float | None
-    """Maximum seconds to wait for completion. ``None`` uses config default."""
 
 
 class PollKwargs(TypedDict, total=False):

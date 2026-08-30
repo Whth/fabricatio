@@ -18,18 +18,16 @@ and :attr:`comfyui_client` fetches it when needed — stateless mixins, no
 per-instance binding, no leak-prone ownership.
 """
 
-from typing import TYPE_CHECKING, Unpack
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from fabricatio_core.journal import logger
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
-from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo, UploadResponse
 
 __all__ = ["UseComfyUI"]
@@ -61,10 +59,19 @@ class UseComfyUI:
     # High-level public surface — only typed knobs, no workflow graphs
     # ------------------------------------------------------------------
 
-    async def generate_image(
+    async def generate_image(  # noqa: PLR0913 — public knob surface stays explicit
         self,
         prompt: str,
-        **kwargs: Unpack[GenerateKwargs],
+        *,
+        negative_prompt: str | None = None,
+        width: int | None = None,
+        height: int | None = None,
+        seed: int | None = None,
+        steps: int | None = None,
+        cfg: float | None = None,
+        checkpoint: str | None = None,
+        download_dir: str | Path | None = None,
+        timeout: float | None = None,
     ) -> "ExecutionResult":
         """Generate an image from typed knobs using a bundled workflow.
 
@@ -76,11 +83,18 @@ class UseComfyUI:
             An :class:`~fabricatio_comfyui.models.comfyui.ExecutionResult`
             describing the executed prompt.
         """
-        download_dir = kwargs.pop("download_dir", None)
-        timeout = kwargs.pop("timeout", None)
-
         client = self.comfyui_client
-        result = await client.generate(prompt, timeout=timeout, **kwargs)
+        result = await client.generate(
+            prompt,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            seed=seed,
+            steps=steps,
+            cfg=cfg,
+            checkpoint=checkpoint,
+            timeout=timeout,
+        )
 
         if download_dir is not None and result.succeeded:
             await client.download_images(result, download_dir)

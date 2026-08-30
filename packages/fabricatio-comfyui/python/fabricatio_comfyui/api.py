@@ -9,7 +9,6 @@ of :meth:`UseComfyUI.generate_image`.
 """
 
 from pathlib import Path
-from typing import Unpack
 
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
@@ -19,7 +18,6 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
-from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 __all__ = [
     "generate_image",
@@ -30,21 +28,37 @@ __all__ = [
 ]
 
 
-async def generate_image(
+async def generate_image(  # noqa: PLR0913 — public knob surface stays explicit
     prompt: str,
-    **kwargs: Unpack[GenerateKwargs],
+    *,
+    negative_prompt: str | None = None,
+    width: int | None = None,
+    height: int | None = None,
+    seed: int | None = None,
+    steps: int | None = None,
+    cfg: float | None = None,
+    checkpoint: str | None = None,
+    download_dir: str | Path | None = None,
+    timeout: float | None = None,
 ) -> ExecutionResult:
     """Generate an image against the configured ComfyUI server.
 
-    One-shot: queues a bundled workflow parameterised with *kwargs*, polls
-    until completion, and downloads outputs when ``download_dir`` is given.
-    Runs on the shared pooled client.
+    One-shot: queues a bundled workflow parameterised with the knobs,
+    polls until completion, and downloads outputs when ``download_dir``
+    is given.  Runs on the shared pooled client.
     """
-    download_dir = kwargs.pop("download_dir", None)
-    timeout = kwargs.pop("timeout", None)
-
     client = get_comfyui_client(comfyui_config.base_url)
-    result = await client.generate(prompt, timeout=timeout, **kwargs)
+    result = await client.generate(
+        prompt,
+        negative_prompt=negative_prompt,
+        width=width,
+        height=height,
+        seed=seed,
+        steps=steps,
+        cfg=cfg,
+        checkpoint=checkpoint,
+        timeout=timeout,
+    )
     if download_dir is not None and result.succeeded:
         await client.download_images(result, download_dir)
     return result
