@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 from fabricatio_core.models.action import Action
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
     from fabricatio_comfyui.models.comfyui import ExecutionResult
@@ -70,13 +71,15 @@ class GenerateImage(Action, UseComfyUI):
         """Run :meth:`UseComfyUI.generate_image` with this action's fields."""
         return await self.generate_image(
             prompt=self.prompt,
-            negative_prompt=self.negative_prompt,
-            width=self.width,
-            height=self.height,
-            seed=self.seed,
-            steps=self.steps,
-            cfg=self.cfg,
-            checkpoint=self.checkpoint,
             download_dir=self.download_dir,
-            timeout=self.timeout,
+            **GenerateKwargs(
+                negative_prompt=self.negative_prompt,
+                width=self.width,
+                height=self.height,
+                seed=self.seed,
+                steps=self.steps,
+                cfg=self.cfg,
+                checkpoint=self.checkpoint,
+                timeout=self.timeout,
+            ),
         )

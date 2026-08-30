@@ -19,13 +19,14 @@ per-instance binding, no leak-prone ownership.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Unpack
 
 from fabricatio_core.journal import logger
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import get_comfyui_client
+from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
 
 if TYPE_CHECKING:
     from fabricatio_comfyui.models.comfyui import ExecutionResult, HistoryEntry, QueueInfo, UploadResponse
@@ -58,42 +59,26 @@ class UseComfyUI:
     # High-level public surface — only typed knobs, no workflow graphs
     # ------------------------------------------------------------------
 
-    async def generate_image(  # noqa: PLR0913 — public knob surface stays explicit
+    async def generate_image(
         self,
         prompt: str,
-        *,
-        negative_prompt: str | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        seed: int | None = None,
-        steps: int | None = None,
-        cfg: float | None = None,
-        checkpoint: str | None = None,
         download_dir: str | Path | None = None,
-        timeout: float | None = None,
+        **kwargs: Unpack[GenerateKwargs],
     ) -> "ExecutionResult":
         """Generate an image from typed knobs using a bundled workflow.
 
         Queues a bundled template parameterised with the provided knobs,
         polls until completion, and — when ``download_dir`` is given —
-        writes the output images there.
+        writes the output images there.  Generation knobs
+        (:class:`~fabricatio_comfyui.models.kwargs_types.GenerateKwargs`)
+        are forwarded verbatim to the client.
 
         Returns:
             An :class:`~fabricatio_comfyui.models.comfyui.ExecutionResult`
             describing the executed prompt.
         """
         client = self.comfyui_client()
-        result = await client.generate(
-            prompt,
-            negative_prompt=negative_prompt,
-            width=width,
-            height=height,
-            seed=seed,
-            steps=steps,
-            cfg=cfg,
-            checkpoint=checkpoint,
-            timeout=timeout,
-        )
+        result = await client.generate(prompt, **kwargs)
 
         if download_dir is not None and result.succeeded():
             await client.download_images(result, download_dir)

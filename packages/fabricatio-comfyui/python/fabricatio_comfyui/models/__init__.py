@@ -21,6 +21,7 @@ from fabricatio_comfyui.models.comfyui import (
     ViewImageParams,
 )
 from fabricatio_comfyui.models.kwargs_types import (
+    GenerateKwargs,
     PollKwargs,
     UploadKwargs,
     ViewImageKwargs,
@@ -28,6 +29,7 @@ from fabricatio_comfyui.models.kwargs_types import (
 
 __all__ = [
     "ExecutionResult",
+    "GenerateKwargs",
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
