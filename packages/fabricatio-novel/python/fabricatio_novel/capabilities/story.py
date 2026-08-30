@@ -19,7 +19,7 @@ from fabricatio_novel.models.story import Story
 class StoryCompose(SceneCompose, ABC):
     """This class contains the capabilities for the story."""
 
-    async def before_compose_story(
+    async def before_compose_story_context(
         self,
         ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
@@ -27,7 +27,7 @@ class StoryCompose(SceneCompose, ABC):
         """Identity hook invoked before composing a story; may mutate the context."""
         return ctx
 
-    async def after_compose_story(
+    async def after_compose_story_context(
         self,
         ctx: StoryContext,
         **kwargs: Unpack[LLMKwargs],
@@ -140,17 +140,17 @@ class StoryCompose(SceneCompose, ABC):
             ctx.scenes_log = ctx.scenes_log.with_entries(scene_ctx.prefixed_entries())
         return True
 
-    async def generate_story(
+    async def generate_story_context(
         self,
         ctx: StoryContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Story | None:
+    ) -> StoryContext | None:
         """Generate the story by composing its scenes.
 
         Runs the staged phases in order: scene planning, scene write
-        preparation, serial scene composition, and story assembly. Returns
-        the materialized story or None when any phase fails.
+        preparation, and serial scene composition. Returns the composed
+        context or None when any phase fails.
         """
         logger.debug(f"Generating story '{ctx.title}'")
         if not await self.plan_scenes_phase(ctx, send_to, **kwargs):
@@ -158,11 +158,7 @@ class StoryCompose(SceneCompose, ABC):
         await self.prepare_scene_write(ctx, send_to, **kwargs)
         if not await self.compose_scenes_phase(ctx, send_to, **kwargs):
             return None
-        story = Story.from_context(ctx)
-        logger.info(
-            f"Story '{story.title}' composed ({len(story.scenes)} scene(s),  word count satisfaction: {story.satisfy_ratio()}",
-        )
-        return story
+        return ctx
 
     async def compose_story(
         self,
@@ -171,10 +167,15 @@ class StoryCompose(SceneCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:
         """Compose a story end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_story(ctx, **kwargs)
-        story = await self.generate_story(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_story(ctx, **kwargs)
-
-        if story is None:
+        ctx = await self.before_compose_story_context(ctx, **kwargs)
+        ctx_res = await self.generate_story_context(ctx, send_to, **kwargs)
+        if ctx_res is None:
             return None
+        ctx = ctx_res
+        ctx = await self.after_compose_story_context(ctx, **kwargs)
+
+        story = Story.from_context(ctx)
+        logger.info(
+            f"Story '{story.title}' composed ({len(story.scenes)} scene(s),  word count satisfaction: {story.satisfy_ratio()}",
+        )
         return await self.post_process_story(ctx, story, **kwargs)

@@ -17,7 +17,7 @@ from fabricatio_novel.models.scene import Scene
 class SceneCompose(CharacterCompose, ABC):
     """This class contains the capabilities for the scene."""
 
-    async def before_compose_scene(
+    async def before_compose_scene_context(
         self,
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
@@ -25,7 +25,7 @@ class SceneCompose(CharacterCompose, ABC):
         """Identity hook invoked before composing a scene; may mutate the context."""
         return ctx
 
-    async def after_compose_scene(
+    async def after_compose_scene_context(
         self,
         ctx: SceneContext,
         **kwargs: Unpack[LLMKwargs],
@@ -74,33 +74,23 @@ class SceneCompose(CharacterCompose, ABC):
             self._scene_requirement_vars(ctx),
         )
 
-    async def generate_scene(
+    async def generate_scene_context(
         self,
         ctx: SceneContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Scene | None:
+    ) -> SceneContext:
         """Generate the scene content via the LLM.
 
-        Renders the scene requirement, asks the LLM for the scene text, sets
-        the expected word count, and stores the content on the context.
-        Returns the generated scene.
+        Renders the scene requirement, asks the LLM for the scene text, and
+        stores the content on the context. Returns the composed context.
         """
         logger.debug(f"Generating scene '{ctx.title}'")
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
-        scene = Scene(
-            title=ctx.title,
-            description=ctx.description,
-            expected_word_count=0,
-            content=(await self.aask(requirement, send_to=send_to, **kwargs)).strip(),
-        )
-        scene.expect_(ctx.expected_word_count)
-        ctx.set_content(scene.content)
-        logger.info(
-            f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}",
-        )
-        return scene
+        content = (await self.aask(requirement, send_to=send_to, **kwargs)).strip()
+        ctx.set_content(content)
+        return ctx
 
     async def prepare_story(
         self,
@@ -121,10 +111,12 @@ class SceneCompose(CharacterCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
         """Compose a scene end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_scene(ctx, **kwargs)
-        scene = await self.generate_scene(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_scene(ctx, **kwargs)
+        ctx = await self.before_compose_scene_context(ctx, **kwargs)
+        ctx = await self.generate_scene_context(ctx, send_to, **kwargs)
+        ctx = await self.after_compose_scene_context(ctx, **kwargs)
 
-        if scene is None:
-            return None
+        scene = Scene.from_context(ctx)
+        logger.info(
+            f"Scene '{scene.title}' composed ({word_count(scene.content)} words, word count satisfaction: {scene.satisfy_ratio()}",
+        )
         return await self.post_process_scene(ctx, scene, **kwargs)

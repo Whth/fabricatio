@@ -25,7 +25,7 @@ from fabricatio_novel.models.plan import StoryPlan, StoryPlans
 class ChapterCompose(StoryCompose, ABC):
     """This class contains the capabilities for the chapter."""
 
-    async def before_compose_chapter(
+    async def before_compose_chapter_context(
         self,
         ctx: ChapterContext,
         **kwargs: Unpack[LLMKwargs],
@@ -33,7 +33,7 @@ class ChapterCompose(StoryCompose, ABC):
         """Identity hook invoked before composing a chapter; may mutate the context."""
         return ctx
 
-    async def after_compose_chapter(
+    async def after_compose_chapter_context(
         self,
         ctx: ChapterContext,
         **kwargs: Unpack[LLMKwargs],
@@ -175,28 +175,24 @@ class ChapterCompose(StoryCompose, ABC):
                 return False
         return True
 
-    async def generate_chapter(
+    async def generate_chapter_context(
         self,
         ctx: ChapterContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Chapter | None:
+    ) -> ChapterContext | None:
         """Generate the chapter by composing its stories.
 
-        Runs the staged phases in order: story planning, story composition,
-        and chapter assembly. Returns the materialized chapter or None when
-        any phase fails.
+        Runs the staged phases in order: story planning and story
+        composition. Returns the composed context or None when any phase
+        fails.
         """
         logger.debug(f"Generating chapter '{ctx.title}'")
         if not await self.plan_stories_phase(ctx, send_to, **kwargs):
             return None
         if not await self.compose_stories_phase(ctx, send_to, **kwargs):
             return None
-        chapter = Chapter.from_context(ctx)
-        logger.info(
-            f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}",
-        )
-        return chapter
+        return ctx
 
     async def compose_chapter(
         self,
@@ -205,10 +201,15 @@ class ChapterCompose(StoryCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Compose a chapter end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_chapter(ctx, **kwargs)
-        chapter = await self.generate_chapter(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_chapter(ctx, **kwargs)
-
-        if chapter is None:
+        ctx = await self.before_compose_chapter_context(ctx, **kwargs)
+        ctx_res = await self.generate_chapter_context(ctx, send_to, **kwargs)
+        if ctx_res is None:
             return None
+        ctx = ctx_res
+        ctx = await self.after_compose_chapter_context(ctx, **kwargs)
+
+        chapter = Chapter.from_context(ctx)
+        logger.info(
+            f"Chapter '{chapter.title}' composed ({len(chapter.story)} story(s),  word count satisfaction: {chapter.satisfy_ratio()}",
+        )
         return await self.post_process_chapter(ctx, chapter, **kwargs)

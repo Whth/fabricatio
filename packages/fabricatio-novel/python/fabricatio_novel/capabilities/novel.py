@@ -26,7 +26,7 @@ from fabricatio_novel.models.plan import ChapterPlan, ChapterPlans, NovelPlan
 class NovelCompose(ChapterCompose, ABC):
     """This class contains the capabilities for the novel."""
 
-    async def before_compose_novel(
+    async def before_compose_novel_context(
         self,
         ctx: NovelContext,
         **kwargs: Unpack[LLMKwargs],
@@ -34,7 +34,7 @@ class NovelCompose(ChapterCompose, ABC):
         """Identity hook invoked before composing a novel; may mutate the context."""
         return ctx
 
-    async def after_compose_novel(
+    async def after_compose_novel_context(
         self,
         ctx: NovelContext,
         **kwargs: Unpack[LLMKwargs],
@@ -237,18 +237,18 @@ class NovelCompose(ChapterCompose, ABC):
         )
         return novel
 
-    async def generate_novel(
+    async def generate_novel_context(
         self,
         ctx: NovelContext,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> Novel | None:
+    ) -> NovelContext | None:
         """Generate the novel by composing its chapters.
 
         Runs the staged phases in order: metadata proposal, roster character
-        span creation, chapter planning with span drafting, chapter
-        composition, and novel assembly. Returns the materialized novel or
-        None when any phase fails.
+        span creation, chapter planning with span drafting, and chapter
+        composition. Returns the composed context or None when any phase
+        fails.
         """
         logger.info(f"Generating novel from outline ({len(ctx.outline)} characters)")
         if not await self.propose_novel_metadata(ctx, send_to, **kwargs):
@@ -258,7 +258,7 @@ class NovelCompose(ChapterCompose, ABC):
             return None
         if not await self.compose_chapters_phase(ctx, send_to, **kwargs):
             return None
-        return self.assemble_novel(ctx)
+        return ctx
 
     async def compose_novel(
         self,
@@ -267,10 +267,13 @@ class NovelCompose(ChapterCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         """Compose a novel end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_novel(ctx, **kwargs)
-        novel = await self.generate_novel(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_novel(ctx, **kwargs)
-
-        if novel is None:
+        ctx = await self.before_compose_novel_context(ctx, **kwargs)
+        ctx_res = await self.generate_novel_context(ctx, send_to, **kwargs)
+        if ctx_res is None:
             return None
+        ctx = ctx_res
+        ctx = await self.after_compose_novel_context(ctx, **kwargs)
+
+        novel = self.assemble_novel(ctx)
+
         return await self.post_process_novel(ctx, novel, **kwargs)

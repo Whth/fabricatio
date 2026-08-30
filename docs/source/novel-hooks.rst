@@ -21,42 +21,43 @@ Every level exposes the same three hooks with identity defaults. They live on th
      - Post-process artifact
    * - Novel
      - ``NovelCompose``
-     - ``before_compose_novel(ctx)``
-     - ``after_compose_novel(ctx)``
+     - ``before_compose_novel_context(ctx)``
+     - ``after_compose_novel_context(ctx)``
      - ``post_process_novel(ctx, novel)``
    * - Chapter
      - ``ChapterCompose``
-     - ``before_compose_chapter(ctx)``
-     - ``after_compose_chapter(ctx)``
+     - ``before_compose_chapter_context(ctx)``
+     - ``after_compose_chapter_context(ctx)``
      - ``post_process_chapter(ctx, chapter)``
    * - Story
      - ``StoryCompose``
-     - ``before_compose_story(ctx)``
-     - ``after_compose_story(ctx)``
+     - ``before_compose_story_context(ctx)``
+     - ``after_compose_story_context(ctx)``
      - ``post_process_story(ctx, story)``
    * - Scene
      - ``SceneCompose``
-     - ``before_compose_scene(ctx)``
-     - ``after_compose_scene(ctx)``
+     - ``before_compose_scene_context(ctx)``
+     - ``after_compose_scene_context(ctx)``
      - ``post_process_scene(ctx, scene)``
 
 Contract:
 
-* Before/after hooks receive and return the level's context; they may mutate it in place (e.g. enrich prompt channels).
+* Before/after hooks receive and return the level's context; they may mutate it in place (e.g. enrich prompt channels). The after-compose hook runs **before** the artifact is assembled, so its mutations flow into the composed output.
 * Post-process hooks receive the composed artifact plus its context and return the (possibly transformed) artifact.
 * All hooks receive the caller's LLM ``**kwargs`` pass-through.
 * Every default implementation is an identity function; overriding any of them is optional.
 
-Wiring is byte-for-byte the same shape at all four levels:
+The same shape at all four levels (the scene chain has no failure branch, so it carries no guard):
 
 .. code-block:: python
 
     async def compose_level(self, ctx, send_to=None, **kwargs):
-        ctx = await self.before_compose_level(ctx, **kwargs)
-        artifact = await self.generate_level(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_level(ctx, **kwargs)
-        if artifact is None:
+        ctx = await self.before_compose_level_context(ctx, **kwargs)
+        ctx_res = await self.generate_level_context(ctx, send_to, **kwargs)
+        if ctx_res is None:
             return None
+        ctx = await self.after_compose_level_context(ctx_res, **kwargs)
+        artifact = Level.from_context(ctx)
         return await self.post_process_level(ctx, artifact, **kwargs)
 
 Because ``NovelCompose`` extends ``ChapterCompose`` extends ``StoryCompose`` extends ``SceneCompose``, one role composing a whole novel runs the scene hooks once per scene, story hooks once per story, and so on — inner levels nest inside outer ones.
@@ -64,7 +65,7 @@ Because ``NovelCompose`` extends ``ChapterCompose`` extends ``StoryCompose`` ext
 Pipeline Seams
 --------------
 
-Beyond the lifecycle trio, each level's ``generate_*`` method calls named seams in a fixed order. The table lists them top-down in execution order.
+Beyond the lifecycle trio, each level's ``generate_*_context`` method calls named seams in a fixed order. The table lists them top-down in execution order.
 
 .. list-table::
    :header-rows: 1
@@ -75,19 +76,19 @@ Beyond the lifecycle trio, each level's ``generate_*`` method calls named seams 
      - Purpose
    * - ``propose_novel_metadata``
      - ``NovelCompose``
-     - ``generate_novel``
+     - ``generate_novel_context``
      - Outline → ``NovelPlan`` (title, description, word budget, bible).
    * - ``prepare_character_span``
      - ``NovelCompose``
-     - ``generate_novel``
+     - ``generate_novel_context``
      - Propose the roster: one ``CharacterSpan`` per bible character. Skipped when the bible has no roster.
    * - ``plan_chapters_phase``
      - ``NovelCompose``
-     - ``generate_novel``
+     - ``generate_novel_context``
      - Plan chapters; then ``draft_chapter_spans`` proposes N−1 boundary cards per character.
    * - ``plan_stories_phase``
      - ``ChapterCompose``
-     - ``generate_chapter``
+     - ``generate_chapter_context``
      - Plan stories; then ``draft_story_spans`` proposes S−1 boundary cards per character.
    * - ``prepare_story``
      - ``SceneCompose`` *(see note)*
@@ -95,19 +96,19 @@ Beyond the lifecycle trio, each level's ``generate_*`` method calls named seams 
      - Identity hook before a story's scenes are planned; RAG overrides it to retrieve writing styles.
    * - ``plan_scenes_phase``
      - ``StoryCompose``
-     - ``generate_story``
+     - ``generate_story_context``
      - Plan scenes for the story.
    * - ``prepare_scene_write``
      - ``StoryCompose``
-     - ``generate_story``
+     - ``generate_story_context``
      - Broadcast the story's span list and settings bible to every scene context.
    * - ``prepare_scene_requirement``
      - ``SceneCompose``
-     - ``generate_scene``
+     - ``generate_scene_context``
      - Render the scene-prompt template variables; BibleCompose adds the bible block.
    * - ``render_bible_context``
      - ``BibleCompose``
-     - ``generate_scene``
+     - ``generate_scene_context``
      - Render the (run-growable) bible section injected into scene prompts.
 
 .. note::
@@ -119,18 +120,22 @@ Execution flow of a full generation:
 .. mermaid::
 
    flowchart TD
-      GN["generate_novel"] --> MD["propose_novel_metadata"]
+      GN["generate_novel_context"] --> MD["propose_novel_metadata"]
       MD --> RS["prepare_character_span"]
       RS --> PC["plan_chapters_phase\ndraft_chapter_spans"]
       PC --> CC["compose_chapters_phase"]
-      CC --> GC["generate_chapter\n(before/after/post_process_chapter)"]
+      CC --> GC["generate_chapter_context"]
       GC --> PS["plan_stories_phase\ndraft_story_spans"]
       PS --> CS["compose_stories_phase"]
-      CS --> GS["generate_story\n(before/after/post_process_story)"]
+      CS --> GS["generate_story_context"]
       GS --> PSC["plan_scenes_phase\nprepare_story"]
       PSC --> PW["prepare_scene_write\nbroadcast spans + bible"]
       PW --> WCS["compose_scenes_phase"]
-      WCS --> GSC["compose_scene\n(before/after/post_process_scene)\nprepare_scene_requirement"]
+      WCS --> GSC["compose_scene\nprepare_scene_requirement"]
+
+Lifecycle hooks wrap these seams: each level's ``compose_*`` method brackets its
+``generate_*_context`` with the before/after context hooks and hands the artifact
+assembled after them to ``post_process_*``.
 
 Production Overrides
 --------------------
