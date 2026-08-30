@@ -39,7 +39,7 @@
 //! ```
 
 use crate::model::{CompletionModel, CompletionRequest, Model, Usage};
-use crate::models::openai::{parse_json_response, OpenAiRoute};
+use crate::models::openai::{OpenAiRoute, parse_json_response};
 use crate::provider::Provider;
 use crate::{CompletionResponse, ThrydError};
 use async_openai::types::responses::{
@@ -50,7 +50,7 @@ use async_openai::types::responses::{
 use async_trait::async_trait;
 use eventsource_stream::Eventsource;
 use futures::{StreamExt, TryStreamExt};
-use serde_json::{to_value, Value};
+use serde_json::{Value, to_value};
 use std::sync::Arc;
 use tracing::*;
 
