@@ -12,7 +12,7 @@ const node: WorkflowNode = {
     title: 'Write Scene',
     description: 'Drafts one scene.',
     category: 'novel',
-    nodeType: 'SceneWriteStage',
+    nodeType: 'ComposeScenesStage',
     inputPorts: [{ name: 'ctx', type: 'Any', optional: true }],
     outputPorts: [{ name: 'task_output', type: 'str' }],
     capabilities: ['WithLLMHandling'],
@@ -25,7 +25,7 @@ const node: WorkflowNode = {
         default: 'base',
         group: 'LLMScopedConfig',
       },
-      { name: 'temperature', type: 'float', optional: true, group: 'SceneWriteStage' },
+      { name: 'temperature', type: 'float', optional: true, group: 'ComposeScenesStage' },
     ],
     inputs: {},
     config: {},
@@ -55,13 +55,13 @@ describe('NodeInspector', () => {
     const w = mountInspector()
     expect(w.find('.insp-title').text()).toBe('Write Scene')
     expect(w.find('.insp-category').text()).toBe('novel')
-    expect(w.find('.insp-type').text()).toContain('SceneWriteStage')
+    expect(w.find('.insp-type').text()).toContain('ComposeScenesStage')
   })
 
   it('groups config fields by MRO owner with inherited marker', () => {
     const w = mountInspector()
     const labels = w.findAll('.insp-label').map((l) => l.text())
-    expect(labels.some((t) => t.includes('Config · SceneWriteStage'))).toBe(true)
+    expect(labels.some((t) => t.includes('Config · ComposeScenesStage'))).toBe(true)
     expect(labels.some((t) => t.includes('Config · LLMScopedConfig'))).toBe(true)
     expect(labels.filter((t) => t.includes('inherited')).length).toBe(1)
   })
@@ -91,6 +91,6 @@ describe('NodeInspector', () => {
     await w.find('.insp-close').trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
     await w.find('.insp-source').trigger('click')
-    expect(w.emitted('open-source')?.[0]).toEqual(['SceneWriteStage'])
+    expect(w.emitted('open-source')?.[0]).toEqual(['ComposeScenesStage'])
   })
 })

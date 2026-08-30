@@ -168,16 +168,18 @@ history stays intact.
 
 | Action | Stage |
 |---|---|
-| `InitNovelContext` | `01_init` — build context from outline/language/constraint/bible |
-| `MetadataStage` | `02_metadata` — propose novel plan |
-| `CharactersStage` | `03_characters` — propose roster spans |
-| `ChapterPlanStage` | `04_chapter_plans` — plan chapters + draft boundaries |
-| `StoryPlanStage` | `05_story_plans` — plan stories + draft boundaries |
-| `ScenePlanStage` / `RagScenePlanStage` | `06_scene_plans` — plan scenes (with RAG) |
-| `SceneWriteStage` / `RagSceneWriteStage` | `07_scenes` — broadcast spans + write scene prose |
-| `AssembleStage` | `08_novel` — materialize `Novel` |
-| `IllustrateNovelStage` | post-process — illustrate every scene into `images/`, attach, then reuse `DumpNovelStage`'s export; adds no snapshot dir |
-| `DumpNovelStage` | export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
+| `InitNovelContext` | `01_init` — build context from outline/language/constraint/bible, then fire `before_compose_novel_context` |
+| `ProposeNovelMetadataStage` | `02_metadata` — `propose_novel_metadata` |
+| `PrepareCharacterSpanStage` | `03_characters` — `prepare_character_span` (roster) |
+| `PlanChaptersStage` | `04_chapter_plans` — `plan_chapters_phase` + boundary drafting |
+| `PlanStoriesStage` | `05_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting |
+| `PlanScenesStage` / `RagPlanScenesStage` | `06_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
+| `ComposeScenesStage` / `RagComposeScenesStage` | `07_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
+| `AssembleNovelStage` | `08_novel` — fires `after_compose_novel_context`, then `assemble_novel` |
+| `IllustrateNovelStage` | `DumpNovelStage` whose `post_process_novel` resolves to per-scene illustration; adds no snapshot dir |
+| `DumpNovelStage` | fires `post_process_novel`, then export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
+
+Every stage wraps one `compose_novel` chain segment and fires the chain's lifecycle hooks at their chain positions, so a hook override on a stage customizes the staged run exactly like it customizes the programmatic chain; the scene-level hooks fire inside `compose_scenes_phase`, exactly as they do in the chain.
 
 ### Workflows
 

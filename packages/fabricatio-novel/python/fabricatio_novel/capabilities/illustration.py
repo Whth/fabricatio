@@ -36,11 +36,11 @@ class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
     Failures degrade per scene (warn + skip).
 
     Implements the integration via :meth:`NovelCompose.post_process_novel`: when a
-    role mixing this class runs ``compose_novel`` (or the staged
-    :class:`~IllustrateNovelStage` invokes the same hook), illustration fires
-    automatically — callers do not need to call the phase and attach methods
-    separately. Pass ``persist_dir`` through to enable; with no ``persist_dir``
-    the hook is an identity (the base default).
+    role mixing this class runs ``compose_novel``, or a staged workflow ends in
+    :class:`~fabricatio_novel.actions.novel.IllustrateNovelStage` (whose dump
+    stage fires the same hook), illustration runs automatically — callers do not
+    need to call the phase and attach methods separately. Pass ``persist_dir``
+    through to enable; with no ``persist_dir`` the hook is the base identity.
     """
 
     async def illustrate_novel_phase(

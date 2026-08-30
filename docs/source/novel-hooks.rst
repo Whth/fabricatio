@@ -9,7 +9,7 @@ The ``fabricatio-novel`` package drives a four-level pipeline — **novel → ch
 Lifecycle Hooks
 ---------------
 
-Every level exposes the same three hooks with identity defaults. They live on the capability classes and are invoked from that level's ``compose_*`` method — nowhere else.
+Every level exposes the same three hooks with identity defaults. They live on the capability classes and are invoked from that level's ``compose_*`` method — and, at the same chain positions, from the staged workflow actions that wrap the chain segment by segment (see `Staged Workflow Wiring`_).
 
 .. list-table::
    :header-rows: 1
@@ -146,6 +146,50 @@ Two capabilities override seams without touching lifecycle hooks:
 * ``RAGCompose`` (writing-style RAG): overrides ``prepare_story`` to fetch ``WritingStyleDocument`` entries once per story; retrieved styles ride the context's writing-styles channel into scene prompts.
 
 This is the intended extension pattern: subclass the level mixin whose seam you need, override only that seam, and leave the twelve lifecycle hooks at their defaults.
+
+Staged Workflow Wiring
+----------------------
+
+The staged workflows (``DebugNovelWorkflow`` and variants) split the ``compose_novel`` chain into
+per-stage snapshot boundaries. Each stage wraps one chain segment and fires the lifecycle hooks at
+their chain positions, so the staged run walks the same hook sequence the programmatic chain does:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Stage
+     - Chain segment
+     - Hooks fired
+   * - ``InitNovelContext``
+     - Context entry
+     - ``before_compose_novel_context``
+   * - ``ProposeNovelMetadataStage`` / ``PrepareCharacterSpanStage`` / ``PlanChaptersStage``
+     - ``generate_novel_context`` planning phases
+     - —
+   * - ``PlanStoriesStage``
+     - ``plan_stories_phase`` per chapter
+     - ``before_compose_chapter_context``
+   * - ``PlanScenesStage``
+     - ``plan_scenes_phase`` per story
+     - ``before_compose_story_context``
+   * - ``ComposeScenesStage``
+     - ``compose_scenes_phase`` per story, then the story and chapter chain tails
+     - scene hooks (inside ``compose_scene``), ``after_compose_story_context`` + ``post_process_story``, ``after_compose_chapter_context`` + ``post_process_chapter``
+   * - ``AssembleNovelStage``
+     - ``assemble_novel``
+     - ``after_compose_novel_context``
+   * - ``DumpNovelStage`` / ``IllustrateNovelStage``
+     - artifact export
+     - ``post_process_novel``
+
+One deliberate divergence from the chain: the staged flow plans every story's scenes before any
+scene prose is written (that is the snapshot boundary between ``PlanScenesStage`` and
+``ComposeScenesStage``), so the story before-hooks all fire during planning while the after and
+post-process hooks fire during writing. Within one story the hook order is unchanged.
+
+Overriding a hook on a stage subclass customizes the staged run exactly like a role-level override
+customizes ``compose_novel``: stage actions mix the same capability classes, so the hooks resolve
+through the stage's own MRO.
 
 Symmetry Audit
 --------------
