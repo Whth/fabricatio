@@ -1328,11 +1328,7 @@ fabricatio-tool
      - map of ServiceConfig_
      - *(empty)*
      - MCP servers allowed to be used.
-   * - ``confirm_on_ops``
-     - bool
-     - ``true``
-     - Confirm operations before executing them.
-   * - ``logging_on_ops``
+  * - ``logging_on_ops``
      - bool
      - ``true``
      - Log operations before executing them.

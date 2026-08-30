@@ -68,7 +68,7 @@ def toolbox(sample_func: Callable[[int, str], str]) -> ToolBox:
     Returns:
         A configured ToolBox object.
     """
-    return ToolBox(name="test_box", description="Test toolbox").add_tool(sample_func, confirm=False)
+    return ToolBox(name="test_box", description="Test toolbox").add_tool(sample_func)
 
 
 @pytest.fixture
@@ -145,7 +145,7 @@ class TestToolBox:
             "## test_box: Test toolbox\n"
             "## 2 tools available:\n"
             "def func(x: int, y: str) -> str:\n"
-            "async def func(x: int, y: str) -> str:"
+            "def func(x: int, y: str) -> str:"
         )
         assert toolbox.briefing == expected
 

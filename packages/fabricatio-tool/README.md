@@ -30,7 +30,7 @@ pip install fabricatio[full]
 
 `fabricatio-tool` enables Fabricatio agents to use arbitrary Python functions as **tools**. Tools are grouped into **toolboxes**, discovered by an LLM-driven selection process, composed into execution code (also LLM-generated), and run inside a `ToolExecutor` with import/call safety checks. Results are collected in a `ResultCollector` for downstream use.
 
-The package also includes built-in filesystem tools, MCP (Model Context Protocol) client integration, and optional user-confirmation guards for destructive operations.
+The package also includes built-in filesystem tools and MCP (Model Context Protocol) client integration.
 
 ## Core concepts
 
@@ -87,10 +87,6 @@ Filesystem utilities callable as tools:
 - **`mcp_tool_to_function(client_id, tool_name)`** — converts an MCP tool to an async callable.
 - **`mcp_to_toolbox(client_id)`** — converts all tools from an MCP client into a `ToolBox`.
 
-### `fabricatio_tool.decorators`
-
-- **`confirm_to_execute(func)`** — wraps a function with an interactive confirmation prompt via `questionary`.
-
 ### `fabricatio_tool.toolboxes`
 
 - **`fs_toolbox`** — pre-built `ToolBox` containing all filesystem tools listed above.
@@ -107,7 +103,6 @@ Configuration Guide at ../../docs/source/configuration.rst). Set them under the
 # fabricatio.toml
 [ext.tool]
 draft_tool_usage_code_template = "built-in/draft_tool_usage_code"
-confirm_on_ops = true
 logging_on_ops = true
 error_key = "__error__"
 max_feedback_rounds = 0
@@ -121,7 +116,6 @@ feedback_max_chars = 6000
 | `check_imports` | `CheckConfigModel` | `(see config.py)` | Imports that are forbidden/allowed to be used. |
 | `check_calls` | `CheckConfigModel` | `(see config.py)` | Calls that are forbidden/allowed to be used. |
 | `mcp_servers` | `Dict[str, ServiceConfig]` | `{}` | MCP servers that are allowed to be used. |
-| `confirm_on_ops` | `bool` | `True` | Whether to confirm operations before executing them. |
 | `logging_on_ops` | `bool` | `True` | Whether to log operations before executing them. |
 | `max_feedback_rounds` | `int` | `0` | Extra re-drafting rounds when tool code execution fails; results and errors are fed back to the LLM. `0` disables the loop. |
 | `feedback_max_chars` | `int` | `6000` | Per-item character cap when summarizing execution results/errors for LLM feedback. |
@@ -154,7 +148,7 @@ def add(a: int, b: int) -> int:
 
 # Build a toolbox
 box = ToolBox(name="math", description="Math operations")
-box.add_tool(add, confirm=False, logging=True)
+box.add_tool(add, logging=True)
 
 # Execute LLM-generated tool-usage code
 executor = ToolExecutor(candidates=box.tools, data={})
@@ -205,13 +199,12 @@ if result and not result.error():
 
 ## Safety
 
-`ToolExecutor` validates generated code against configurable whitelists or blacklists for modules, imports, and function calls. By default, only safe builtins (`str`, `int`, `float`, `bool`, `dict`, `set`, `list`, `pathlib.Path`, `print`, `len`) and `math` are permitted. Destructive tools can be gated behind `confirm_to_execute`, which prompts the user interactively.
+`ToolExecutor` validates generated code against configurable whitelists or blacklists for modules, imports, and function calls. By default, only safe builtins (`str`, `int`, `float`, `bool`, `dict`, `set`, `list`, `pathlib.Path`, `print`, `len`) and `math` are permitted.
 
 ## Dependencies
 
 - `fabricatio-core` — core interfaces and utilities
 - `pydantic>=2.11.7`
-- `questionary>=2.1.0`
 
 ## License
 

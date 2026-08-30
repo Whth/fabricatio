@@ -22,7 +22,6 @@ dependencies = [
     "fabricatio-context",
     "fabricatio-core",
     "pydantic>=2.11.7",
-    "questionary>=2.1.0",
 ]
 
 [dependency-groups]

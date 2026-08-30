@@ -62,9 +62,6 @@ class ToolConfig(BaseModel):
     mcp_servers: dict[str, ServiceConfig] = Field(default_factory=dict)
     """MCP servers that are allowed to be used."""
 
-    confirm_on_ops: bool = True
-    """Whether to confirm operations before executing them."""
-
     logging_on_ops: bool = True
     """Whether to log operations before executing them."""
 
