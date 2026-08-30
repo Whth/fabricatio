@@ -55,6 +55,7 @@ members = [
 [workspace.dependencies]
 fabricatio-logger = { path = "crates/fabricatio-logger" }
 mcp-manager = { path = "crates/mcp-manager" }
+mcp-server = { path = "crates/mcp-server" }
 signify = { path = "crates/signify" }
 error-mapping = { path = "crates/error-mapping" }
 

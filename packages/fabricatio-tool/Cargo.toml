@@ -13,7 +13,9 @@ rustpython-ast = { version = "0.4.0", features = ["visitor", "num-bigint", "fold
 rustpython-parser = { version = "0.4.0", features = ["num-bigint", "location"], default-features = false }
 serde_json = "1.0.151"
 mcp-manager = { workspace = true }
+mcp-server = { workspace = true }
 signify = { workspace = true }
+tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 rmcp = { version = "3.1.4", features = ["transport-streamable-http-client-reqwest", "client"] }
 fabricatio-logger = { workspace = true }
 
@@ -26,6 +28,3 @@ pyo3-stub-gen = { version = "0.23.0", optional = true }
 [features]
 default = ["pyo3/extension-module"]
 stubgen = ["dep:pyo3-stub-gen"]
-
-
-

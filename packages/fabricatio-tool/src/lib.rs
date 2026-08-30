@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 mod inspect;
 mod linter;
 mod mcp;
+mod mcp_server;
 mod tool;
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -17,6 +18,7 @@ fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     init_logger_auto()?;
     tool::register(python, m)?;
     mcp::register(python, m)?;
+    mcp_server::register(python, m)?;
     inspect::register(python, m)?;
     Ok(())
 }
