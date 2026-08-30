@@ -41,7 +41,6 @@ full = [
 workflows = ["fabricatio-actions"]
 cli = [
     "fabricatio-novel[workflows,lancedb]",
-    "questionary>=2.1.0",
     "typer>=0.15.2",
 ]
 
