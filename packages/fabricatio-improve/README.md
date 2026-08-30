@@ -45,10 +45,10 @@ uv pip install fabricatio[full]
 
 | Model | Description |
 |-------|-------------|
-| `Improvement` | Result of a review — holds `focused_on` topic and a list of `ProblemSolutions`. Supports interactive supervisor filtering and gathering multiple improvements. |
+| `Improvement` | Result of a review — holds `focused_on` topic and a list of `ProblemSolutions`. Supports gathering multiple improvements. |
 | `Problem` | A detected issue with `description` (cause), `severity_level` (0-10), and `location`. |
 | `Solution` | A proposed fix with `description` (mechanism), `execute_steps`, `feasibility_level`, and `impact_level`. |
-| `ProblemSolutions` | A pair of one `Problem` with its candidate `Solution` list. Supports deciding the final solution and interactive editing. |
+| `ProblemSolutions` | A pair of one `Problem` with its candidate `Solution` list. Supports deciding the final solution. |
 
 ### KWArgs Types
 
@@ -166,7 +166,6 @@ fabricatio-improve/
 
 - `fabricatio-core` — core interfaces and utilities
 - `fabricatio-capabilities` — base capability patterns (Rating, Propose)
-- `fabricatio-question` — interactive prompts for supervisor check
 
 ## License
 
