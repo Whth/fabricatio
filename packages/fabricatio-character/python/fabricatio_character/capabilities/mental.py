@@ -1,19 +1,24 @@
-"""UseMind mixin: processes events and updates character psychological state.
+"""UseMind mixin: psychological analysis capabilities over a model-owned MentalState.
 
-Implements the three-layer architecture:
-1. Analysis (LLM) - upon_event(): event -> EventImpact
-2. Update (rules) - after_impact(): EventImpact -> new MentalState
-3. Alignment (template) - as_prompt(): MentalState -> system prompt string
+The state object owns everything deterministic — rule application
+(``MentalState.apply``), prompt rendering (``MentalState.as_prompt``, AsPrompt
+protocol), and persistence (``PersistentAble``). This mixin owns only the
+LLM-facing half:
+
+1. ``seed_from(card)``: CharacterCard -> LLM-judged initial MentalState
+2. ``observe(event, state)``: event -> EventImpact (pure analysis, no mutation)
+3. ``react(event, state)``: observe + apply — the one-call event handler
 
 Usage::
 
-    class MyCharacter(UseMind):
-        mental_state: MentalState
+    class MyCharacter(UseMind, CharacterCompose):
+        pass
 
-        async def handle_event(self, event: str) -> str:
-            impact = await self.upon_event(event, self.mental_state)
-            self.mental_state = self.after_impact(impact, self.mental_state)
-            return self.as_prompt(self.mental_state)
+    agent = MyCharacter()
+    card = await agent.compose_characters("Hamlet, prince of Denmark")
+    mind = await agent.seed_from(card, age=30)
+    mind = await agent.react("The ghost accuses your uncle.", mind)
+    prompt = mind.as_prompt()
 """
 
 from abc import ABC
@@ -23,47 +28,42 @@ from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.rust import TASK, TEMPLATE_MANAGER
 
 from fabricatio_character.config import character_config
+from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import (
-    AsPromptData,
     CharacterMind,
     CognitiveDistortion,
     Distortion,
-    EmotionalState,
     EventContext,
     EventImpact,
-    HeartRate,
     LinguisticStyle,
     MaslowLevel,
     MentalState,
-    MuscleTension,
     NeedState,
     QualitativeSuffering,
     SituationProfile,
-    SomaticState,
-    SufferingSummary,
 )
 
 
 class UseMind(Propose, ABC):
-    """Mixin providing psychological state processing capabilities.
+    """Mixin providing psychological analysis capabilities.
 
     Inherits Propose for structured LLM output via self.propose().
-    Stateless: takes MentalState as parameter, returns results.
-    Caller owns MentalState as its own attribute.
+    Stateless: takes MentalState as parameter, returns results. The caller
+    keeps ownership of the state; every update path returns a new instance.
     """
 
     # -- Seeding: CharacterCard -> MentalState --
 
-    async def seed_from(self, name: str, want: str, flaw: str, send_to: str | None = TASK) -> MentalState:
-        """Seed MentalState from character description using LLM.
+    async def seed_from(self, card: CharacterCard, age: int = 25, send_to: str | None = TASK) -> MentalState:
+        """Seed MentalState from a CharacterCard using LLM judgment.
 
-        Uses aenum_choose to determine initial MaslowLevel from want text,
-        and ajudge to determine which cognitive distortions apply from flaw text.
+        Uses aenum_choose to determine the initial MaslowLevel from the
+        card's ``want`` text, and ajudge to determine which cognitive
+        distortions apply from the card's ``flaw`` text.
 
         Args:
-            name: Character name.
-            want: Character's core motivation.
-            flaw: Character's critical weakness/vulnerability.
+            card: Character card providing name, want, and flaw.
+            age: Character age, stored on the mind and reused by ``apply``.
             send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
 
         Returns:
@@ -71,7 +71,7 @@ class UseMind(Propose, ABC):
         """
         # Determine initial need level via LLM
         need_future = self.aenum_choose(
-            f"Given this character motivation: '{want}'\nWhich need level best describes their primary drive?",
+            f"Given this character motivation: '{card.want}'\nWhich need level best describes their primary drive?",
             MaslowLevel,
             k=1,
             send_to=send_to,
@@ -80,7 +80,7 @@ class UseMind(Propose, ABC):
         # Determine which distortions apply via LLM judgments
         distortion_futures = {
             dist: self.ajudge(
-                f"Does this character flaw suggest {dist.value}?\nFlaw: '{flaw}'",
+                f"Does this character flaw suggest {dist.value}?\nFlaw: '{card.flaw}'",
                 send_to=send_to,
             )
             for dist in Distortion
@@ -97,74 +97,13 @@ class UseMind(Propose, ABC):
                 setattr(cognitive, dist.value, 70.0)
 
         return MentalState(
-            mind=CharacterMind(
-                character_name=name,
-                cognitive_tendencies=cognitive,
-            ),
+            mind=CharacterMind(character_name=card.name, age=age, cognitive_tendencies=cognitive),
             needs=NeedState(current_level=initial_need),
         )
 
-    # -- Alignment: state -> prompt --
-
-    def as_prompt(self, state: MentalState) -> str:
-        """Translate MentalState into LLM system prompt via template.
-
-        Uses AsPromptData model for typed template data.
-
-        Args:
-            state: Current psychological state.
-
-        Returns:
-            Rendered system prompt string.
-        """
-        p = state.mind.personality
-        s = state.emotion.somatic
-        ls = state.mind.linguistic_style
-
-        active_distortion = state.emotion.active_distortion
-
-        data = AsPromptData(
-            personality_rules=[
-                desc for key, desc in character_config.mind_personality_rules.items() if p.personality_flag(key)
-            ],
-            need_description=character_config.mind_need_focus.get(state.needs.current_level, ""),
-            emotion=state.emotion.emotion.value,
-            emotion_intensity=f"{state.emotion.intensity:.0f}",
-            emotion_high=state.emotion.intensity > character_config.mind_emotion_intensity_high,
-            emotion_mid=state.emotion.intensity > character_config.mind_emotion_intensity_mid,
-            cognitive_bias=active_distortion.value if active_distortion else None,
-            bias_example=character_config.mind_bias_examples.get(active_distortion, "") if active_distortion else "",
-            has_somatic=s.heart_rate != HeartRate.NORMAL or s.muscle_tension != MuscleTension.RELAXED,
-            somatic_heart_rate=s.heart_rate.value,
-            somatic_breathing=s.breathing.value,
-            somatic_muscle_tension=s.muscle_tension.value,
-            somatic_facial_expression=s.facial_expression.value,
-            somatic_voice=s.voice.value,
-            has_sufferings=bool(state.sufferings),
-            sufferings=[
-                SufferingSummary(
-                    what_was_lost=sv.what_was_lost,
-                    the_void=sv.the_void,
-                    how_it_changed_me=sv.how_it_changed_me,
-                )
-                for sv in state.sufferings
-            ],
-            has_linguistic=bool(ls.preferences),
-            linguistic_preferences=ls.preferences,
-            linguistic_pronouns=ls.common_pronouns or None,
-            linguistic_modals=ls.common_modals or None,
-            has_situation=state.emotion.latest_situation is not None,
-            top_situation_dimension=(
-                state.emotion.latest_situation.top_dimension().value if state.emotion.latest_situation else ""
-            ),
-            situation_adversity=(state.emotion.latest_situation.adversity if state.emotion.latest_situation else 0.0),
-            situation_negativity=(state.emotion.latest_situation.negativity if state.emotion.latest_situation else 0.0),
-        )
-        return TEMPLATE_MANAGER.render_template(character_config.mind_system_prompt_template, data.as_template_data())
-
     # -- Analysis: event -> impact --
 
-    async def upon_event(self, event: str, state: MentalState, send_to: str | None = TASK) -> EventImpact:
+    async def observe(self, event: str, state: MentalState, send_to: str | None = TASK) -> EventImpact:
         """Analyze event using targeted LLM calls with template-rendered prompts.
 
         Decomposes analysis into focused calls:
@@ -176,7 +115,8 @@ class UseMind(Propose, ABC):
 
         Independent calls run in parallel via asyncio.gather.
 
-        Pure analysis, does NOT mutate state.
+        Pure analysis, does NOT mutate state. To evolve the state, pass the
+        returned impact to ``state.apply(impact)`` or use :meth:`react`.
 
         Args:
             event: The event text to analyze.
@@ -298,56 +238,24 @@ class UseMind(Propose, ABC):
             situation=diamonds,
         )
 
-    # -- Update: impact -> new state --
+    # -- One-call event handling --
 
-    def after_impact(self, impact: EventImpact, state: MentalState, age: int = 25) -> MentalState:
-        """Apply deterministic rules to update MentalState from EventImpact.
+    async def react(self, event: str, state: MentalState, send_to: str | None = TASK) -> MentalState:
+        """Analyze an event and apply the resulting impact to a new state.
 
-        Returns a NEW MentalState (immutable update).
+        Convenience over ``observe`` + ``MentalState.apply``. Returns a NEW
+        MentalState; the input state is untouched.
 
         Args:
-            impact: Structured impact from event analysis.
+            event: The event text to react to.
             state: Current psychological state.
-            age: Character age (affects personality drift scale).
+            send_to: Routing group for LLM calls (TASK/SMOL/TINY/SLOW/PLAN).
 
         Returns:
-            New MentalState with impact applied.
+            New MentalState with the event applied.
         """
-        new_state = state.model_copy(deep=True)
-
-        # 1. Need transitions
-        if impact.threatens_need is not None:
-            new_state = new_state.drop_level(impact.threatens_need)
-        if impact.fulfills_need is not None:
-            new_state = new_state.accumulate_satisfaction(impact.fulfills_need)
-
-        # 2. Personality drift (age-scaled)
-        scale = character_config.age_shift_scale(age)
-        for dim, delta in impact.personality_shift.items():
-            if hasattr(new_state.mind.personality, dim.value):
-                current = getattr(new_state.mind.personality, dim.value)
-                new_val = max(0.0, min(100.0, current + delta * scale))
-                setattr(new_state.mind.personality, dim.value, new_val)
-
-        # 3. Suffering accumulation
-        if impact.created_suffering is not None:
-            new_state.sufferings.append(impact.created_suffering)
-
-        # 4. Situation storage (independent of emotion — always apply if present)
-        if impact.situation is not None:
-            new_state.emotion = new_state.emotion.model_copy(update={"latest_situation": impact.situation})
-
-        # 5. Emotional state (replace, not mutate)
-        if impact.emotion is not None:
-            new_state.emotion = EmotionalState(
-                emotion=impact.emotion,
-                intensity=impact.emotion_intensity,
-                somatic=SomaticState.from_emotion(impact.emotion, impact.emotion_intensity),
-                active_distortion=impact.triggers_distortion,
-                latest_situation=impact.situation or new_state.emotion.latest_situation,
-            )
-
-        return new_state
+        impact = await self.observe(event, state, send_to=send_to)
+        return state.apply(impact)
 
     async def extract_style(
         self,

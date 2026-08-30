@@ -1,340 +1,53 @@
 """Mental model data models for dynamic character psychological state.
 
-Complete psychological state model covering:
-- BigFiveProfile: 5-dimensional personality (Costa & McCrae, 1992)
-- CognitiveDistortion: CBT distortion tendency weights (Beck, 1976)
-- SomaticState: embodied perception (EFT-CoT, Du et al., 2026)
-- QualitativeSuffering: irreversible trauma (Emotional Cost Functions)
-- LinguisticStyle: decoupled expression patterns (TTM, Zhan et al., 2025)
-- CharacterMind: stable identity (personality + cognition + language)
+Layered composite:
+- CharacterMind: stable identity (personality + cognition + language + age)
 - EmotionalState: volatile per-event state (emotion + body + active distortion)
 - NeedState: Maslow hierarchy tracking (Maslow, 1943)
-- MentalState: composite of all layers
+- MentalState: the self-sufficient composite. Owns rule application
+  (:meth:`MentalState.apply`), prompt rendering (:class:`AsPrompt` protocol),
+  and persistence (:class:`PersistentAble`) — same conventions as
+  CharacterCard. Seed it via :meth:`MentalState.from_card` (no LLM) or
+  ``UseMind.seed_from(card)`` (LLM-judged).
 - EventImpact: LLM-generated impact from event analysis
+- EventContext / SufferingSummary / AsPromptData: typed template payloads
+
+Vocabulary and primitive trait models (domain enums, BigFiveProfile,
+CognitiveDistortion, SomaticState, QualitativeSuffering, LinguisticStyle) live
+in :mod:`fabricatio_character.models.psych` and are re-exported here, so
+``fabricatio_character.models.mental`` remains the single public import
+surface.
 """
 
-from enum import IntEnum, StrEnum, auto
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 
+from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_core.models.generic import Base, ProposedAble
 from pydantic import Field
 
+from fabricatio_character.config import character_config
+from fabricatio_character.models.psych import (
+    BigFiveDimension,
+    BigFiveProfile,
+    Breathing,
+    CognitiveDistortion,
+    Distortion,
+    Emotion,
+    FacialExpression,
+    HeartRate,
+    LinguisticStyle,
+    MaslowLevel,
+    MuscleTension,
+    PersonalityFlag,
+    QualitativeSuffering,
+    SituationDimension,
+    SituationProfile,
+    SomaticState,
+    VoiceQuality,
+)
+
 if TYPE_CHECKING:
     from fabricatio_character.models.character import CharacterCard
-
-# -- Domain enums --
-
-
-class Emotion(StrEnum):
-    """Recognized emotion types."""
-
-    NEUTRAL = auto()
-    FEAR = auto()
-    ANXIETY = auto()
-    ANGER = auto()
-    RAGE = auto()
-    SADNESS = auto()
-    GRIEF = auto()
-    JOY = auto()
-    HAPPINESS = auto()
-    DISGUST = auto()
-    CONTEMPT = auto()
-
-
-class Distortion(StrEnum):
-    """Cognitive distortion types from CBT framework."""
-
-    CATASTROPHIZING = auto()
-    BLACK_AND_WHITE = auto()
-    PERSONALIZATION = auto()
-    EMOTIONAL_REASONING = auto()
-    SHOULD_THINKING = auto()
-
-
-class PersonalityFlag(StrEnum):
-    """Personality trait condition flags for prompt injection."""
-
-    HIGH_NEUROTICISM = auto()
-    LOW_AGREEABLENESS = auto()
-    HIGH_EXTRAVERSION = auto()
-    LOW_EXTRAVERSION = auto()
-    HIGH_CONSCIENTIOUSNESS = auto()
-    HIGH_OPENNESS = auto()
-
-
-# ── Enums ──
-
-
-class MaslowLevel(IntEnum):
-    """Maslow's hierarchy of needs. Higher value = higher need."""
-
-    PHYSIOLOGICAL = auto()
-    SAFETY = auto()
-    BELONGING = auto()
-    ESTEEM = auto()
-    SELF_ACTUALIZATION = auto()
-
-
-class BigFiveDimension(StrEnum):
-    """Big Five personality dimension names."""
-
-    OPENNESS = auto()
-    CONSCIENTIOUSNESS = auto()
-    EXTRAVERSION = auto()
-    AGREEABLENESS = auto()
-    NEUROTICISM = auto()
-
-
-class SituationDimension(StrEnum):
-    """DIAMONDS situational dimensions (Rauthmann et al., 2014)."""
-
-    DUTY = auto()
-    INTELLECT = auto()
-    ADVERSITY = auto()
-    MATING = auto()
-    POSITIVITY = auto()
-    NEGATIVITY = auto()
-    DECEPTION = auto()
-    SOCIALITY = auto()
-
-
-class SituationProfile(ProposedAble):
-    """8-dimensional situational classification per event.
-
-    Each dimension scored 0.0-1.0 by LLM extraction.
-    """
-
-    duty: float = Field(ge=0, le=1, default=0)
-    intellect: float = Field(ge=0, le=1, default=0)
-    adversity: float = Field(ge=0, le=1, default=0)
-    mating: float = Field(ge=0, le=1, default=0)
-    positivity: float = Field(ge=0, le=1, default=0)
-    negativity: float = Field(ge=0, le=1, default=0)
-    deception: float = Field(ge=0, le=1, default=0)
-    sociality: float = Field(ge=0, le=1, default=0)
-
-    def as_vector(self) -> list[float]:
-        """Return a flat vector of all 8 situation dimension scores."""
-        return [
-            self.duty,
-            self.intellect,
-            self.adversity,
-            self.mating,
-            self.positivity,
-            self.negativity,
-            self.deception,
-            self.sociality,
-        ]
-
-    def top_dimension(self) -> SituationDimension:
-        """Return the highest-scoring SituationDimension."""
-        dims = list(SituationDimension)
-        vals = self.as_vector()
-        return dims[vals.index(max(vals))]
-
-
-# ── Stable identity components ──
-
-
-class BigFiveProfile(Base):
-    """Big Five personality traits. Each dimension 0-100."""
-
-    openness: float = Field(ge=0, le=100, default=50.0)
-    """Curiosity vs practicality."""
-
-    conscientiousness: float = Field(ge=0, le=100, default=50.0)
-    """Self-discipline vs flexibility."""
-
-    extraversion: float = Field(ge=0, le=100, default=50.0)
-    """Outgoing vs reserved."""
-
-    agreeableness: float = Field(ge=0, le=100, default=50.0)
-    """Cooperative vs competitive."""
-
-    neuroticism: float = Field(ge=0, le=100, default=50.0)
-    """Anxious vs emotionally stable."""
-
-    def as_vector(self) -> list[float]:
-        """Return personality as a 5D vector [O, C, E, A, N]."""
-        return [self.openness, self.conscientiousness, self.extraversion, self.agreeableness, self.neuroticism]
-
-    def distance_to(self, other: "BigFiveProfile") -> float:
-        """Euclidean distance between two personality profiles."""
-        from math import sqrt
-
-        return sqrt(sum((a - b) ** 2 for a, b in zip(self.as_vector(), other.as_vector(), strict=True)))
-
-    def personality_flag(self, flag: "PersonalityFlag") -> bool:
-        """Check a personality condition flag against this profile."""
-        from fabricatio_character.config import character_config
-
-        high = character_config.mind_personality_high
-        low = character_config.mind_personality_low
-        flag_map = {
-            PersonalityFlag.HIGH_NEUROTICISM: self.neuroticism > high,
-            PersonalityFlag.LOW_AGREEABLENESS: self.agreeableness < low,
-            PersonalityFlag.HIGH_EXTRAVERSION: self.extraversion > high,
-            PersonalityFlag.LOW_EXTRAVERSION: self.extraversion < low,
-            PersonalityFlag.HIGH_CONSCIENTIOUSNESS: self.conscientiousness > high,
-            PersonalityFlag.HIGH_OPENNESS: self.openness > high,
-        }
-        return flag_map.get(flag, False)
-
-
-class CognitiveDistortion(Base):
-    """CBT cognitive distortion tendency weights for a character."""
-
-    catastrophizing: float = Field(ge=0, le=100, default=20.0)
-    """Amplify threat."""
-
-    black_and_white: float = Field(ge=0, le=100, default=20.0)
-    """No middle ground."""
-
-    personalization: float = Field(ge=0, le=100, default=20.0)
-    """Self-blame."""
-
-    emotional_reasoning: float = Field(ge=0, le=100, default=20.0)
-    """Feelings = facts."""
-
-    should_thinking: float = Field(ge=0, le=100, default=20.0)
-    """Rigid expectations."""
-
-    def top(self, n: int = 1) -> list["Distortion"]:
-        """Return top-N most likely distortion types."""
-        scores: dict[str, float] = self.model_dump()
-        return [Distortion(k) for k in sorted(scores, key=scores.get, reverse=True)[:n]]
-
-    def rule_filter(self, situation: "SituationProfile") -> dict[str, float]:
-        """Compute distortion scores boosted by DIAMONDS situational dimensions.
-
-        Base = character tendency weight. Boost = dim_score * boost_value from config.
-        Returns dict with Distortion enum value strings as keys.
-        """
-        from fabricatio_character.config import character_config
-
-        scores: dict[str, float] = self.model_dump()
-        for dim_enum, distortion_boosts in character_config.mind_diamonds_distortion_boost.items():
-            dim_score = getattr(situation, dim_enum.value, 0.0)
-            if dim_score > 0:
-                for distortion, boost in distortion_boosts.items():
-                    key = distortion.value
-                    scores[key] = scores.get(key, 0.0) + dim_score * boost
-        return scores
-
-
-class LinguisticStyle(ProposedAble):
-    """Decoupled language expression patterns. Extracted from character dialogues."""
-
-    preferences: str = ""
-    """Natural language description of style tendencies."""
-
-    common_pronouns: list[str] = Field(default_factory=list)
-    """Preferred pronouns."""
-
-    common_modals: list[str] = Field(default_factory=list)
-    """Preferred modal verbs."""
-    common_adjectives: list[str] = Field(default_factory=list)
-    """Preferred adjectives and descriptors."""
-
-    style_references: list[str] = Field(default_factory=list)
-    """Exemplary utterances from the character for style reference."""
-
-
-# -- Volatile components --
-
-
-class HeartRate(StrEnum):
-    """Heart rate states."""
-
-    NORMAL = auto()
-    ELEVATED = auto()
-    RACING = auto()
-
-
-class Breathing(StrEnum):
-    """Breathing patterns."""
-
-    NORMAL = auto()
-    SLOW = auto()
-    SHALLOW = auto()
-    RAPID = auto()
-
-
-class MuscleTension(StrEnum):
-    """Muscle tension levels."""
-
-    RELAXED = auto()
-    TENSE = auto()
-    RIGID = auto()
-    TREMBLING = auto()
-
-
-class FacialExpression(StrEnum):
-    """Facial expression states."""
-
-    NEUTRAL = auto()
-    FROWN = auto()
-    WIDE_EYES = auto()
-    BLUSH = auto()
-
-
-class VoiceQuality(StrEnum):
-    """Voice quality states."""
-
-    STEADY = auto()
-    TREMBLING = auto()
-    FAST = auto()
-    QUIET = auto()
-
-
-class SomaticState(Base):
-    """Body sensations derived from emotion type and intensity."""
-
-    heart_rate: HeartRate = HeartRate.NORMAL
-    """Heart rate state."""
-
-    breathing: Breathing = Breathing.NORMAL
-    """Breathing pattern."""
-
-    muscle_tension: MuscleTension = MuscleTension.RELAXED
-    """Muscle tension level."""
-
-    facial_expression: FacialExpression = FacialExpression.NEUTRAL
-    """Facial expression."""
-
-    voice: VoiceQuality = VoiceQuality.STEADY
-    """Voice quality."""
-
-    @classmethod
-    def from_emotion(cls, emotion: "Emotion", intensity: float) -> "SomaticState":
-        """Create SomaticState from emotion type and intensity via config mapping."""
-        from fabricatio_character.config import character_config
-
-        entry = character_config.mind_emotion_somatic_map.get(emotion)
-        if entry is None:
-            return cls()
-        high_state, low_state = entry
-        return high_state if intensity > character_config.mind_emotion_intensity_high else low_state
-
-
-# ── Accumulated ──
-
-
-class QualitativeSuffering(ProposedAble):
-    """Irreversible trauma that permanently reshapes character."""
-
-    what_was_lost: str
-    """What was taken from the character."""
-
-    the_void: str
-    """The gap it created."""
-
-    how_it_changed_me: str
-    """How it reshaped the character."""
-
-    anticipatory_dread: float = Field(ge=0, le=100, default=50.0)
-    """Fear of similar situations (0-100)."""
-
 
 # ── Layer models ──
 
@@ -342,12 +55,15 @@ class QualitativeSuffering(ProposedAble):
 class CharacterMind(Base):
     """Stable psychological identity. Seeded once from CharacterCard, drifts slowly.
 
-    Contains personality, cognitive tendencies, and linguistic style.
+    Contains personality, cognitive tendencies, linguistic style, and age.
     Changes only through slow drift over many events.
     """
 
     character_name: str
     """Name of the character this mind belongs to."""
+
+    age: int = Field(ge=0, default=25)
+    """Character age. Scales personality drift per event (see ``age_shift_scale``)."""
 
     personality: BigFiveProfile = Field(default_factory=BigFiveProfile)
     """Stable personality traits."""
@@ -377,7 +93,8 @@ class EmotionalState(Base):
 
     active_distortion: Distortion | None = None
     """Currently activated cognitive distortion (per-event, volatile)."""
-    latest_situation: Optional["SituationProfile"] = None
+
+    latest_situation: SituationProfile | None = None
     """DIAMONDS profile from the latest event (volatile, for prompt injection)."""
 
 
@@ -397,15 +114,23 @@ class NeedState(Base):
 # ── Composite state ──
 
 
-class MentalState(Base):
+class MentalState(AsPrompt, PersistentAble):
     """Complete psychological state. All theories represented.
 
     Three layers:
-    - mind: stable identity (personality, cognition, language)
+    - mind: stable identity (personality, cognition, language, age)
     - emotion: volatile per-event state (emotion, body, active distortion)
     - needs: accumulated Maslow hierarchy
     Plus sufferings (permanent trauma history).
+
+    Self-sufficient: rule application (:meth:`apply`), prompt rendering
+    (:meth:`as_prompt`, AsPrompt protocol), and persistence
+    (:class:`PersistentAble`) live on the model, mirroring CharacterCard.
+    Immutable-update style: :meth:`apply` returns a new instance.
     """
+
+    rendering_template: ClassVar[str] = character_config.mind_system_prompt_template
+    """Handlebars template used by :meth:`as_prompt`."""
 
     mind: CharacterMind
     """Stable psychological identity."""
@@ -420,17 +145,69 @@ class MentalState(Base):
     """Accumulated irreversible traumas."""
 
     @classmethod
-    def from_card(cls, card: "CharacterCard") -> "MentalState":
+    def from_card(cls, card: "CharacterCard", age: int = 25) -> "MentalState":
         """Seed MentalState from a CharacterCard with minimal defaults.
 
-        Sets character name and default values. For intelligent seeding
-        with LLM-driven need/distortion classification, use UseMind.seed_from().
+        Bridges the card's free-text ``mood`` into an :class:`Emotion` when it
+        names one exactly (case-insensitive). For LLM-judged seeding of the
+        initial need level and cognitive distortions, use
+        ``UseMind.seed_from(card)`` instead.
         """
+        try:
+            emotion = Emotion(card.mood.strip().lower())
+        except ValueError:
+            emotion = Emotion.NEUTRAL
         return cls(
-            mind=CharacterMind(character_name=card.name),
+            mind=CharacterMind(character_name=card.name, age=age),
+            emotion=EmotionalState(emotion=emotion),
         )
 
-    def drop_level(self, threatened: MaslowLevel) -> "MentalState":
+    def apply(self, impact: "EventImpact") -> Self:
+        """Apply deterministic rules to evolve this state from an event impact.
+
+        Returns a NEW MentalState (copy-on-write; this instance is untouched).
+
+        Rule order: need threat drop / satisfaction accumulation, age-scaled
+        personality drift (age read from ``self.mind.age``), suffering
+        accumulation, situation storage, emotional state replacement.
+        """
+        new_state = self.model_copy(deep=True)
+
+        # 1. Need transitions
+        if impact.threatens_need is not None:
+            new_state = new_state.drop_level(impact.threatens_need)
+        if impact.fulfills_need is not None:
+            new_state = new_state.accumulate_satisfaction(impact.fulfills_need)
+
+        # 2. Personality drift (age-scaled from this mind's own age)
+        scale = character_config.age_shift_scale(new_state.mind.age)
+        for dim, delta in impact.personality_shift.items():
+            if hasattr(new_state.mind.personality, dim.value):
+                current = getattr(new_state.mind.personality, dim.value)
+                new_val = max(0.0, min(100.0, current + delta * scale))
+                setattr(new_state.mind.personality, dim.value, new_val)
+
+        # 3. Suffering accumulation
+        if impact.created_suffering is not None:
+            new_state.sufferings.append(impact.created_suffering)
+
+        # 4. Situation storage (independent of emotion — always apply if present)
+        if impact.situation is not None:
+            new_state.emotion = new_state.emotion.model_copy(update={"latest_situation": impact.situation})
+
+        # 5. Emotional state (replace, not mutate)
+        if impact.emotion is not None:
+            new_state.emotion = EmotionalState(
+                emotion=impact.emotion,
+                intensity=impact.emotion_intensity,
+                somatic=SomaticState.from_emotion(impact.emotion, impact.emotion_intensity),
+                active_distortion=impact.triggers_distortion,
+                latest_situation=impact.situation or new_state.emotion.latest_situation,
+            )
+
+        return new_state
+
+    def drop_level(self, threatened: MaslowLevel) -> Self:
         """Drop to or below the threatened need level."""
         self.needs.satisfied = [n for n in self.needs.satisfied if n < threatened]
         if threatened > MaslowLevel.PHYSIOLOGICAL:
@@ -439,10 +216,8 @@ class MentalState(Base):
             self.needs.current_level = MaslowLevel.PHYSIOLOGICAL
         return self
 
-    def accumulate_satisfaction(self, fulfilled: MaslowLevel) -> "MentalState":
+    def accumulate_satisfaction(self, fulfilled: MaslowLevel) -> Self:
         """Accumulate satisfaction count; rise level when threshold met."""
-        from fabricatio_character.config import character_config
-
         self.needs.counters[fulfilled] = self.needs.counters.get(fulfilled, 0) + 1
         if self.needs.counters[fulfilled] >= character_config.mind_satisfaction_threshold:
             if fulfilled not in self.needs.satisfied:
@@ -451,6 +226,53 @@ class MentalState(Base):
                 self.needs.current_level = MaslowLevel(self.needs.current_level + 1)
             self.needs.counters[fulfilled] = 0
         return self
+
+    def _as_prompt_inner(self) -> dict[str, Any]:
+        """Assemble the typed template payload for ``mind_system_prompt``."""
+        p = self.mind.personality
+        s = self.emotion.somatic
+        ls = self.mind.linguistic_style
+
+        active_distortion = self.emotion.active_distortion
+
+        data = AsPromptData(
+            personality_rules=[
+                desc for key, desc in character_config.mind_personality_rules.items() if p.personality_flag(key)
+            ],
+            need_description=character_config.mind_need_focus.get(self.needs.current_level, ""),
+            emotion=self.emotion.emotion.value,
+            emotion_intensity=f"{self.emotion.intensity:.0f}",
+            emotion_high=self.emotion.intensity > character_config.mind_emotion_intensity_high,
+            emotion_mid=self.emotion.intensity > character_config.mind_emotion_intensity_mid,
+            cognitive_bias=active_distortion.value if active_distortion else None,
+            bias_example=character_config.mind_bias_examples.get(active_distortion, "") if active_distortion else "",
+            has_somatic=s.heart_rate != HeartRate.NORMAL or s.muscle_tension != MuscleTension.RELAXED,
+            somatic_heart_rate=s.heart_rate.value,
+            somatic_breathing=s.breathing.value,
+            somatic_muscle_tension=s.muscle_tension.value,
+            somatic_facial_expression=s.facial_expression.value,
+            somatic_voice=s.voice.value,
+            has_sufferings=bool(self.sufferings),
+            sufferings=[
+                SufferingSummary(
+                    what_was_lost=sv.what_was_lost,
+                    the_void=sv.the_void,
+                    how_it_changed_me=sv.how_it_changed_me,
+                )
+                for sv in self.sufferings
+            ],
+            has_linguistic=bool(ls.preferences),
+            linguistic_preferences=ls.preferences,
+            linguistic_pronouns=ls.common_pronouns or None,
+            linguistic_modals=ls.common_modals or None,
+            has_situation=self.emotion.latest_situation is not None,
+            top_situation_dimension=(
+                self.emotion.latest_situation.top_dimension().value if self.emotion.latest_situation else ""
+            ),
+            situation_adversity=(self.emotion.latest_situation.adversity if self.emotion.latest_situation else 0.0),
+            situation_negativity=(self.emotion.latest_situation.negativity if self.emotion.latest_situation else 0.0),
+        )
+        return data.as_template_data()
 
 
 # ── Event analysis output ──
@@ -480,19 +302,12 @@ class EventImpact(ProposedAble):
 
     fulfills_need: MaslowLevel | None = None
     """Need level fulfilled by the event."""
-    created_suffering: Optional["QualitativeSuffering"] = None
+
+    created_suffering: QualitativeSuffering | None = None
     """Suffering created from high-intensity emotional events."""
 
-    situation: Optional["SituationProfile"] = None
+    situation: SituationProfile | None = None
     """DIAMONDS situation profile from event analysis."""
-
-
-class DistortionAnalysis(ProposedAble):
-    """CBT distortion analysis output — used by LLM distortion judgment path."""
-
-    triggered_distortion: Distortion | None = None
-    internal_monologue: str = ""
-    reasoning: str = ""
 
 
 class EventContext(Base):
@@ -559,3 +374,32 @@ class AsPromptData(Base):
     def as_template_data(self) -> dict[str, str | float | bool | int | list[Any] | None]:
         """Convert to dict for TEMPLATE_MANAGER.render_template()."""
         return self.model_dump()
+
+
+__all__ = [
+    "AsPromptData",
+    "BigFiveDimension",
+    "BigFiveProfile",
+    "Breathing",
+    "CharacterMind",
+    "CognitiveDistortion",
+    "Distortion",
+    "Emotion",
+    "EmotionalState",
+    "EventContext",
+    "EventImpact",
+    "FacialExpression",
+    "HeartRate",
+    "LinguisticStyle",
+    "MaslowLevel",
+    "MentalState",
+    "MuscleTension",
+    "NeedState",
+    "PersonalityFlag",
+    "QualitativeSuffering",
+    "SituationDimension",
+    "SituationProfile",
+    "SomaticState",
+    "SufferingSummary",
+    "VoiceQuality",
+]

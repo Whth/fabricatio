@@ -6,11 +6,11 @@ import pytest
 from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import (
+    BigFiveDimension,
     BigFiveProfile,
     CharacterMind,
     CognitiveDistortion,
     Distortion,
-    DistortionAnalysis,
     Emotion,
     EmotionalState,
     EventImpact,
@@ -30,15 +30,6 @@ from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_router import pad_responses
 from fabricatio_mock.utils import setup_dummy_responses
 from pydantic import ValidationError
-
-
-class _TestMind(UseMind):
-    """Concrete UseMind for testing (no LLM needed)."""
-
-    pass
-
-
-_mind = _TestMind()
 
 
 def _make_state(name: str = "Test", mind: CharacterMind | None = None, **kwargs) -> MentalState:
@@ -265,12 +256,12 @@ class TestEmotionToSomatic:
 
 
 # ---------------------------------------------------------------------------
-# UseMind.after_impact tests
+# MentalState.apply tests
 # ---------------------------------------------------------------------------
 
 
 class TestAfterImpact:
-    """Tests for UseMind.after_impact state transitions."""
+    """Tests for MentalState.apply state transitions."""
 
     def test_threat(self) -> None:
         """Threatening a satisfied need drops current level below it."""
@@ -280,7 +271,7 @@ class TestAfterImpact:
                 satisfied=[MaslowLevel.PHYSIOLOGICAL, MaslowLevel.SAFETY],
             ),
         )
-        new_state = _mind.after_impact(EventImpact(threatens_need=MaslowLevel.SAFETY), state)
+        new_state = state.apply(EventImpact(threatens_need=MaslowLevel.SAFETY))
         assert new_state.needs.current_level < MaslowLevel.SAFETY
         assert state.needs.current_level == MaslowLevel.BELONGING  # immutable
 
@@ -288,33 +279,31 @@ class TestAfterImpact:
         """Fulfilling a need three times satisfies it and promotes level."""
         state = _make_state(needs=NeedState(current_level=MaslowLevel.PHYSIOLOGICAL))
         for _ in range(3):
-            state = _mind.after_impact(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL), state)
+            state = state.apply(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL))
         assert MaslowLevel.PHYSIOLOGICAL in state.needs.satisfied
         assert state.needs.current_level > MaslowLevel.PHYSIOLOGICAL
 
     def test_emotion(self) -> None:
         """Emotion with intensity sets emotional state and somatic response."""
-        new_state = _mind.after_impact(EventImpact(emotion=Emotion.FEAR, emotion_intensity=80), _make_state())
+        new_state = _make_state().apply(EventImpact(emotion=Emotion.FEAR, emotion_intensity=80))
         assert new_state.emotion.emotion == Emotion.FEAR
         assert new_state.emotion.intensity == 80
         assert new_state.emotion.somatic.heart_rate == HeartRate.RACING
 
     def test_active_distortion(self) -> None:
         """Triggers_distortion sets the active distortion on emotion."""
-        new_state = _mind.after_impact(
+        new_state = _make_state().apply(
             EventImpact(emotion=Emotion.FEAR, emotion_intensity=80, triggers_distortion=Distortion.CATASTROPHIZING),
-            _make_state(),
         )
         assert new_state.emotion.active_distortion == Distortion.CATASTROPHIZING
 
     def test_age_aware_drift(self) -> None:
         """Children experience larger personality shifts than adults."""
-        from fabricatio_character.models.mental import BigFiveDimension
-
-        state = _make_state()
+        young = _make_state(mind=CharacterMind(character_name="Test", age=8))
+        old = _make_state(mind=CharacterMind(character_name="Test", age=30))
         impact = EventImpact(personality_shift={BigFiveDimension.NEUROTICISM: 10.0})
-        child = _mind.after_impact(impact, state, age=8)
-        adult = _mind.after_impact(impact, state, age=30)
+        child = young.apply(impact)
+        adult = old.apply(impact)
         assert child.mind.personality.neuroticism > adult.mind.personality.neuroticism
 
     def test_model_copy_deep(self) -> None:
@@ -335,13 +324,13 @@ class TestAsPrompt:
 
     def test_basic(self) -> None:
         """Basic prompt contains need or personality info."""
-        prompt = _mind.as_prompt(_make_state())
+        prompt = _make_state().as_prompt()
         assert "Current Need" in prompt or "Personality" in prompt
 
     def test_with_bias(self) -> None:
         """Active distortion appears in the prompt."""
         state = _make_state(emotion=EmotionalState(active_distortion=Distortion.CATASTROPHIZING))
-        assert "catastrophizing" in _mind.as_prompt(state)
+        assert "catastrophizing" in state.as_prompt()
 
     def test_with_suffering(self) -> None:
         """State with sufferings can be created and used for prompt."""
@@ -393,13 +382,19 @@ class TestSeedFrom:
         )
         import asyncio
 
-        state = asyncio.run(
-            mind.seed_from(
-                name="Hamlet",
-                want="To avenge his father's murder",
-                flaw="Tendency toward catastrophizing",
-            ),
+        card = CharacterCard(
+            name="Hamlet",
+            roles=["Prince of Denmark"],
+            activated_role="Prince of Denmark",
+            look="pale",
+            act="brooding",
+            want="To avenge his father's murder",
+            flaw="Tendency toward catastrophizing",
+            where="Elsinore Castle",
+            condition="haggard",
+            mood="melancholic",
         )
+        state = asyncio.run(mind.seed_from(card))
         assert state.mind.character_name == "Hamlet"
         assert state.needs.current_level == MaslowLevel.ESTEEM
         assert state.mind.cognitive_tendencies.catastrophizing == 70.0
@@ -517,27 +512,18 @@ class TestDistortionScoring:
         assert is_high_confidence(50.0) is False
 
 
-class TestDistortionAnalysis:
-    """Tests for DistortionAnalysis model defaults."""
-
-    def test_defaults(self) -> None:
-        """Default DistortionAnalysis has no triggered distortion."""
-        da = DistortionAnalysis()
-        assert da.triggered_distortion is None
-
-
 class TestSufferingAccumulation:
     """Tests for suffering accumulation in MentalState."""
 
     def test_persisted(self) -> None:
         """Suffering from an impact is persisted in the state."""
         s = QualitativeSuffering(what_was_lost="trust", the_void="suspicion", how_it_changed_me="withdrawn")
-        new = _mind.after_impact(EventImpact(created_suffering=s), _make_state())
+        new = _make_state().apply(EventImpact(created_suffering=s))
         assert len(new.sufferings) == 1
 
     def test_none_skipped(self) -> None:
         """None suffering is silently ignored."""
-        new = _mind.after_impact(EventImpact(created_suffering=None), _make_state())
+        new = _make_state().apply(EventImpact(created_suffering=None))
         assert len(new.sufferings) == 0
 
     def test_accumulates(self) -> None:
@@ -545,8 +531,8 @@ class TestSufferingAccumulation:
         s1 = QualitativeSuffering(what_was_lost="a", the_void="b", how_it_changed_me="c")
         s2 = QualitativeSuffering(what_was_lost="d", the_void="e", how_it_changed_me="f")
         state = _make_state()
-        state = _mind.after_impact(EventImpact(created_suffering=s1), state)
-        state = _mind.after_impact(EventImpact(created_suffering=s2), state)
+        state = state.apply(EventImpact(created_suffering=s1))
+        state = state.apply(EventImpact(created_suffering=s2))
         assert len(state.sufferings) == 2
 
 
@@ -561,8 +547,8 @@ class _MockMindForDiamonds(UseMind):
         return self.llm_send_to or DUMMY_LLM_GROUP
 
 
-class TestUponEventDiamonds:
-    """Tests for UseMind.upon_event DIAMONDS pipeline."""
+class TestObserveDiamonds:
+    """Tests for UseMind.observe DIAMONDS pipeline."""
 
     def test_high_confidence_rule_result(self) -> None:
         """High adversity boosts catastrophizing -> high confidence -> rule result, no bias LLM."""
@@ -587,7 +573,7 @@ class TestUponEventDiamonds:
         )
         import asyncio
 
-        impact = asyncio.run(mind.upon_event("Betrayed by friend.", state))
+        impact = asyncio.run(mind.observe("Betrayed by friend.", state))
         assert impact.triggers_distortion is not None
         assert impact.created_suffering is None
 
@@ -615,7 +601,7 @@ class TestUponEventDiamonds:
         )
         import asyncio
 
-        impact = asyncio.run(mind.upon_event("Family killed.", state))
+        impact = asyncio.run(mind.observe("Family killed.", state))
         assert impact.created_suffering is not None
 
     def test_low_confidence_uses_llm(self) -> None:
@@ -642,7 +628,7 @@ class TestUponEventDiamonds:
         )
         import asyncio
 
-        impact = asyncio.run(mind.upon_event("Minor setback.", state))
+        impact = asyncio.run(mind.observe("Minor setback.", state))
         assert impact.emotion == Emotion.SADNESS
 
 

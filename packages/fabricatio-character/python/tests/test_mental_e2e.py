@@ -4,7 +4,6 @@ Tests the full pipeline: CharacterCard -> MentalState -> event processing -> pro
 Uses Hamlet and Lin Daiyu as test characters.
 """
 
-from fabricatio_character.capabilities.mental import UseMind
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_character.models.mental import (
     BigFiveDimension,
@@ -19,13 +18,6 @@ from fabricatio_character.models.mental import (
     QualitativeSuffering,
     VoiceQuality,
 )
-
-
-class _TestMind(UseMind):
-    pass
-
-
-_mind = _TestMind()
 
 
 def _make_state(name: str = "Test", **kwargs) -> MentalState:
@@ -68,6 +60,7 @@ def _hamlet_state() -> MentalState:
     return MentalState(
         mind=CharacterMind(
             character_name="Hamlet",
+            age=20,
             cognitive_tendencies=CognitiveDistortion(catastrophizing=70.0),
         ),
         needs=NeedState(current_level=MaslowLevel.ESTEEM),
@@ -79,6 +72,7 @@ def _daiyu_state() -> MentalState:
     return MentalState(
         mind=CharacterMind(
             character_name="Lin Daiyu",
+            age=17,
             cognitive_tendencies=CognitiveDistortion(emotional_reasoning=70.0),
         ),
         needs=NeedState(current_level=MaslowLevel.BELONGING),
@@ -104,7 +98,7 @@ class TestHamletScenario:
             triggers_distortion=Distortion.CATASTROPHIZING,
             personality_shift={BigFiveDimension.NEUROTICISM: 5.0},
         )
-        state = _mind.after_impact(impact, state, age=20)
+        state = state.apply(impact)
 
         assert state.emotion.emotion == Emotion.GRIEF
         assert state.emotion.intensity == 90
@@ -116,21 +110,17 @@ class TestHamletScenario:
         """Apply sequential grief then disgust and verify cascading effects."""
         state = _hamlet_state()
 
-        state = _mind.after_impact(
+        state = state.apply(
             EventImpact(threatens_need=MaslowLevel.ESTEEM, emotion=Emotion.GRIEF, emotion_intensity=90),
-            state,
-            age=20,
         )
 
-        state = _mind.after_impact(
+        state = state.apply(
             EventImpact(
                 threatens_need=MaslowLevel.BELONGING,
                 emotion=Emotion.DISGUST,
                 emotion_intensity=70,
                 triggers_distortion=Distortion.PERSONALIZATION,
             ),
-            state,
-            age=20,
         )
 
         assert state.emotion.emotion == Emotion.DISGUST
@@ -140,15 +130,13 @@ class TestHamletScenario:
     def test_build_prompt_after_trauma(self) -> None:
         """Build prompt after trauma and verify psychological details present."""
         state = _hamlet_state()
-        state = _mind.after_impact(
+        state = state.apply(
             EventImpact(
                 threatens_need=MaslowLevel.ESTEEM,
                 emotion=Emotion.GRIEF,
                 emotion_intensity=90,
                 triggers_distortion=Distortion.CATASTROPHIZING,
             ),
-            state,
-            age=20,
         )
         state.sufferings.append(
             QualitativeSuffering(
@@ -158,7 +146,7 @@ class TestHamletScenario:
             ),
         )
 
-        prompt = _mind.as_prompt(state)
+        prompt = state.as_prompt()
         assert "grief" in prompt.lower() or "90" in prompt
         assert "catastrophizing" in prompt
         assert "father" in prompt
@@ -176,10 +164,8 @@ class TestDaiyuScenario:
         """Repeated belonging fulfillment raises need level above BELONGING."""
         state = _daiyu_state()
         for _ in range(3):
-            state = _mind.after_impact(
+            state = state.apply(
                 EventImpact(fulfills_need=MaslowLevel.BELONGING, emotion=Emotion.JOY, emotion_intensity=60),
-                state,
-                age=15,
             )
         assert MaslowLevel.BELONGING in state.needs.satisfied
         assert state.needs.current_level > MaslowLevel.BELONGING
@@ -188,13 +174,11 @@ class TestDaiyuScenario:
         """Belonging satisfaction then betrayal triggers emotional reasoning."""
         state = _daiyu_state()
         for _ in range(3):
-            state = _mind.after_impact(
+            state = state.apply(
                 EventImpact(fulfills_need=MaslowLevel.BELONGING, emotion=Emotion.JOY, emotion_intensity=60),
-                state,
-                age=17,
             )
 
-        state = _mind.after_impact(
+        state = state.apply(
             EventImpact(
                 threatens_need=MaslowLevel.BELONGING,
                 emotion=Emotion.SADNESS,
@@ -202,8 +186,6 @@ class TestDaiyuScenario:
                 triggers_distortion=Distortion.EMOTIONAL_REASONING,
                 personality_shift={BigFiveDimension.NEUROTICISM: 10.0},
             ),
-            state,
-            age=17,
         )
 
         assert state.emotion.emotion == Emotion.SADNESS
@@ -223,7 +205,7 @@ class TestMaslowDynamics:
                 satisfied=[MaslowLevel.PHYSIOLOGICAL, MaslowLevel.SAFETY, MaslowLevel.BELONGING],
             ),
         )
-        state = _mind.after_impact(EventImpact(threatens_need=MaslowLevel.SAFETY), state)
+        state = state.apply(EventImpact(threatens_need=MaslowLevel.SAFETY))
 
         assert MaslowLevel.SAFETY not in state.needs.satisfied
         assert MaslowLevel.BELONGING not in state.needs.satisfied
@@ -233,10 +215,10 @@ class TestMaslowDynamics:
         """Three fulfillment events accumulate and promote to next level."""
         state = _make_state(needs=NeedState(current_level=MaslowLevel.PHYSIOLOGICAL))
 
-        state = _mind.after_impact(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL), state)
-        state = _mind.after_impact(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL), state)
+        state = state.apply(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL))
+        state = state.apply(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL))
         assert state.needs.current_level == MaslowLevel.PHYSIOLOGICAL
 
-        state = _mind.after_impact(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL), state)
+        state = state.apply(EventImpact(fulfills_need=MaslowLevel.PHYSIOLOGICAL))
         assert state.needs.current_level > MaslowLevel.PHYSIOLOGICAL
         assert MaslowLevel.PHYSIOLOGICAL in state.needs.satisfied

@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 from fabricatio_core import CONFIG
 
-from fabricatio_character.models.mental import (
+from fabricatio_character.models.psych import (
     Breathing,
     Distortion,
     Emotion,
