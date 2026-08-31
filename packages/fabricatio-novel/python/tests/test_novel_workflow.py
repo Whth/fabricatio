@@ -196,12 +196,15 @@ class TestNovelWorkflow:
             Event.quick_instantiate(namespace), RagIllustrationDebugNovelWorkflow
         ).dispatch()
         task = Task(name="wf novel illustration").update_init_context(
-            novel_outline="A cartographer's apprentice charts a floating city.",
+            # Unique outline: every LLM prompt embeds it, so no persistent mock-router
+            # cache entry can serve any call and skip its turn on the dummy response
+            # stack — the illustration proposal is the last consumer and starves first.
+            novel_outline="A cartographer's apprentice charts a floating city above the Amber Sea.",
             novel_language="English",
             persist_dir=persist_dir,
         )
         meta = NovelPlan(
-            title="The Floating Atlas",
+            title="The Floating Atlas II",
             description="An apprentice mapping a city that drifts among the clouds.",
             expected_word_count=100,
             series_bible=SeriesBible(),
