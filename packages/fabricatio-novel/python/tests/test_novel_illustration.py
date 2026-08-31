@@ -53,7 +53,7 @@ def build_two_story_novel_ctx() -> NovelContext:
     return ctx
 
 
-def install_fake_renderer(monkeypatch: pytest.MonkeyPatch, outcomes: list[Path | None | Exception]) -> list[str]:
+def install_fake_renderer(monkeypatch: pytest.MonkeyPatch, outcomes: list[Path | Exception | None]) -> list[str]:
     """Patch generate_image with a fake 1x1-PNG renderer consuming per-call outcomes.
 
     Each outcome is a returned path, ``None`` (failed generation), or an exception to raise.
