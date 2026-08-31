@@ -73,8 +73,12 @@ class NovelConfig:
     illustration_constraint: str = ""
     """global style/content constraint merged into every scene illustration prompt proposal; empty when unset."""
 
-    illustration_negative_prompt: str = ""
-    """negative prompt forwarded to ComfyUI for every scene illustration; empty when unset."""
+    illustration_negative_prompt: str = (
+        "worst, lowres, low quality, mulform, sketch, texts, censor, terrible quality, garbage,"
+        " multiple arms, multiple legs, multiple fingers, jpeg artifacts, out of frame, watermark,"
+        " cropped, signature, blurry"
+    )
+    """negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own."""
 
     illustration_width: int | None = None
     """scene illustration width in pixels; ``None`` keeps the bundled ComfyUI template's value."""

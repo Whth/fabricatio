@@ -230,7 +230,7 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `story_character_span_template` | `str` | `"built-in/story_character_span"` | template used to draft the S-1 story-boundary cards from the chapter's spans. |
 | `scene_illustration_prompt_template` | `str` | `"built-in/scene_illustration_prompt"` | template used to propose one image-generation prompt for a composed scene. |
 | `illustration_constraint` | `str` | `""` | global style/content constraint merged into every scene illustration prompt proposal; empty when unset. |
-| `illustration_negative_prompt` | `str` | `""` | negative prompt forwarded to ComfyUI for every scene illustration; empty when unset. |
+| `illustration_negative_prompt` | `str` | quality/anatomy exclusion list | negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own. |
 | `illustration_width` | `int \| None` | `None` | scene illustration width in pixels; `None` keeps the bundled ComfyUI template's value. |
 | `illustration_height` | `int \| None` | `None` | scene illustration height in pixels; `None` keeps the bundled ComfyUI template's value. |
 | `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |

@@ -1137,7 +1137,9 @@ Illustration knobs for the ``wri`` post-process pass: ``illustration_constraint`
 scene's illustration prompt proposal; a Role may override it per instance through the
 ``IllustrationScopedConfig.illustration_constraint`` field (per-call argument wins,
 then the scoped field, then this global). ``illustration_negative_prompt`` (string,
-unset by default) forwards a negative prompt to ComfyUI for every scene illustration;
+defaulting to a quality/anatomy exclusion list such as ``low quality``, ``multiple
+fingers``, ``watermark``, ``jpeg artifacts``, ``blurry``) forwards a negative prompt
+to ComfyUI for every scene illustration;
 ``illustration_width``, ``illustration_height`` (int, unset by default) override the
 pixel dimensions and ``illustration_seed`` (int, unset by default) pins the sampler
 seed, with unset values keeping the bundled ComfyUI template's behavior;
