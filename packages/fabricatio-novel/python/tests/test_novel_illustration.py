@@ -1,5 +1,6 @@
 """Post-process ComfyUI illustration tests for fabricatio-novel."""
 
+import asyncio
 import base64
 import dataclasses
 from pathlib import Path
@@ -96,8 +97,8 @@ class TestIllustrateNovelPhase:
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
         assert set(illustrations) == {(1, 1), (1, 2)}
-        assert prompts == ["a lone rider at dawn", "a stranger at the gate"]
-        assert [prompt for prompt, _ in illustrations.values()] == ["a lone rider at dawn", "a stranger at the gate"]
+        assert set(prompts) == {"a lone rider at dawn", "a stranger at the gate"}
+        assert {prompt for prompt, _ in illustrations.values()} == {"a lone rider at dawn", "a stranger at the gate"}
         assert illustrations[(1, 1)][1] == str((tmp_path / "images" / "scene_01_01.png").resolve())
         assert illustrations[(1, 2)][1] == str((tmp_path / "images" / "scene_01_02.png").resolve())
         assert (tmp_path / "images" / "scene_01_01.png").is_file()
@@ -140,7 +141,7 @@ class TestIllustrateNovelPhase:
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
         assert set(illustrations) == {(1, 1), (1, 2)}
-        assert prompts == ["redrawn dawn", "redrawn gate"]
+        assert set(prompts) == {"redrawn dawn", "redrawn gate"}
 
     async def test_illustrate_novel_phase_degrades_when_generation_fails(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -169,10 +170,10 @@ class TestIllustrateNovelPhase:
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
         role = IllustrationRole(name="illustrator")
         proposal = SceneIllustration(prompt="a stranger at the gate")
-        propose_calls = [0, 1]
 
-        async def fake_propose(model: object, requirement: object, **kwargs: object) -> SceneIllustration | None:
-            return [None, proposal][propose_calls.pop(0)]
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SceneIllustration | None:
+            # Key the failure to the S1 requirement so the outcome is deterministic under batching.
+            return None if "Title: S1" in requirement else proposal
 
         monkeypatch.setattr(IllustrationRole, "propose", staticmethod(fake_propose))
         illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
@@ -196,6 +197,70 @@ class TestIllustrateNovelPhase:
         assert (tmp_path / "images" / "scene_01_02.png").is_file()
         assert (tmp_path / "images" / "scene_01_03.png").is_file()
         assert len(prompts) == 3
+
+    async def test_illustrate_novel_phase_renders_concurrently(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert renders for all pending scenes are in flight together, not one-by-one."""
+        ctx = build_novel_ctx("S1", "S2")
+        barrier = asyncio.Barrier(2)
+        seen: list[str] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(prompt)
+            await asyncio.wait_for(barrier.wait(), timeout=5)
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(seen)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        async def fake_propose(model: object, requirement: object, **kwargs: object) -> SceneIllustration:
+            return SceneIllustration(prompt=f"prompt {len(seen) + 1}")
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        monkeypatch.setattr(IllustrateScenes, "propose", staticmethod(fake_propose))
+        role = IllustrationRole(name="illustrator")
+        illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2)}
+        assert len(seen) == 2
+
+    async def test_illustrate_novel_phase_applies_constraint(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the constraint reaches every proposal requirement, per-call arg winning over scoped."""
+        requirements: list[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SceneIllustration:
+            requirements.append(requirement)
+            return SceneIllustration(prompt="a lone rider at dawn")
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "img.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+
+        scoped_role = IllustrationRole(name="scoped", illustration_constraint="scoped ink style")
+        await scoped_role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path / "scoped")
+        assert all("## Style Constraints" in req and "scoped ink style" in req for req in requirements)
+
+        explicit_role = IllustrationRole(name="explicit", illustration_constraint="scoped ink style")
+        await explicit_role.illustrate_novel_phase(
+            build_novel_ctx("S1"), persist_dir=tmp_path / "explicit", illustration_constraint="explicit oil"
+        )
+        assert all("explicit oil" in req and "scoped ink style" not in req for req in requirements[1:])
+
+        plain_role = IllustrationRole(name="plain")
+        await plain_role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path / "plain")
+        assert all("## Style Constraints" not in req for req in requirements[2:])
 
 
 class TestAttachIllustrations:
