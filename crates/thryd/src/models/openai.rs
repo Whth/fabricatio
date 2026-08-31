@@ -424,11 +424,10 @@ impl CompletionModel for OpenaiModel {
         // Fallback: if enum conversion failed but a raw effort string was provided,
         // inject it directly into the serialized JSON (for compatible providers with
         // non-standard effort values)
-        if !reasoning_effort_is_some {
-            if let Some(s) = &effort_str {
+        if !reasoning_effort_is_some
+            && let Some(s) = &effort_str {
                 v["reasoning_effort"] = serde_json::Value::String(s.clone());
             }
-        }
         trace!("Completion request: {v:?}",);
         if stream {
             let response = self
