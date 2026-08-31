@@ -1,9 +1,9 @@
 use error_mapping::AsPyErr;
 use mcp_server::{ServerError, ToolHandler, ToolServer};
+use pyo3::Bound;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
-use pyo3::Bound;
 use pyo3_async_runtimes::tokio::future_into_py;
 #[cfg(feature = "stubgen")]
 use pyo3_stub_gen::derive::*;
