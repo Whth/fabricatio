@@ -74,7 +74,7 @@ class UseComfyUI(ComfyUIScopedConfig):
         prompt: str | list[str],
         download_dir: str | Path | None = None,
         **kwargs: Unpack[GenerateKwargs],
-    ) -> "Path | None | list[Path | None]":
+    ) -> "Path | list[Path | None] | None":
         """Generate image(s) from typed knobs and return their downloaded paths.
 
         Queues a bundled template parameterised with the provided knobs,

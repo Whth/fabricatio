@@ -42,14 +42,14 @@ async def generate_image(
     prompt: str | list[str],
     download_dir: str | Path | None = None,
     **kwargs: Unpack[GenerateKwargs],
-) -> Path | None | list[Path | None]: ...
+) -> Path | list[Path | None] | None: ...
 
 
 async def generate_image(
     prompt: str | list[str],
     download_dir: str | Path | None = None,
     **kwargs: Unpack[GenerateKwargs],
-) -> Path | None | list[Path | None]:
+) -> Path | list[Path | None] | None:
     """Generate image(s) against the configured ComfyUI server.
 
     One-shot: queues a bundled workflow parameterised with the knobs,
