@@ -34,6 +34,12 @@ class NovelConfig:
     render_chapter_xhtml_template: str = "built-in/render_chapter_xhtml"
     """template used to render a chapter as a full XHTML document."""
 
+    scene_overlap_min_chars: int = 40
+    """minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept."""
+
+    scene_overlap_max_ratio: float = 0.6
+    """maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped."""
+
     setting_bible_characters_template: str = "built-in/setting_bible_characters"
     """template used to propose the bible's character roster as one string per character."""
 

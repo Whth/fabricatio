@@ -1123,6 +1123,15 @@ All default to their ``built-in/<name>`` variant:
 ``chapter_character_span_template``, ``story_character_span_template``,
 ``scene_illustration_prompt_template``.
 
+Scene overlap knobs for serial scene writing: ``scene_overlap_min_chars`` (int,
+default ``40``) is the minimum whitespace-normalized overlap between a new
+scene's prefix and the tail of the previously composed prose that gets stripped
+— scene-by-scene generation sometimes re-emits that tail, and shorter echoes
+(a name, a phrase) are kept; ``scene_overlap_max_ratio`` (float, default
+``0.6``) caps the stripping — when the matched overlap covers this fraction of
+the generated scene or more, the content is kept untouched with a warning
+instead of reduced to a stump.
+
 Illustration knobs for the ``wri`` post-process pass: ``illustration_constraint``
 (string, empty by default) is a global style/content constraint merged into every
 scene's illustration prompt proposal; a Role may override it per instance through the

@@ -217,6 +217,8 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `scene_plan_template` | `str` | `"built-in/scene_plan"` | template used to plan the scenes of a story. |
 | `scene_requirement_template` | `str` | `"built-in/scene_requirement"` | template used to write a single scene in full prose. |
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
+| `scene_overlap_min_chars` | `int` | `40` | minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept. |
+| `scene_overlap_max_ratio` | `float` | `0.6` | maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped. |
 | `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a list of plain strings, one character per item. |
 | `setting_bible_background_template` | `str` | `"built-in/setting_bible_background"` | template used to propose the bible's background settings as a list of strings. |
 | `setting_bible_context_template` | `str` | `"built-in/setting_bible_context"` | template that renders the bible into the block seeded into the running manuscript prefix. |

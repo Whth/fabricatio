@@ -12,6 +12,7 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.scene import Scene
+from fabricatio_novel.utils import strip_overlapping_prefix
 
 
 class SceneCompose(CharacterCompose, ABC):
@@ -89,6 +90,13 @@ class SceneCompose(CharacterCompose, ABC):
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
         content = (await self.aask(requirement, send_to=send_to, **kwargs)).strip()
+        previous = "\n".join(entry.body for entry in ctx.scenes_log.entries)
+        content = strip_overlapping_prefix(
+            content,
+            previous,
+            min_chars=novel_config.scene_overlap_min_chars,
+            max_ratio=novel_config.scene_overlap_max_ratio,
+        )
         ctx.set_content(content)
         return ctx
 
