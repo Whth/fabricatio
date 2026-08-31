@@ -64,6 +64,9 @@ class NovelConfig:
     scene_illustration_prompt_template: str = "built-in/scene_illustration_prompt"
     """template used to propose one image-generation prompt for a composed scene."""
 
+    illustration_constraint: str = ""
+    """global style/content constraint merged into every scene illustration prompt proposal; empty when unset."""
+
     illustration_negative_prompt: str = ""
     """negative prompt forwarded to ComfyUI for every scene illustration; empty when unset."""
 

@@ -2,12 +2,12 @@
 
 from typing import Self
 
-from fabricatio_core.models.generic import SketchedAble
+from fabricatio_core.models.generic import ScopedConfig, SketchedAble
 
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.scene import Scene
 
-__all__ = ["IllustratedScene", "SceneIllustration"]
+__all__ = ["IllustratedScene", "IllustrationScopedConfig", "SceneIllustration"]
 
 
 class SceneIllustration(SketchedAble):
@@ -18,6 +18,27 @@ class SceneIllustration(SketchedAble):
 
     negative_prompt: str = ""
     """Text describing what the image must avoid; empty when nothing is excluded."""
+
+
+class IllustrationScopedConfig(ScopedConfig):
+    """Per-instance illustration settings with hierarchical fallback.
+
+    Fields default to ``None`` (unset at this scope) and resolve through
+    the framework's scoped-config chain: a per-call argument wins, then
+    this instance's field, then the global
+    :data:`fabricatio_novel.config.novel_config`.  Roles compose this
+    class through :class:`~fabricatio_novel.capabilities.illustration.IllustrateScenes`
+    and propagate their values to workflows and steps via
+    :meth:`hold_to` / :meth:`fallback_to`.
+    """
+
+    illustration_constraint: str | None = None
+    """Global style/content constraint merged into every illustration prompt proposal.
+
+    Used by :meth:`IllustrateScenes.illustrate_novel_phase` when no per-call
+    ``illustration_constraint`` is given; falls back to the global
+    ``[ext.novel] illustration_constraint``.
+    """
 
 
 class IllustratedScene(Scene):

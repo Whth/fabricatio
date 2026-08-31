@@ -1123,13 +1123,19 @@ All default to their ``built-in/<name>`` variant:
 ``chapter_character_span_template``, ``story_character_span_template``,
 ``scene_illustration_prompt_template``.
 
-Illustration knobs for the ``wri`` post-process pass: ``illustration_negative_prompt``
-(string, unset by default) forwards a negative prompt to ComfyUI for every scene
-illustration; ``illustration_width``, ``illustration_height`` (int, unset by default)
-override the pixel dimensions and ``illustration_seed`` (int, unset by default) pins the
-sampler seed, with unset values keeping the bundled ComfyUI template's behavior;
+Illustration knobs for the ``wri`` post-process pass: ``illustration_constraint``
+(string, empty by default) is a global style/content constraint merged into every
+scene's illustration prompt proposal; a Role may override it per instance through the
+``IllustrationScopedConfig.illustration_constraint`` field (per-call argument wins,
+then the scoped field, then this global). ``illustration_negative_prompt`` (string,
+unset by default) forwards a negative prompt to ComfyUI for every scene illustration;
+``illustration_width``, ``illustration_height`` (int, unset by default) override the
+pixel dimensions and ``illustration_seed`` (int, unset by default) pins the sampler
+seed, with unset values keeping the bundled ComfyUI template's behavior;
 ``illustration_skip_existing`` (bool, default ``True``) skips scenes whose illustration
-PNG already exists so re-runs fill only the gaps.
+PNG already exists so re-runs fill only the gaps. Pending scenes are proposed and
+rendered concurrently (two batched phases), with per-scene failures degrading to a
+warning.
 
 fabricatio-plot
 ^^^^^^^^^^^^^^^

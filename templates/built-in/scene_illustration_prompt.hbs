@@ -9,6 +9,12 @@ Turn the novel scene below into ONE image-generation prompt for a text-to-image 
 - Keep characters consistent with their descriptions in the cast list below.
 - Output ONLY the prompt text as one plain paragraph — no quotes, no JSON, no labels, no commentary, no line breaks.
 
+{{#if illustration_constraint}}
+## Style Constraints
+{{ illustration_constraint }}
+
+{{/if}}
+
 {{#if novel_title}}
 ## Novel
 {{ novel_title }}

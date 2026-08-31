@@ -1,5 +1,6 @@
-"""Post-process novel illustration: propose one image prompt per scene, render it, then attach."""
+"""Post-process novel illustration: batch-propose prompts, batch-render, then attach."""
 
+import asyncio
 from abc import ABC
 from pathlib import Path
 from shutil import copyfile
@@ -9,7 +10,7 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-from fabricatio_core.utils import cfg
+from fabricatio_core.utils import cfg, first_available
 
 cfg(["comfyui"])
 
@@ -18,29 +19,33 @@ from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.illustration import IllustratedScene, SceneIllustration
+from fabricatio_novel.models.illustration import (
+    IllustratedScene,
+    IllustrationScopedConfig,
+    SceneIllustration,
+)
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.utils import scene_image_name
 
 __all__ = ["IllustrateScenes"]
 
 
-class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
+class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfyUI, ABC):
     """Post-process illustration over a finished context: propose, render, then attach.
 
-    Walks every scene of the composed context tree, proposes one image-generation
-    prompt per scene, renders it via ComfyUI into the run's ``images/`` directory,
-    and returns the results keyed by ``(chapter_index, scene_index)``; the attach
-    step swaps those scenes in the assembled novel for
+    Collects every pending scene of the composed context tree, proposes all
+    image-generation prompts concurrently, renders them concurrently via
+    ComfyUI into the run's ``images/`` directory, and returns the results
+    keyed by ``(chapter_index, scene_index)``; the attach step swaps those
+    scenes in the assembled novel for
     :class:`~fabricatio_novel.models.illustration.IllustratedScene` copies.
     Failures degrade per scene (warn + skip).
 
-    Implements the integration via :meth:`NovelCompose.post_process_novel`: when a
-    role mixing this class runs ``compose_novel``, or a staged workflow ends in
-    :class:`~fabricatio_novel.actions.novel.IllustrateNovelStage` (whose dump
-    stage fires the same hook), illustration runs automatically — callers do not
-    need to call the phase and attach methods separately. Pass ``persist_dir``
-    through to enable; with no ``persist_dir`` the hook is the base identity.
+    Prompt proposals honor a global constraint (style etc.) resolved through
+    the scoped-config chain: the per-call ``illustration_constraint`` wins,
+    then this instance's
+    :attr:`~fabricatio_novel.models.illustration.IllustrationScopedConfig.illustration_constraint`,
+    then the global ``[ext.novel] illustration_constraint``.
     """
 
     async def illustrate_novel_phase(
@@ -49,17 +54,24 @@ class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
         *,
         persist_dir: str | Path,
         send_to: str | None = TASK,
+        illustration_constraint: str | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> dict[tuple[int, int], tuple[str, str]]:
         """Illustrate every scene of the finished context and return the rendered results.
 
-        Scene indices are chapter-scoped and run across stories, matching the
-        naming used by the EPUB exporter.
+        Runs in three phases: collect the pending scenes (skip-existing
+        filter applied), propose all prompts concurrently, then render all
+        prompts concurrently. Scene indices are chapter-scoped and run
+        across stories, matching the naming used by the EPUB exporter.
 
         Args:
             novel_ctx: The composed novel context whose scenes get illustrated.
             persist_dir: Run directory receiving the ``images/`` output subdirectory.
             send_to: Routing group for the illustration-prompt proposals.
+            illustration_constraint: Global constraint (style etc.) merged into every
+                proposal requirement; wins over the scoped
+                :attr:`~fabricatio_novel.models.illustration.IllustrationScopedConfig.illustration_constraint`
+                and the global ``[ext.novel] illustration_constraint``.
             **kwargs: Extra LLM knobs forwarded to the proposal call.
 
         Returns:
@@ -68,7 +80,15 @@ class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
         """
         images_dir = Path(persist_dir) / "images"
         images_dir.mkdir(parents=True, exist_ok=True)
-        illustrations: dict[tuple[int, int], tuple[str, str]] = {}
+        constraint = (
+            first_available(
+                (illustration_constraint, self.illustration_constraint, novel_config.illustration_constraint)
+            )
+            or ""
+        )
+
+        # Phase 1: collect the pending scenes, rendering each proposal requirement.
+        pending: list[tuple[tuple[int, int], str, str, Path]] = []
         for ci, chapter in enumerate(novel_ctx.iter_prefixed_contexts(), 1):
             scene_offset = 0
             for story in chapter.iter_prefixed_contexts():
@@ -86,32 +106,81 @@ class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
                             "scene_description": scene.description,
                             "scene_content": scene.content,
                             "cast": scene.scene_plan.cast if scene.scene_plan else [],
+                            "illustration_constraint": constraint,
                         },
                     )
-                    si = await self.propose(SceneIllustration, requirement, send_to=send_to, **kwargs)
-                    if si is None:
-                        logger.warn(f"Illustration prompt proposal failed for scene '{scene.title}'; skipping")
-                        continue
-                    try:
-                        path = await self.generate_image(
-                            si.prompt,
-                            download_dir=images_dir,
-                            negative_prompt=si.negative_prompt or novel_config.illustration_negative_prompt or None,
-                            width=novel_config.illustration_width,
-                            height=novel_config.illustration_height,
-                            seed=novel_config.illustration_seed,
-                        )
-                    except Exception as e:  # noqa: BLE001 - per-scene degrade: one bad render must not fail the run
-                        logger.warn(f"Image generation failed for scene '{scene.title}': {e}; skipping")
-                        continue
-                    if path is None:
-                        logger.warn(f"Image generation failed for scene '{scene.title}'; skipping")
-                        continue
-                    copyfile(path, target)
-                    illustrations[(ci, scene_idx)] = (si.prompt, str(target.resolve()))
+                    pending.append(((ci, scene_idx), scene.title, requirement, target))
                 scene_offset += len(story.scene_context)
+        if not pending:
+            return {}
+        illustrations = await self._propose_and_render(pending, send_to=send_to, **kwargs)
         logger.info(f"Illustrated {len(illustrations)} new scene(s) for novel '{novel_ctx.title}'")
         return illustrations
+
+    async def _propose_and_render(
+        self,
+        pending: list[tuple[tuple[int, int], str, str, Path]],
+        *,
+        send_to: str | None,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> dict[tuple[int, int], tuple[str, str]]:
+        """Propose every pending prompt concurrently, then render all prompts concurrently.
+
+        One failed proposal or render skips only its own scene (warn + skip).
+        """
+        # Phase 2: propose all image prompts concurrently; one failure skips only its scene.
+        proposals = await asyncio.gather(
+            *(
+                self.propose(SceneIllustration, requirement, send_to=send_to, **kwargs)
+                for _, _, requirement, _ in pending
+            ),
+            return_exceptions=True,
+        )
+        jobs: list[tuple[tuple[int, int], str, SceneIllustration, Path]] = []
+        for (key, title, _, target), proposal in zip(pending, proposals, strict=True):
+            if isinstance(proposal, BaseException):
+                logger.warn(f"Illustration prompt proposal failed for scene '{title}': {proposal}; skipping")
+                continue
+            if proposal is None:
+                logger.warn(f"Illustration prompt proposal failed for scene '{title}'; skipping")
+                continue
+            jobs.append((key, title, proposal, target))
+
+        # Phase 3: render all prompts concurrently; each failure degrades its own scene.
+        illustrations: dict[tuple[int, int], tuple[str, str]] = {}
+        for entry in await asyncio.gather(
+            *(self._render_scene(key, title, si, target) for key, title, si, target in jobs)
+        ):
+            if entry is not None:
+                key, value = entry
+                illustrations[key] = value
+        return illustrations
+
+    async def _render_scene(
+        self,
+        key: tuple[int, int],
+        title: str,
+        si: SceneIllustration,
+        target: Path,
+    ) -> tuple[tuple[int, int], tuple[str, str]] | None:
+        """Render one scene's illustration into ``target``; ``None`` when the render fails."""
+        try:
+            path = await self.generate_image(
+                si.prompt,
+                download_dir=target.parent,
+                negative_prompt=si.negative_prompt or novel_config.illustration_negative_prompt or None,
+                width=novel_config.illustration_width,
+                height=novel_config.illustration_height,
+                seed=novel_config.illustration_seed,
+            )
+        except Exception as e:  # noqa: BLE001 - per-scene degrade: one bad render must not fail the run
+            logger.warn(f"Image generation failed for scene '{title}': {e}; skipping")
+            return None
+        if path is None:
+            logger.warn(f"Image generation failed for scene '{title}'; skipping")
+            return None
+        copyfile(path, target)
+        return key, (si.prompt, str(target.resolve()))
 
     def attach_illustrations(
         self,
@@ -148,17 +217,30 @@ class IllustrateScenes(NovelCompose, Propose, UseComfyUI, ABC):
         *,
         persist_dir: str | Path | None = None,
         send_to: str | None = None,
+        illustration_constraint: str | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel:
         """Illustrate every scene and attach the results, returning the transformed novel.
 
         Identity when ``persist_dir`` is missing (the base ``compose_novel`` caller
-        never sets it); performs the full render + attach when it is. Failures
+        never sets it); performs the batched render + attach when it is. Failures
         degrade per scene (warn + skip).
+
+        Args:
+            ctx: The composed novel context whose scenes get illustrated.
+            novel: The assembled novel to attach rendered scenes onto.
+            persist_dir: Run directory receiving the ``images/`` output subdirectory.
+            send_to: Routing group for the illustration-prompt proposals.
+            illustration_constraint: Global constraint (style etc.) forwarded to the
+                phase; ``None`` falls back to the scoped config and the global default.
         """
         if persist_dir is None:
             return novel
         illustrations = await self.illustrate_novel_phase(
-            ctx, persist_dir=persist_dir, send_to=send_to or TASK, **kwargs
+            ctx,
+            persist_dir=persist_dir,
+            send_to=send_to or TASK,
+            illustration_constraint=illustration_constraint,
+            **kwargs,
         )
         return self.attach_illustrations(ctx, novel, illustrations)
