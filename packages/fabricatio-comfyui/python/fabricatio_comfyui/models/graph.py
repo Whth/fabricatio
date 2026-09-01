@@ -14,7 +14,7 @@ the Python field name *is* the node ID.
 object lifetime.
 """
 
-from typing import Literal, Self
+from typing import Literal, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
@@ -50,6 +50,74 @@ class NodeMeta(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     title: str
+
+
+class LoraSpec(BaseModel):
+    """A LoRA applied to the bundled workflow (server-side filename + strength).
+
+    Both the model and CLIP branches pass through the LoRA; *strength*
+    applies to each (ComfyUI ``LoraLoader``).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    lora_name: str
+    """LoRA filename on the server."""
+
+    strength: float = 1.0
+    """LoRA strength applied to both the model and CLIP branches."""
+
+
+def _project_api_with_loras(
+    graph: BaseModel,
+    loras: list[LoraSpec],
+    *,
+    model_inputs: tuple[str, ...],
+    clip_inputs: tuple[str, ...],
+) -> dict[str, object]:
+    """Serialize *graph* to ComfyUI API format, chaining *loras* into the model/CLIP paths.
+
+    The field name doubles as the wire node ID, so serialization is a
+    plain per-field projection; ``NodeRef`` fields serialize to
+    ``[node_id, output_index]`` lists.  When *loras* are given, a chain
+    of ``LoraLoader`` nodes is inserted between the checkpoint/CLIP
+    sources and the node inputs named by *model_inputs* / *clip_inputs*.
+    """
+    out: dict[str, object] = {}
+    for name in type(graph).model_fields:
+        if name == "loras":
+            continue
+        node = getattr(graph, name)
+        payload = node.model_dump(exclude={"meta"})
+        payload["_meta"] = node.meta.model_dump()
+        out[name] = payload
+    if not loras:
+        return out
+    prev_model: list[str | int] = ["loader", 0]
+    prev_clip: list[str | int] = ["clip", 0]
+    for i, spec in enumerate(loras):
+        node_id = f"lora_{i}"
+        out[node_id] = {
+            "class_type": "LoraLoader",
+            "inputs": {
+                "model": prev_model,
+                "clip": prev_clip,
+                "lora_name": spec.lora_name,
+                "strength_model": spec.strength,
+                "strength_clip": spec.strength,
+            },
+            "_meta": {"title": f"LoRA {spec.lora_name}"},
+        }
+        prev_model = [node_id, 0]
+        prev_clip = [node_id, 1]
+    last_id = f"lora_{len(loras) - 1}"
+    for name in model_inputs:
+        inputs = cast("dict[str, object]", cast("dict[str, object]", out[name])["inputs"])
+        inputs["model"] = [last_id, 0]
+    for name in clip_inputs:
+        inputs = cast("dict[str, object]", cast("dict[str, object]", out[name])["inputs"])
+        inputs["clip"] = [last_id, 1]
+    return out
 
 
 class NodeInputs(BaseModel):
@@ -349,6 +417,9 @@ class Graph(BaseModel):
     sampler_refine: RefineSamplerNode
     """Refine-pass sampler node."""
 
+    loras: list[LoraSpec] = Field(default_factory=list)
+    """LoRAs chained into the model/CLIP path between the loader and the samplers."""
+
     @classmethod
     def default(cls) -> Self:
         """Assemble the bundled template from each node class's own default.
@@ -371,23 +442,22 @@ class Graph(BaseModel):
         )
 
     def to_api(self) -> dict[str, object]:
-        """Serialize to ComfyUI API format (``node_id -> {class_type, inputs, _meta}``).
-
-        The field name doubles as the wire node ID, so serialization is a
-        plain per-field projection; ``NodeRef`` fields serialize to
-        ``[node_id, output_index]`` lists.
-        """
-        out: dict[str, object] = {}
-        for name in type(self).model_fields:
-            node = getattr(self, name)
-            payload = node.model_dump(exclude={"meta"})
-            payload["_meta"] = node.meta.model_dump()
-            out[name] = payload
-        return out
+        """Serialize to ComfyUI API format, chaining any :attr:`loras` into the model/CLIP paths."""
+        return _project_api_with_loras(
+            self,
+            self.loras,
+            model_inputs=("sampler_base", "sampler_refine"),
+            clip_inputs=("positive", "negative"),
+        )
 
     # ------------------------------------------------------------------
     # Chainable parameterisation — direct typed mutation, no lookups
     # ------------------------------------------------------------------
+
+    def with_lora(self, lora_name: str, *, strength: float = 1.0) -> Self:
+        """Append a LoRA to the model/CLIP chain; return *self* for chaining."""
+        self.loras.append(LoraSpec(lora_name=lora_name, strength=strength))
+        return self
 
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""
