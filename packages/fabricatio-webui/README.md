@@ -158,6 +158,34 @@ save/delete re-dispatches roles onto the worker's event bus.
 - **Save**: `Ctrl+S` persists the board server-side; autosave drafts go to
   browser localStorage.
 
+### Export a role as a runnable tool
+
+Every role card carries a **code** action that opens the generated-module
+dialog. Beyond copy/download of the single `.py`, the dialog can
+**export a runnable package** (`.zip`) containing:
+
+- `main.py` — a standalone tool: PEP 723 script metadata pins the owning
+  distributions of every used node type, catalog Actions are imported from
+  their real modules, board-level custom Actions are emitted inline, and the
+  task init context comes from CLI flags.
+- `pyproject.toml` — the same dependency set as a uv/pip-friendly project.
+- `workflow.json` — a re-importable format-2 board holding the role.
+- `README.md` — quickstart and configuration notes.
+
+Run it with zero setup:
+
+```bash
+unzip hello-fabricatio.zip -d hello-fabricatio && cd hello-fabricatio
+uv run main.py --text "hello fabricatio"
+# task output: [demo] chars: 16, words: 2, lines: 1
+```
+
+`uv` reads the PEP 723 block and installs the dependencies automatically.
+Task input: `--text "…"` (shorthand), `--input '{"text": "…"}'` (JSON
+literal), or `--input-file ctx.json`. LLM-backed workflows additionally
+need configured credentials (a `fabricatio.toml` or `FABRICATIO_*` env
+vars); pure-Python pipelines run without any.
+
 ### Themes
 
 The UI ships dark (default) and light themes. Switch via **Settings sidebar →
@@ -245,7 +273,7 @@ Re-verified 2026-08-21 against source. Grouped by category; checkboxes track com
 ### Test gaps
 
 - [ ] **`migrate_board` has no test coverage** — `test_registry.py` covers `migrate_workflow` only; the format 0/1 → 2 board migration is untested.
-- [ ] **Frontend unit coverage is thin** — only `argGroups`, `autoLayout`, `board` store, and `NodeWidget` have specs. Missing: `workflow`/`ui`/`execution`/`loading`/`notifications` stores, all canvas/chrome/board components, and all composables (`useWebSocket`, `useHotkeys`, `useAppActions`, `useOutputPreview`).
+- [ ] **Frontend unit coverage is thin** — `argGroups`, `autoLayout`, `board` store, `NodeWidget`, `NodeInspector`, `codegen`, and `exportPkg` have specs. Missing: `workflow`/`ui`/`execution`/`loading`/`notifications` stores, most canvas/chrome/board components, and all composables (`useWebSocket`, `useHotkeys`, `useAppActions`, `useOutputPreview`).
 - [ ] **No Rust tests beyond `types.rs`** — `api.rs`, `state.rs`, `ws.rs`, `webui.rs` have no unit/integration tests for the HTTP and WS endpoints.
 
 ### Code hygiene

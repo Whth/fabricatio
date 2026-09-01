@@ -135,6 +135,16 @@ def test_registry_entries_carry_schema_version_and_registry_version() -> None:
     assert widgets["path"] == "text"
 
 
+def test_registry_entries_carry_importable_module() -> None:
+    """Every registry entry names the module its Action class imports from."""
+    reg = build_node_registry()
+    for node in reg["node_types"]:
+        module = node["module"]
+        assert isinstance(module, str)
+        assert module
+        assert not module.startswith("_"), node["type"]
+
+
 def test_migrate_workflow_upgrades_legacy_format() -> None:
     """A legacy workflow is upgraded to format_version 1 with a summary."""
     legacy = {

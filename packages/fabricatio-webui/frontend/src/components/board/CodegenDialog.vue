@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
-import { generateRoleModule } from '@/data/codegen'
-import { X, Copy, Download } from '@lucide/vue'
+import { generateRoleModule, type NodeCatalog } from '@/data/codegen'
+import { buildPackageZip, packageFileName, slugify } from '@/data/exportPkg'
+import { api } from '@/api/client'
+import { X, Copy, Download, Package } from '@lucide/vue'
 
 const props = defineProps<{ roleIndex: number }>()
 const emit = defineEmits<{ close: [] }>()
@@ -11,11 +13,23 @@ const emit = defineEmits<{ close: [] }>()
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
 
+/** Node type -> importable module path, for codegen imports and dependency pins. */
+const catalog = ref<NodeCatalog>({})
+onMounted(async () => {
+  try {
+    const nodes = await api.getNodes()
+    catalog.value = Object.fromEntries(nodes.map((n) => [n.type, n.module ?? '']))
+  } catch {
+    // Catalog unavailable: the generated module skips imports and annotates
+    // the affected node types instead of failing the dialog.
+  }
+})
+
 const role = computed(() => boardStore.board.roles[props.roleIndex])
 const code = computed(() => {
   const r = role.value
   if (!r) return ''
-  return generateRoleModule(r, boardStore.board.actions)
+  return generateRoleModule(r, boardStore.board.actions, catalog.value)
 })
 
 async function copy() {
@@ -37,6 +51,31 @@ function download() {
   URL.revokeObjectURL(url)
   notifications.success('Downloaded', `${role.value?.name ?? 'role'}.py`)
 }
+
+function exportPackage() {
+  const r = role.value
+  if (!r) return
+  try {
+    const zipped = buildPackageZip({
+      role: r,
+      actions: boardStore.board.actions,
+      catalog: catalog.value,
+    })
+    const blob = new Blob([zipped as BlobPart], { type: 'application/zip' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = packageFileName(r)
+    a.click()
+    URL.revokeObjectURL(url)
+    notifications.success(
+      'Package exported',
+      `${slugify(r.name)}.zip — run it with: uv run main.py`,
+    )
+  } catch (err) {
+    notifications.error('Package export failed', err instanceof Error ? err.message : String(err))
+  }
+}
 </script>
 
 <template>
@@ -47,6 +86,13 @@ function download() {
           <span>Generated fabricatio module — {{ role?.name }}</span>
           <div class="header-actions">
             <button class="header-btn" title="Copy" @click="copy"><Copy :size="14" /></button>
+            <button
+              class="header-btn"
+              title="Export runnable package (.zip)"
+              @click="exportPackage"
+            >
+              <Package :size="14" />
+            </button>
             <button class="header-btn" title="Download .py" @click="download"><Download :size="14" /></button>
             <button class="header-btn" title="Close" @click="emit('close')"><X :size="14" /></button>
           </div>

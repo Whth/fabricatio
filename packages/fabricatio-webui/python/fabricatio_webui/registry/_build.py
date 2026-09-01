@@ -90,6 +90,9 @@ def build_node_registry() -> dict[str, Any]:
                 # Only model fields are editable config; runtime params are
                 # dataflow-only and must never reach cls(**config).
                 "config_fields": model_ports,
+                # Importable module path so the frontend code generator can
+                # emit ``from <module> import <Type>`` lines.
+                "module": cls.__module__,
                 # Raw Python source for the read-only source viewer.
                 "source_code": source_lines,
             }

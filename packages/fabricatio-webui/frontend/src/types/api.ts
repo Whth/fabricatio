@@ -34,6 +34,8 @@ export interface NodeTypeDefinition {
   schema_version?: string
   /** Raw Python source for the read-only source viewer. */
   source_code?: string
+  /** Importable module path of the Action class, for code generation. */
+  module?: string
 }
 
 // ── Board JSON (format_version 2: role-driven documents) ──────────────────────

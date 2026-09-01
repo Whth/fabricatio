@@ -62,6 +62,10 @@ pub struct NodeTypeDefinition {
     /// Raw Python source for the read-only source viewer.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_code: Option<String>,
+    /// Importable module path of the Action class (``fabricatio_novel.actions…``),
+    /// used by the frontend code generator to emit import lines.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module: Option<String>,
 }
 
 /// One package-defined blueprint offered by the board sidebar (derived from
