@@ -12,6 +12,7 @@ import pytest
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import ComfyUIHttpClient, get_comfyui_client
+from fabricatio_comfyui.models.anima import AnimaGraph
 from fabricatio_comfyui.models.comfyui import (
     ExecutionResult,
     HistoryEntry,
@@ -20,7 +21,7 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
-from fabricatio_comfyui.models.graph import Graph, NodeRef
+from fabricatio_comfyui.models.graph import Graph, LoraSpec, NodeRef
 from pydantic import ValidationError
 
 
@@ -70,7 +71,9 @@ class TestFactories:
 
     def test_default_builds_full_graph(self) -> None:
         """default() builds all eleven nodes in Python, no JSON asset."""
-        assert len(Graph.default().to_api()) == 11
+        api = Graph.default().to_api()
+        assert len(api) == 11
+        assert all(not name.startswith("lora_") for name in api)
 
 
 # ======================================================================
@@ -178,6 +181,28 @@ class TestGraph:
         assert graph.latent.inputs.width == 1024
         assert graph.sampler_base.inputs.noise_seed == 42
 
+    def test_with_loras(self) -> None:
+        """LoRAs chain into the model/CLIP path of the bundled graph."""
+        graph = Graph.default().with_lora("a.safetensors", strength=0.5).with_lora("b.safetensors")
+        api = graph.to_api()
+        lora0 = cast("dict[str, object]", api["lora_0"])
+        lora1 = cast("dict[str, object]", api["lora_1"])
+        assert lora0["class_type"] == "LoraLoader"
+        inputs0 = cast("dict[str, object]", lora0["inputs"])
+        assert inputs0["model"] == ["loader", 0]
+        assert inputs0["clip"] == ["clip", 0]
+        assert inputs0["lora_name"] == "a.safetensors"
+        assert inputs0["strength_model"] == 0.5
+        inputs1 = cast("dict[str, object]", lora1["inputs"])
+        assert inputs1["model"] == ["lora_0", 0]
+        assert inputs1["clip"] == ["lora_0", 1]
+        for name in ("sampler_base", "sampler_refine"):
+            inputs = cast("dict[str, object]", cast("dict[str, object]", api[name])["inputs"])
+            assert inputs["model"] == ["lora_1", 0]
+        for name in ("positive", "negative"):
+            inputs = cast("dict[str, object]", cast("dict[str, object]", api[name])["inputs"])
+            assert inputs["clip"] == ["lora_1", 1]
+
     def test_unknown_input_key_rejected(self) -> None:
         """A node input outside the known shape fails loudly at load."""
         raw = Graph.default().to_api()
@@ -205,6 +230,90 @@ class TestGraph:
         raw["999"] = {"class_type": "PreviewImage", "inputs": {"images": ["15", 0]}, "_meta": {"title": "x"}}
         with pytest.raises(ValidationError):
             Graph.model_validate(raw)
+
+
+class TestAnimaGraph:
+    """The anima template keeps model filenames as placeholders and serializes exactly."""
+
+    def test_default(self) -> None:
+        """Defaults hold placeholder model tokens and the anima wire shape."""
+        graph = AnimaGraph.default()
+        assert graph.loader.class_type == "CheckpointLoaderSimple"
+        assert graph.loader.inputs.ckpt_name == "<anima_checkpoint>"
+        assert graph.clip.class_type == "CLIPLoader"
+        assert graph.clip.inputs.clip_name == "<anima_clip>"
+        assert graph.vae.class_type == "VAELoader"
+        assert graph.vae.inputs.vae_name == "<anima_vae>"
+        assert graph.latent.inputs.width == 1344
+        assert graph.latent.inputs.height == 1024
+        assert graph.sampler.inputs.sampler_name == "er_sde"
+        assert graph.sampler.inputs.scheduler == "simple"
+        assert graph.sampler.inputs.steps == 32
+        assert graph.sampler.inputs.cfg == 7.0
+        assert graph.positive.inputs.clip.node_id == "clip"
+        assert graph.sampler.inputs.model.node_id == "loader"
+        assert graph.decode.inputs.vae.node_id == "vae"
+        assert graph.preview.inputs.images.node_id == "decode"
+        api = graph.to_api()
+        assert all(not name.startswith("lora_") for name in api)
+
+    def test_wire_round_trip(self) -> None:
+        """to_api() emits the anima wire format and revalidates to an equal graph."""
+        graph = AnimaGraph.default()
+        assert AnimaGraph.model_validate(graph.to_api()) == graph
+
+    def test_with_builders(self) -> None:
+        """The typed builders resolve the model placeholders and knobs."""
+        graph = (
+            AnimaGraph.default()
+            .with_checkpoint("anima-ckpt.safetensors")
+            .with_clip("anima-clip.safetensors")
+            .with_vae("anima-vae.safetensors")
+            .with_positive_prompt("a cat")
+            .with_resolution(width=1024, height=1024)
+            .with_sampler(seed=7, steps=25, cfg=8.0)
+        )
+        assert graph.loader.inputs.ckpt_name == "anima-ckpt.safetensors"
+        assert graph.clip.inputs.clip_name == "anima-clip.safetensors"
+        assert graph.vae.inputs.vae_name == "anima-vae.safetensors"
+        assert graph.positive.inputs.text == "a cat"
+        assert graph.latent.inputs.width == 1024
+        assert graph.sampler.inputs.noise_seed == 7
+        assert graph.sampler.inputs.steps == 25
+        assert graph.sampler.inputs.cfg == 8.0
+
+    def test_with_loras(self) -> None:
+        """LoRAs chain between the anima loaders and the sampler, leaving decode untouched."""
+        graph = (
+            AnimaGraph.default()
+            .with_checkpoint("ckpt.safetensors")
+            .with_clip("clip.safetensors")
+            .with_vae("vae.safetensors")
+            .with_lora("anima-lora.safetensors")
+        )
+        api = graph.to_api()
+        lora = cast("dict[str, object]", api["lora_0"])
+        assert lora["class_type"] == "LoraLoader"
+        inputs = cast("dict[str, object]", lora["inputs"])
+        assert inputs["model"] == ["loader", 0]
+        assert inputs["clip"] == ["clip", 0]
+        assert inputs["lora_name"] == "anima-lora.safetensors"
+        sampler_inputs = cast("dict[str, object]", cast("dict[str, object]", api["sampler"])["inputs"])
+        assert sampler_inputs["model"] == ["lora_0", 0]
+        positive_inputs = cast("dict[str, object]", cast("dict[str, object]", api["positive"])["inputs"])
+        assert positive_inputs["clip"] == ["lora_0", 1]
+        decode_inputs = cast("dict[str, object]", cast("dict[str, object]", api["decode"])["inputs"])
+        assert decode_inputs["vae"] == ["vae", 0]
+        with pytest.raises(ValidationError):
+            graph.with_lora(cast("str", 123))
+
+    def test_mutators_validate_assignment(self) -> None:
+        """The typed contract holds for the whole lifetime, not just at load."""
+        graph = AnimaGraph.default()
+        with pytest.raises(ValidationError):
+            graph.with_checkpoint(cast("str", 123))
+        with pytest.raises(ValidationError):
+            graph.sampler.inputs.steps = cast("int", "twenty")
 
 
 # ======================================================================
@@ -666,6 +775,163 @@ async def test_generate_batch_prompts() -> None:
     assert [r.prompt_id for r in results] == ["pid-1", "pid-2"]
     assert results[0].succeeded() is True
     assert results[1].succeeded() is False
+
+
+@pytest.mark.asyncio
+async def test_generate_anima_workflow_resolves_models() -> None:
+    """The anima workflow submits the configured checkpoint/CLIP/VAE names."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    anima_config = replace(
+        comfyui_config,
+        workflow="anima",
+        anima_checkpoint="anima-ckpt.safetensors",
+        anima_clip="anima-clip.safetensors",
+        anima_vae="anima-vae.safetensors",
+    )
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", anima_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat")
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "anima-ckpt.safetensors"
+    assert cast("dict[str, object]", prompt["clip"])["inputs"]["clip_name"] == "anima-clip.safetensors"
+    assert cast("dict[str, object]", prompt["vae"])["inputs"]["vae_name"] == "anima-vae.safetensors"
+    assert cast("dict[str, object]", prompt["sampler"])["inputs"]["steps"] == 32
+
+
+@pytest.mark.asyncio
+async def test_generate_anima_workflow_checkpoint_override() -> None:
+    """A per-call checkpoint wins over the anima config key."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    anima_config = replace(
+        comfyui_config,
+        workflow="anima",
+        anima_checkpoint="anima-ckpt.safetensors",
+        anima_clip="anima-clip.safetensors",
+        anima_vae="anima-vae.safetensors",
+    )
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", anima_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat", checkpoint="override.safetensors")
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "override.safetensors"
+
+
+@pytest.mark.asyncio
+async def test_generate_anima_workflow_requires_models() -> None:
+    """Anima generation fails loudly while any model filename is unset."""
+    client = ComfyUIHttpClient.create(None)
+    missing_ckpt = replace(comfyui_config, workflow="anima")
+    missing_clip = replace(
+        comfyui_config,
+        workflow="anima",
+        anima_checkpoint="anima-ckpt.safetensors",
+    )
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", missing_ckpt),
+        pytest.raises(ValueError, match="anima_checkpoint"),
+    ):
+        await client.generate("a cat")
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", missing_clip),
+        pytest.raises(ValueError, match="anima_clip"),
+    ):
+        await client.generate("a cat")
+
+
+@pytest.mark.asyncio
+async def test_generate_applies_loras() -> None:
+    """A loras list chains LoraLoader nodes into the submitted graph."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate(
+            "a cat",
+            loras=[
+                LoraSpec(lora_name="a.safetensors", strength=0.5),
+                LoraSpec(lora_name="b.safetensors"),
+            ],
+        )
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    lora0_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["lora_0"])["inputs"])
+    assert lora0_inputs["lora_name"] == "a.safetensors"
+    assert lora0_inputs["strength_model"] == 0.5
+    sampler_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["sampler_base"])["inputs"])
+    assert sampler_inputs["model"] == ["lora_1", 0]
+
+
+@pytest.mark.asyncio
+async def test_generate_anima_workflow_applies_loras() -> None:
+    """Anima generation chains loras after resolving its model filenames."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    anima_config = replace(
+        comfyui_config,
+        workflow="anima",
+        anima_checkpoint="anima-ckpt.safetensors",
+        anima_clip="anima-clip.safetensors",
+        anima_vae="anima-vae.safetensors",
+    )
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", anima_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat", loras=[LoraSpec(lora_name="anima-lora.safetensors", strength=0.8)])
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    lora_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["lora_0"])["inputs"])
+    assert lora_inputs["lora_name"] == "anima-lora.safetensors"
+    assert lora_inputs["strength_model"] == 0.8
+    sampler_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["sampler"])["inputs"])
+    assert sampler_inputs["model"] == ["lora_0", 0]
+    positive_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["positive"])["inputs"])
+    assert positive_inputs["clip"] == ["lora_0", 1]
 
 
 @pytest.mark.asyncio
