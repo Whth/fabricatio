@@ -934,6 +934,22 @@ fabricatio-comfyui
      - float
      - ``300.0``
      - Default timeout in seconds for API requests.
+   * - ``workflow``
+     - string
+     - ``default``
+     - Bundled template to run: ``default`` (two-pass txt2img) or ``anima`` (separate checkpoint/CLIP/VAE, fixed 4:3 canvas).
+   * - ``anima_checkpoint``
+     - string
+     - ``None``
+     - Checkpoint filename for the anima workflow (placeholder in source; fails loudly while unset).
+   * - ``anima_clip``
+     - string
+     - ``None``
+     - CLIP filename for the anima workflow.
+   * - ``anima_vae``
+     - string
+     - ``None``
+     - VAE filename for the anima workflow.
 
 fabricatio-diff
 ^^^^^^^^^^^^^^^

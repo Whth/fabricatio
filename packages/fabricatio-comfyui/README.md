@@ -61,7 +61,44 @@ download_dir = "./outputs"
 | `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
+| `workflow` | `"default" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph or the anima preset. |
+| `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
+| `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
+| `anima_vae` | `str \| None` | `None` | VAE filename for the anima workflow. |
 | `download_dir` | `str \| None` | `None` | Default directory for generated images; a per-call `download_dir=` takes precedence. |
+
+#### The anima workflow
+
+The package ships a second bundled template — the *anima* preset — for
+models that load checkpoint, CLIP, and VAE as separate files.  Select it
+with `workflow = "anima"` and supply the real server-side filenames:
+
+```toml
+[ext.comfyui]
+workflow = "anima"
+anima_checkpoint = "your-anima-checkpoint.safetensors"
+anima_clip = "your-anima-clip.safetensors"
+anima_vae = "your-anima-vae.safetensors"
+```
+
+The template's model fields are placeholders in source; generation
+resolves them from these keys and fails loudly while any is unset.  The
+anima template samples once (`er_sde`, 32 steps) at a fixed 4:3
+1344×1024 canvas.  LoRAs apply per call via the `loras` knob — each
+entry names a server-side file and a strength, chained as stock
+`LoraLoader` nodes between the model/CLIP sources and the sampler
+(no custom node pack required).  Without a `loras` list the submitted
+graph contains no LoRA node at all:
+
+```python
+from fabricatio_comfyui import generate_image
+from fabricatio_comfyui.models import LoraSpec
+
+path = await generate_image(
+    "a cat",
+    loras=[LoraSpec(lora_name="my-lora.safetensors", strength=0.8)],
+)
+```
 
 Access at runtime: `from fabricatio_comfyui.config import comfyui_config`.
 
@@ -156,7 +193,7 @@ asyncio.run(main())
 | `generate_image(prompt, …)`   | Queue the bundled graph → poll → download → return the image path (`Path \| None`); cancelling the call interrupts the running job server-side |
 
 `generate_image` keyword parameters: `negative_prompt`, `width`, `height`,
-`seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout`.
+`seed`, `steps`, `cfg`, `checkpoint`, `loras`, `download_dir`, `timeout`.
 `download_dir` resolution: per-call argument → scoped config on the
 Role (`UseComfyUI` inherits `ComfyUIScopedConfig`; set it as a subclass
 default `class ImageRole(Role, UseComfyUI): download_dir: str = "./outputs"`
@@ -183,7 +220,7 @@ its awaiting task is cancelled.
 
 | Method                            | Returns            | Description                              |
 |-----------------------------------|--------------------|------------------------------------------|
-| `generate(prompt, …)`             | `list[ExecutionResult]` | Queue each prompt (`str` or list) and poll; one result per prompt, in order; cancelling interrupts the running job |
+| `generate(prompt, …)`             | `list[ExecutionResult]` | Queue each prompt (`str` or list) and poll; `loras` chains LoRA nodes into the graph; one result per prompt, in order; cancelling interrupts the running job |
 | `get_queue_info()`                | `QueueInfo`        | Fetch current queue status               |
 | `get_history(prompt_id)`          | `HistoryEntry \| None` | Retrieve execution history for a prompt |
 | `wait_for_completion(prompt_id)`  | `ExecutionResult`  | Poll until execution finishes            |
