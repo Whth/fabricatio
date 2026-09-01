@@ -12,8 +12,8 @@ instance.  Direct construction / ``async with`` stays available for
 tests and alternate backends that want a private pool::
 
     async with ComfyUIHttpClient.create() as client:
-        result = await client.generate("a mountain landscape")
-        await client.download_images(result, "./outputs")
+        results = await client.generate("a mountain landscape")
+        await client.download_images(results[0], "./outputs")
 """
 
 import asyncio
@@ -28,6 +28,7 @@ from fabricatio_core.utils import first_available
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
+from fabricatio_comfyui.models.anima import AnimaGraph
 from fabricatio_comfyui.models.comfyui import (
     ExecutionResult,
     HistoryEntry,
@@ -38,7 +39,7 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
     ViewImageParams,
 )
-from fabricatio_comfyui.models.graph import Graph
+from fabricatio_comfyui.models.graph import Graph, LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
     UploadKwargs,
@@ -171,6 +172,42 @@ class ComfyUIHttpClient(ComfyUIClientBase):
     # REST endpoints (ComfyUIClientBase implementation)
     # ------------------------------------------------------------------
 
+    def _build_template(
+        self,
+        *,
+        checkpoint: str | None,
+        loras: list[LoraSpec] | None = None,
+    ) -> Graph | AnimaGraph:
+        """Assemble the active workflow template from config.
+
+        The default workflow uses the bundled two-pass graph, applying
+        *checkpoint* when given.  The anima workflow resolves its three
+        model filenames from :data:`comfyui_config` and fails loudly
+        while any is unset.  *loras* chain into the model/CLIP path of
+        either template.
+        """
+        if comfyui_config.workflow == "anima":
+            checkpoint_name = checkpoint or comfyui_config.checkpoint or comfyui_config.anima_checkpoint
+            if checkpoint_name is None:
+                raise ValueError(
+                    "anima workflow needs a checkpoint: pass checkpoint= or set [ext.comfyui] anima_checkpoint"
+                )
+            clip_name = comfyui_config.anima_clip
+            if clip_name is None:
+                raise ValueError("anima workflow needs a CLIP: set [ext.comfyui] anima_clip")
+            vae_name = comfyui_config.anima_vae
+            if vae_name is None:
+                raise ValueError("anima workflow needs a VAE: set [ext.comfyui] anima_vae")
+            template = AnimaGraph.default().with_checkpoint(checkpoint_name).with_clip(clip_name).with_vae(vae_name)
+        else:
+            template = Graph.default()
+            checkpoint_name = checkpoint or comfyui_config.checkpoint
+            if checkpoint_name is not None:
+                template.with_checkpoint(checkpoint_name)
+        for spec in loras or ():
+            template.with_lora(spec.lora_name, strength=spec.strength)
+        return template
+
     async def generate(  # noqa: PLR0913 — public API keeps every override explicit
         self,
         prompt: str | list[str],
@@ -182,6 +219,7 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         steps: int | None = None,
         cfg: float | None = None,
         checkpoint: str | None = None,
+        loras: list[LoraSpec] | None = None,
         front: bool = False,
         timeout: float | None = None,
     ) -> list[ExecutionResult]:
@@ -191,17 +229,25 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         callers never see or construct one.  Only the provided (non-``None``)
         knobs override the template; ``None`` keeps the template's value.
         *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
-        the template's own checkpoint.  *front* enqueues at the head of the
+        the template's own checkpoint.  *loras* chain into the model/CLIP
+        path of the active template (each names a server-side file and a
+        strength).  *front* enqueues at the head of the
         queue.  Prompts run sequentially; the return holds one execution
         result per input prompt, in input order, without downloading images.
+
+        The active template comes from :data:`comfyui_config.workflow`: the
+        default two-pass graph, or the anima preset whose model filenames
+        resolve from ``anima_checkpoint`` / ``anima_clip`` / ``anima_vae``
+        and fail loudly while unset.
 
         When the awaiting task is cancelled (e.g. Ctrl+C), the running job
         is interrupted server-side before the cancellation propagates.
         """
         prompts = [prompt] if isinstance(prompt, str) else list(prompt)
         results: list[ExecutionResult] = []
+        template = self._build_template(checkpoint=checkpoint, loras=loras)
         for one in prompts:
-            graph = Graph.default()
+            graph = template.model_copy(deep=True)
             if one:
                 graph.with_positive_prompt(one)
             if negative_prompt is not None:
@@ -210,9 +256,6 @@ class ComfyUIHttpClient(ComfyUIClientBase):
                 graph.with_resolution(width=width, height=height)
             if seed is not None or steps is not None or cfg is not None:
                 graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
-            checkpoint_name = checkpoint or comfyui_config.checkpoint
-            if checkpoint_name is not None:
-                graph.with_checkpoint(checkpoint_name)
 
             req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
             data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))

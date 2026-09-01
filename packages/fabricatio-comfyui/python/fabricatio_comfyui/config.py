@@ -1,6 +1,7 @@
 """Configuration for fabricatio-comfyui."""
 
 from dataclasses import dataclass
+from typing import Literal
 
 from fabricatio_core import CONFIG
 
@@ -17,12 +18,35 @@ class ComfyUIConfig:
     timeout: float = 300.0
     """Default timeout in seconds for API requests (default 5 min)."""
 
+    workflow: Literal["default", "anima"] = "default"
+    """Bundled workflow template to run: the two-pass txt2img graph or the anima preset.
+
+    The anima template loads checkpoint / CLIP / VAE from separate nodes
+    (see ``anima_checkpoint``, ``anima_clip``, ``anima_vae``) and samples
+    once at a fixed 4:3 canvas.
+    """
+
     checkpoint: str | None = None
     """Default checkpoint filename on the server.
 
-    Overrides the bundled workflow template's hardcoded checkpoint for
-    every generation; a per-call ``checkpoint=`` knob takes precedence.
+    Overrides the template's checkpoint — the bundled default or the
+    anima placeholder — for every generation; a per-call ``checkpoint=``
+    knob takes precedence.
     """
+
+    anima_checkpoint: str | None = None
+    """Checkpoint filename for the anima workflow.
+
+    The anima template's model filenames are placeholders in source;
+    this key (and ``anima_clip`` / ``anima_vae``) supplies the real
+    server-side filenames.  Generation fails loudly while unset.
+    """
+
+    anima_clip: str | None = None
+    """CLIP filename for the anima workflow (see ``anima_checkpoint``)."""
+
+    anima_vae: str | None = None
+    """VAE filename for the anima workflow (see ``anima_checkpoint``)."""
 
     download_dir: str | None = None
     """Default directory for generated images.

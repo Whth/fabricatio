@@ -24,6 +24,7 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
+from fabricatio_comfyui.models.graph import LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
     UploadKwargs,
@@ -79,6 +80,7 @@ class ComfyUIClientBase(ABC):
         steps: int | None = None,
         cfg: float | None = None,
         checkpoint: str | None = None,
+        loras: list[LoraSpec] | None = None,
         front: bool = False,
         timeout: float | None = None,
     ) -> list[ExecutionResult]:
@@ -88,7 +90,9 @@ class ComfyUIClientBase(ABC):
         callers never see or construct one.  Only the provided (non-``None``)
         knobs override the template; ``None`` keeps the template's value.
         *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
-        the template's own checkpoint.  *front* enqueues at the head of the
+        the template's own checkpoint.  *loras* chain into the model/CLIP
+        path of the active template (each names a server-side file and a
+        strength).  *front* enqueues at the head of the
         queue.  Prompts run sequentially; the return holds one execution
         result per input prompt, in input order, without downloading images.
         """

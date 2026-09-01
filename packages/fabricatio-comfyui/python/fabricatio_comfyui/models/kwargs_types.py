@@ -7,6 +7,8 @@ callers get full IDE completion and type-checking via ``**kwargs: Unpack[...]``.
 
 from typing import TypedDict
 
+from fabricatio_comfyui.models.graph import LoraSpec
+
 
 class GenerateKwargs(TypedDict, total=False):
     """Generation knobs forwarded verbatim to :meth:`ComfyUIClientBase.generate`.
@@ -35,6 +37,9 @@ class GenerateKwargs(TypedDict, total=False):
 
     checkpoint: str | None
     """Checkpoint filename on the server; falls back to config, then the bundled template."""
+
+    loras: list[LoraSpec] | None
+    """LoRAs chained into the generation; each names a server-side file and a strength."""
 
     timeout: float | None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""

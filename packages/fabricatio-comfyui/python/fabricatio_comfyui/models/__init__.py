@@ -21,6 +21,7 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
     ViewImageParams,
 )
+from fabricatio_comfyui.models.graph import LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     GenerateKwargs,
     PollKwargs,
@@ -35,6 +36,7 @@ __all__ = [
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
+    "LoraSpec",
     "OutputImage",
     "PollKwargs",
     "PromptRequest",
