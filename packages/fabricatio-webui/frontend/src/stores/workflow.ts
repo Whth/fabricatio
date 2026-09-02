@@ -12,7 +12,7 @@ export interface FabricatioNodeData {
   category: string
   nodeType: string
   inputPorts: Array<{ name: string; type: string; optional: boolean }>
-  outputPorts: Array<{ name: string; type: string }>
+  outputPorts: PortDefinition[]
   capabilities: string[]
   configFields: PortDefinition[]
   inputs: Record<string, unknown>

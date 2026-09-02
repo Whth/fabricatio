@@ -75,6 +75,8 @@ describe('groupConfigFields', () => {
       makeField('novel_field', 'NovelCompose'),
     ]
     const groups = groupConfigFields(fields, 'IllustrateNovel')
+    // No field owns the concrete group → the own group must be absent.
+    expect(groups.some((g) => g.name === 'IllustrateNovel')).toBe(false)
 
     // IllustrateNovel has no own fields → own group empty? No — there are no
     // fields with group === 'IllustrateNovel', so own group is absent and all

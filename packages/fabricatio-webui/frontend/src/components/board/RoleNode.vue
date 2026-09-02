@@ -7,7 +7,7 @@ import { useNotificationsStore } from '@/stores/notifications'
 import { BLUEPRINT_MIME } from '@/data/blueprints'
 import { Plus, Trash2, Code2, Copy, ClipboardPaste } from '@lucide/vue'
 
-const props = defineProps<{ id: string; data: any }>()
+const props = defineProps<{ id: string; data: { roleIndex?: number; role?: RoleJSON } }>()
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
@@ -88,7 +88,7 @@ function onReorderEnter(ev: DragEvent, i: number) {
   reorderTarget.value = i
 }
 
-function onReorderOver(ev: DragEvent, i: number) {
+function onReorderOver(ev: DragEvent) {
   if (!isReorderDrag(ev)) return
   ev.stopPropagation()
   ev.preventDefault()
@@ -281,7 +281,7 @@ function remove() {
         @dblclick.stop="openWorkflow(i)"
         @dragstart="onReorderStart($event, i)"
         @dragenter="onReorderEnter($event, i)"
-        @dragover="onReorderOver($event, i)"
+        @dragover="onReorderOver($event)"
         @dragleave="onReorderLeave($event)"
         @drop="onReorderDrop($event, i)"
         @dragend="onReorderEnd"

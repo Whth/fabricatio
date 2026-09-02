@@ -3,19 +3,17 @@ import { computed, ref, markRaw, onUnmounted } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import type { Node, NodeMouseEvent, Connection } from '@vue-flow/core'
+import type { Node, NodeMouseEvent } from '@vue-flow/core'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useHotkeys } from '@/composables/useHotkeys'
 import RoleNode from './RoleNode.vue'
 import CodegenDialog from '@/components/board/CodegenDialog.vue'
 import BlueprintSidebar from '@/components/board/BlueprintSidebar.vue'
-import { useWorkflowStore } from '@/stores/workflow'
 import { Plus, X } from '@lucide/vue'
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
-const wfStore = useWorkflowStore()
 
 // Board-layer clipboard hotkeys: copy the selected workflows, paste into the
 // role that owns the current selection (its card was last clicked).
@@ -48,7 +46,7 @@ const nodes = computed<Node[]>(() =>
 )
 
 const { onConnect } = useVueFlow({})
-onConnect((_connection: Connection) => {
+onConnect(() => {
   /* role links are decorative for now */
 })
 
@@ -80,13 +78,6 @@ function onNodeClick(ev: NodeMouseEvent) {
   }
 }
 
-function onRoleOpen(index: number) {
-  boardStore.enterWorkflow(index, 0)
-}
-
-function onRoleCode(index: number) {
-  boardStore.codegenRoleIndex = index
-}
 </script>
 
 <template>

@@ -3,7 +3,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
-import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAppActions } from '@/composables/useAppActions'
@@ -13,7 +12,6 @@ import { Play, Square, Save, FolderOpen, Trash2, Search, Settings, BookOpen, Wan
 const wfStore = useWorkflowStore()
 const boardStore = useBoardStore()
 const execStore = useExecutionStore()
-const notifications = useNotificationsStore()
 const uiStore = useUiStore()
 const { connected } = useWebSocket()
 const {
@@ -30,7 +28,6 @@ const {
 const isEditingName = ref(false)
 const editingName = ref('')
 const loadOpen = ref(false)
-const runDialogOpen = ref(false)
 
 /** The name shown in the toolbar: board name on the board layer, workflow name inside. */
 const docName = computed(() =>

@@ -14,7 +14,7 @@ const node: WorkflowNode = {
     category: 'novel',
     nodeType: 'ComposeScenesStage',
     inputPorts: [{ name: 'ctx', type: 'Any', optional: true }],
-    outputPorts: [{ name: 'task_output', type: 'str' }],
+    outputPorts: [{ name: 'task_output', type: 'str', optional: false }],
     capabilities: ['WithLLMHandling'],
     configFields: [
       {

@@ -2,14 +2,14 @@
 import { computed, ref } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import type { PortDefinition } from '@/types/api'
-import { useWorkflowStore } from '@/stores/workflow'
+import { useWorkflowStore, type FabricatioNodeData } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 import { categoryColor } from '@/utils/categoryColors'
 import { useOutputPreview } from '@/composables/useOutputPreview'
 import { fieldTooltip, groupConfigFields, type ArgGroup } from '@/utils/argGroups'
 import NodeWidget from './NodeWidget.vue'
 
-const props = defineProps<{ id: string; data: any }>()
+const props = defineProps<{ id: string; data: FabricatioNodeData }>()
 const emit = defineEmits<{ 'open-source': [nodeType: string] }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()

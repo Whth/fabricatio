@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import Toolbar from '@/components/chrome/Toolbar.vue'
+import AppToolbar from '@/components/chrome/AppToolbar.vue'
 import NodeCanvas from '@/components/canvas/NodeCanvas.vue'
 import ExecutionConsole from '@/components/console/ExecutionConsole.vue'
 import SettingsDialog from '@/components/chrome/SettingsDialog.vue'
@@ -9,7 +9,7 @@ import ActionEditor from '@/components/chrome/ActionEditor.vue'
 import BoardView from '@/components/board/BoardView.vue'
 import NotificationToast from '@/components/NotificationToast.vue'
 import NodeOutputPreview from '@/components/canvas/NodeOutputPreview.vue'
-import { useOutputPreview, outputPreview } from '@/composables/useOutputPreview'
+import { outputPreview } from '@/composables/useOutputPreview'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
@@ -37,7 +37,7 @@ function backToBoard() {
 
 <template>
   <div class="app-shell">
-    <Toolbar />
+    <AppToolbar />
 
     <!-- Layer breadcrumb -->
     <div v-if="boardStore.layer !== 'board'" class="breadcrumb">

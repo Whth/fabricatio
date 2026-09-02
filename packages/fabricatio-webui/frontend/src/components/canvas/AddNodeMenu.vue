@@ -4,7 +4,7 @@ import type { NodeTypeDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { categoryColor } from '@/utils/categoryColors'
 
-const props = defineProps<{ position: { x: number; y: number } }>()
+defineProps<{ position: { x: number; y: number } }>()
 const emit = defineEmits<{ close: []; closeRight: []; add: [typeDef: NodeTypeDefinition] }>()
 const wfStore = useWorkflowStore()
 

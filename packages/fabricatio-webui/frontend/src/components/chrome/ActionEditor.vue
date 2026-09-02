@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useBoardStore } from '@/stores/board'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
-import type { ActionDefJSON, ActionFieldJSON } from '@/types/api'
+import type { ActionDefJSON } from '@/types/api'
 import { X, Plus, Trash2, Save } from '@lucide/vue'
 
 const boardStore = useBoardStore()

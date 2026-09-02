@@ -6,7 +6,6 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import { useWorkflowStore } from '@/stores/workflow'
-import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
@@ -21,7 +20,6 @@ import { computed } from 'vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
-const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
 const uiStore = useUiStore()
 
@@ -367,6 +365,7 @@ function onDrop(ev: DragEvent) {
         :zoomable="true"
         mask-color="var(--bg-3)"
       />
+      <CommandPalette v-if="uiStore.paletteOpen" />
     </VueFlow>
 
 
