@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
 
 const props = defineProps<{ nodeId: string; outputKey: string; anchor: DOMRect }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
+const { t } = useI18n()
 
-const preview = computed(() => String(execStore.nodeOutputs[props.nodeId]?.[props.outputKey] ?? '(no output)'))
+const preview = computed(() => String(execStore.nodeOutputs[props.nodeId]?.[props.outputKey] ?? t('canvas.noOutput')))
 const title = computed(() => wfStore.nodes.find((n) => n.id === props.nodeId)?.data.title ?? props.nodeId)
 </script>
 

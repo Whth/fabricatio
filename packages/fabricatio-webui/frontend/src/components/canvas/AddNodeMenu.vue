@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { NodeTypeDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { categoryColor } from '@/utils/categoryColors'
@@ -7,6 +8,7 @@ import { categoryColor } from '@/utils/categoryColors'
 defineProps<{ position: { x: number; y: number } }>()
 const emit = defineEmits<{ close: []; closeRight: []; add: [typeDef: NodeTypeDefinition] }>()
 const wfStore = useWorkflowStore()
+const { t } = useI18n()
 
 const rootEl = ref<HTMLElement | null>(null)
 
@@ -53,7 +55,7 @@ function pick(t: NodeTypeDefinition) {
     <input
       v-model="query"
       ref="searchInput"
-      placeholder="Search nodes..."
+      :placeholder="t('canvas.searchNodes')"
       class="menu-search"
       autofocus
       @keydown.esc="emit('close')"
@@ -74,7 +76,7 @@ function pick(t: NodeTypeDefinition) {
           <span class="item-type">{{ t.type }}</span>
         </button>
       </template>
-      <div v-if="filtered.length === 0" class="menu-empty">No nodes match</div>
+      <div v-if="filtered.length === 0" class="menu-empty">{{ t('canvas.noMatch') }}</div>
     </div>
   </div>
 </template>

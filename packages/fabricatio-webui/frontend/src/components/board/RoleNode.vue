@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Handle, Position } from '@vue-flow/core'
 import type { RoleJSON } from '@/types/api'
 import { useBoardStore, WF_REORDER_MIME } from '@/stores/board'
@@ -9,11 +10,14 @@ import { Plus, Trash2, Code2, Copy, ClipboardPaste } from '@lucide/vue'
 
 const props = defineProps<{ id: string; data: { roleIndex?: number; role?: RoleJSON } }>()
 
+/** Board index of this role. */
+const index = computed(() => props.data.roleIndex ?? -1)
+/** Role payload rendered by this node. */
+const role = computed(() => props.data.role as RoleJSON)
+
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
-
-const index = computed(() => props.data?.roleIndex as number)
-const role = computed<RoleJSON>(() => props.data?.role ?? { name: '?', workflows: [] })
+const { t } = useI18n()
 
 /** Workflow index whose copy-to-role menu is open (null = closed). */
 const copyMenuFor = ref<number | null>(null)
@@ -49,8 +53,8 @@ function onDrop(ev: DragEvent) {
   const wf = boardStore.addBlueprintWorkflow(id, index.value)
   if (wf) {
     notifications.success(
-      'Workflow added',
-      `"${wf.name}" added to "${role.value.name}" — double-click the role or its chip to edit it`,
+      t('board.workflowAdded'),
+      t('board.workflowAddedBlueprint', { wf: wf.name, role: role.value.name }),
     )
   }
 }
@@ -176,13 +180,13 @@ function doCopySelected() {
   if (!canCopy.value) return
   boardStore.copySelectedWorkflows()
   const n = boardStore.copiedWorkflows.length
-  notifications.success('Copied', `${n} workflow(s) copied — click another role and paste (Ctrl+V)`)
+  notifications.success(t('board.copied'), t('board.copiedBody', { n }))
 }
 
 function doPaste() {
   if (!canPaste.value) return
   const n = boardStore.pasteWorkflows(index.value)
-  if (n > 0) notifications.success('Pasted', `${n} workflow(s) added to "${role.value.name}"`)
+  if (n > 0) notifications.success(t('board.pasted'), t('board.pastedBody', { n, role: role.value.name }))
 }
 
 function patternOf(ns: string | undefined): string {
@@ -203,8 +207,7 @@ function openWorkflow(i: number) {
 function addWorkflow() {
   const roleName = role.value.name.replace(/\s+/g, '-').toLowerCase() || 'role'
   const wfName = `${roleName}-${(role.value.workflows?.length ?? 0) + 1}`
-  boardStore.addWorkflow(wfName, wfName, index.value)
-  notifications.success('Workflow added', `"${wfName}" — double-click the role to edit it`)
+  notifications.success(t('board.workflowAdded'), t('board.workflowAddedBody', { wf: wfName }))
 }
 
 function toggleCopy(wfIndex: number) {
@@ -217,7 +220,7 @@ function doCopy(wfIndex: number, targetIndex: number) {
   copyMenuFor.value = null
   if (ok && wf) {
     const target = boardStore.board.roles[targetIndex]
-    notifications.success('Workflow copied', `"${wf.name}" → "${target.name}"`)
+    notifications.success(t('board.workflowCopied'), t('board.workflowCopiedBody', { wf: wf.name, target: target.name }))
   }
 }
 
@@ -234,9 +237,9 @@ function showCode() {
 }
 
 function remove() {
-  if (window.confirm(`Delete role "${role.value.name}" and its workflows?`)) {
+  if (window.confirm(t('board.confirmDeleteRole', { role: role.value.name }))) {
     boardStore.removeRole(index.value)
-    notifications.info('Role deleted')
+    notifications.info(t('board.roleDeleted'))
   }
 }
 </script>
@@ -254,7 +257,7 @@ function remove() {
   >
     <div class="role-title">
       <span class="role-name">{{ role.name }}</span>
-      <span class="role-count">{{ role.workflows?.length ?? 0 }} workflow(s)</span>
+      <span class="role-count">{{ t('chrome.toolbar.workflowCount', { n: role.workflows?.length ?? 0 }) }}</span>
     </div>
 
     <div v-if="role.description" class="role-desc">{{ role.description }}</div>
@@ -287,11 +290,11 @@ function remove() {
         @dragend="onReorderEnd"
       >
         <div class="wf-row">
-          <span class="wf-name">{{ wf.name ?? '(unnamed)' }}</span>
+          <span class="wf-name">{{ wf.name ?? t('board.unnamed') }}</span>
           <button
             class="wf-copy"
             :class="{ open: copyMenuFor === i }"
-            title="Copy to another role"
+            :title="t('board.copyToRole')"
             @click.stop="toggleCopy(i)"
             @dblclick.stop
           >
@@ -300,7 +303,7 @@ function remove() {
         </div>
         <code class="wf-pattern">{{ patternOf(wf.namespace) }}</code>
         <div v-if="copyMenuFor === i" class="copy-menu" @click.stop @dblclick.stop>
-          <div class="copy-menu-title">Copy to role</div>
+          <div class="copy-menu-title">{{ t('board.copyToRole') }}</div>
           <button
             v-for="target in otherRoles"
             :key="target.index"
@@ -310,20 +313,20 @@ function remove() {
             <span class="copy-target-name">{{ target.role.name }}</span>
             <span class="copy-target-count">{{ target.role.workflows?.length ?? 0 }}</span>
           </button>
-          <div v-if="otherRoles.length === 0" class="copy-menu-empty">No other roles</div>
+          <div v-if="otherRoles.length === 0" class="copy-menu-empty">{{ t('board.noOtherRoles') }}</div>
         </div>
       </div>
-      <div v-if="!role.workflows?.length" class="wf-empty">No workflows — double-click to edit, add one below.</div>
+      <div v-if="!role.workflows?.length" class="wf-empty">{{ t('board.noWorkflows') }}</div>
     </div>
 
     <div class="role-actions nodrag">
-      <button class="role-btn" title="Add workflow" @click.stop="addWorkflow">
+      <button class="role-btn" :title="t('board.addWorkflow')" @click.stop="addWorkflow">
         <Plus :size="13" />
       </button>
       <button
         class="role-btn"
         :class="{ disabled: !canCopy }"
-        :title="canCopy ? `Copy ${boardStore.selectedWorkflows.indices.length} selected workflow(s) (Ctrl+C)` : 'Select workflows, then copy (Ctrl+C)'"
+        :title="canCopy ? t('board.copySelected', { n: boardStore.selectedWorkflows.indices.length }) : t('board.copyHint')"
         :disabled="!canCopy"
         @click.stop="doCopySelected"
       >
@@ -332,16 +335,16 @@ function remove() {
       <button
         class="role-btn"
         :class="{ disabled: !canPaste }"
-        :title="canPaste ? `Paste ${boardStore.copiedWorkflows.length} workflow(s) here (Ctrl+V)` : 'Clipboard is empty — copy a workflow first'"
+        :title="canPaste ? t('board.pasteHere', { n: boardStore.copiedWorkflows.length }) : t('board.pasteHint')"
         :disabled="!canPaste"
         @click.stop="doPaste"
       >
         <ClipboardPaste :size="13" />
       </button>
-      <button class="role-btn" title="Generate fabricatio code" @click.stop="showCode">
+      <button class="role-btn" :title="t('board.generateCode')" @click.stop="showCode">
         <Code2 :size="13" />
       </button>
-      <button class="role-btn danger" title="Delete role" @click.stop="remove">
+      <button class="role-btn danger" :title="t('board.deleteRole')" @click.stop="remove">
         <Trash2 :size="13" />
       </button>
     </div>

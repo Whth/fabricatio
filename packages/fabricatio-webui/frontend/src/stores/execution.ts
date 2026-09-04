@@ -4,6 +4,7 @@ import type { TaskJSON, WSMessage } from '@/types/api'
 import { useWorkflowStore } from './workflow'
 import { useNotificationsStore } from './notifications'
 import { api } from '@/api/client'
+import { i18n } from '@/i18n'
 
 export type NodeStatus = 'idle' | 'queued' | 'running' | 'done' | 'error'
 export type ExecutionState = 'idle' | 'running' | 'completed' | 'failed'
@@ -109,7 +110,7 @@ export const useExecutionStore = defineStore('execution', () => {
           }
         }
         executingNodeId.value = null
-        notifications.error(`Node error: ${msg.node_id}`, msg.error.slice(0, 100))
+        notifications.error(i18n.global.t('shell.nodeError', { id: msg.node_id }), msg.error.slice(0, 100))
         break
 
       case 'node_output':
@@ -133,7 +134,7 @@ export const useExecutionStore = defineStore('execution', () => {
         executionState.value = msg.error ? 'failed' : msg.cancelled ? 'idle' : 'completed'
         if (msg.result) result.value = msg.result
         if (msg.error) {
-          notifications.error('Execution failed', msg.error.slice(0, 100))
+          notifications.error(i18n.global.t('shell.executionFailed'), msg.error.slice(0, 100))
         }
         executingNodeId.value = null
         // A terminal event invalidates nodes still marked running (cancelled/failed mid-flight).
@@ -168,7 +169,7 @@ export const useExecutionStore = defineStore('execution', () => {
       executionState.value = 'running'
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Failed to queue prompt', message)
+      notifications.error(i18n.global.t('shell.queueFailed'), message)
       throw err
     }
   }
@@ -180,10 +181,10 @@ export const useExecutionStore = defineStore('execution', () => {
       await api.interrupt()
       executionState.value = 'idle'
       executingNodeId.value = null
-      notifications.info('Execution interrupted')
+      notifications.info(i18n.global.t('shell.interrupted'))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Failed to interrupt', message)
+      notifications.error(i18n.global.t('shell.interruptFailed'), message)
       throw err
     }
   }

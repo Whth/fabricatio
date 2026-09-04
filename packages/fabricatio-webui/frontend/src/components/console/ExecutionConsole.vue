@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useExecutionStore } from '@/stores/execution'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useUiStore } from '@/stores/ui'
@@ -8,6 +9,7 @@ import { Terminal, ChevronUp, ChevronDown, Square } from '@lucide/vue'
 const execStore = useExecutionStore()
 const wfStore = useWorkflowStore()
 const uiStore = useUiStore()
+const { t } = useI18n()
 
 /** Live expanded state — owned by the ui store so the palette/hotkeys can toggle it. */
 const expanded = computed({
@@ -28,9 +30,9 @@ const logLines = computed<LogLine[]>(() => {
   const lines: LogLine[] = []
   for (const [nodeId, status] of Object.entries(execStore.nodeStatuses)) {
     const title = nodeTitle(nodeId)
-    if (status === 'running') lines.push({ kind: 'status', text: `\u25B6 ${title} running` })
-    else if (status === 'done') lines.push({ kind: 'done', text: `\u2713 ${title} done` })
-    else if (status === 'error') lines.push({ kind: 'error', text: `\u2717 ${title} failed` })
+    if (status === 'running') lines.push({ kind: 'status', text: `\u25B6 ${title} ${t('console.running')}` })
+    else if (status === 'done') lines.push({ kind: 'done', text: `\u2713 ${title} ${t('console.done')}` })
+    else if (status === 'error') lines.push({ kind: 'error', text: `\u2717 ${title} ${t('console.failed')}` })
   }
   for (const err of execStore.errors) {
     lines.push({ kind: 'error', text: `${nodeTitle(err.nodeId)}: ${err.error}` })
@@ -50,7 +52,7 @@ const logLines = computed<LogLine[]>(() => {
     <div class="console-bar">
       <button class="console-toggle" @click="expanded = !expanded">
         <Terminal :size="14" />
-        <span>Console</span>
+        <span>{{ t('console.title') }}</span>
         <ChevronDown v-if="expanded" :size="12" />
         <ChevronUp v-else :size="12" />
       </button>
@@ -58,30 +60,30 @@ const logLines = computed<LogLine[]>(() => {
         <span class="stat" :class="{ active: execStore.runningCount > 0 }">
           <span class="stat-dot running"></span>
           <span class="stat-value">{{ execStore.runningCount }}</span>
-          <span class="stat-label">running</span>
+          <span class="stat-label">{{ t('console.running') }}</span>
         </span>
         <span class="stat">
           <span class="stat-dot queued"></span>
           <span class="stat-value">{{ execStore.queueLength }}</span>
-          <span class="stat-label">queued</span>
+          <span class="stat-label">{{ t('console.queued') }}</span>
         </span>
         <span class="stat" v-if="execStore.errorCount > 0">
           <span class="stat-dot error"></span>
           <span class="stat-value">{{ execStore.errorCount }}</span>
-          <span class="stat-label">errors</span>
+          <span class="stat-label">{{ t('console.errors') }}</span>
         </span>
       </div>
       <button
         v-if="execStore.isRunning"
         class="interrupt-btn"
         @click="execStore.interrupt()"
-        title="Interrupt execution"
+        :title="t('console.interruptTitle')"
       >
-        <Square :size="12" /> Interrupt
+        <Square :size="12" /> {{ t('console.interrupt') }}
       </button>
     </div>
     <div v-if="expanded" class="console-body">
-      <div v-if="logLines.length === 0" class="console-empty">No events yet &mdash; run a workflow.</div>
+      <div v-if="logLines.length === 0" class="console-empty">{{ t('console.empty') }}</div>
       <div
         v-for="(line, i) in logLines"
         :key="i"

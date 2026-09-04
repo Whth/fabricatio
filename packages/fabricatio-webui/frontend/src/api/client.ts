@@ -7,6 +7,8 @@ import type {
 } from '@/types/api'
 import { useLoadingStore } from '@/stores/loading'
 import { useNotificationsStore } from '@/stores/notifications'
+import { i18n } from '@/i18n'
+const tt = i18n.global.t
 
 const BASE = '/api'
 
@@ -34,15 +36,15 @@ async function request<T>(
     const res = await fetch(`${BASE}${path}`, opts)
 
     if (!res.ok) {
-      const errorText = await res.text().catch(() => 'Unknown error')
-      throw new Error(`API error ${res.status}: ${errorText}`)
+      const errorText = await res.text().catch(() => tt('shell.unknownError'))
+      throw new Error(tt('shell.apiError', { status: res.status, text: errorText }))
     }
 
     return res.json() as Promise<T>
   } catch (err) {
     if (!options?.silent) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error(`Request failed: ${method} ${path}`, message)
+      notifications.error(tt('shell.requestFailed', { method, path }), message)
     }
     throw err
   } finally {
@@ -54,28 +56,28 @@ async function request<T>(
 
 export const api = {
   getNodes: () =>
-    request<NodeTypeDefinition[]>('GET', '/nodes', undefined, { loading: 'Loading node types...' }),
+    request<NodeTypeDefinition[]>('GET', '/nodes', undefined, { loading: tt('shell.loadingNodes') }),
   getWorkflows: () =>
-    request<BoardJSON[]>('GET', '/workflows', undefined, { loading: 'Loading boards...' }),
+    request<BoardJSON[]>('GET', '/workflows', undefined, { loading: tt('shell.loadingBoards') }),
   getWorkflow: (id: string) =>
     request<BoardJSON>('GET', `/workflows/${encodeURIComponent(id)}`, undefined, {
-      loading: 'Loading board...',
+      loading: tt('shell.loadingBoard'),
     }),
   saveWorkflow: (wf: BoardJSON) =>
-    request<{ id: string }>('POST', '/workflows', wf, { loading: 'Saving board...' }),
+    request<{ id: string }>('POST', '/workflows', wf, { loading: tt('shell.savingBoard') }),
   deleteWorkflow: (id: string) =>
     request<{ ok: boolean }>('DELETE', `/workflows/${encodeURIComponent(id)}`, undefined, {
-      loading: 'Deleting workflow...',
+      loading: tt('shell.deletingWorkflow'),
     }),
   execute: (req: ExecutionRequest) =>
     request<{ execution_id: string }>('POST', '/execute', req, {
-      loading: 'Starting execution...',
+      loading: tt('shell.startingExecution'),
     }),
   interrupt: () =>
-    request<{ ok: boolean }>('POST', '/interrupt', undefined, { loading: 'Interrupting...' }),
+    request<{ ok: boolean }>('POST', '/interrupt', undefined, { loading: tt('shell.interrupting') }),
   getQueue: () => request<unknown[]>('GET', '/queue', undefined, { silent: true }),
   getHistory: () =>
-    request<ExecutionStatus[]>('GET', '/history', undefined, { loading: 'Loading history...' }),
+    request<ExecutionStatus[]>('GET', '/history', undefined, { loading: tt('shell.loadingHistory') }),
   getBlueprints: () =>
     request<BlueprintJSON[]>('GET', '/blueprints', undefined, { silent: true }),
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { generateRoleModule, type NodeCatalog } from '@/data/codegen'
@@ -12,6 +13,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
+const { t } = useI18n()
 
 /** Node type -> importable module path, for codegen imports and dependency pins. */
 const catalog = ref<NodeCatalog>({})
@@ -35,9 +37,9 @@ const code = computed(() => {
 async function copy() {
   try {
     await navigator.clipboard.writeText(code.value)
-    notifications.success('Copied', 'Generated module copied to clipboard')
+    notifications.success(t('board.codeCopied'), t('board.codeCopiedBody'))
   } catch (err) {
-    notifications.error('Copy failed', err instanceof Error ? err.message : String(err))
+    notifications.error(t('board.copyFailed'), err instanceof Error ? err.message : String(err))
   }
 }
 
@@ -49,7 +51,7 @@ function download() {
   a.download = `${role.value?.name ?? 'role'}.py`
   a.click()
   URL.revokeObjectURL(url)
-  notifications.success('Downloaded', `${role.value?.name ?? 'role'}.py`)
+  notifications.success(t('board.downloaded'), `${role.value?.name ?? 'role'}.py`)
 }
 
 function exportPackage() {
@@ -69,11 +71,11 @@ function exportPackage() {
     a.click()
     URL.revokeObjectURL(url)
     notifications.success(
-      'Package exported',
-      `${slugify(r.name)}.zip — run it with: uv run main.py`,
+      t('board.pkgExported'),
+      t('board.pkgExportedBody', { name: slugify(r.name) }),
     )
   } catch (err) {
-    notifications.error('Package export failed', err instanceof Error ? err.message : String(err))
+    notifications.error(t('board.pkgExportFailed'), err instanceof Error ? err.message : String(err))
   }
 }
 </script>
@@ -83,18 +85,18 @@ function exportPackage() {
     <div class="dialog-backdrop" @mousedown.self="emit('close')">
       <div class="code-dialog">
         <div class="dialog-header">
-          <span>Generated fabricatio module — {{ role?.name }}</span>
+          <span>{{ t('board.codegenTitle', { name: role?.name }) }}</span>
           <div class="header-actions">
-            <button class="header-btn" title="Copy" @click="copy"><Copy :size="14" /></button>
+            <button class="header-btn" :title="t('board.copyBtn')" @click="copy"><Copy :size="14" /></button>
             <button
               class="header-btn"
-              title="Export runnable package (.zip)"
+              :title="t('board.exportPkgBtn')"
               @click="exportPackage"
             >
               <Package :size="14" />
             </button>
-            <button class="header-btn" title="Download .py" @click="download"><Download :size="14" /></button>
-            <button class="header-btn" title="Close" @click="emit('close')"><X :size="14" /></button>
+            <button class="header-btn" :title="t('board.downloadPyBtn')" @click="download"><Download :size="14" /></button>
+            <button class="header-btn" :title="t('common.close')" @click="emit('close')"><X :size="14" /></button>
           </div>
         </div>
         <pre class="code-view"><code>{{ code }}</code></pre>

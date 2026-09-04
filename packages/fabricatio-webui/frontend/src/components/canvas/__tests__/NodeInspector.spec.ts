@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import NodeInspector from '../NodeInspector.vue'
+import { i18n } from '@/i18n'
 import type { WorkflowNode, WorkflowEdge } from '@/stores/workflow'
 
 const node: WorkflowNode = {
@@ -36,6 +37,7 @@ const node: WorkflowNode = {
 function mountInspector(overrides: Partial<{ node: WorkflowNode | null; edges: WorkflowEdge[] }> = {}) {
   setActivePinia(createPinia())
   return mount(NodeInspector, {
+    global: { plugins: [i18n] },
     props: {
       node,
       edges: [],

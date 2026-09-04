@@ -5,6 +5,7 @@ import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useI18n } from 'vue-i18n'
 import { useAppActions } from '@/composables/useAppActions'
 import RunDialog from '@/components/chrome/RunDialog.vue'
 import { Play, Square, Save, FolderOpen, Trash2, Search, Settings, BookOpen, Wand2 } from '@lucide/vue'
@@ -14,6 +15,7 @@ const boardStore = useBoardStore()
 const execStore = useExecutionStore()
 const uiStore = useUiStore()
 const { connected } = useWebSocket()
+const { t } = useI18n()
 const {
   saveWorkflow,
   interruptWorkflow,
@@ -124,22 +126,22 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
     <div class="toolbar-right">
       <!-- File group -->
       <div class="toolbar-group">
-        <button class="btn btn-icon" title="Save board" @click="handleSave" :disabled="isSaving">
+        <button class="btn btn-icon" :title="t('chrome.toolbar.save')" @click="handleSave" :disabled="isSaving">
           <Save :size="16" />
         </button>
 
         <div class="load-wrap">
-          <button class="btn btn-icon" title="Load board" @click="toggleLoad">
+          <button class="btn btn-icon" :title="t('chrome.toolbar.load')" @click="toggleLoad">
             <FolderOpen :size="16" />
           </button>
           <div v-if="loadOpen" class="load-menu" @mousedown.stop>
-            <div v-if="savedBoards.length === 0" class="load-empty">No saved boards</div>
+            <div v-if="savedBoards.length === 0" class="load-empty">{{ t('chrome.toolbar.noBoards') }}</div>
             <div v-for="wf in savedBoards" :key="wf.id" class="load-item">
               <button class="load-name" @click="handleLoadWorkflow(wf.id)">
                 {{ wf.name }}
-                <span class="load-count">{{ wf.workflowCount }} workflow(s)</span>
+                <span class="load-count">{{ t('chrome.toolbar.workflowCount', { n: wf.workflowCount }) }}</span>
               </button>
-              <button class="load-delete" title="Delete board" @click="handleDeleteWorkflow(wf.id)">
+              <button class="load-delete" :title="t('chrome.toolbar.delete')" @click="handleDeleteWorkflow(wf.id)">
                 <Trash2 :size="12" />
               </button>
             </div>
@@ -148,20 +150,20 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
 
         <button
           class="btn btn-icon"
-          title="Saved boards"
+          :title="t('chrome.toolbar.boards')"
           :class="{ active: uiStore.workflowsOpen }"
           @click="uiStore.toggleWorkflows()"
         >
           <BookOpen :size="16" />
         </button>
 
-        <button class="btn btn-icon" title="Search nodes and commands (Ctrl+F)" @click="uiStore.togglePalette()">
+        <button class="btn btn-icon" :title="t('chrome.toolbar.search')" @click="uiStore.togglePalette()">
           <Search :size="16" />
         </button>
 
         <button
           class="btn btn-icon"
-          title="Auto layout workflow (Ctrl+Shift+F)"
+          :title="t('chrome.toolbar.autoLayout')"
           :disabled="boardStore.layer !== 'workflow'"
           @click="onAutoLayout"
         >
@@ -176,13 +178,13 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
         <button
           v-if="execStore.isRunning"
           class="btn btn-run stop"
-          title="Stop execution"
+          :title="t('chrome.toolbar.stop')"
           @click="handleStop"
         >
-          <Square :size="14" /> Stop
+          <Square :size="14" /> {{ t('chrome.toolbar.stopLabel') }}
         </button>
-        <button v-else class="btn btn-run" title="Run workflow (Ctrl+Enter)" @click="handleRun">
-          <Play :size="14" /> {{ boardStore.layer === 'board' ? 'Publish' : 'Run' }}
+        <button v-else class="btn btn-run" :title="t('chrome.toolbar.run')" @click="handleRun">
+          <Play :size="14" /> {{ boardStore.layer === 'board' ? t('chrome.toolbar.publish') : t('chrome.toolbar.runShort') }}
         </button>
 
         <RunDialog
@@ -200,7 +202,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       <div class="toolbar-group">
         <button
           class="btn btn-icon"
-          title="Frontend settings"
+          :title="t('chrome.toolbar.settings')"
           :class="{ active: uiStore.settingsOpen }"
           @click="uiStore.openSettings()"
         >
@@ -209,7 +211,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       </div>
 
       <!-- Status -->
-      <span class="ws-dot" :class="{ connected }" :title="connected ? 'Connected' : 'Disconnected'"></span>
+      <span class="ws-dot" :class="{ connected }" :title="connected ? t('chrome.toolbar.connected') : t('chrome.toolbar.disconnected')"></span>
     </div>
   </header>
 </template>

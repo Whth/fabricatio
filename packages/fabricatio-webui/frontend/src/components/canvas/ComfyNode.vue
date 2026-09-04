@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Handle, Position } from '@vue-flow/core'
 import type { PortDefinition } from '@/types/api'
 import { useWorkflowStore, type FabricatioNodeData } from '@/stores/workflow'
@@ -13,6 +14,7 @@ const props = defineProps<{ id: string; data: FabricatioNodeData }>()
 const emit = defineEmits<{ 'open-source': [nodeType: string] }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
+const { t } = useI18n()
 const { show } = useOutputPreview()
 
 const node = computed(() => wfStore.nodes.find((n) => n.id === props.id))
@@ -64,7 +66,7 @@ function wiredPort(field: string): string {
 
 /** Hover text for a wired field row: field doc plus who feeds it. */
 function wiredTip(f: PortDefinition): string {
-  return `${fieldTooltip(f)}\n\nValue from ${wiredSource(f.name)}`
+  return `${fieldTooltip(f)}\n\n${t('canvas.valueFrom', { source: wiredSource(f.name) })}`
 }
 
 /** Disconnect the edge feeding this field, restoring manual editing. */
@@ -140,7 +142,7 @@ const collapsible = computed(() => widgetCount.value > 6)
 const statusLabel = computed(() => {
   const s = props.data.status
   if (!s || s === 'idle') return null
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return t(`canvas.status.${s}`)
 })
 </script>
 
@@ -170,7 +172,7 @@ const statusLabel = computed(() => {
         v-if="collapsible"
         class="collapse-toggle"
         @click.stop="collapsed = !collapsed"
-        :title="collapsed ? 'Expand widgets' : 'Collapse widgets'"
+        :title="collapsed ? t('canvas.expand') : t('canvas.collapse')"
       >
         {{ collapsed ? '+' : '−' }}
       </span>
@@ -219,7 +221,7 @@ const statusLabel = computed(() => {
               <span class="wired-chip">← {{ wiredPort(f.name) }}</span>
               <button
                 class="wired-unwire"
-                title="Disconnect this input"
+                :title="t('canvas.disconnect')"
                 @mousedown.stop
                 @click.stop="unwire(f.name)"
               >
@@ -250,7 +252,7 @@ const statusLabel = computed(() => {
           <button
             v-if="hasOutput(p.name)"
             class="output-dot"
-            :title="`Preview ${p.name}`"
+            :title="t('canvas.preview', { name: p.name })"
             @click.stop="show(props.id, p.name, $event)"
           ></button>
           <Handle :id="p.name" type="source" :position="Position.Right" class="port-handle port-handle-inline" />

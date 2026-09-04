@@ -10,6 +10,7 @@ import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useNotificationsStore } from '@/stores/notifications'
 import { api } from '@/api/client'
+import { i18n } from '@/i18n'
 import type { BoardJSON, WorkflowMeta } from '@/types/api'
 
 /** Module-level so every consumer shares the in-flight guard. */
@@ -40,12 +41,12 @@ export function useAppActions() {
       const result = await api.saveWorkflow(board)
       boardStore.loadedId = result.id
       notifications.success(
-        'Board saved',
-        `"${result.id}" saved with ${board.roles.length} role(s), ${boardStore.workflowCount} workflow(s)`,
+        i18n.global.t('shell.boardSaved'),
+        i18n.global.t('shell.boardSavedBody', { id: result.id, roles: board.roles.length, workflows: boardStore.workflowCount }),
       )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Failed to save board', message)
+      notifications.error(i18n.global.t('shell.saveFailed'), message)
     } finally {
       isSaving.value = false
     }
@@ -71,18 +72,18 @@ export function useAppActions() {
     try {
       const board = await api.getWorkflow(id)
       if (wfStore.nodes.length > 0 || boardStore.roleCount > 0) {
-        const ok = window.confirm(`Replace the current board with "${board.name ?? id}"?`)
+        const ok = window.confirm(i18n.global.t('shell.confirmReplace', { name: board.name ?? id }))
         if (!ok) return false
       }
       boardStore.fromJSON(board)
       notifications.success(
-        'Board loaded',
-        `"${board.name ?? id}" loaded with ${board.roles?.length ?? 0} role(s)`,
+        i18n.global.t('shell.boardLoaded'),
+        i18n.global.t('shell.boardLoadedBody', { name: board.name ?? id, roles: board.roles?.length ?? 0 }),
       )
       return true
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Failed to load board', message)
+      notifications.error(i18n.global.t('shell.loadFailed'), message)
       return false
     }
   }
@@ -91,10 +92,10 @@ export function useAppActions() {
     try {
       await api.deleteWorkflow(id)
       savedBoards.value = savedBoards.value.filter((w) => w.id !== id)
-      notifications.success('Deleted')
+      notifications.success(i18n.global.t('shell.deleted'))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Failed to delete board', message)
+      notifications.error(i18n.global.t('shell.deleteFailed'), message)
     }
   }
 
@@ -113,10 +114,10 @@ export function useAppActions() {
     try {
       const boards = await api.getWorkflows()
       downloadJson('fabricatio-boards.json', boards)
-      notifications.success('Exported', `${boards.length} board(s) downloaded`)
+      notifications.success(i18n.global.t('shell.exported'), i18n.global.t('shell.exportedBody', { n: boards.length }))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Export failed', message)
+      notifications.error(i18n.global.t('shell.exportFailed'), message)
     }
   }
 
@@ -127,7 +128,7 @@ export function useAppActions() {
       downloadJson(`${id}.json`, board)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      notifications.error('Export failed', message)
+      notifications.error(i18n.global.t('shell.exportFailed'), message)
     }
   }
 
@@ -141,13 +142,13 @@ export function useAppActions() {
     try {
       parsed = JSON.parse(await file.text())
     } catch {
-      throw new Error(`${file.name} is not valid JSON`)
+      throw new Error(i18n.global.t('shell.invalidJson', { name: file.name }))
     }
     const items = Array.isArray(parsed) ? parsed : [parsed]
     for (const item of items) {
       const b = item as BoardJSON
       if (typeof item !== 'object' || item === null || b.format_version !== 2) {
-        throw new Error(`${file.name}: unsupported board — expected format_version 2`)
+        throw new Error(i18n.global.t('shell.unsupportedBoard', { name: file.name }))
       }
     }
 

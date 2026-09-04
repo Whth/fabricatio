@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, markRaw, onMounted, onUnmounted, watch } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
+import { useI18n } from 'vue-i18n'
 import type { NodeMouseEvent, Connection } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -22,6 +23,7 @@ import type { NodeTypeDefinition } from '@/types/api'
 const wfStore = useWorkflowStore()
 const notifications = useNotificationsStore()
 const uiStore = useUiStore()
+const { t } = useI18n()
 
 const menuPos = ref<{ x: number; y: number } | null>(null)
 const menuFlowPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -76,7 +78,7 @@ const {
   defaultEdgeOptions: { type: 'smoothstep', animated: false },
   isValidConnection: (connection: Connection) => {
     if (connection.source === connection.target) {
-      lastConnectionError.value = 'Cannot connect a node to itself'
+      lastConnectionError.value = t('canvas.selfLoop')
       return false
     }
     const sourceNode = findNode(connection.source!)
@@ -94,19 +96,18 @@ const {
     const inp = tData?.inputPorts?.find((p: { name: string }) => p.name === connection.targetHandle)
     const cfg = tData?.configFields?.find((p: { name: string }) => p.name === connection.targetHandle)
     if (!out || (!inp && !cfg)) {
-      lastConnectionError.value = 'Output ports can only connect to compatible input ports'
+      lastConnectionError.value = t('canvas.badTarget')
       return false
     }
     const targetPort = inp ?? cfg
     if (!out || !targetPort) return false
     const s = out.type
-    const t = targetPort.type
+    const td = targetPort.type
     // 'Any' and 'Union' are wildcards: the registry cannot enumerate union members.
-    const compatible = s === 'Any' || s === 'Union' || t === 'Any' || t === 'Union' || s === t
-    if (!compatible) lastConnectionError.value = `Type mismatch: ${s} → ${t}`
-    if (!compatible) return false
+    const compatible = s === 'Any' || s === 'Union' || td === 'Any' || td === 'Union' || s === td
+    if (!compatible) lastConnectionError.value = t('canvas.typeMismatch', { s, t: td })
     if (wouldCreateCycle(connection.source!, connection.target!)) {
-      lastConnectionError.value = 'Would create a cycle'
+      lastConnectionError.value = t('canvas.cycle')
       return false
     }
 
@@ -127,7 +128,7 @@ onConnectEnd((event) => {
     // Only show tip if dropped on a handle (not empty canvas)
     const target = event?.target as HTMLElement | undefined
     if (target?.closest('.vue-flow__handle')) {
-      notifications.warning('Invalid connection', lastConnectionError.value)
+      notifications.warning(t('canvas.invalidConnection'), lastConnectionError.value)
     }
     lastConnectionError.value = null
   }
@@ -179,10 +180,10 @@ function onPaneDblClick(event: MouseEvent) {
   openMenuAt(event)
 }
 
-function onMenuAdd(t: NodeTypeDefinition) {
-  wfStore.addNode(t, menuFlowPos.value)
+function onMenuAdd(def: NodeTypeDefinition) {
+  wfStore.addNode(def, menuFlowPos.value)
   menuPos.value = null
-  notifications.success(`Added ${t.title} node`)
+  notifications.success(t('chrome.palette.added', { title: def.title }))
 }
 
 function onMenuClose() {
@@ -209,9 +210,9 @@ function onDelete() {
     wfStore.removeEdge(edge.id)
   })
   const parts = []
-  if (selectedNodes.length > 0) parts.push(`${selectedNodes.length} node(s)`)
-  if (selectedEdges.length > 0) parts.push(`${selectedEdges.length} edge(s)`)
-  notifications.info(`Deleted ${parts.join(' and ')}`)
+  if (selectedNodes.length > 0) parts.push(t('canvas.nodes', { n: selectedNodes.length }))
+  if (selectedEdges.length > 0) parts.push(t('canvas.edges', { n: selectedEdges.length }))
+  notifications.info(t('canvas.deleted', { parts: parts.join(t('canvas.listAnd')) }))
 }
 
 function onDuplicate() {
@@ -318,7 +319,7 @@ function onDrop(ev: DragEvent) {
   })
 
   wfStore.addNode(typeDef, position)
-  notifications.success(`Added ${typeDef.title} node`)
+  notifications.success(t('chrome.palette.added', { title: typeDef.title }))
 }
 </script>
 
@@ -336,9 +337,9 @@ function onDrop(ev: DragEvent) {
         <div class="drop-content">
           <span class="drop-icon">+</span>
           <span class="drop-text" v-if="dragPreview">
-            Add <strong>{{ dragPreview.title }}</strong>
+            {{ t('canvas.dropAdd') }} <strong>{{ dragPreview.title }}</strong>
           </span>
-          <span class="drop-text" v-else>Add node here</span>
+          <span class="drop-text" v-else>{{ t('canvas.dropHere') }}</span>
         </div>
       </div>
     </Transition>
@@ -390,16 +391,16 @@ function onDrop(ev: DragEvent) {
     <div v-if="wfStore.nodes.length === 0 && !isDragOver" class="empty-hint">
       <div class="hint-content">
         <Crosshair :size="48" class="hint-icon" />
-        <span class="hint-title">Start building</span>
-        <span class="hint-text">Right-click or double-click the canvas to add nodes</span>
-        <span class="hint-shortcut">Press <kbd>Del</kbd> to remove selected nodes &middot; <kbd>Ctrl+F</kbd> to search</span>
+        <span class="hint-title">{{ t('canvas.startBuilding') }}</span>
+        <span class="hint-text">{{ t('canvas.emptyHint') }}</span>
+        <span class="hint-shortcut"><i18n-t keypath="canvas.hintShortcuts" tag="span"><template #del><kbd>Del</kbd></template><template #f><kbd>Ctrl+F</kbd></template></i18n-t></span>
       </div>
     </div>
 
     <!-- Keyboard shortcuts hint -->
     <div v-if="wfStore.selectedNodeId" class="shortcuts-hint">
-      <span class="shortcut"><kbd>Del</kbd> Delete</span>
-      <span class="shortcut"><kbd>Esc</kbd> Deselect</span>
+      <span class="shortcut"><kbd>Del</kbd> {{ t('canvas.kbdDelete') }}</span>
+      <span class="shortcut"><kbd>Esc</kbd> {{ t('canvas.kbdDeselect') }}</span>
     </div>
 
     <!-- Read-only Python source viewer -->

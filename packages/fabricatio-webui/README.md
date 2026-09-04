@@ -192,6 +192,12 @@ The UI ships dark (default) and light themes. Switch via **Settings sidebar →
 Appearance → Theme**. The choice persists per-browser (localStorage) and is
 applied before first paint (no flash on reload).
 
+### Language
+
+The UI ships **English** and **中文** catalogs (vue-i18n). Switch via
+**Settings sidebar → Appearance → Language**; the choice persists
+per-browser (localStorage) alongside the theme and is applied at startup.
+
 ### Import / export boards
 
 In the **Boards** sidebar:

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, markRaw, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
@@ -14,7 +15,7 @@ import { Plus, X } from '@lucide/vue'
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
-
+const { t } = useI18n()
 // Board-layer clipboard hotkeys: copy the selected workflows, paste into the
 // role that owns the current selection (its card was last clicked).
 const { register } = useHotkeys()
@@ -22,14 +23,14 @@ const hotkeyOffs = [
   register('mod+c', () => {
     if (!boardStore.copySelectedWorkflows()) return
     const n = boardStore.copiedWorkflows.length
-    notifications.success('Copied', `${n} workflow(s) copied — click another role and paste (Ctrl+V)`)
+    notifications.success(t('board.copied'), t('board.copiedBody', { n }))
   }),
   register('mod+v', () => {
     const target = boardStore.selectedWorkflows.roleIndex
     if (target === null) return
     const n = boardStore.pasteWorkflows(target)
     if (n > 0) {
-      notifications.success('Pasted', `${n} workflow(s) added to "${boardStore.board.roles[target]?.name}"`)
+      notifications.success(t('board.pasted'), t('board.pastedBody', { n, role: boardStore.board.roles[target]?.name }))
     }
   }),
 ]
@@ -68,7 +69,7 @@ function openAddMenu(event: MouseEvent) {
 function addRole() {
   boardStore.addRole(newRoleName.value.trim())
   addMenuOpen.value = false
-  notifications.success('Role added', `"${boardStore.board.roles[boardStore.board.roles.length - 1].name}" added`)
+  notifications.success(t('board.roleAdded'), t('board.roleAddedBody', { role: boardStore.board.roles[boardStore.board.roles.length - 1].name }))
 }
 
 function onNodeClick(ev: NodeMouseEvent) {
@@ -108,21 +109,21 @@ function onNodeClick(ev: NodeMouseEvent) {
       >
         <div class="add-role-header">
           <Plus :size="13" />
-          <span>Add role</span>
+          <span>{{ t('board.addRole') }}</span>
           <button class="menu-close" @click="addMenuOpen = false"><X :size="12" /></button>
         </div>
         <input
           v-model="newRoleName"
           class="add-role-input"
-          placeholder="Role name (e.g. writer)"
+          :placeholder="t('board.roleNamePlaceholder')"
           @keydown.enter="addRole"
         />
-        <button class="add-role-submit" @click="addRole">Create</button>
+        <button class="add-role-submit" @click="addRole">{{ t('board.create') }}</button>
       </div>
 
       <div v-if="boardStore.board.roles.length === 0 && boardStore.board.actions.length === 0" class="board-empty">
-        <span class="empty-title">Empty board</span>
-        <span class="empty-hint">Drag a blueprint from the left rail onto the canvas to add a role, or right-click to create one.</span>
+        <span class="empty-title">{{ t('board.emptyTitle') }}</span>
+        <span class="empty-hint">{{ t('board.emptyHint') }}</span>
       </div>
     </VueFlow>
 

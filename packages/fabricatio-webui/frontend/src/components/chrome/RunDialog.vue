@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useAppActions } from '@/composables/useAppActions'
 import { X, Play } from '@lucide/vue'
@@ -12,6 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const wfStore = useWorkflowStore()
+const { t } = useI18n()
 const { runWorkflow } = useAppActions()
 
 const name = ref('')
@@ -41,7 +43,7 @@ function publish() {
   try {
     extra = extraContext.value.trim() ? JSON.parse(extraContext.value) : {}
   } catch (err) {
-    invalid.value = `extra_init_context is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+    invalid.value = t('chrome.run.invalidJson', { msg: err instanceof Error ? err.message : String(err) })
     return
   }
   const sendTo = namespace.value
@@ -49,7 +51,7 @@ function publish() {
     .map((s) => s.trim())
     .filter(Boolean)
   if (sendTo.length === 0) {
-    invalid.value = 'Namespace cannot be empty'
+    invalid.value = t('chrome.run.emptyNamespace')
     return
   }
   runWorkflow({
@@ -71,42 +73,42 @@ function publish() {
         <div class="run-dialog">
           <div class="dialog-header">
             <Play :size="14" />
-            <span>{{ mode === 'publish' ? 'Publish task' : 'Run workflow' }}</span>
-            <button class="dialog-close" title="Close" @click="emit('close')">
+            <span>{{ mode === 'publish' ? t('chrome.run.publishTitle') : t('chrome.run.runTitle') }}</span>
+            <button class="dialog-close" :title="t('common.close')" @click="emit('close')">
               <X :size="14" />
             </button>
           </div>
 
           <div class="dialog-body">
             <label class="field">
-              <span class="field-label">Task name</span>
-              <input v-model="name" class="field-input" placeholder="task name" />
+              <span class="field-label">{{ t('chrome.run.nameLabel') }}</span>
+              <input v-model="name" class="field-input" :placeholder="t('chrome.run.namePlaceholder')" />
             </label>
 
             <label class="field">
-              <span class="field-label">Namespace (send_to)</span>
+              <span class="field-label">{{ t('chrome.run.nsLabel') }}</span>
               <input v-model="namespace" class="field-input" placeholder="write::book" />
-              <span class="field-hint">Tasks publish to <code>&lt;namespace&gt;::&lt;task&gt;::Pending</code>; every workflow subscribed to the matching pattern serves.</span>
+              <span class="field-hint">{{ t('chrome.run.nsHintA') }} <code>&lt;namespace&gt;::&lt;task&gt;::Pending</code>{{ t('chrome.run.nsHintB') }}</span>
             </label>
 
             <label class="field">
-              <span class="field-label">Description</span>
-              <textarea v-model="description" class="field-input" rows="2" placeholder="optional task briefing"></textarea>
+              <span class="field-label">{{ t('chrome.run.descLabel') }}</span>
+              <textarea v-model="description" class="field-input" rows="2" :placeholder="t('chrome.run.descPlaceholder')"></textarea>
             </label>
 
             <div class="field-row">
               <label class="field">
-                <span class="field-label">Goals (one per line)</span>
+                <span class="field-label">{{ t('chrome.run.goalsLabel') }}</span>
                 <textarea v-model="goals" class="field-input" rows="3"></textarea>
               </label>
               <label class="field">
-                <span class="field-label">Dependencies (one per line)</span>
+                <span class="field-label">{{ t('chrome.run.depsLabel') }}</span>
                 <textarea v-model="dependencies" class="field-input" rows="3"></textarea>
               </label>
             </div>
 
             <label class="field">
-              <span class="field-label">extra_init_context (JSON)</span>
+              <span class="field-label">{{ t('chrome.run.extraLabel') }}</span>
               <textarea v-model="extraContext" class="field-input code" rows="3" spellcheck="false"></textarea>
             </label>
 
@@ -114,9 +116,9 @@ function publish() {
           </div>
 
           <div class="dialog-footer">
-            <button class="btn btn-ghost" @click="emit('close')">Cancel</button>
+            <button class="btn btn-ghost" @click="emit('close')">{{ t('common.cancel') }}</button>
             <button class="btn btn-run" @click="publish">
-              <Play :size="14" /> {{ mode === 'publish' ? 'Publish' : 'Run' }}
+              <Play :size="14" /> {{ mode === 'publish' ? t('chrome.toolbar.publish') : t('chrome.toolbar.runShort') }}
             </button>
           </div>
         </div>

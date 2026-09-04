@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useAppActions } from '@/composables/useAppActions'
 import { X, BookOpen, RefreshCw, Trash2, Download, Upload } from '@lucide/vue'
@@ -19,6 +20,7 @@ const {
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const notifications = useNotificationsStore()
+const { t } = useI18n()
 
 async function onImport(ev: Event) {
   const input = ev.target as HTMLInputElement
@@ -27,7 +29,7 @@ async function onImport(ev: Event) {
       await importBoards(f)
     }
   } catch (err) {
-    notifications.error('Import failed', err instanceof Error ? err.message : String(err))
+    notifications.error(t('chrome.sidebar.importFailed'), err instanceof Error ? err.message : String(err))
   } finally {
     input.value = ''
   }
@@ -56,26 +58,26 @@ async function handleLoad(id: string) {
   <aside class="workflows-sidebar" :class="{ open: ui.workflowsOpen }">
     <div class="sidebar-header">
       <BookOpen :size="15" />
-      <span>Boards</span>
+      <span>{{ t('chrome.sidebar.title') }}</span>
       <button
         class="sidebar-icon"
-        title="Export all boards"
+        :title="t('chrome.sidebar.exportAll')"
         @click="exportAllBoards()"
       >
         <Download :size="13" />
       </button>
-      <button class="sidebar-icon" title="Import boards" @click="fileInput?.click()">
+      <button class="sidebar-icon" :title="t('chrome.sidebar.importBoards')" @click="fileInput?.click()">
         <Upload :size="13" />
       </button>
       <button
         class="sidebar-icon"
-        title="Refresh list"
+        :title="t('chrome.sidebar.refresh')"
         :disabled="isLoadingBoards"
         @click="refreshBoards().catch(() => {})"
       >
         <RefreshCw :size="13" :class="{ spinning: isLoadingBoards }" />
       </button>
-      <button class="sidebar-close" title="Close workflows" @click="ui.workflowsOpen = false">
+      <button class="sidebar-close" :title="t('chrome.sidebar.close')" @click="ui.workflowsOpen = false">
         <X :size="14" />
       </button>
     </div>
@@ -91,23 +93,23 @@ async function handleLoad(id: string) {
 
     <div class="sidebar-body">
       <div v-if="savedBoards.length === 0" class="workflows-empty">
-        <p>No saved boards</p>
-        <p class="workflows-hint">Save the current board with Ctrl+S and it will appear here.</p>
+        <p>{{ t('chrome.sidebar.noBoards') }}</p>
+        <p class="workflows-hint">{{ t('chrome.sidebar.emptyHint') }}</p>
       </div>
 
       <div v-for="wf in savedBoards" :key="wf.id" class="workflow-item">
-        <button class="workflow-open" :title="`Load ${wf.name}`" @click="handleLoad(wf.id)">
+        <button class="workflow-open" :title="t('chrome.sidebar.loadNamed', { name: wf.name })" @click="handleLoad(wf.id)">
           <span class="workflow-name">{{ wf.name }}</span>
-          <span class="workflow-count">{{ wf.workflowCount }} workflow(s)</span>
+          <span class="workflow-count">{{ t('chrome.toolbar.workflowCount', { n: wf.workflowCount }) }}</span>
         </button>
         <button
           class="workflow-delete"
-          title="Export board"
+          :title="t('chrome.sidebar.exportOne')"
           @click="exportBoardById(wf.id)"
         >
           <Download :size="13" />
         </button>
-        <button class="workflow-delete" title="Delete board" @click="deleteWorkflowById(wf.id)">
+        <button class="workflow-delete" :title="t('chrome.toolbar.delete')" @click="deleteWorkflowById(wf.id)">
           <Trash2 :size="13" />
         </button>
       </div>

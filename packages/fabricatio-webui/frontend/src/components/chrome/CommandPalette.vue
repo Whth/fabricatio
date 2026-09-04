@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { useVueFlow } from '@vue-flow/core'
+import { useI18n } from 'vue-i18n'
 import type { Component } from 'vue'
 import { Save, Play, Undo2, Redo2, Trash2, PanelRight, Terminal, Map, Grid3X3 } from '@lucide/vue'
 import { useWorkflowStore } from '@/stores/workflow'
@@ -15,6 +16,7 @@ const uiStore = useUiStore()
 const notifications = useNotificationsStore()
 const { saveWorkflow, undo, redo, clearCanvas } = useAppActions()
 const { screenToFlowCoordinate } = useVueFlow()
+const { t } = useI18n()
 
 const query = ref('')
 const activeIndex = ref(0)
@@ -40,17 +42,17 @@ interface PaletteNode {
 }
 
 const actions: PaletteAction[] = [
-  { id: 'act-save', kind: 'action', label: 'Save board', hint: 'Ctrl+S', keywords: 'save persist store', icon: Save, run: () => saveWorkflow() },
-  { id: 'act-run', kind: 'action', label: 'Run workflow', hint: 'Ctrl+Enter', keywords: 'run execute start', icon: Play, run: () => uiStore.openRunDialog('workflow') },
-  { id: 'act-undo', kind: 'action', label: 'Undo', hint: 'Ctrl+Z', keywords: 'undo revert', icon: Undo2, run: () => undo() },
-  { id: 'act-redo', kind: 'action', label: 'Redo', hint: 'Ctrl+Shift+Z', keywords: 'redo', icon: Redo2, run: () => redo() },
-  { id: 'act-clear', kind: 'action', label: 'Clear canvas', hint: '', keywords: 'clear reset empty delete all', icon: Trash2, run: () => clearCanvas() },
-  { id: 'act-settings', kind: 'action', label: 'Open settings', hint: '', keywords: 'settings options preferences theme sidebar panel', icon: PanelRight, run: () => uiStore.openSettings() },
-  { id: 'act-console', kind: 'action', label: 'Toggle console', hint: '', keywords: 'console log terminal output', icon: Terminal, run: () => uiStore.toggleConsole() },
+  { id: 'act-save', kind: 'action', label: t('chrome.palette.save'), hint: 'Ctrl+S', keywords: 'save persist store', icon: Save, run: () => saveWorkflow() },
+  { id: 'act-run', kind: 'action', label: t('chrome.palette.run'), hint: 'Ctrl+Enter', keywords: 'run execute start', icon: Play, run: () => uiStore.openRunDialog('workflow') },
+  { id: 'act-undo', kind: 'action', label: t('chrome.palette.undo'), hint: 'Ctrl+Z', keywords: 'undo revert', icon: Undo2, run: () => undo() },
+  { id: 'act-redo', kind: 'action', label: t('chrome.palette.redo'), hint: 'Ctrl+Shift+Z', keywords: 'redo', icon: Redo2, run: () => redo() },
+  { id: 'act-clear', kind: 'action', label: t('chrome.palette.clear'), hint: '', keywords: 'clear reset empty delete all', icon: Trash2, run: () => clearCanvas() },
+  { id: 'act-settings', kind: 'action', label: t('chrome.palette.settings'), hint: '', keywords: 'settings options preferences theme sidebar panel', icon: PanelRight, run: () => uiStore.openSettings() },
+  { id: 'act-console', kind: 'action', label: t('chrome.palette.console'), hint: '', keywords: 'console log terminal output', icon: Terminal, run: () => uiStore.toggleConsole() },
   {
     id: 'act-minimap',
     kind: 'action',
-    label: uiStore.settings.showMinimap ? 'Hide minimap' : 'Show minimap',
+    label: uiStore.settings.showMinimap ? t('chrome.palette.hideMinimap') : t('chrome.palette.showMinimap'),
     hint: '',
     keywords: 'minimap map overview',
     icon: Map,
@@ -59,7 +61,7 @@ const actions: PaletteAction[] = [
   {
     id: 'act-snap',
     kind: 'action',
-    label: uiStore.settings.snapToGrid ? 'Disable snap to grid' : 'Enable snap to grid',
+    label: uiStore.settings.snapToGrid ? t('chrome.palette.disableSnap') : t('chrome.palette.enableSnap'),
     hint: '',
     keywords: 'snap grid align',
     icon: Grid3X3,
@@ -119,9 +121,8 @@ function move(delta: number) {
 function addNodeAtCenter(def: NodeTypeDefinition) {
   const pos = screenToFlowCoordinate({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   wfStore.addNode(def, pos)
-  notifications.success(`Added ${def.title} node`)
+  notifications.success(t('chrome.palette.added', { title: def.title }))
 }
-
 function select(index: number) {
   const item = items.value[index]
   if (!item) return
@@ -139,14 +140,14 @@ nextTick(() => inputRef.value?.focus())
 
 <template>
   <div class="palette-backdrop" @mousedown.self="uiStore.closePalette()">
-    <div class="palette" role="dialog" aria-label="Command palette">
+    <div class="palette" role="dialog" :aria-label="t('chrome.palette.title')">
       <div class="palette-input-row">
         <span class="palette-search-icon">⌕</span>
         <input
           ref="inputRef"
           v-model="query"
           class="palette-input"
-          placeholder="Search nodes and actions…"
+          :placeholder="t('chrome.palette.placeholder')"
           spellcheck="false"
           @keydown.down.prevent="move(1)"
           @keydown.up.prevent="move(-1)"
@@ -156,9 +157,9 @@ nextTick(() => inputRef.value?.focus())
         <kbd class="palette-kbd">Esc</kbd>
       </div>
       <div class="palette-list">
-        <div v-if="items.length === 0" class="palette-empty">No matches</div>
+        <div v-if="items.length === 0" class="palette-empty">{{ t('chrome.palette.noMatches') }}</div>
         <template v-else>
-          <div v-if="query.trim() === ''" class="palette-group">Actions</div>
+          <div v-if="query.trim() === ''" class="palette-group">{{ t('chrome.palette.actionsGroup') }}</div>
           <div
             v-for="(item, i) in items"
             :key="item.id"
@@ -178,7 +179,6 @@ nextTick(() => inputRef.value?.focus())
     </div>
   </div>
 </template>
-
 <style scoped>
 .palette-backdrop {
   position: fixed;

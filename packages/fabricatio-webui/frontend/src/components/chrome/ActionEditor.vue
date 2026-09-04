@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '@/stores/board'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -9,7 +10,7 @@ import { X, Plus, Trash2, Save } from '@lucide/vue'
 const boardStore = useBoardStore()
 const wfStore = useWorkflowStore()
 const notifications = useNotificationsStore()
-
+const { t } = useI18n()
 const defName = computed(() => boardStore.actionDefName)
 const registryDef = computed(() => wfStore.nodeTypes.find((t) => t.type === defName.value))
 const isCustom = computed(() => boardStore.board.actions.some((a) => a.name === defName.value))
@@ -68,7 +69,7 @@ function removeCapability(index: number) {
 
 function save() {
   if (!draft.name.trim()) {
-    notifications.error('Action name required')
+    notifications.error(t('chrome.editor.nameRequired'))
     return
   }
   const finalDef: ActionDefJSON = {
@@ -82,7 +83,7 @@ function save() {
   boardStore.upsertActionDef(finalDef)
   boardStore.syncNodeTypes()
   dirty.value = false
-  notifications.success('Action saved', `${finalDef.name} is now usable on this board`)
+  notifications.success(t('chrome.editor.saved'), t('chrome.editor.savedBody', { name: finalDef.name }))
 }
 
 function close() {
@@ -94,55 +95,55 @@ function close() {
 <template>
   <aside class="action-editor" :class="{ open: boardStore.layer === 'action' }">
     <div class="editor-header">
-      <span>Action — {{ defName }}</span>
-      <button class="editor-close" title="Close" @click="close"><X :size="14" /></button>
+      <span>{{ t('chrome.editor.header', { name: defName }) }}</span>
+      <button class="editor-close" :title="t('common.close')" @click="close"><X :size="14" /></button>
     </div>
 
     <div v-if="registryDef && !isCustom" class="editor-body">
       <div class="section">
-        <div class="section-title">Registry action (read-only)</div>
-        <p class="registry-desc">{{ registryDef.description || 'No description.' }}</p>
+        <div class="section-title">{{ t('chrome.editor.registryTitle') }}</div>
+        <p class="registry-desc">{{ registryDef.description || t('chrome.editor.noDescription') }}</p>
       </div>
 
       <div class="section">
-        <div class="section-title">Capabilities</div>
+        <div class="section-title">{{ t('chrome.editor.capabilities') }}</div>
         <div class="chip-row">
           <span v-for="cap in registryDef.capabilities" :key="cap" class="chip">{{ cap }}</span>
-          <span v-if="!registryDef.capabilities.length" class="muted">none</span>
+          <span v-if="!registryDef.capabilities.length" class="muted">{{ t('chrome.editor.none') }}</span>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title">Definition</div>
+        <div class="section-title">{{ t('chrome.editor.definition') }}</div>
         <div class="kv-row"><span>output_key</span><code>{{ registryDef.output_ports?.[0]?.name ?? '' }}</code></div>
         <div class="kv-row"><span>ctx_override</span><code>{{ String(registryDef.ctx_override) }}</code></div>
       </div>
 
       <div class="section">
-        <div class="section-title">Fields</div>
+        <div class="section-title">{{ t('chrome.editor.fields') }}</div>
         <div v-for="f in registryDef.config_fields" :key="f.name" class="field-row readonly">
           <code class="field-name">{{ f.name }}</code>
           <span class="field-type">{{ f.type }}</span>
           <span class="field-widget">{{ f.widget ?? 'text' }}</span>
-          <span v-if="f.optional" class="field-optional">optional</span>
+          <span v-if="f.optional" class="field-optional">{{ t('chrome.editor.optional') }}</span>
         </div>
       </div>
     </div>
 
     <div v-else class="editor-body">
       <div class="section">
-        <div class="section-title">Custom action definition</div>
+        <div class="section-title">{{ t('chrome.editor.customTitle') }}</div>
         <label class="edit-row">
-          <span>Name</span>
+          <span>{{ t('chrome.editor.name') }}</span>
           <input v-model="draft.name" class="edit-input" @input="dirty = true" />
         </label>
         <label class="edit-row">
-          <span>Description</span>
+          <span>{{ t('chrome.editor.description') }}</span>
           <textarea v-model="draft.description" class="edit-input" rows="2" @input="dirty = true"></textarea>
         </label>
         <div class="edit-row">
           <span>output_key</span>
-          <input v-model="draft.output_key" class="edit-input mono" placeholder="(class name lowercase)" @input="dirty = true" />
+          <input v-model="draft.output_key" class="edit-input mono" :placeholder="t('chrome.editor.outputKeyPlaceholder')" @input="dirty = true" />
         </div>
         <label class="edit-row toggle-row">
           <span>ctx_override</span>
@@ -151,25 +152,25 @@ function close() {
       </div>
 
       <div class="section">
-        <div class="section-title">Capabilities</div>
+        <div class="section-title">{{ t('chrome.editor.capabilities') }}</div>
         <div class="chip-row">
           <span v-for="(cap, i) in draft.capabilities" :key="cap" class="chip removable" @click="removeCapability(i)">
             {{ cap }} ✕
           </span>
         </div>
         <div class="cap-add">
-          <input v-model="capabilityInput" class="edit-input" placeholder="capability name" @keydown.enter.prevent="addCapability" />
+          <input v-model="capabilityInput" class="edit-input" :placeholder="t('chrome.editor.capabilityPlaceholder')" @keydown.enter.prevent="addCapability" />
           <button class="mini-btn" @click="addCapability"><Plus :size="13" /></button>
         </div>
       </div>
 
       <div class="section">
         <div class="section-title">
-          Fields
-          <button class="mini-btn" title="Add field" @click="addField"><Plus :size="13" /></button>
+          {{ t('chrome.editor.fields') }}
+          <button class="mini-btn" :title="t('chrome.editor.addField')" @click="addField"><Plus :size="13" /></button>
         </div>
         <div v-for="(f, i) in draft.fields" :key="i" class="field-edit">
-          <input v-model="f.name" class="edit-input mono" placeholder="name" @input="dirty = true" />
+          <input v-model="f.name" class="edit-input mono" :placeholder="t('chrome.editor.fieldName')" @input="dirty = true" />
           <input v-model="f.type" class="edit-input mono type" placeholder="str" @input="dirty = true" />
           <select v-model="f.widget" class="edit-input widget" @change="dirty = true">
             <option value="text">text</option>
@@ -179,12 +180,12 @@ function close() {
             <option value="combo">combo</option>
             <option value="json">json</option>
           </select>
-          <button class="mini-btn danger" title="Remove field" @click="removeField(i)"><Trash2 :size="12" /></button>
+          <button class="mini-btn danger" :title="t('chrome.editor.removeField')" @click="removeField(i)"><Trash2 :size="12" /></button>
         </div>
       </div>
 
       <div class="editor-footer">
-        <button class="btn-save" :disabled="!dirty" @click="save"><Save :size="14" /> Save</button>
+        <button class="btn-save" :disabled="!dirty" @click="save"><Save :size="14" /> {{ t('common.save') }}</button>
       </div>
     </div>
   </aside>

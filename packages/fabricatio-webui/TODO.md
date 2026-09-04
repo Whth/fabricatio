@@ -25,3 +25,7 @@ Re-verified 2026-09-02 against source and live runs.
       context), `pyproject.toml`, `workflow.json`, and a `README.md`; run
       anywhere with `uv run main.py` (verified live end-to-end)
     - [ ] Responsive layout — collapsible sidebars on mobile, resizable panels
+    - [x] Localization (i18n) — vue-i18n with `en`/`zh` message catalogs
+      (`src/locales/`); locale switcher in Settings → Appearance persists the
+      choice alongside the theme; canvas hints, dialogs, notifications,
+      settings, and console are all catalog-driven

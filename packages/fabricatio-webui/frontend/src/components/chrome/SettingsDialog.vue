@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
 import { onUnmounted } from 'vue'
+import { LOCALE_NAMES, type Locale } from '@/i18n'
 import { X, Settings2, Palette, SlidersHorizontal, Wrench, Keyboard } from '@lucide/vue'
 
 /**
@@ -11,6 +13,7 @@ import { X, Settings2, Palette, SlidersHorizontal, Wrench, Keyboard } from '@luc
  * overlays every layer. Backdrop click, the X button, and Esc close it.
  */
 const ui = useUiStore()
+const { t } = useI18n()
 const emit = defineEmits<{ close: [] }>()
 
 // Esc closes the dialog when open (registered only while mounted; the
@@ -23,23 +26,23 @@ onUnmounted(offEsc)
 
 /** Left-rail categories, in display order. */
 const CATEGORIES = [
-  { name: 'Appearance', icon: Palette },
-  { name: 'Editor', icon: SlidersHorizontal },
-  { name: 'General', icon: Wrench },
-  { name: 'Shortcuts', icon: Keyboard },
+  { name: 'Appearance', labelKey: 'settings.cat.appearance', icon: Palette },
+  { name: 'Editor', labelKey: 'settings.cat.editor', icon: SlidersHorizontal },
+  { name: 'General', labelKey: 'settings.cat.general', icon: Wrench },
+  { name: 'Shortcuts', labelKey: 'settings.cat.shortcuts', icon: Keyboard },
 ] as const
 type Category = (typeof CATEGORIES)[number]['name']
 const active = ref<Category>('Appearance')
 
-const SHORTCUTS: Array<{ keys: string; action: string }> = [
-  { keys: 'Ctrl+F', action: 'Search nodes / commands' },
-  { keys: 'Ctrl+S', action: 'Save workflow' },
-  { keys: 'Ctrl+Enter', action: 'Run workflow' },
-  { keys: 'Ctrl+Z', action: 'Undo' },
-  { keys: 'Ctrl+Shift+Z', action: 'Redo' },
-  { keys: 'Ctrl+D', action: 'Duplicate selected' },
-  { keys: 'Del', action: 'Delete selected' },
-  { keys: 'Esc', action: 'Deselect / close' },
+const SHORTCUTS: Array<{ keys: string; actionKey: string }> = [
+  { keys: 'Ctrl+F', actionKey: 'settings.shortcut.search' },
+  { keys: 'Ctrl+S', actionKey: 'settings.shortcut.save' },
+  { keys: 'Ctrl+Enter', actionKey: 'settings.shortcut.run' },
+  { keys: 'Ctrl+Z', actionKey: 'settings.shortcut.undo' },
+  { keys: 'Ctrl+Shift+Z', actionKey: 'settings.shortcut.redo' },
+  { keys: 'Ctrl+D', actionKey: 'settings.shortcut.duplicate' },
+  { keys: 'Del', actionKey: 'settings.shortcut.delete' },
+  { keys: 'Esc', actionKey: 'settings.shortcut.esc' },
 ]
 </script>
 
@@ -47,11 +50,11 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="ui.settingsOpen" class="dialog-backdrop" @mousedown.self="emit('close')">
-        <div class="settings-dialog" role="dialog" aria-label="Settings">
+        <div class="settings-dialog" role="dialog" :aria-label="t('settings.title')">
           <div class="dialog-header">
             <Settings2 :size="15" />
-            <span>Settings</span>
-            <button class="dialog-close" title="Close settings" @click="emit('close')">
+            <span>{{ t('settings.title') }}</span>
+            <button class="dialog-close" :title="t('settings.closeTitle')" @click="emit('close')">
               <X :size="14" />
             </button>
           </div>
@@ -67,42 +70,53 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
                 @click="active = c.name"
               >
                 <component :is="c.icon" :size="15" class="nav-icon" />
-                <span>{{ c.name }}</span>
+                <span>{{ t(c.labelKey) }}</span>
               </button>
             </nav>
 
             <!-- Active category pane -->
             <div class="dialog-pane">
               <section v-show="active === 'Appearance'" class="pane-section">
-                <div class="section-title">Appearance</div>
+                <div class="section-title">{{ t('settings.cat.appearance') }}</div>
                 <div class="setting-row">
-                  <span class="setting-label">Theme</span>
+                  <span class="setting-label">{{ t('settings.theme') }}</span>
                   <div class="seg">
                     <button
                       :class="{ active: ui.settings.theme === 'dark' }"
-                      title="Dark theme"
+                      :title="t('settings.theme.darkTitle')"
                       @click="ui.setSetting('theme', 'dark')"
-                    >Dark</button>
+                    >{{ t('settings.theme.dark') }}</button>
                     <button
                       :class="{ active: ui.settings.theme === 'light' }"
-                      title="Light theme"
+                      :title="t('settings.theme.lightTitle')"
                       @click="ui.setSetting('theme', 'light')"
-                    >Light</button>
+                    >{{ t('settings.theme.light') }}</button>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <span class="setting-label">{{ t('settings.language') }}</span>
+                  <div class="seg">
+                    <button
+                      v-for="(name, code) in LOCALE_NAMES"
+                      :key="code"
+                      :class="{ active: ui.settings.locale === code }"
+                      @click="ui.setSetting('locale', code as Locale)"
+                    >{{ name }}</button>
                   </div>
                 </div>
               </section>
 
               <section v-show="active === 'Editor'" class="pane-section">
-                <div class="section-title">Editor</div>
+                <div class="section-title">{{ t('settings.cat.editor') }}</div>
                 <label class="setting-row">
-                  <span class="setting-label">Snap to grid</span>
+                  <span class="setting-label">{{ t('settings.snapToGrid') }}</span>
                   <span class="toggle-switch">
                     <input v-model="ui.settings.snapToGrid" type="checkbox" class="toggle-input" />
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                   </span>
                 </label>
                 <label class="setting-row" :class="{ disabled: !ui.settings.snapToGrid }">
-                  <span class="setting-label">Grid size</span>
+                  <span class="setting-label">{{ t('settings.gridSize') }}</span>
                   <input
                     v-model.number="ui.settings.gridSize"
                     type="number"
@@ -114,7 +128,7 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
                   />
                 </label>
                 <label class="setting-row">
-                  <span class="setting-label">Minimap</span>
+                  <span class="setting-label">{{ t('settings.minimap') }}</span>
                   <span class="toggle-switch">
                     <input v-model="ui.settings.showMinimap" type="checkbox" class="toggle-input" />
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -123,16 +137,16 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
               </section>
 
               <section v-show="active === 'General'" class="pane-section">
-                <div class="section-title">General</div>
+                <div class="section-title">{{ t('settings.cat.general') }}</div>
                 <label class="setting-row">
-                  <span class="setting-label">Autosave draft</span>
+                  <span class="setting-label">{{ t('settings.autosave') }}</span>
                   <span class="toggle-switch">
                     <input v-model="ui.settings.autosave" type="checkbox" class="toggle-input" />
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
                   </span>
                 </label>
                 <label class="setting-row">
-                  <span class="setting-label">Console open at startup</span>
+                  <span class="setting-label">{{ t('settings.consoleStartup') }}</span>
                   <span class="toggle-switch">
                     <input v-model="ui.settings.consoleDefaultOpen" type="checkbox" class="toggle-input" />
                     <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -141,10 +155,10 @@ const SHORTCUTS: Array<{ keys: string; action: string }> = [
               </section>
 
               <section v-show="active === 'Shortcuts'" class="pane-section">
-                <div class="section-title">Shortcuts</div>
+                <div class="section-title">{{ t('settings.cat.shortcuts') }}</div>
                 <div v-for="s in SHORTCUTS" :key="s.keys" class="shortcut-row">
                   <kbd class="shortcut-keys">{{ s.keys }}</kbd>
-                  <span class="shortcut-action">{{ s.action }}</span>
+                  <span class="shortcut-action">{{ t(s.actionKey) }}</span>
                 </div>
               </section>
             </div>

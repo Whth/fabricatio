@@ -1,5 +1,6 @@
 import { ref, watch, watchEffect } from 'vue'
 import { defineStore } from 'pinia'
+import { i18n, type Locale } from '@/i18n'
 
 /**
  * UI shell state: command palette / sidebar / blueprint menu visibility plus
@@ -19,6 +20,8 @@ export interface UiSettings {
   consoleDefaultOpen: boolean
   /** Color theme applied via <html data-theme="...">. */
   theme: 'dark' | 'light'
+  /** UI language for the i18n message catalog. */
+  locale: Locale
 }
 
 const SETTINGS_KEY = 'webui:settings'
@@ -32,6 +35,7 @@ const DEFAULTS: UiSettings = {
   showMinimap: true,
   consoleDefaultOpen: false,
   theme: 'dark',
+  locale: 'en',
 }
 
 function loadSettings(): UiSettings {
@@ -52,6 +56,7 @@ function loadSettings(): UiSettings {
   }
   const merged = { ...DEFAULTS, ...loaded }
   if (merged.theme !== 'dark' && merged.theme !== 'light') merged.theme = 'dark'
+  if (merged.locale !== 'en' && merged.locale !== 'zh') merged.locale = 'en'
   return merged
 }
 
@@ -85,6 +90,11 @@ export const useUiStore = defineStore('ui', () => {
   // Apply the color theme to <html data-theme="..."> on every change.
   watchEffect(() => {
     document.documentElement.dataset.theme = settings.value.theme
+  })
+
+  // Keep the i18n message catalog in sync with the persisted locale.
+  watchEffect(() => {
+    i18n.global.locale.value = settings.value.locale
   })
 
   function setSetting<K extends keyof UiSettings>(key: K, value: UiSettings[K]) {

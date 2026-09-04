@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { X, Copy, Check } from '@lucide/vue'
+import { X, Copy, Check, FileCode } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import hljs from 'highlight.js/lib/core'
 import python from 'highlight.js/lib/languages/python'
 import { useWorkflowStore } from '@/stores/workflow'
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>()
 
 const wfStore = useWorkflowStore()
+const { t } = useI18n()
 
 const nodeDef = computed(() =>
   wfStore.nodeTypes.find((t) => t.type === props.nodeType),
@@ -66,13 +68,13 @@ function onKeydown(e: KeyboardEvent) {
               class="copy-btn"
               :class="{ copied }"
               @click="copySource"
-              :title="copied ? 'Copied!' : 'Copy source'"
+              :title="copied ? t('chrome.source.copied') : t('chrome.source.copySource')"
             >
               <Check v-if="copied" :size="14" />
               <Copy v-else :size="14" />
-              <span>{{ copied ? 'Copied!' : 'Copy' }}</span>
+              <span>{{ copied ? t('chrome.source.copied') : t('chrome.source.copy') }}</span>
             </button>
-            <button class="close-btn" @click="emit('close')" title="Close (Esc)">
+            <button class="close-btn" @click="emit('close')" :title="t('chrome.source.closeEsc')">
               <X :size="16" />
             </button>
           </div>
@@ -81,7 +83,7 @@ function onKeydown(e: KeyboardEvent) {
         <div class="source-body">
           <pre v-if="sourceCode"><code v-html="highlightedCode"></code></pre>
           <div v-else class="source-empty">
-            No source available for <code>{{ nodeType }}</code>.
+            {{ t('chrome.source.noSource') }} <code>{{ nodeType }}</code>.
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useBoardStore } from '@/stores/board'
 import { BLUEPRINT_MIME, type Blueprint } from '@/data/blueprints'
@@ -7,6 +8,7 @@ import { categoryColorPair } from '@/utils/categoryColors'
 import { LayoutTemplate, ChevronRight, GripVertical } from '@lucide/vue'
 
 const ui = useUiStore()
+const { t } = useI18n()
 const board = useBoardStore()
 
 /** Blueprints grouped by category, preserving the declaration order. */
@@ -35,8 +37,8 @@ function onDragStart(ev: DragEvent, id: string) {
   <aside v-if="ui.blueprintRailOpen" class="bp-rail">
     <div class="bp-header">
       <LayoutTemplate :size="16" />
-      <span>Blueprints</span>
-      <button class="bp-close" @click="ui.toggleBlueprintRail()" title="Close blueprints">
+      <span>{{ t('board.blueprints') }}</span>
+      <button class="bp-close" @click="ui.toggleBlueprintRail()" :title="t('board.closeBlueprints')">
         <ChevronRight :size="16" />
       </button>
     </div>
@@ -59,15 +61,15 @@ function onDragStart(ev: DragEvent, id: string) {
         </div>
       </div>
       <div v-if="groups.length === 0" class="bp-empty">
-        No blueprints loaded — is the server running?
+        {{ t('board.noBlueprints') }}
       </div>
     </div>
 
-    <div class="bp-hint">Drag a blueprint onto a role to add it as a workflow.</div>
+    <div class="bp-hint">{{ t('board.blueprintHint') }}</div>
   </aside>
 
   <!-- Collapsed strip -->
-  <div v-else class="bp-rail-closed" title="Show blueprint sidebar">
+  <div v-else class="bp-rail-closed" :title="t('board.showBlueprints')">
     <button class="bp-expand" @click="ui.toggleBlueprintRail()">
       <LayoutTemplate :size="16" />
     </button>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { X, FileCode2 } from '@lucide/vue'
+import { useI18n } from 'vue-i18n'
 import type { PortDefinition } from '@/types/api'
 import { categoryColor } from '@/utils/categoryColors'
 import { groupConfigFields, type ArgGroup } from '@/utils/argGroups'
@@ -23,7 +24,7 @@ const emit = defineEmits<{
   close: []
   'open-source': [nodeType: string]
 }>()
-
+const { t } = useI18n()
 const d = computed(() => props.node?.data as FabricatioNodeData | undefined)
 
 const groups = computed<ArgGroup[]>(() =>
@@ -62,28 +63,28 @@ const hasCapabilities = computed(() => (d.value?.capabilities?.length ?? 0) > 0)
     <div class="insp-header">
       <span class="insp-dot" :style="{ background: categoryColor(d.category) }"></span>
       <span class="insp-title">{{ d.title }}</span>
-      <button class="insp-source" title="View Python source" @click="emit('open-source', d.nodeType)">
+      <button class="insp-source" :title="t('canvas.viewSource')" @click="emit('open-source', d.nodeType)">
         <FileCode2 :size="14" />
       </button>
-      <button class="insp-close" title="Close inspector" @click="emit('close')">
+      <button class="insp-close" :title="t('canvas.closeInspector')" @click="emit('close')">
         <X :size="14" />
       </button>
     </div>
 
     <div class="insp-body">
       <section class="insp-section">
-        <div class="insp-label">Category</div>
+        <div class="insp-label">{{ t('canvas.category') }}</div>
         <span
           class="insp-category"
           :style="{ background: categoryColor(d.category) }"
         >{{ d.category }}</span>
-        <div class="insp-type"><span class="insp-label-inline">Action</span> <code>{{ d.nodeType }}</code></div>
+        <div class="insp-type"><span class="insp-label-inline">{{ t('canvas.action') }}</span> <code>{{ d.nodeType }}</code></div>
         <p v-if="d.description" class="insp-desc">{{ d.description }}</p>
       </section>
 
       <section class="insp-section">
-        <div class="insp-label">Outputs</div>
-        <div v-if="(d.outputPorts?.length ?? 0) === 0" class="insp-empty">None</div>
+        <div class="insp-label">{{ t('canvas.outputs') }}</div>
+        <div v-if="(d.outputPorts?.length ?? 0) === 0" class="insp-empty">{{ t('canvas.none') }}</div>
         <div v-for="p in d.outputPorts" :key="'o-' + p.name" class="insp-row">
           <span class="insp-name">{{ p.name }}</span>
           <code class="insp-type-chip">{{ p.type }}</code>
@@ -92,8 +93,8 @@ const hasCapabilities = computed(() => (d.value?.capabilities?.length ?? 0) > 0)
 
       <section v-for="g in groups" :key="g.name" class="insp-section">
         <div class="insp-label">
-          Config · {{ g.name }}
-          <span v-if="!g.own" class="insp-inherited" title="Inherited from a base class (MRO group)">inherited</span>
+          {{ t('canvas.configGroup', { name: g.name }) }}
+          <span v-if="!g.own" class="insp-inherited" :title="t('canvas.inheritedTip')">{{ t('canvas.inherited') }}</span>
         </div>
         <div v-for="f in g.fields" :key="g.name + '.' + f.name" class="insp-field">
           <div class="insp-field-head">
@@ -102,15 +103,15 @@ const hasCapabilities = computed(() => (d.value?.capabilities?.length ?? 0) > 0)
           </div>
           <p v-if="f.description" class="insp-desc">{{ f.description }}</p>
           <div class="insp-meta">
-            <span v-if="wiredFrom(f.name)" class="insp-wired" :title="`Wired from ${wiredFrom(f.name)}`">← {{ wiredFrom(f.name) }}</span>
-            <span v-else class="insp-value"><span class="insp-dim">value</span> {{ valuePreview(f) }}</span>
-            <span v-if="f.optional" class="insp-opt">optional</span>
+            <span v-if="wiredFrom(f.name)" class="insp-wired" :title="t('canvas.wiredFrom', { source: wiredFrom(f.name) })">← {{ wiredFrom(f.name) }}</span>
+            <span v-else class="insp-value"><span class="insp-dim">{{ t('canvas.value') }}</span> {{ valuePreview(f) }}</span>
+            <span v-if="f.optional" class="insp-opt">{{ t('canvas.optional') }}</span>
           </div>
         </div>
       </section>
 
       <section v-if="extraInputPorts.length > 0" class="insp-section">
-        <div class="insp-label">Inputs</div>
+        <div class="insp-label">{{ t('canvas.inputs') }}</div>
         <div v-for="p in extraInputPorts" :key="'i-' + p.name" class="insp-row">
           <span class="insp-name">{{ p.name }}</span>
           <code class="insp-type-chip" :class="{ optional: p.optional }">{{ p.type }}</code>
@@ -118,14 +119,14 @@ const hasCapabilities = computed(() => (d.value?.capabilities?.length ?? 0) > 0)
       </section>
 
       <section v-if="hasCapabilities" class="insp-section">
-        <div class="insp-label">Capabilities</div>
+        <div class="insp-label">{{ t('canvas.capabilities') }}</div>
         <div class="insp-caps">
           <span v-for="c in d.capabilities" :key="c" class="insp-cap">{{ c }}</span>
         </div>
       </section>
 
       <section v-if="d.schemaVersion" class="insp-section">
-        <div class="insp-label">Schema fingerprint</div>
+        <div class="insp-label">{{ t('canvas.fingerprint') }}</div>
         <code class="insp-fingerprint">{{ d.schemaVersion }}</code>
       </section>
     </div>
