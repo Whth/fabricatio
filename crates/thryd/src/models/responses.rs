@@ -319,23 +319,47 @@ impl CompletionModel for OpenaiResponsesModel {
                 })
                 .try_collect::<Vec<ResponseStreamEvent>>()
                 .await?;
+            let cached = events
+                .iter()
+                .rev()
+                .find_map(|event| match event {
+                    ResponseStreamEvent::ResponseCompleted(completed) => completed
+                        .response
+                        .usage
+                        .as_ref()
+                        .map(|u| u.input_tokens_details.cached_tokens),
+                    ResponseStreamEvent::ResponseIncomplete(incomplete) => incomplete
+                        .response
+                        .usage
+                        .as_ref()
+                        .map(|u| u.input_tokens_details.cached_tokens),
+                    _ => None,
+                })
+                .unwrap_or(0);
             let completion = reduce_response_events(events)?;
             debug!(
-                "Request tokens usages: Input {} | Output {} | Total {}",
+                "Request tokens usages: Input {} | Output {} | Total {} | Cached {}",
                 completion.usage.prompt_tokens,
                 completion.usage.completion_tokens,
-                completion.usage.total_tokens
+                completion.usage.total_tokens,
+                cached
             );
             Ok(completion)
         } else {
             let resp =
                 parse_json_response::<Response>(response, OpenAiRoute::Responses.as_ref()).await?;
+            let cached = resp
+                .usage
+                .as_ref()
+                .map(|u| u.input_tokens_details.cached_tokens)
+                .unwrap_or(0);
             let completion = extract_completion(resp)?;
             debug!(
-                "Request tokens usages: Input {} | Output {} | Total {}",
+                "Request tokens usages: Input {} | Output {} | Total {} | Cached {}",
                 completion.usage.prompt_tokens,
                 completion.usage.completion_tokens,
-                completion.usage.total_tokens
+                completion.usage.total_tokens,
+                cached
             );
             Ok(completion)
         }

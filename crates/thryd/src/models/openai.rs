@@ -424,10 +424,9 @@ impl CompletionModel for OpenaiModel {
         // Fallback: if enum conversion failed but a raw effort string was provided,
         // inject it directly into the serialized JSON (for compatible providers with
         // non-standard effort values)
-        if !reasoning_effort_is_some
-            && let Some(s) = &effort_str {
-                v["reasoning_effort"] = serde_json::Value::String(s.clone());
-            }
+        if !reasoning_effort_is_some && let Some(s) = &effort_str {
+            v["reasoning_effort"] = serde_json::Value::String(s.clone());
+        }
         trace!("Completion request: {v:?}",);
         if stream {
             let response = self
@@ -489,9 +488,18 @@ impl CompletionModel for OpenaiModel {
                     total_tokens: u.total_tokens,
                 })
                 .unwrap_or_default();
+            let cached = completion_response
+                .usage
+                .as_ref()
+                .and_then(|u| {
+                    u.prompt_tokens_details
+                        .as_ref()
+                        .and_then(|d| d.cached_tokens)
+                })
+                .unwrap_or(0);
             debug!(
-                "Request tokens usages: Input {} | Output {} | Total {}",
-                usage.prompt_tokens, usage.completion_tokens, usage.total_tokens
+                "Request tokens usages: Input {} | Output {} | Total {} | Cached {}",
+                usage.prompt_tokens, usage.completion_tokens, usage.total_tokens, cached
             );
             let content = completion_response
                 .choices
