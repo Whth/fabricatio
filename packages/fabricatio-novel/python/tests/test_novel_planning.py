@@ -14,7 +14,6 @@ from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import NovelPlan
-from fabricatio_novel.models.series_book import SeriesBible
 
 
 class TestNovelPlan:
@@ -28,7 +27,6 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -68,7 +66,6 @@ class TestNovelPlan:
             description="A hero searching for his father.",
             expected_word_count=100,
             writing_constraint="First person view throughout: narrate from the protagonist's perspective using I.",
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [
             {
@@ -125,7 +122,7 @@ class TestNovelPlan:
         """Assert compose_novel returns None when chapter plan generation fails."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
-        meta = NovelPlan(title="T", description="D", expected_word_count=10, series_bible=SeriesBible())
+        meta = NovelPlan(title="T", description="D", expected_word_count=10)
         with install_router_usage(
             *return_model_json_router_usage(meta)[:1],
             "not valid json",
@@ -145,7 +142,6 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
@@ -181,7 +177,6 @@ class TestWordCountAllocation:
             title="The Search",
             description="A hero searching.",
             expected_word_count=400,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [
             {"title": "Ch1", "description": "The start.", "weight": 3.0},

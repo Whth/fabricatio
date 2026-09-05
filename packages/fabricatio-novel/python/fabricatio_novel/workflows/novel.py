@@ -13,6 +13,7 @@ from fabricatio_novel.actions.novel import (
     PlanStoriesStage,
     PrepareCharacterSpanStage,
     ProposeNovelMetadataStage,
+    ProposeSettingBibleStage,
     RagComposeScenesStage,
     RagPlanScenesStage,
 )
@@ -29,6 +30,7 @@ DebugNovelWorkflow = WorkFlow(
     steps=(
         InitNovelContext,
         ProposeNovelMetadataStage,
+        ProposeSettingBibleStage,
         PrepareCharacterSpanStage,
         PlanChaptersStage,
         PlanStoriesStage,
@@ -48,6 +50,7 @@ RagDebugNovelWorkflow = WorkFlow(
     steps=(
         InitNovelContext,
         ProposeNovelMetadataStage,
+        ProposeSettingBibleStage,
         PrepareCharacterSpanStage,
         PlanChaptersStage,
         PlanStoriesStage,
@@ -68,6 +71,7 @@ RagIllustrationDebugNovelWorkflow = WorkFlow(
     steps=(
         InitNovelContext,
         ProposeNovelMetadataStage,
+        ProposeSettingBibleStage,
         PrepareCharacterSpanStage,
         PlanChaptersStage,
         PlanStoriesStage,

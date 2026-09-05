@@ -41,7 +41,6 @@ class TestNovelContext:
             description="A hero searching.",
             expected_word_count=100,
             writing_constraint="First person view throughout.",
-            series_bible=SeriesBible(characters=["Hero — brave protagonist."]),
         )
         result = ctx.update_from(plan)
         assert result is ctx
@@ -49,7 +48,7 @@ class TestNovelContext:
         assert ctx.description == "A hero searching."
         assert ctx.expected_word_count == 100
         assert ctx.writing_constraint == "First person view throughout."
-        assert ctx.series_bible == plan.series_bible
+        assert ctx.series_bible is None
 
     def test_update_from_keeps_intent_when_plan_constraint_empty(self) -> None:
         """Assert the author's stated constraint survives an empty plan constraint."""
@@ -59,8 +58,8 @@ class TestNovelContext:
         ctx.update_from(plan)
         assert ctx.writing_constraint == "I hope the novel is first person view."
 
-    def test_update_from_keeps_preset_bible_when_plan_bible_empty(self) -> None:
-        """Assert a preset series bible survives update_from with an empty-plan bible."""
+    def test_update_from_keeps_preset_bible(self) -> None:
+        """Assert a preset series bible survives update_from; plans never carry one."""
         ctx = NovelContext.create("The hero.", language="English")
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
@@ -94,7 +93,7 @@ class TestNovelContext:
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
-            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100, series_bible=SeriesBible()),
+            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100),
         )
 
         assert scene.title == "S1"

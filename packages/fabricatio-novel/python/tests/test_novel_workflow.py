@@ -3,13 +3,13 @@
 from pathlib import Path
 
 import pytest
-from _support import raw_value
+from _support import card, raw_value
 from fabricatio_core.rust import CONFIG, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
+from fabricatio_novel.models.context.base import CharacterSpan
 from fabricatio_novel.models.plan import NovelPlan
-from fabricatio_novel.models.series_book import SeriesBible
 
 # Workflow tests subscribe a plain ``Role`` (no scoped ``llm_send_to``), so the real
 # resolver runs: route the ``task`` agent variant to the dummy router group so explicit
@@ -29,7 +29,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel").update_init_context(
-            novel_outline="The hero seeks his father.",
+            novel_outline="The hero seeks his father across the winter mountains.",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -37,7 +37,6 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -45,6 +44,9 @@ class TestNovelWorkflow:
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
+                Value(["Hero — brave protagonist, seeking his father."], "json"),
+                Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -59,12 +61,13 @@ class TestNovelWorkflow:
         assert sorted(p.name for p in persist_dir.iterdir() if p.is_dir()) == [
             "stage_01_init",
             "stage_02_metadata",
-            "stage_03_characters",
-            "stage_04_chapter_plans",
-            "stage_05_story_plans",
-            "stage_06_scene_plans",
-            "stage_07_scenes",
-            "stage_08_novel",
+            "stage_03_bible",
+            "stage_04_characters",
+            "stage_05_chapter_plans",
+            "stage_06_story_plans",
+            "stage_07_scene_plans",
+            "stage_08_scenes",
+            "stage_09_novel",
         ]
         for stage_dir in persist_dir.iterdir():
             if stage_dir.is_dir():
@@ -79,7 +82,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer_txt").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel texts").update_init_context(
-            novel_outline="The hero seeks his father.",
+            novel_outline="The lighthouse keeper's daughter charts the reef at low tide.",
             novel_language="English",
             persist_dir=persist_dir,
             format="txt",
@@ -88,7 +91,6 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -96,6 +98,9 @@ class TestNovelWorkflow:
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
+                Value(["Hero — brave protagonist, seeking his father."], "json"),
+                Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -128,7 +133,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer_hook").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel hook").update_init_context(
-            novel_outline="The hero seeks his father.",
+            novel_outline="The clockmaker's apprentice winds the great gear at dawn.",
             novel_language="English",
             persist_dir=persist_dir,
             format="txt",
@@ -137,7 +142,6 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -145,6 +149,9 @@ class TestNovelWorkflow:
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
+                Value(["Hero — brave protagonist, seeking his father."], "json"),
+                Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -199,7 +206,7 @@ class TestNovelWorkflow:
             # Unique outline: every LLM prompt embeds it, so no persistent mock-router
             # cache entry can serve any call and skip its turn on the dummy response
             # stack — the illustration proposal is the last consumer and starves first.
-            novel_outline="A cartographer's apprentice charts a floating city above the Amber Sea.",
+            novel_outline="A cartographer's apprentice charts a drifting archipelago above the Amber Sea.",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -207,7 +214,6 @@ class TestNovelWorkflow:
             title="The Floating Atlas II",
             description="An apprentice mapping a city that drifts among the clouds.",
             expected_word_count=100,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [
             {"title": "Harbor", "description": "The apprentice boards the ferry barge.", "weight": 1.0}
@@ -218,6 +224,9 @@ class TestNovelWorkflow:
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
+                Value(["Hero — brave protagonist, seeking his father."], "json"),
+                Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -234,12 +243,13 @@ class TestNovelWorkflow:
         assert stage_dirs == [
             "stage_01_init",
             "stage_02_metadata",
-            "stage_03_characters",
-            "stage_04_chapter_plans",
-            "stage_05_story_plans",
-            "stage_06_scene_plans",
-            "stage_07_scenes",
-            "stage_08_novel",
+            "stage_03_bible",
+            "stage_04_characters",
+            "stage_05_chapter_plans",
+            "stage_06_story_plans",
+            "stage_07_scene_plans",
+            "stage_08_scenes",
+            "stage_09_novel",
         ]
         with zipfile.ZipFile(epub) as zf:
             names = zf.namelist()

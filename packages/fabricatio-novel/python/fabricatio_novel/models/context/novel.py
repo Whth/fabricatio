@@ -45,7 +45,7 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
         return self
 
     def update_from_inner(self, other: NovelPlan | Self) -> Self:
-        """Adopt the plan's fields; the settings bible is adopted only when it carries content."""
+        """Adopt the plan's fields onto the context."""
         self.title = other.title
         self.description = other.description
         self.expected_word_count = other.expected_word_count
@@ -54,8 +54,6 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
         else:
             self.writing_styles = [other.writing_style] if other.writing_style else []
         self.writing_constraint = other.writing_constraint or self.writing_constraint
-        if other.series_bible is not None and not other.series_bible.is_empty():
-            self.series_bible = other.series_bible
         return self
 
     @final

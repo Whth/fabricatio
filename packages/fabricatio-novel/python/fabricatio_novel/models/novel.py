@@ -5,6 +5,7 @@ from typing import Self
 
 from fabricatio_capabilities.models.generic import PersistentAble
 from fabricatio_core import logger
+from pydantic import Field
 
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
@@ -24,6 +25,9 @@ class Novel(PersistentAble, NovelPlan):
     """A composed novel: its plan fields and the chapters it contains."""
 
     chapter: list[Chapter]
+
+    series_bible: SeriesBible = Field(default_factory=SeriesBible)
+    """The setting bible this novel was composed under, adopted from the context; the plan never carries one."""
 
     @property
     def exact_word_count(self) -> int:

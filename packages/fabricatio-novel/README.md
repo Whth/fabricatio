@@ -161,7 +161,7 @@ history stays intact.
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
 | `RAGCompose` | Retrieves style docs once per story; extends scene prompts |
-| `BibleCompose` | Creates/updates the setting bible from an outline |
+| `BibleCompose` | Composes the setting bible from the outline once; immutable for the run |
 | `IllustrateScenes` | Post-process illustration: batch-proposes one complete generation instruction (`SketchSpec`: prompt, negative prompt, LLM-chosen `mp`/`prop`) per pending scene (honoring `illustration_constraint`), renders them concurrently via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
 
 ### Actions (staged workflow)

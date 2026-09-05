@@ -1,10 +1,9 @@
-"""Test module for the setting bible: models, creation, update, and consumption."""
+"""Test module for the setting bible: models, composition, and consumption."""
 
-import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
-from fabricatio_novel.capabilities.bible import BibleCompose, parse_sections
+from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
@@ -17,26 +16,6 @@ from fabricatio_novel.models.series_book import SeriesBible
 def raw_value(text: str) -> Value[str]:
     """Wrap a plain scene response for mixed router usage."""
     return Value(text, "raw", convertor=lambda s: s)
-
-
-class TestParseSections:
-    """Test suite for the --sections option parser."""
-
-    def test_none_and_empty_mean_all(self) -> None:
-        """Assert None, empty, and 'all' all select every section."""
-        assert parse_sections(None) is None
-        assert parse_sections("") is None
-        assert parse_sections("all") is None
-
-    def test_parses_comma_separated_names(self) -> None:
-        """Assert comma-separated names parse into a section set."""
-        assert parse_sections("characters, background") == {"characters", "background"}
-        assert parse_sections(["background"]) == {"background"}
-
-    def test_rejects_unknown_sections(self) -> None:
-        """Assert unknown section names raise ValueError."""
-        with pytest.raises(ValueError, match="Unknown bible section"):
-            parse_sections("bogus")
 
 
 class TestSeriesBibleModel:
@@ -108,10 +87,10 @@ class BibleRole(LLMTestRole, NovelCompose, BibleCompose):
     """Test role combining mock LLM with bible and novel composition."""
 
 
-class TestCreateSettingBible:
-    """Test suite for bible creation."""
+class TestComposeSettingBible:
+    """Test suite for bible composition."""
 
-    async def test_create_full_bible(self) -> None:
+    async def test_compose_full_bible(self) -> None:
         """Assert both sections are proposed and assembled into the bible."""
         role = BibleRole(name="bible_role")
         roster = ["Hero — protagonist, brave, wants to find his father.", "Mentor — supporting, wise."]
@@ -121,71 +100,25 @@ class TestCreateSettingBible:
             "A lost sword awaits its master.",
         ]
         with install_router_usage(*return_mixed_router_usage(Value(roster, "json"), Value(background, "json"))):
-            bible = await role.create_setting_bible("The hero seeks his father.", language="English")
+            bible = await role.compose_setting_bible("The hero seeks his father.", language="English")
 
         assert bible is not None
         assert bible.characters == roster
         assert bible.background_settings == background
 
-    async def test_create_characters_only(self) -> None:
-        """Assert a section filter proposes only that section."""
-        role = BibleRole(name="bible_role")
-        roster = ["Hero — brave protagonist."]
-        with install_router_usage(*return_mixed_router_usage(Value(roster, "json"))):
-            bible = await role.create_setting_bible(
-                "The hero seeks his father.",
-                language="English",
-                sections="characters",
-            )
-
-        assert bible is not None
-        assert bible.characters == roster
-        assert bible.background_settings == []
-
-    async def test_create_fails_when_characters_fail(self) -> None:
+    async def test_compose_fails_when_characters_fail(self) -> None:
         """Assert creation aborts when the characters proposal is invalid."""
         role = BibleRole(name="bible_role")
         with install_router_usage("not a generic block"):
-            bible = await role.create_setting_bible("The hero.", language="English")
+            bible = await role.compose_setting_bible("The hero.", language="English")
         assert bible is None
 
-    async def test_create_fails_when_background_fails(self) -> None:
+    async def test_compose_fails_when_background_fails(self) -> None:
         """Assert creation aborts when the background proposal is invalid."""
         role = BibleRole(name="bible_role")
         with install_router_usage(*return_mixed_router_usage(Value(["Hero."], "json"), Value("not-an-array", "json"))):
-            bible = await role.create_setting_bible("The hero.", language="English")
+            bible = await role.compose_setting_bible("The hero.", language="English")
         assert bible is None
-
-
-class TestUpdateSettingBible:
-    """Test suite for bible update."""
-
-    async def test_update_replaces_requested_section_only(self) -> None:
-        """Assert updating one section keeps the others intact."""
-        role = BibleRole(name="bible_role")
-        bible = SeriesBible(
-            characters=["Old roster."],
-            background_settings=["Qi is vital.", "Old fact."],
-        )
-        with install_router_usage(*return_mixed_router_usage(Value(["New roster."], "json"))):
-            updated = await role.update_setting_bible(bible, "The hero.", language="English", sections="characters")
-
-        assert updated is not None
-        assert updated.characters == ["New roster."]
-        assert updated.background_settings == ["Qi is vital.", "Old fact."]
-
-    async def test_update_all_sections(self) -> None:
-        """Assert updating without a filter re-proposes every section."""
-        role = BibleRole(name="bible_role")
-        bible = SeriesBible(characters=["Old roster."], background_settings=["Old fact."])
-        with install_router_usage(
-            *return_mixed_router_usage(Value(["New roster."], "json"), Value(["New fact."], "json")),
-        ):
-            updated = await role.update_setting_bible(bible, "The hero.", language="English")
-
-        assert updated is not None
-        assert updated.characters == ["New roster."]
-        assert updated.background_settings == ["New fact."]
 
 
 class TestBibleConsumption:
@@ -252,7 +185,6 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            series_bible=bible,
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -275,8 +207,8 @@ class TestBibleThreading:
         assert "setting_bible" in kinds
         assert "Qi is vital." in scene.prefix_log.render()
 
-    async def test_compose_novel_keeps_preset_bible_when_plan_is_empty(self) -> None:
-        """Assert a pre-set bible survives generation when the plan proposes an empty one."""
+    async def test_compose_novel_keeps_preset_bible(self) -> None:
+        """Assert a pre-set bible survives generation; plans never carry one."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father.", language="English")
@@ -285,7 +217,6 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            series_bible=SeriesBible(),
         )
         chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
         story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
@@ -323,7 +254,6 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            series_bible=SeriesBible(),
         )
         with install_router_usage(
             *return_mixed_router_usage(

@@ -57,12 +57,6 @@ def create_bible(
         "-l",
         help="Bible language. Auto-detected from the outline when omitted.",
     ),
-    sections: str = typer.Option(
-        "",
-        "--sections",
-        "-s",
-        help="Comma-separated sections to create: characters, background (default: all).",
-    ),
     out: Path = typer.Option(
         Path("settings/bible.json"),
         "--out",
@@ -72,70 +66,16 @@ def create_bible(
     send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
 ) -> None:
     """Create a setting bible from an outline."""
-    from fabricatio_novel.capabilities.bible import parse_sections
 
     class BibleRole(Role, BibleCompose):
-        """Role for creating and updating setting bibles."""
+        """Role for composing setting bibles."""
 
-    try:
-        names = parse_sections(sections)
-    except ValueError as e:
-        typer.secho(f"❌ {e}", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(1) from None
     role = BibleRole(name="bible_creator")
-    bible = asyncio.run(role.create_setting_bible(_resolve_outline(outline, outline_file), language, send_to, names))
+    bible = asyncio.run(role.compose_setting_bible(_resolve_outline(outline, outline_file), language, send_to))
     if bible is None:
         typer.secho("❌ Failed to create setting bible.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
     _save_bible(bible, out)
-
-
-@app.command(name="update")
-def update_bible(
-    bible_path: Path = typer.Argument(..., help="Path to the bible JSON to update."),
-    outline: str | None = typer.Argument(None, help="Novel outline text."),
-    outline_file: Path | None = typer.Option(
-        None,
-        "--outline-file",
-        "-of",
-        help="Read the outline from a file instead of the positional argument.",
-    ),
-    language: str | None = typer.Option(
-        None,
-        "--language",
-        "--lang",
-        "-l",
-        help="Bible language. Auto-detected from the outline when omitted.",
-    ),
-    sections: str = typer.Option(
-        "",
-        "--sections",
-        "-s",
-        help="Comma-separated sections to re-propose: characters, background (default: all).",
-    ),
-    out: Path | None = typer.Option(None, "--out", "-o", help="Output bible JSON path (default: update in place)."),
-    send_to: str = typer.Option(PLAN, "--send-to", "-st", help="Routing group for LLM calls."),
-) -> None:
-    """Re-propose sections of an existing setting bible from the outline."""
-    from fabricatio_novel.capabilities.bible import parse_sections
-
-    class BibleRole(Role, BibleCompose):
-        """Role for creating and updating setting bibles."""
-
-    bible = _load_bible(bible_path)
-    try:
-        names = parse_sections(sections)
-    except ValueError as e:
-        typer.secho(f"❌ {e}", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(1) from None
-    role = BibleRole(name="bible_updater")
-    updated = asyncio.run(
-        role.update_setting_bible(bible, _resolve_outline(outline, outline_file), language, send_to, names),
-    )
-    if updated is None:
-        typer.secho("❌ Failed to update setting bible.", fg=typer.colors.RED, bold=True)
-        raise typer.Exit(1)
-    _save_bible(updated, out or bible_path)
 
 
 @app.command(name="show")

@@ -4,8 +4,6 @@ from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
 from pydantic import Field, PositiveFloat
 
-from fabricatio_novel.models.series_book import SeriesBible
-
 
 class WeightedPlan(SketchedAble, Titled, Described):
     """Plan of a single novel element: title, description, and word-count weight."""
@@ -87,8 +85,6 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     (e.g. first person view): concrete, enforceable rules every chapter, story, and scene
     must honor. It is allocated down the tree and accumulated onto every scene prompt;
     empty when no constraint applies."""
-
-    series_bible: SeriesBible = Field(default_factory=SeriesBible)
 
 
 class ScenePlans(JSONList[ScenePlan]):
