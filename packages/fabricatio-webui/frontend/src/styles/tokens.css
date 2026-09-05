@@ -215,6 +215,14 @@
   50% { opacity: 0.4; }
 }
 
+/* Running-node highlight: a calm breathing halo around the executing node.
+   The 1px ring stays constant; only the glow breathes — the card content
+   itself never animates, so the node stays readable while it runs. */
+@keyframes node-halo {
+  0%, 100% { box-shadow: 0 0 0 1px var(--running), 0 0 10px var(--running-subtle); }
+  50% { box-shadow: 0 0 0 1px var(--running), 0 0 26px var(--running-subtle); }
+}
+
 @keyframes ws-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

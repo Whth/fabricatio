@@ -160,6 +160,7 @@ save/delete re-dispatches roles onto the worker's event bus.
   dialog; the toolbar **Publish** publishes a free-form task to any
   namespace. Per-node status badges + the live console stream
   (`node_start/done/error` events); `POST /api/interrupt` cancels mid-run.
+  The node currently executing gets a purple breathing halo on the canvas.
 - **Save**: `Ctrl+S` persists the board server-side; autosave drafts go to
   browser localStorage.
 

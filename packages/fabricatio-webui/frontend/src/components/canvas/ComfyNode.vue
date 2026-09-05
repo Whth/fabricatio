@@ -638,7 +638,6 @@ const statusLabel = computed(() => {
 
 .comfy-node.status-running {
   border-color: var(--running);
-  box-shadow: 0 0 0 1px var(--running), var(--shadow-glow);
-  animation: node-pulse 1.2s ease-in-out infinite;
+  animation: node-halo 1.6s ease-in-out infinite;
 }
 </style>
