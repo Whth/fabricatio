@@ -9,7 +9,7 @@ Turn the novel scene below into ONE image-generation instruction for a text-to-i
 - Keep characters consistent with their descriptions in the cast list below.
 - Put what the image must avoid (text, watermark, distorted limbs, ...) in the negative prompt; omit it when nothing is excluded.
 - Choose the aspect ratio that fits the composition: wide ratios (16:9, 21:9) suit landscapes and establishing shots; square and photo ratios (1:1, 4:3, 5:4) suit balanced scenes; tall ratios (9:16, 2:3, 3:4, 4:5, 9:21) suit vertical subjects and portraits.  Omit the ratio only when no preset fits clearly.
-- Set the megapixel budget to the detail the scene deserves (1.0 = 1,000,000 pixels): close-ups and dense scenes want more, sparse wide shots less.  Omit it only when the scene has no strong size preference.
+- Set the megapixel budget (1.0 = 1,000,000 pixels) within 0.5-2.0: 0.5-1.0 for wide sparse shots, ~1.0 for most scenes, up to 2.0 only for extremely detailed close-ups. Never exceed 2.0; omit it only when the scene has no size preference.
 
 {{#if illustration_constraint}}
 ## Style Constraints
