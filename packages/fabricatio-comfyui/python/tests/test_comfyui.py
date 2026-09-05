@@ -111,6 +111,7 @@ class TestGraph:
         for sampler in (graph.sampler_base, graph.sampler_refine):
             assert sampler.inputs.sampler_name == "euler"
             assert sampler.inputs.scheduler == "simple"
+        assert graph.sampler_base.inputs.steps == 28
 
     def test_node_ref_round_trip(self) -> None:
         """NodeRef parses the API list form and serializes back to it."""

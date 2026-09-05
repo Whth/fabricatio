@@ -329,7 +329,7 @@ class SamplerInputs(NodeInputs):
 
     add_noise: Literal["enable"] = "enable"
     noise_seed: int = 1072236688235494
-    steps: int = 21
+    steps: int = 28
     cfg: float = 7.9
     sampler_name: str = "euler"
     scheduler: str = "simple"
