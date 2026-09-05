@@ -22,6 +22,8 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
 )
 from fabricatio_comfyui.models.graph import Graph, LoraSpec, NodeRef
+from fabricatio_comfyui.models.resolution import Prop, resolve_canvas
+from fabricatio_comfyui.models.specs import SketchSpec
 from pydantic import ValidationError
 
 
@@ -447,6 +449,64 @@ class TestModels:
 
 
 # ======================================================================
+# Resolution tests — Prop presets and the megapixel canvas resolver
+# ======================================================================
+
+
+class TestResolve:
+    """Prop parsing and megapixel -> canvas resolution."""
+
+    def test_full_knobs_1mp_square(self) -> None:
+        """1.0 MP at 1:1 resolves to the canonical 1024x1024 canvas."""
+        assert resolve_canvas(mp=1.0, prop=Prop.prop_1_1, base=(768, 512)) == (1024, 1024)
+
+    def test_no_knobs_keeps_template_canvas(self) -> None:
+        """No knobs returns the template base untouched."""
+        assert resolve_canvas(base=(768, 512)) == (768, 512)
+        assert resolve_canvas(base=(1344, 1024)) == (1344, 1024)
+
+    def test_prop_only_keeps_template_area(self) -> None:
+        """A ratio alone re-sizes the template's own pixel area."""
+        assert resolve_canvas(prop="16:9", base=(768, 512)) == (832, 448)
+        assert resolve_canvas(prop=Prop.prop_16_9, base=(768, 512)) == (832, 448)
+
+    def test_mp_only_keeps_template_ratio(self) -> None:
+        """A budget alone scales the template's own aspect ratio."""
+        assert resolve_canvas(mp=0.25, base=(768, 512)) == (640, 384)
+
+    def test_anima_budget_at_4_3_keeps_legacy_canvas(self) -> None:
+        """4:3 at the anima canvas budget snaps back to the legacy 1344x1024 canvas."""
+        assert resolve_canvas(prop=Prop.prop_4_3, base=(1344, 1024)) == (1344, 1024)
+
+    def test_snap_half_up(self) -> None:
+        """Dimensions exactly on a grid half snap up to the next multiple."""
+        assert resolve_canvas(base=(1056, 1056)) == (1088, 1088)
+
+    def test_min_dimension_clamp(self) -> None:
+        """Degenerate budgets clamp both sides to the 64px floor."""
+        assert resolve_canvas(mp=1e-6, prop=Prop.prop_1_1, base=(768, 512)) == (64, 64)
+
+    def test_mp_must_be_positive(self) -> None:
+        """Non-positive budgets are loud errors."""
+        with pytest.raises(ValueError, match="mp must be positive"):
+            resolve_canvas(mp=0.0, base=(768, 512))
+        with pytest.raises(ValueError, match="mp must be positive"):
+            resolve_canvas(mp=-1.0, base=(768, 512))
+
+    def test_unknown_prop_is_loud(self) -> None:
+        """Unknown ratio spellings raise with the preset list."""
+        with pytest.raises(ValueError, match="Unknown aspect ratio"):
+            resolve_canvas(prop="7:4", base=(768, 512))
+
+    def test_prop_members_and_spellings(self) -> None:
+        """Members carry readable values; both spellings resolve to the same member."""
+        assert Prop.prop_9_16.value == "9:16"
+        assert Prop("16:9") is Prop.prop_16_9
+        assert Prop.of("prop_21_9") is Prop.prop_21_9
+        assert Prop.of("9:21") is Prop.prop_9_21
+
+
+# ======================================================================
 # Client tests
 # ======================================================================
 
@@ -703,8 +763,8 @@ async def test_generate_applies_knobs_to_bundled_graph() -> None:
         await client.generate(
             prompt="a cat",
             negative_prompt="ugly",
-            width=640,
-            height=640,
+            prop=Prop.prop_1_1,
+            mp=1.0,
             seed=42,
             steps=20,
             cfg=7.0,
@@ -717,13 +777,101 @@ async def test_generate_applies_knobs_to_bundled_graph() -> None:
     assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "custom.safetensors"
     assert cast("dict[str, object]", prompt["positive"])["inputs"]["text"] == "a cat"
     assert cast("dict[str, object]", prompt["negative"])["inputs"]["text"] == "ugly"
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 640
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 640
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1024
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["noise_seed"] == 42
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["steps"] == 20
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["cfg"] == 7.0
     assert captured["front"] is True
     assert captured["client_id"] == client.client_id()
+
+
+@pytest.mark.asyncio
+async def test_generate_applies_config_size_defaults() -> None:
+    """[ext.comfyui] mp/prop default the canvas when no size knobs are passed."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    sized_config = replace(comfyui_config, mp=1.5, prop="3:2")
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat")
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1472
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
+
+
+@pytest.mark.asyncio
+async def test_generate_per_call_size_beats_config_defaults() -> None:
+    """Per-call prop/mp knobs win over [ext.comfyui] mp/prop defaults."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    sized_config = replace(comfyui_config, mp=1.5, prop="3:2")
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat", prop=Prop.prop_1_1, mp=1.0)
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1024
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
+
+
+@pytest.mark.asyncio
+async def test_generate_mp_only_keeps_template_ratio() -> None:
+    """A megapixel knob alone sizes the template's own 3:2 ratio."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat", mp=0.25)
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 640
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 384
+
+
+@pytest.mark.asyncio
+async def test_generate_rejects_unknown_config_prop() -> None:
+    """An unparseable [ext.comfyui] prop fails loudly with the preset list."""
+    client = ComfyUIHttpClient.create(None)
+    bad_config = replace(comfyui_config, mp=1.0, prop="7:4")
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", bad_config),
+        pytest.raises(ValueError, match="Unknown aspect ratio"),
+    ):
+        await client.generate("a cat")
 
 
 @pytest.mark.asyncio
@@ -1169,3 +1317,33 @@ async def test_integration_generate_with_download(tmp_path: Path) -> None:
 
     assert path is not None
     assert path.stat().st_size > 0
+
+
+class TestSketchSpec:
+    """The propose-able generation spec bundles prompt, negative prompt, and canvas."""
+
+    def test_prop_spelling_coercion(self) -> None:
+        """Both "16:9" style values and prop_16_9-style names land on the enum member."""
+        assert SketchSpec(prompt="a cat", prop="16:9").prop is Prop.prop_16_9
+        assert SketchSpec(prompt="a cat", prop="prop_2_3").prop == Prop.prop_2_3
+
+    def test_defaults_keep_fallback_chain(self) -> None:
+        """Size fields default to None so generation falls back to config and template."""
+        spec = SketchSpec(prompt="a cat")
+        assert spec.negative_prompt == ""
+        assert spec.prop is None
+        assert spec.mp is None
+
+    def test_rejects_unknown_prop_and_nonpositive_mp(self) -> None:
+        """Unknown aspect presets and non-positive budgets fail validation loudly."""
+        with pytest.raises(ValidationError):
+            SketchSpec(prompt="a cat", prop="3:7")
+        with pytest.raises(ValidationError):
+            SketchSpec(prompt="a cat", mp=0)
+        with pytest.raises(ValidationError):
+            SketchSpec(prompt="a cat", mp=-2.0)
+
+    def test_json_round_trip_preserves_spec(self) -> None:
+        """model_dump_json emits value-style prop ("16:9") that revalidates to the same spec."""
+        spec = SketchSpec(prompt="a lone rider at dawn", negative_prompt="text", prop="3:2", mp=1.5)
+        assert SketchSpec.model_validate_json(spec.model_dump_json()) == spec
