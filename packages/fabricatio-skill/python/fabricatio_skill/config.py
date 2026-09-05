@@ -9,11 +9,15 @@ from fabricatio_core import CONFIG
 class SkillConfig:
     """Configuration for the text-based skill system."""
 
-    select_skills_template: str = "built-in/select_skills"
-    """Template name for the LLM prompt that selects relevant skills from a question."""
-
     distill_skills_template: str = "built-in/distill_skills"
     """Template name for the LLM prompt that distills skill content to its essence."""
+
+    max_selected_skills: int = 8
+    """Maximum number of skills the LLM may select in one call (0 = unlimited)."""
+
+    prefilter_threshold: int = 100
+    """Pool size above which ``select_skills`` keyword-prefilters the pool with the
+    Rust ``search_skills`` before the LLM stage (0 disables the prefilter)."""
 
     default_skill_dirs: list[str] = field(default_factory=lambda: ["skills", "extra/skills"])
     """Default directories to scan for skill files."""

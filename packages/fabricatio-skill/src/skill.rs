@@ -63,6 +63,16 @@ impl Skill {
         }
     }
 
+    /// Briefing of the skill: ``name: description``, used as an LLM option summary.
+    #[getter]
+    fn briefing(&self) -> String {
+        if self.description.is_empty() {
+            self.name.clone()
+        } else {
+            format!("{}: {}", self.name, self.description)
+        }
+    }
+
     /// Lightweight representation: name + description + tags (no content).
     fn meta(&self) -> SkillMeta {
         SkillMeta {

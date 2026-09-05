@@ -43,10 +43,16 @@ just-in-time, task-relevant context into LLM prompts through **progressive
 disclosure**: cheap metadata first, LLM-powered selection next, distilled
 essence last — never the full corpus.
 
+Exclusion is just as progressive: a deterministic Rust keyword pre-filter
+thins oversized pools before any LLM sees them, selection admits only
+catalog-validated candidates (capped), and distillation drops everything the
+question does not need. Content that fails an earlier stage never reaches a
+later prompt.
+
 ## Key Features
 
 - **Markdown-native skills** — author skills as `.md` files with YAML frontmatter; no schema lock-in beyond three metadata keys.
-- **Three-level pipeline** — Level 1 (Rust): free file scanning (`scan_skills`) and keyword search (`search_skills`); Level 2 (Python): LLM-powered relevance selection (`select_skills`) and essence distillation (`distill_skills`); Level 3: the composed `consult_skills` pipeline (select → distill → consulted knowledge). Consultation only — answering stays in your Action.
+- **Progressive pipeline** — Level 0 (Rust): file scanning (`scan_skills`), keyword search (`search_skills`, also the deterministic pre-filter for huge libraries); Level 1 (Python): LLM-powered relevance selection (`select_skills`, delegated to the framework `UseLLM.achoose` chooser over skill briefings — set-validated, auto-retried, SMOL tier, capped) and essence distillation (`distill_skills`); Level 2: the composed `consult_skills` pipeline (select -> distill -> consulted knowledge). Consultation only — answering stays in your Action.
 - **Progressive disclosure dial** — every call trades fidelity for tokens via `select=` / `distill=` / forced `names=`.
 - **Lightweight composition** — heavy `Skill` objects live in a process-wide `SkillRegistry`; your roles/actions carry only a list of name handles.
 - **Rust-backed performance** — parsing, lookup, and keyword matching are PyO3 (`fabricatio_skill.rust`).
@@ -60,32 +66,30 @@ Drop markdown files into a skill directory (default roots: `skills/`, `extra/ski
 ```markdown
 ---
 name: rust-async
-description: How to write async Rust with tokio correctly
+description: "How to write async Rust with tokio correctly"
 tags: [rust, async]
 ---
 Markdown body with the actual instructions...
 ```
 
-### 2. Load them
+Frontmatter notes:
+
+- `name` is the unique catalog id (the LLM selects by it); `description` is the
+  whole selection surface — keep it a dense one-liner; `tags` help the Rust
+  keyword pre-filter.
+- YAML rules apply: quote string values that contain `: ` (e.g. descriptions),
+  or the field silently parses as empty.
+
+### 2. Consult — zero-config (canonical path)
+
+Nothing to load. On the **first** `consult_skills()` call of a role that has no
+skills yet, the default directories (`skills/`, `extra/skills/`, relative to
+the process working directory) are auto-scanned once and their skills
+registered. Authoring files and consulting is the whole loop:
 
 ```python
-from fabricatio_skill import scan_skills
-
-skills = scan_skills("skills")   # parse all .md files → Skill objects
-```
-
-### 3. Compose the capability onto an Action (aligned style)
-
-`fabricatio-skill` is a **skill consultant**: it selects relevant skills and
-distills what they say about a question, then stops — answering is your
-Action's job. Mix `UseSkill` into an `Action`, register the skill names at
-composition time, consult the library inside `_execute`, then feed the
-returned knowledge into your own LLM call, all behind a
-`Role` / `Event` / `WorkFlow`:
-
-```python
-from fabricatio_core import Action, Event, Role, WorkFlow
-from fabricatio_skill import UseSkill, scan_skills
+from fabricatio import Action, Event, Role, Task, WorkFlow
+from fabricatio_skill import UseSkill
 
 
 class AnswerWithSkills(Action, UseSkill):
@@ -93,14 +97,14 @@ class AnswerWithSkills(Action, UseSkill):
 
     output_key: str = "task_output"
 
-    async def _execute(self, task_input: str, **_) -> str:
-        knowledge = await self.consult_skills(task_input)   # select → distill (pkg ends here)
-        prompt = f"{knowledge}\n\n---\n\n{task_input}" if knowledge else task_input
-        return await self.aask(prompt)                      # the actual job — yours
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        # select relevant skills -> distill what they say (both SMOL tier);
+        # "" when nothing is relevant. Answering stays YOUR job.
+        knowledge = await self.consult_skills(task_input.briefing)
+        if not knowledge:
+            return task_input.briefing
+        return await self.aask(f"{knowledge}\n\n---\n\n{task_input.briefing}")
 
-
-skills = scan_skills("skills")
-AnswerWithSkills.skill_names = [s.name for s in skills]
 
 role = (
     Role.with_bio(name="skilled", description="answers using the skill library")
@@ -110,27 +114,77 @@ role = (
     )
     .dispatch()
 )
-# then dispatch a Task whose briefing is the question to Event "ask"
+# dispatch a Task whose briefing is the question to Event "ask" — done
 ```
 
-### 4. Tune the disclosure level per call
+### 3. Tune the disclosure level per call
 
 `consult_skills()` is the progressive-disclosure dial; it returns what the
-relevant skills say (or `""` when nothing is relevant):
+relevant skills say (or `""` when nothing is relevant — a `"[]"` selection
+from the LLM, an exhausted selection retry, or an empty library all mean the
+same thing: there is nothing to consult):
 
 | Call | Returns |
 |---|---|
-| `await self.consult_skills(q)` | Distilled essence of LLM-selected skills (2 extra LLM calls). |
-| `await self.consult_skills(q, names=["rust-async"])` | Forced skills — skips LLM selection. |
+| `await self.consult_skills(q)` | Distilled essence of LLM-selected skills (2 extra LLM calls on the `SMOL` tier). |
+| `await self.consult_skills(q, names=["rust-async"])` | Forced skills — skips LLM selection entirely. |
 | `await self.consult_skills(q, distill=False)` | Full bodies of selected skills — no compression call. |
-| `await self.consult_skills(q, select=False, distill=False)` | All registered skills verbatim. |
+| `await self.consult_skills(q, select=False, distill=False)` | Every registered skill verbatim — zero LLM calls. |
 
 For finer control, step through the levels manually:
 
 ```python
-picked = await agent.select_skills(question)             # LLM relevance over metadata
-essence = await agent.distill_skills(question, picked)   # LLM compression of bodies
-answer = await agent.aask(f"{essence}\n\n---\n\n{question}")
+picked = await agent.select_skills(question)              # metadata-only chooser
+if picked:                                                # None = LLM never answered validly
+    essence = await agent.distill_skills(question, picked)  # compress only selected bodies
+    answer = await agent.aask(f"{essence}\n\n---\n\n{question}")
+else:
+    answer = question                                     # nothing relevant: no skill context
+```
+
+**What the LLM sees at each stage** (progressive exclusion in action):
+
+- *SELECT* — the framework `UseLLM.achoose` chooser lists every candidate by
+  its **briefing** (`name: description`; bodies never enter this prompt) and
+  asks for a JSON array of catalog names. The reply is parsed as a set:
+  unknown names are ignored, duplicates collapse, unparseable replies are
+  retried automatically (up to 3 attempts). A deterministic Rust keyword
+  search (`search_skills`) pre-filters the pool first when it exceeds
+  `prefilter_threshold`, and the result is trimmed to `max_selected_skills`.
+- *DISTILL* — only the selected skills' **bodies** enter this prompt, with the
+  instruction to extract just the parts relevant to the question and discard
+  everything else.
+
+### 4. Explicit loading — custom directories & the registry
+
+Skip the auto-load by registering skills yourself; `add_skills` is idempotent,
+so calling it at the top of `_execute` against a custom directory is safe:
+
+```python
+from fabricatio import Action, Task
+from fabricatio_skill import UseSkill, scan_skills
+
+
+class AnswerWithTeamSkills(Action, UseSkill):
+    """Answer using skills from a non-default directory."""
+
+    output_key: str = "task_output"
+
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        self.add_skills(scan_skills("team-skills"))      # explicit library; idempotent
+        knowledge = await self.consult_skills(task_input.briefing)
+        ...
+```
+
+The low-level pieces are also exposed for custom pipelines:
+
+```python
+from fabricatio_skill import get_skill_registry, scan_skills, search_skills
+
+skills = scan_skills("skills")            # Rust: parse all .md files -> [Skill]
+registry = get_skill_registry()           # process-wide store (Rust)
+registry.register(skills)
+hits = search_skills("async", skills)     # Rust: keyword search over metadata
 ```
 
 ## Configuration
@@ -144,16 +198,18 @@ Configuration Guide at ../../docs/source/configuration.rst). Set them under the
 ```
 # fabricatio.toml
 [ext.skill]
-select_skills_template = "built-in/select_skills"
 distill_skills_template = "built-in/distill_skills"
+max_selected_skills = 8
+prefilter_threshold = 100
 default_skill_dirs = ["skills", "extra/skills"]
 ```
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `select_skills_template` | `str` | `"built-in/select_skills"` | Template name for the LLM prompt that selects relevant skills from a question. |
 | `distill_skills_template` | `str` | `"built-in/distill_skills"` | Template name for the LLM prompt that distills skill content to its essence. |
-| `default_skill_dirs` | `List[str]` | `["skills", "extra/skills"]` | Default directories to scan for skill files. |
+| `max_selected_skills` | `int` | `8` | Maximum number of skills the LLM may select per call (`0` = unlimited). Caps how many bodies reach distillation. |
+| `prefilter_threshold` | `int` | `100` | Pool size above which selection keyword-prefilters with the Rust `search_skills` before the LLM stage (`0` disables the prefilter). |
+| `default_skill_dirs` | `List[str]` | `["skills", "extra/skills"]` | Default directories auto-scanned on first consult when a role has no skills. |
 
 Access at runtime: `from fabricatio_skill.config import skill_config`.
 

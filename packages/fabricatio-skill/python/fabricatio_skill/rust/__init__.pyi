@@ -30,6 +30,9 @@ class Skill:
     @property
     def path(self) -> builtins.str:
         r"""Source file path (relative to scan root)."""
+    @property
+    def briefing(self) -> builtins.str:
+        r"""Briefing of the skill: ``name: description``, used as an LLM option summary."""
     def __new__(
         cls,
         name: builtins.str,
@@ -103,9 +106,7 @@ def scan_skills(path: builtins.str) -> builtins.list[Skill]:
     """
 
 def search_skills(
-    query: builtins.str,
-    skills: typing.Sequence[Skill],
-    in_content: builtins.bool = False,
+    query: builtins.str, skills: typing.Sequence[Skill], in_content: builtins.bool = False
 ) -> builtins.list[Skill]:
     r"""Search skills by keyword matching against name, description, tags, and content.
 

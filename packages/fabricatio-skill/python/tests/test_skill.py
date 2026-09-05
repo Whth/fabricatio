@@ -1,5 +1,8 @@
 """Tests for the skill system."""
 
+from dataclasses import replace
+
+import fabricatio_skill.capabilities.skill as skill_module
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_skill.capabilities.skill import UseSkill
@@ -245,3 +248,147 @@ class TestUseSkill:
 
         result = await role.consult_skills("Review auth.py", names=["review"])
         assert result == "Check quality."
+
+    @pytest.mark.asyncio
+    async def test_consult_skills_llm_select_json_then_distill(self) -> None:
+        """Default funnel: validated JSON selection, then distillation (2 calls)."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [
+                Skill(name="a", description="A", tags=[], content="content a", path="a.md"),
+                Skill(name="b", description="B", tags=[], content="content b", path="b.md"),
+                Skill(name="c", description="C", tags=[], content="content c", path="c.md"),
+            ],
+        )
+        role.mock_llm_response('["b"]', "essence of b")
+
+        result = await role.consult_skills("Pick b")
+        assert result == "essence of b"
+
+    @pytest.mark.asyncio
+    async def test_consult_skills_empty_json_means_nothing_relevant(self) -> None:
+        """A valid '[]' selection answer skips distillation and yields ''."""
+        role = SkillRole(name="skill")
+        role.add_skills([Skill(name="a", description="A", tags=[], content="content a", path="a.md")])
+        role.mock_llm_response("[]")
+
+        result = await role.consult_skills("Nothing relevant here")
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_select_skills_tolerates_fenced_json(self) -> None:
+        """Selection parses JSON inside a markdown code fence."""
+        role = SkillRole(name="skill")
+        role.add_skills([Skill(name="a", description="A", tags=[], content="content a", path="a.md")])
+        role.mock_llm_response('```json\n["a"]\n```')
+
+        result = await role.consult_skills("Pick a", distill=False)
+        assert result == "content a"
+
+    @pytest.mark.asyncio
+    async def test_select_skills_drops_unknown_keeps_valid(self) -> None:
+        """Unknown names are warned and dropped; valid ones survive."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [
+                Skill(name="a", description="A", tags=[], content="content a", path="a.md"),
+                Skill(name="b", description="B", tags=[], content="content b", path="b.md"),
+            ],
+        )
+        role.mock_llm_response('["a", "ghost"]')
+
+        result = await role.consult_skills("Pick a", distill=False)
+        assert result == "content a"
+
+    @pytest.mark.asyncio
+    async def test_select_skills_retries_on_garbage_then_succeeds(self) -> None:
+        """Non-JSON replies trigger the aask_validate retry loop."""
+        role = SkillRole(name="skill")
+        role.add_skills([Skill(name="a", description="A", tags=[], content="content a", path="a.md")])
+        role.mock_llm_response("comma, list", '["a"]')
+
+        result = await role.consult_skills("Pick a", distill=False)
+        assert result == "content a"
+
+    @pytest.mark.asyncio
+    async def test_select_skills_capped_by_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Selection never exceeds max_selected_skills (relevance order kept)."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [Skill(name=f"s{i}", description=f"d{i}", tags=[], content=f"c{i}", path=f"{i}.md") for i in range(1, 6)],
+        )
+        monkeypatch.setattr(
+            skill_module,
+            "skill_config",
+            replace(skill_module.skill_config, max_selected_skills=3),
+        )
+        role.mock_llm_response('["s1", "s2", "s3", "s4", "s5"]')
+
+        result = await role.consult_skills("Pick them all", distill=False)
+        assert result == "c1\n\nc2\n\nc3"
+
+    @pytest.mark.asyncio
+    async def test_select_skills_keyword_prefilter_excludes_non_matching(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Above prefilter_threshold, non-keyword-matching skills leave the pool."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [
+                Skill(name="kw_alpha", description="alpha docs", tags=[], content="alpha body", path="a.md"),
+                Skill(name="kw_beta", description="beta docs", tags=[], content="beta body", path="b.md"),
+                Skill(name="no_hit", description="unrelated notes", tags=[], content="unrelated body", path="c.md"),
+            ],
+        )
+        monkeypatch.setattr(
+            skill_module,
+            "skill_config",
+            replace(skill_module.skill_config, prefilter_threshold=2),
+        )
+        role.mock_llm_response('["kw_alpha", "no_hit"]')
+
+        result = await role.consult_skills("alpha docs", distill=False)
+        assert result == "alpha body"
+
+    @pytest.mark.asyncio
+    async def test_select_skills_no_prefilter_below_threshold(self, monkeypatch: object, tmp_path: object) -> None:
+        """At or below prefilter_threshold, the whole pool reaches the LLM."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [
+                Skill(name="kw_alpha", description="alpha docs", tags=[], content="alpha body", path="a.md"),
+                Skill(name="kw_beta", description="beta docs", tags=[], content="beta body", path="b.md"),
+                Skill(name="no_hit", description="unrelated notes", tags=[], content="unrelated body", path="c.md"),
+            ],
+        )
+        monkeypatch.setattr(
+            skill_module,
+            "skill_config",
+            replace(skill_module.skill_config, prefilter_threshold=10),
+        )
+        role.mock_llm_response('["kw_alpha", "no_hit"]')
+
+        result = await role.consult_skills("alpha docs", distill=False)
+        assert result == "alpha body\n\nunrelated body"
+
+    @pytest.mark.asyncio
+    async def test_consult_skills_autoloads_default_dirs(self, monkeypatch: object, tmp_path: object) -> None:
+        """A role without skills auto-loads default_skill_dirs on first consult."""
+        from pathlib import Path
+
+        skill_dir = Path(str(tmp_path)) / "skills"
+        skill_dir.mkdir()
+        (skill_dir / "one.md").write_text(
+            "---\nname: auto_one\ndescription: Auto loaded\ntags: [auto]\n---\n# One\nbody one.",
+            encoding="utf-8",
+            newline="\n",
+        )
+        monkeypatch.setattr(
+            skill_module,
+            "skill_config",
+            replace(skill_module.skill_config, default_skill_dirs=[str(skill_dir)]),
+        )
+
+        role = SkillRole(name="skill")
+        result = await role.consult_skills("anything", select=False, distill=False)
+
+        assert [s.name for s in role.skills] == ["auto_one"]
+        assert result == "# One\nbody one."

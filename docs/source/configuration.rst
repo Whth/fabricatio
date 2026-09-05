@@ -1295,14 +1295,18 @@ fabricatio-skill
      - Type
      - Default
      - Description
-   * - ``select_skills_template``
-     - string
-     - ``built-in/select_skills``
-     - LLM prompt selecting relevant skills from a question.
    * - ``distill_skills_template``
      - string
      - ``built-in/distill_skills``
      - LLM prompt distilling skill content to its essence.
+   * - ``max_selected_skills``
+     - integer
+     - ``8``
+     - Maximum number of skills selected per consult (0 = unlimited). Caps how many bodies reach distillation.
+   * - ``prefilter_threshold``
+     - integer
+     - ``100``
+     - Pool size above which selection keyword-prefilters with the Rust ``search_skills`` before the LLM stage (0 disables).
    * - ``default_skill_dirs``
      - list
      - ``["skills", "extra/skills"]``
