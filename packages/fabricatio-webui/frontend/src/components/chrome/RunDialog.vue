@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
+import { useUiStore } from '@/stores/ui'
 import { useAppActions } from '@/composables/useAppActions'
 import { X, Play } from '@lucide/vue'
 
@@ -13,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const wfStore = useWorkflowStore()
+const uiStore = useUiStore()
 const { t } = useI18n()
 const { runWorkflow } = useAppActions()
 
@@ -35,6 +37,12 @@ watch(
     goals.value = ''
     dependencies.value = ''
     extraContext.value = '{}'
+    const prefill = uiStore.runDialogPrefill
+    if (prefill?.name) name.value = prefill.name
+    if (prefill?.namespace) namespace.value = prefill.namespace
+    if (prefill?.initContext && Object.keys(prefill.initContext).length > 0) {
+      extraContext.value = JSON.stringify(prefill.initContext, null, 2)
+    }
   },
 )
 

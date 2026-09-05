@@ -49,8 +49,10 @@ no LLM, no API keys, and no configuration:
    rail onto a role (create one first via right-click → *Add role*).
 2. Double-click the role card to open the workflow: a `TextStats` node wired
    into a `SummarizeStats` node.
-3. Press `Ctrl+Enter`, keep the namespace (`hello-fabricatio`), and put your
-   text in **Extra init context**: `{"text": "hello fabricatio"}`.
+3. Click **▶ Run** on the workflow chip (or press `Ctrl+Enter` inside the
+   workflow) — the dialog opens pre-filled with the namespace
+   (`hello-fabricatio`); put your text in **Extra init context**:
+   `{"text": "hello fabricatio"}`.
 4. Run — the console streams `node_start/done` events and the task result is
    the summary line, e.g. `[demo] chars: 16, words: 2, lines: 1`.
 
@@ -152,9 +154,12 @@ save/delete re-dispatches roles onto the worker's event bus.
   from the Action's pydantic annotations — toggles, number steppers with
   min/max/step, combos fed by `Literal` options, text/textarea, JSON fields;
   fields are grouped by their owning class in the Action's MRO.
-- **Run**: `Ctrl+Enter` opens the run dialog; publish a task by namespace and
-  watch per-node status badges + the live console (`node_start/done/error`
-  events). `POST /api/interrupt` cancels mid-run.
+- **Run**: click **▶** on a workflow chip (role card) to debug-run exactly
+  that workflow — the dialog opens pre-filled with its name, namespace, and
+  stored init context. Inside the workflow editor `Ctrl+Enter` opens the same
+  dialog; the toolbar **Publish** publishes a free-form task to any
+  namespace. Per-node status badges + the live console stream
+  (`node_start/done/error` events); `POST /api/interrupt` cancels mid-run.
 - **Save**: `Ctrl+S` persists the board server-side; autosave drafts go to
   browser localStorage.
 

@@ -152,6 +152,7 @@
     "pasteHere": "在此粘贴 {n} 个工作流（Ctrl+V）",
     "pasteHint": "剪贴板为空——请先复制一个工作流",
     "generateCode": "生成 fabricatio 代码",
+    "runWorkflow": "运行此工作流",
     "deleteRole": "删除角色",
     "roleAdded": "角色已添加",
     "roleAddedBody": "“{role}”已添加",

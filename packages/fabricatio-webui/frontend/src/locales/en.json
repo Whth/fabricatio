@@ -152,6 +152,7 @@
     "pasteHere": "Paste {n} workflow(s) here (Ctrl+V)",
     "pasteHint": "Clipboard is empty — copy a workflow first",
     "generateCode": "Generate fabricatio code",
+    "runWorkflow": "Run this workflow",
     "deleteRole": "Delete role",
     "roleAdded": "Role added",
     "roleAddedBody": "\"{role}\" added",

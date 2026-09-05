@@ -1,6 +1,6 @@
 # TODO
 
-Re-verified 2026-09-02 against source and live runs.
+Re-verified 2026-09-05 against source and live runs.
 
 - [ ] Finalize the webui.
     - [ ] Chat interface + API client + WebSocket/SSE streaming
@@ -14,7 +14,8 @@ Re-verified 2026-09-02 against source and live runs.
       persisted server-side
     - [x] Clean up scaffolding — TheWelcome, HelloWorld, counter.ts,
       AboutView, and default Vue assets are gone
-    - [ ] Undo/Redo — command pattern on workflow store (add/remove/move node, add/remove edge)
+    - [x] Undo/Redo — snapshot history on the workflow store (50 deep,
+      branch-discard; Ctrl+Z / Ctrl+Shift+Z and palette entries wired)
     - [x] Dark/Light theme toggle — CSS variables + Pinia persistence
     - [ ] Real-time LLM token streaming — surface `WsMessage::LlmToken` in UI
       for streaming text output during generation (receive path implemented
@@ -25,6 +26,10 @@ Re-verified 2026-09-02 against source and live runs.
       package with `[project.scripts]`, typed library package, PyPI-ready
       skeleton with LICENSE/tests/ruff/release workflow); every generated
       file is previewed in tabs before export
+    - [x] Per-workflow debug run — ▶ button on every role-card workflow chip
+      opens the run dialog pre-filled with that workflow's name, namespace,
+      and stored init context; Ctrl+Enter inside the workflow editor and the
+      toolbar free-form Publish stay separate (verified live end-to-end)
     - [ ] Responsive layout — collapsible sidebars on mobile, resizable panels
     - [x] Localization (i18n) — vue-i18n with `en`/`zh` message catalogs
       (`src/locales/`); locale switcher in Settings → Appearance persists the

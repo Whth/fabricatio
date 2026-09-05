@@ -60,6 +60,14 @@ function loadSettings(): UiSettings {
   return merged
 }
 
+/** Values prefilling the run dialog when opened for a specific workflow. */
+export interface RunDialogPrefill {
+  name?: string
+  namespace?: string
+  /** Stored workflow init context, prefilled as extra_init_context. */
+  initContext?: Record<string, unknown>
+}
+
 export const useUiStore = defineStore('ui', () => {
   const settings = ref<UiSettings>(loadSettings())
   const paletteOpen = ref(false)
@@ -72,6 +80,8 @@ export const useUiStore = defineStore('ui', () => {
   /** Run/publish task dialog (opened by toolbar, hotkeys, and palette). */
   const runDialogOpen = ref(false)
   const runDialogMode = ref<'workflow' | 'publish'>('workflow')
+  /** Values prefilling the dialog when it targets a specific workflow (role-chip run). */
+  const runDialogPrefill = ref<RunDialogPrefill | null>(null)
   /** Live console expanded state; initialised from settings. */
   const consoleExpanded = ref(settings.value.consoleDefaultOpen)
 
@@ -125,8 +135,9 @@ export const useUiStore = defineStore('ui', () => {
     blueprintRailOpen.value = !blueprintRailOpen.value
   }
 
-  function openRunDialog(mode: 'workflow' | 'publish' = 'workflow') {
+  function openRunDialog(mode: 'workflow' | 'publish' = 'workflow', prefill: RunDialogPrefill | null = null) {
     runDialogMode.value = mode
+    runDialogPrefill.value = prefill
     runDialogOpen.value = true
   }
 
@@ -142,6 +153,7 @@ export const useUiStore = defineStore('ui', () => {
     blueprintRailOpen,
     runDialogOpen,
     runDialogMode,
+    runDialogPrefill,
     consoleExpanded,
     setSetting,
     togglePalette,

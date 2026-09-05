@@ -5,8 +5,9 @@ import { Handle, Position } from '@vue-flow/core'
 import type { RoleJSON } from '@/types/api'
 import { useBoardStore, WF_REORDER_MIME } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUiStore } from '@/stores/ui'
 import { BLUEPRINT_MIME } from '@/data/blueprints'
-import { Plus, Trash2, Code2, Copy, ClipboardPaste } from '@lucide/vue'
+import { Plus, Trash2, Code2, Copy, ClipboardPaste, Play } from '@lucide/vue'
 
 const props = defineProps<{ id: string; data: { roleIndex?: number; role?: RoleJSON } }>()
 
@@ -17,6 +18,7 @@ const role = computed(() => props.data.role as RoleJSON)
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
+const uiStore = useUiStore()
 const { t } = useI18n()
 
 /** Workflow index whose copy-to-role menu is open (null = closed). */
@@ -204,6 +206,13 @@ function openWorkflow(i: number) {
   boardStore.enterWorkflow(index.value, i)
 }
 
+/** Debug-run this exact workflow: open the run dialog prefilled from it. */
+function runChip(i: number) {
+  const wf = role.value.workflows?.[i]
+  if (!wf) return
+  uiStore.openRunDialog('workflow', { name: wf.name, namespace: wf.namespace, initContext: wf.init_context ?? {} })
+}
+
 function addWorkflow() {
   const roleName = role.value.name.replace(/\s+/g, '-').toLowerCase() || 'role'
   const wfName = `${roleName}-${(role.value.workflows?.length ?? 0) + 1}`
@@ -291,6 +300,14 @@ function remove() {
       >
         <div class="wf-row">
           <span class="wf-name">{{ wf.name ?? t('board.unnamed') }}</span>
+          <button
+            class="wf-run"
+            :title="t('board.runWorkflow')"
+            @click.stop="runChip(i)"
+            @dblclick.stop
+          >
+            <Play :size="11" />
+          </button>
           <button
             class="wf-copy"
             :class="{ open: copyMenuFor === i }"
@@ -457,8 +474,7 @@ function remove() {
   color: var(--fg-0);
   font-weight: var(--weight-medium);
 }
-
-.wf-copy {
+.wf-run {
   margin-left: auto;
   flex: 0 0 auto;
   display: flex;
@@ -467,6 +483,25 @@ function remove() {
   width: 18px;
   height: 18px;
   background: transparent;
+  border: none;
+  color: var(--fg-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.wf-run:hover {
+  background: var(--bg-3);
+  color: var(--accent);
+}
+
+.wf-copy {
+  margin-left: 0;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   border: none;
   color: var(--fg-3);
   border-radius: var(--radius-sm);
