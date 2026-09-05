@@ -158,26 +158,39 @@ save/delete re-dispatches roles onto the worker's event bus.
 - **Save**: `Ctrl+S` persists the board server-side; autosave drafts go to
   browser localStorage.
 
-### Export a role as a runnable tool
+### Export as CLI / Python package
 
 Every role card carries a **code** action that opens the generated-module
-dialog. Beyond copy/download of the single `.py`, the dialog can
-**export a runnable package** (`.zip`) containing:
+dialog — a full export panel. Pick a **scope** and a **format**, preview
+every generated file in tabs, then copy, download a single file, or export
+the whole artifact as `.zip`:
 
-- `main.py` — a standalone tool: PEP 723 script metadata pins the owning
-  distributions of every used node type, catalog Actions are imported from
-  their real modules, board-level custom Actions are emitted inline, and the
-  task init context comes from CLI flags.
-- `pyproject.toml` — the same dependency set as a uv/pip-friendly project.
-- `workflow.json` — a re-importable format-2 board holding the role.
-- `README.md` — quickstart and configuration notes.
+- **Scope** — *whole role* (all of its workflows) or a *single workflow*.
+- **Format**:
+  - **Script** — the runnable package: `main.py` with PEP 723 metadata
+    (uv-run-anywhere), `pyproject.toml`, `workflow.json`, `README.md`.
+  - **CLI tool** — everything above **plus** an installable src-layout
+    package wired to a `[project.scripts]` console command.
+  - **Python package** — a typed library: `pip install .` then
+    `from <pkg> import build_role, run` (`py.typed` included).
+  - **PyPI-ready** — the package plus a console command, `LICENSE`, test
+    skeleton, ruff config, and a trusted-publishing release workflow.
 
-Run it with zero setup:
+The CLI flavor, zero setup:
 
 ```bash
-unzip hello-fabricatio.zip -d hello-fabricatio && cd hello-fabricatio
-uv run main.py --text "hello fabricatio"
-# task output: [demo] chars: 16, words: 2, lines: 1
+unzip hello-fabricatio-cli.zip -d hello-fabricatio && cd hello-fabricatio
+uv run main.py --text "hello fabricatio"   # script mode, no install
+uv tool install .                          # installs the hello-fabricatio command
+hello-fabricatio --text "hello fabricatio"
+```
+
+The package flavors, as a library:
+
+```bash
+unzip hello-fabricatio-package.zip -d hello-fabricatio && cd hello-fabricatio
+pip install .
+python -c "import asyncio, hello_fabricatio; print(asyncio.run(hello_fabricatio.run({'text': 'hello'})))"
 ```
 
 `uv` reads the PEP 723 block and installs the dependencies automatically.

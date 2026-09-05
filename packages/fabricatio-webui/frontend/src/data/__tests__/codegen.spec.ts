@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { generateRoleModule, roleDependencies, type NodeCatalog } from '../codegen'
+import {
+  generatePkgCliModule,
+  generatePkgInitModule,
+  generatePkgWorkflowsModule,
+  generateRoleModule,
+  pyPackageName,
+  roleDependencies,
+  type NodeCatalog,
+} from '../codegen'
 import type { ActionDefJSON, RoleJSON } from '@/types/api'
 
 const catalog: NodeCatalog = {
@@ -88,5 +96,57 @@ describe('generateRoleModule', () => {
     const empty = generateRoleModule({ name: 'Empty', workflows: [] }, [], catalog)
     expect(empty).toContain('role = Role.new({')
     expect(empty).toContain('async def main()')
+  })
+})
+
+describe('pyPackageName', () => {
+  it('sanitizes role names into PEP 8 package identifiers', () => {
+    expect(pyPackageName({ name: 'My Cool Tool!', workflows: [] })).toBe('my_cool_tool')
+    expect(pyPackageName({ name: '9lives', workflows: [] })).toBe('_9lives')
+    expect(pyPackageName({ name: '   ', workflows: [] })).toBe('fabricatio_tool')
+  })
+})
+
+describe('generatePkgWorkflowsModule', () => {
+  const module = generatePkgWorkflowsModule(role, [customAction], catalog)
+
+  it('imports catalog actions and defines board-level custom actions inline', () => {
+    expect(module).toContain('from fabricatio_webui.actions.demo import SummarizeStats, TextStats')
+    expect(module).toContain('class MyAction(Action):')
+  })
+
+  it('builds fresh workflows inside build_role and dispatches on demand', () => {
+    expect(module).toContain('def build_role(*, dispatch: bool = True) -> Role:')
+    expect(module).toContain('    wf_0 = _Output0(')
+    expect(module).toContain('    class _Output0(WorkFlow):')
+    expect(module).toContain('"hello::world::*::Pending": wf_0,')
+    expect(module).toContain('    if dispatch:')
+    expect(module).toContain('        role.dispatch()')
+  })
+
+  it('exposes a run() helper publishing with namespace segments', () => {
+    expect(module).toContain(
+      'async def run(context: dict[str, Any] | None = None, *, task_name: str = "example") -> Any:',
+    )
+    expect(module).toContain('send_to=["hello","world"]')
+    expect(module).toContain('task.update_init_context(**context)')
+  })
+})
+
+describe('generatePkgInitModule', () => {
+  it('re-exports the programmatic surface', () => {
+    const init = generatePkgInitModule(role)
+    expect(init).toContain('from .workflows import build_role, run')
+    expect(init).toContain('__all__ = ["build_role", "run"]')
+  })
+})
+
+describe('generatePkgCliModule', () => {
+  it('wires the same flag surface through an argv parameter', () => {
+    const cli = generatePkgCliModule(role)
+    expect(cli).toContain('def _parse_args(argv: list[str] | None = None)')
+    expect(cli).toContain('args = parser.parse_args(argv)')
+    expect(cli).toContain("parser.add_argument('--text'")
+    expect(cli).toContain('def main(argv: list[str] | None = None) -> None:')
   })
 })

@@ -20,10 +20,11 @@ Re-verified 2026-09-02 against source and live runs.
       for streaming text output during generation (receive path implemented
       end-to-end; nothing emits token events yet)
     - [x] Workflow import/export — download as JSON, import from file
-    - [x] Export a role as a runnable package — the codegen dialog emits a
-      `.zip` with a PEP 723-runnable `main.py` (catalog imports + CLI init
-      context), `pyproject.toml`, `workflow.json`, and a `README.md`; run
-      anywhere with `uv run main.py` (verified live end-to-end)
+    - [x] Selectable export — the codegen dialog picks a scope (whole role
+      or a single workflow) and a format (script zip, installable CLI
+      package with `[project.scripts]`, typed library package, PyPI-ready
+      skeleton with LICENSE/tests/ruff/release workflow); every generated
+      file is previewed in tabs before export
     - [ ] Responsive layout — collapsible sidebars on mobile, resizable panels
     - [x] Localization (i18n) — vue-i18n with `en`/`zh` message catalogs
       (`src/locales/`); locale switcher in Settings → Appearance persists the

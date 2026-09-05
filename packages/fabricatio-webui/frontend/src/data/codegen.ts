@@ -1,12 +1,17 @@
 /**
- * Generate a runnable, standalone fabricatio Python tool from a role.
+ * Generate runnable fabricatio Python artifacts from a role.
  *
- * The module carries PEP 723 script metadata (so `uv run main.py` installs
- * the ecosystem dependencies automatically), imports every catalog-backed
- * Action from its owning package, defines board-level custom Action classes
- * inline, builds each workflow as a WorkFlow with topologically ordered
- * steps, constructs and dispatches the Role, and publishes a task whose
- * init context comes from CLI arguments (--text / --input / --input-file).
+ * Script flavor: a standalone module carrying PEP 723 metadata (so
+ * `uv run main.py` installs the ecosystem dependencies automatically) that
+ * imports every catalog-backed Action from its owning package, defines
+ * board-level custom Action classes inline, builds each workflow as a
+ * WorkFlow with topologically ordered steps, constructs and dispatches the
+ * Role, and publishes a task whose init context comes from CLI arguments
+ * (--text / --input / --input-file).
+ *
+ * Package flavor: an installable src-layout distribution (`workflows.py` /
+ * `cli.py` / `__init__.py`) exposing `build_role()` / `run()` and an
+ * optional `[project.scripts]` console entry point.
  */
 
 import type { ActionDefJSON, RoleJSON, WorkflowJSON } from '@/types/api'
@@ -240,26 +245,7 @@ export function generateRoleModule(
     `# ── CLI ───────────────────────────────────────────────────────────────`,
     `def _parse_args() -> dict[str, Any]:`,
     `    """Build the task init context from command-line arguments."""`,
-    `    parser = argparse.ArgumentParser(description=${JSON.stringify(`Run the ${role.name} workflow(s).`)})`,
-    `    parser.add_argument('--text', help='shorthand for --input \\'{"text": "..."}\\'')`,
-    `    parser.add_argument('--input', help='task init context as a JSON object literal')`,
-    `    parser.add_argument('--input-file', help='path to a JSON file holding the init context')`,
-    `    args = parser.parse_args()`,
-    `    ctx: dict[str, Any] = {}`,
-    `    if args.input_file:`,
-    `        with open(args.input_file, encoding="utf-8") as fh:`,
-    `            loaded = json.load(fh)`,
-    `            if not isinstance(loaded, dict):`,
-    `                parser.error("--input-file must hold a JSON object")`,
-    `            ctx.update(loaded)`,
-    `    if args.input:`,
-    `        loaded = json.loads(args.input)`,
-    `        if not isinstance(loaded, dict):`,
-    `            parser.error("--input must be a JSON object")`,
-    `        ctx.update(loaded)`,
-    `    if args.text is not None:`,
-    `        ctx["text"] = args.text`,
-    `    return ctx`,
+    ...emitArgparseCtx(JSON.stringify(`Run the ${role.name} workflow(s).`), 'args = parser.parse_args()'),
     '',
     '',
     `# ── Example task ──────────────────────────────────────────────────────`,
@@ -285,5 +271,167 @@ export function generateRoleModule(
     '',
     ...roleBlock,
     ...main,
+  ].join('\n')
+}
+
+/** Sanitized PEP 8 Python package identifier for the exported distribution. */
+export function pyPackageName(role: RoleJSON): string {
+  const name = (role.name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/_{2,}/g, '_')
+    .replace(/^_+|_+$/g, '')
+  if (!name) return 'fabricatio_tool'
+  return /^[0-9]/.test(name) ? `_${name}` : name
+}
+
+/** Parser construction + init-context assembly shared by script and CLI emitters. */
+function emitArgparseCtx(descriptionLiteral: string, parseArgsLine: string): string[] {
+  return [
+    `    parser = argparse.ArgumentParser(description=${descriptionLiteral})`,
+    `    parser.add_argument('--text', help='shorthand for --input \\'{"text": "..."}\\'')`,
+    `    parser.add_argument('--input', help='task init context as a JSON object literal')`,
+    `    parser.add_argument('--input-file', help='path to a JSON file holding the init context')`,
+    `    ${parseArgsLine}`,
+    `    ctx: dict[str, Any] = {}`,
+    `    if args.input_file:`,
+    `        with open(args.input_file, encoding="utf-8") as fh:`,
+    `            loaded = json.load(fh)`,
+    `            if not isinstance(loaded, dict):`,
+    `                parser.error("--input-file must hold a JSON object")`,
+    `            ctx.update(loaded)`,
+    `    if args.input:`,
+    `        loaded = json.loads(args.input)`,
+    `        if not isinstance(loaded, dict):`,
+    `            parser.error("--input must be a JSON object")`,
+    `        ctx.update(loaded)`,
+    `    if args.text is not None:`,
+    `        ctx["text"] = args.text`,
+    `    return ctx`,
+  ]
+}
+
+/** Emit `src/<pkg>/workflows.py`: custom actions, fresh-per-call role builder, runner. */
+export function generatePkgWorkflowsModule(
+  role: RoleJSON,
+  actions: ActionDefJSON[],
+  catalog: NodeCatalog = {},
+): string {
+  const header = [
+    '"""Workflow graph, board-level custom actions, and role construction.',
+    '',
+    'Generated by fabricatio-webui — edit freely.',
+    '"""',
+    '',
+    'from typing import Any, ClassVar',
+    '',
+    'from fabricatio_core.models.action import Action, WorkFlow',
+    'from fabricatio_core.models.role import Role',
+    'from fabricatio_core.models.task import Task',
+    '',
+    ...emitImports(role, actions, catalog),
+    '',
+  ]
+
+  const usedTypes = new Set<string>()
+  for (const wf of role.workflows ?? []) {
+    for (const n of wf.nodes) usedTypes.add(n.type)
+  }
+  const custom = actions.filter((a) => usedTypes.has(a.name))
+  const customBlock = custom.length
+    ? ['# ── Custom actions ────────────────────────────────────────────────', '', ...custom.flatMap((a) => emitAction(a).split('\n')), '']
+    : []
+
+  const subs = (role.workflows ?? [])
+    .map((wf, i) => {
+      const ns = (wf.namespace ?? wf.name ?? '').trim().replace(/^:+|:+$/g, '')
+      const pattern = ns ? `${ns}::*::Pending` : ''
+      return `        ${JSON.stringify(pattern)}: wf_${i},`
+    })
+    .join('\n')
+
+  const buildRole = [
+    'def build_role(*, dispatch: bool = True) -> Role:',
+    '    """Construct the role and its workflows; dispatch unless told not to."""',
+    ...(role.workflows ?? []).flatMap((wf, i) =>
+      emitWorkflow(wf, i)
+        .split('\n')
+        .map((l) => (l ? `    ${l}` : l)),
+    ),
+    '    role = Role.new({',
+    ...(subs ? [subs] : []),
+    `    }, name=${JSON.stringify(role.name)}, description=${JSON.stringify(role.description || '')})`,
+    '    if dispatch:',
+    '        role.dispatch()',
+    '    return role',
+  ]
+
+  const run = [
+    '',
+    '',
+    'async def run(context: dict[str, Any] | None = None, *, task_name: str = "example") -> Any:',
+    '    """Build the role, publish a task with `context`, and await its output."""',
+    '    build_role()',
+    `    task = Task(name=task_name, send_to=${JSON.stringify((role.workflows?.[0]?.namespace ?? 'main').split('::'))})`,
+    '    if context:',
+    '        task.update_init_context(**context)',
+    '    task.publish()',
+    '    return await task.get_output()',
+    '',
+  ]
+
+  return [...header, ...customBlock, ...buildRole, ...run].join('\n')
+}
+
+/** Emit `src/<pkg>/__init__.py`: the public programmatic surface. */
+export function generatePkgInitModule(role: RoleJSON): string {
+  const doc = (role.description || `Generated fabricatio package: ${role.name}`).replace(
+    /"""/g,
+    '\\\"\\\"\\\"',
+  )
+  const pkg = pyPackageName(role)
+  return [
+    `"""${doc}`,
+    '',
+    'Programmatic surface:',
+    `    from ${pkg} import build_role, run`,
+    '    output = await run({"text": "hello"})',
+    '"""',
+    '',
+    'from .workflows import build_role, run',
+    '',
+    '__all__ = ["build_role", "run"]',
+    '__version__ = "0.1.0"',
+    '',
+  ].join('\n')
+}
+
+/** Emit `src/<pkg>/cli.py`: the `[project.scripts]` console entry point. */
+export function generatePkgCliModule(role: RoleJSON): string {
+  return [
+    `"""CLI entry point for ${role.name} — wired via [project.scripts]."""`,
+    '',
+    'import argparse',
+    'import asyncio',
+    'import json',
+    'from typing import Any',
+    '',
+    'from .workflows import run',
+    '',
+    '',
+    'def _parse_args(argv: list[str] | None = None) -> dict[str, Any]:',
+    '    """Build the task init context from command-line arguments."""',
+    ...emitArgparseCtx(JSON.stringify(`Run the ${role.name} workflow(s).`), 'args = parser.parse_args(argv)'),
+    '',
+    '',
+    'def main(argv: list[str] | None = None) -> None:',
+    '    """Console-script entry point."""',
+    '    ctx = _parse_args(argv)',
+    '    print("task output:", asyncio.run(run(ctx)))',
+    '',
+    '',
+    'if __name__ == "__main__":',
+    '    main()',
+    '',
   ].join('\n')
 }
