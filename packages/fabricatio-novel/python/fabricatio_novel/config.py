@@ -100,8 +100,8 @@ class NovelConfig:
     illustration_prop: str | None = None
     """aspect ratio of each scene illustration for ComfyUI.
 
-    Accepts ``"16:9"`` style values or ``prop_16_9``-style names (e.g.
-    ``prop_2_3`` for a portrait scene).  ``None`` falls back to
+    Accepts enum member names (the member values, e.g. ``"prop_2_3"``
+    for a portrait scene).  ``None`` falls back to
     ``[ext.comfyui] prop``, then to the active ComfyUI template's ratio.
     """
 

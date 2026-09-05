@@ -7,7 +7,7 @@ complete generation instruction that the LLM itself sizes per subject.
 """
 
 from fabricatio_core.models.generic import SketchedAble
-from pydantic import Field, field_validator
+from pydantic import Field
 
 from fabricatio_comfyui.models.resolution import Prop
 
@@ -43,13 +43,7 @@ class SketchSpec(SketchedAble):
     prop: Prop | None = None
     """Aspect-ratio preset of the canvas; ``None`` keeps the fallback ratio.
 
-    Accepts ``"16:9"`` style values or ``prop_16_9``-style names (e.g.
-    ``prop_2_3`` for a portrait scene).  Choose the preset that fits the
-    composition; ``None`` falls back to the config/template canvas ratio.
+    Accepts member names (the enum values, e.g. ``"prop_16_9"``), coerced natively.
+    Choose the preset that fits the composition; ``None`` falls back to
+    the config/template canvas ratio.
     """
-
-    @field_validator("prop", mode="before")
-    @classmethod
-    def _coerce_prop(cls, value: object) -> object:
-        """Map ``"16:9"`` / ``"prop_16_9"`` spellings onto the enum member."""
-        return Prop.of(value) if isinstance(value, str) else value

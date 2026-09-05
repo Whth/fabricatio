@@ -179,7 +179,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         prop = (
             si.prop
             if si.prop is not None
-            else (Prop.of(novel_config.illustration_prop) if novel_config.illustration_prop else None)
+            else (Prop(novel_config.illustration_prop) if novel_config.illustration_prop else None)
         )
         mp = si.mp if si.mp is not None else novel_config.illustration_mp
         ceiling = novel_config.illustration_mp_max

@@ -81,16 +81,9 @@ def _dump_node(node: BaseModel) -> dict[str, object]:
 
 
 def _rewire(node: BaseModel, field: str, ref: NodeRef) -> BaseModel:
-    """Copy *node* with its ``inputs.<field>`` link pointed at *ref*.
-
-    Raises:
-        ValueError: when the node's inputs have no field named *field*.
-    """
+    """Copy *node* with its ``inputs.<field>`` link pointed at *ref*."""
     clone = node.model_copy(deep=True)
-    inputs = clone.__dict__["inputs"]
-    if field not in type(inputs).model_fields:
-        raise ValueError(f"{type(clone).__name__} has no {field!r} input")
-    setattr(inputs, field, ref)
+    setattr(clone.__dict__["inputs"], field, ref)
     return clone
 
 

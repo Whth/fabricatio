@@ -63,7 +63,7 @@ download_dir = "./outputs"
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
 | `workflow` | `"default" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph or the anima preset. |
 | `mp` | `float \| None` | `None` | Default megapixel budget of the finished image (`1.0` = 1,000,000 px); the two-pass template sizes its base canvas so the upscaled output lands at the budget; a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
-| `prop` | `str \| None` | `None` | Default aspect-ratio preset — `"16:9"` style values or `prop_16_9` names (`1:1`, `4:3`, `3:4`, `3:2`, `2:3`, `16:9`, `9:16`, `5:4`, `4:5`, `21:9`, `9:21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
+| `prop` | `Prop \| None` | `None` | Default aspect-ratio preset — enum member names (`prop_1_1`, `prop_4_3`, `prop_3_4`, `prop_3_2`, `prop_2_3`, `prop_16_9`, `prop_9_16`, `prop_5_4`, `prop_4_5`, `prop_21_9`, `prop_9_21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
 | `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
 | `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
 | `anima_vae` | `str \| None` | `None` | VAE filename for the anima workflow. |
@@ -111,8 +111,8 @@ of raw pixel dimensions, giving LLM callers a small discrete choice
 surface while the package computes a model-friendly canvas:
 
 * `mp` — megapixel budget of the **finished** image (`1.0` = 1,000,000 px).
-* `prop` — aspect-ratio preset from the `Prop` StrEnum (member names
-  `prop_16_9`, values `"16:9"`; both spellings are accepted).
+* `prop` — aspect-ratio preset from the `Prop` StrEnum (members are
+  declared with `auto()`, so member names double as the values).
 
 The canvas derives from the active template's built-in canvas: a given
 `mp` replaces the final pixel area, a given `prop` replaces its ratio,

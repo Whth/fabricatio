@@ -328,7 +328,7 @@ class TestIllustrateNovelPhase:
         """Assert per-scene SketchSpec mp/prop win over the global illustration config."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            dataclasses.replace(novel_config, illustration_mp=0.75, illustration_prop="3:4"),
+            dataclasses.replace(novel_config, illustration_mp=0.75, illustration_prop="prop_3_4"),
         )
         ctx = build_novel_ctx("S1", "S2")
         seen: list[tuple[object, object]] = []
@@ -345,7 +345,7 @@ class TestIllustrateNovelPhase:
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
         role = IllustrationRole(name="illustrator")
         proposals = [
-            SketchSpec(prompt="wide dawn", prop="16:9", mp=1.0),
+            SketchSpec(prompt="wide dawn", prop="prop_16_9", mp=1.0),
             SketchSpec(prompt="tall gate"),  # no size: falls back to the global illustration_mp/prop
         ]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):

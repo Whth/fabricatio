@@ -945,7 +945,7 @@ fabricatio-comfyui
    * - ``prop``
      - string | None
      - ``None``
-     - Default aspect-ratio preset; accepts ``"16:9"`` style values or ``prop_16_9`` names (``1:1``, ``4:3``, ``3:4``, ``3:2``, ``2:3``, ``16:9``, ``9:16``, ``5:4``, ``4:5``, ``21:9``, ``9:21``); per-call ``prop=`` wins; ``None`` keeps the active template's ratio.
+     - Default aspect-ratio preset; accepts enum member names (``prop_1_1``, ``prop_4_3``, ``prop_3_4``, ``prop_3_2``, ``prop_2_3``, ``prop_16_9``, ``prop_9_16``, ``prop_5_4``, ``prop_4_5``, ``prop_21_9``, ``prop_9_21``); per-call ``prop=`` wins; ``None`` keeps the active template's ratio.
    * - ``anima_checkpoint``
      - string
      - ``None``
@@ -1165,7 +1165,7 @@ defaulting to a quality/anatomy exclusion list such as ``low quality``, ``multip
 fingers``, ``watermark``, ``jpeg artifacts``, ``blurry``) forwards a negative prompt
 to ComfyUI for every scene illustration;
 ``illustration_mp`` (float, unset by default) and ``illustration_prop`` (string,
-unset by default; e.g. ``prop_2_3`` or ``"2:3"``) size each scene illustration by
+unset by default; member names like ``"prop_2_3"``) size each scene illustration by
 megapixel budget and aspect ratio — unset sides fall back to ``[ext.comfyui] mp`` /
 ``prop``, then to the bundled ComfyUI template's canvas; per-scene proposals win over these globals: every scene illustration is
 proposed as a ``SketchSpec`` (prompt, negative prompt, and LLM-chosen ``mp`` /

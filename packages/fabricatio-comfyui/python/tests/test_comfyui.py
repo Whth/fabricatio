@@ -479,7 +479,7 @@ class TestResolve:
 
     def test_prop_only_keeps_template_area(self) -> None:
         """A ratio alone re-sizes the template's own pixel area."""
-        assert resolve_canvas(prop="16:9", base=(768, 512)) == (832, 448)
+        assert resolve_canvas(prop="prop_16_9", base=(768, 512)) == (832, 448)
         assert resolve_canvas(prop=Prop.prop_16_9, base=(768, 512)) == (832, 448)
 
     def test_mp_only_keeps_template_ratio(self) -> None:
@@ -518,7 +518,7 @@ class TestResolve:
     def test_scale_ignored_without_budget(self) -> None:
         """Scale only reshapes a given budget; no-knob and prop-only calls ignore it."""
         assert resolve_canvas(base=(768, 512), scale=2.3) == (768, 512)
-        assert resolve_canvas(prop="16:9", base=(768, 512), scale=2.3) == (832, 448)
+        assert resolve_canvas(prop="prop_16_9", base=(768, 512), scale=2.3) == (832, 448)
 
     def test_scale_must_be_positive(self) -> None:
         """Non-positive scale factors are loud errors when a budget is given."""
@@ -528,16 +528,15 @@ class TestResolve:
             resolve_canvas(mp=1.0, base=(768, 512), scale=-2.0)
 
     def test_unknown_prop_is_loud(self) -> None:
-        """Unknown ratio spellings raise with the preset list."""
-        with pytest.raises(ValueError, match="Unknown aspect ratio"):
+        """Unknown ratio spellings raise the enum's ValueError."""
+        with pytest.raises(ValueError, match="not a valid Prop"):
             resolve_canvas(prop="7:4", base=(768, 512))
 
-    def test_prop_members_and_spellings(self) -> None:
-        """Members carry readable values; both spellings resolve to the same member."""
-        assert Prop.prop_9_16.value == "9:16"
-        assert Prop("16:9") is Prop.prop_16_9
-        assert Prop.of("prop_21_9") is Prop.prop_21_9
-        assert Prop.of("9:21") is Prop.prop_9_21
+    def test_prop_members_and_values(self) -> None:
+        """auto() makes the member name the value; value lookup fetches members."""
+        assert Prop.prop_9_16.value == "prop_9_16"
+        assert Prop("prop_16_9") is Prop.prop_16_9
+        assert Prop("prop_9_21") is Prop.prop_9_21
 
 
 # ======================================================================
@@ -835,7 +834,7 @@ async def test_generate_applies_config_size_defaults() -> None:
     completed: dict[str, object] = {
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    sized_config = replace(comfyui_config, mp=1.5, prop="3:2")
+    sized_config = replace(comfyui_config, mp=1.5, prop="prop_3_2")
     with (
         patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
         patch.object(client, "_post", side_effect=post_side_effect),
@@ -861,7 +860,7 @@ async def test_generate_per_call_size_beats_config_defaults() -> None:
     completed: dict[str, object] = {
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    sized_config = replace(comfyui_config, mp=1.5, prop="3:2")
+    sized_config = replace(comfyui_config, mp=1.5, prop="prop_3_2")
     with (
         patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
         patch.object(client, "_post", side_effect=post_side_effect),
@@ -933,12 +932,12 @@ async def test_generate_mp_only_keeps_template_ratio() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_rejects_unknown_config_prop() -> None:
-    """An unparseable [ext.comfyui] prop fails loudly with the preset list."""
+    """An unparseable [ext.comfyui] prop fails loudly at canvas resolution."""
     client = ComfyUIHttpClient.create(None)
     bad_config = replace(comfyui_config, mp=1.0, prop="7:4")
     with (
         patch("fabricatio_comfyui.http_client.comfyui_config", bad_config),
-        pytest.raises(ValueError, match="Unknown aspect ratio"),
+        pytest.raises(ValueError, match="not a valid Prop"),
     ):
         await client.generate("a cat")
 
@@ -1391,10 +1390,11 @@ async def test_integration_generate_with_download(tmp_path: Path) -> None:
 class TestSketchSpec:
     """The propose-able generation spec bundles prompt, negative prompt, and canvas."""
 
-    def test_prop_spelling_coercion(self) -> None:
-        """Both "16:9" style values and prop_16_9-style names land on the enum member."""
-        assert SketchSpec(prompt="a cat", prop="16:9").prop is Prop.prop_16_9
-        assert SketchSpec(prompt="a cat", prop="prop_2_3").prop == Prop.prop_2_3
+    def test_prop_value_coercion(self) -> None:
+        """``prop_16_9``-style member values coerce natively; ``"16:9"`` spellings are not accepted."""
+        assert SketchSpec(prompt="a cat", prop="prop_16_9").prop is Prop.prop_16_9
+        with pytest.raises(ValidationError):
+            SketchSpec(prompt="a cat", prop="16:9")
 
     def test_defaults_keep_fallback_chain(self) -> None:
         """Size fields default to None so generation falls back to config and template."""
@@ -1406,13 +1406,13 @@ class TestSketchSpec:
     def test_rejects_unknown_prop_and_nonpositive_mp(self) -> None:
         """Unknown aspect presets and non-positive budgets fail validation loudly."""
         with pytest.raises(ValidationError):
-            SketchSpec(prompt="a cat", prop="3:7")
+            SketchSpec.model_validate({"prompt": "a cat", "prop": "prop_3_7"})
         with pytest.raises(ValidationError):
             SketchSpec(prompt="a cat", mp=0)
         with pytest.raises(ValidationError):
             SketchSpec(prompt="a cat", mp=-2.0)
 
     def test_json_round_trip_preserves_spec(self) -> None:
-        """model_dump_json emits value-style prop ("16:9") that revalidates to the same spec."""
-        spec = SketchSpec(prompt="a lone rider at dawn", negative_prompt="text", prop="3:2", mp=1.5)
+        """model_dump_json emits member-value prop ("prop_3_2") that revalidates to the same spec."""
+        spec = SketchSpec(prompt="a lone rider at dawn", negative_prompt="text", prop="prop_3_2", mp=1.5)
         assert SketchSpec.model_validate_json(spec.model_dump_json()) == spec

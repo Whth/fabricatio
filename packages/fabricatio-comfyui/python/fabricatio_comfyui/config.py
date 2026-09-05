@@ -42,10 +42,9 @@ class ComfyUIConfig:
     prop: Prop | None = None
     """Default aspect-ratio preset applied to every generation.
 
-    TOML accepts either spelling: ``"16:9"`` style values or
-    ``prop_16_9``-style names.  Pairs with :attr:`mp`; a per-call
-    ``prop=`` knob takes precedence.  ``None`` keeps the active
-    template's canvas ratio.
+    TOML takes enum member names like ``"prop_16_9"`` (the member values).
+    Pairs with :attr:`mp`; a per-call ``prop=`` knob takes precedence.
+    ``None`` keeps the active template's canvas ratio.
     """
 
     checkpoint: str | None = None
