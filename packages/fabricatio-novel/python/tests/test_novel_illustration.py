@@ -227,6 +227,64 @@ class TestIllustrateNovelPhase:
         assert set(illustrations) == {(1, 1), (1, 2)}
         assert len(seen) == 2
 
+    async def test_illustrate_novel_phase_scales_timeout_with_batch_size(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert every render receives ``illustration_timeout_per_image`` x pending renders."""
+        ctx = build_novel_ctx("S1", "S2", "S3")
+        timeouts: list[float] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            received = kwargs["timeout"]
+            assert isinstance(received, (int, float))
+            timeouts.append(float(received))
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(timeouts)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        proposals = [SceneIllustration(prompt=f"dawn {i}") for i in range(3)]
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2), (1, 3)}
+        assert timeouts == [novel_config.illustration_timeout_per_image * 3] * 3
+
+    async def test_illustrate_novel_phase_timeout_follows_configured_per_image_value(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert a custom ``illustration_timeout_per_image`` scales the batch timeout linearly."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            dataclasses.replace(novel_config, illustration_timeout_per_image=5.0),
+        )
+        ctx = build_novel_ctx("S1", "S2")
+        timeouts: list[float] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            received = kwargs["timeout"]
+            assert isinstance(received, (int, float))
+            timeouts.append(float(received))
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(timeouts)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        proposals = [SceneIllustration(prompt="dawn"), SceneIllustration(prompt="dusk")]
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2)}
+        assert timeouts == [10.0, 10.0]
+
     async def test_illustrate_novel_phase_applies_constraint(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
