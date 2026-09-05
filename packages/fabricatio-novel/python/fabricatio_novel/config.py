@@ -92,6 +92,9 @@ class NovelConfig:
     illustration_skip_existing: bool = True
     """skip scenes whose illustration PNG already exists so re-runs fill only the gaps."""
 
+    illustration_timeout_per_image: float = 210.0
+    """per-scene illustration generation timeout in seconds; the total render timeout scales linearly with the batch size (this value x pending renders) since every render shares one ComfyUI queue; ``0`` falls back to the global ``[ext.comfyui] timeout``."""
+
 
 novel_config = CONFIG.load("novel", NovelConfig)
 

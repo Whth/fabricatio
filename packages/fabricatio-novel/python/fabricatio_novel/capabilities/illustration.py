@@ -127,6 +127,11 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         """Propose every pending prompt concurrently, then render all prompts concurrently.
 
         One failed proposal or render skips only its own scene (warn + skip).
+
+        Every render shares the ComfyUI server's queue, so the per-render timeout
+        scales linearly with the batch size:
+        ``illustration_timeout_per_image`` x pending renders — instead of staying
+        fixed, which spuriously times out images queued behind their batch mates.
         """
         # Phase 2: propose all image prompts concurrently; one failure skips only its scene.
         proposals = await asyncio.gather(
@@ -147,9 +152,13 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
             jobs.append((key, title, proposal, target))
 
         # Phase 3: render all prompts concurrently; each failure degrades its own scene.
+        # Renders queue at the shared ComfyUI server, so the timeout grows linearly
+        # with the batch size instead of staying fixed.
+        timeout = novel_config.illustration_timeout_per_image * len(jobs)
+        logger.info(f"Rendering {len(jobs)} scene illustration(s) with batch-scaled timeout {timeout:.0f}s")
         illustrations: dict[tuple[int, int], tuple[str, str]] = {}
         for entry in await asyncio.gather(
-            *(self._render_scene(key, title, si, target) for key, title, si, target in jobs)
+            *(self._render_scene(key, title, si, target, timeout) for key, title, si, target in jobs)
         ):
             if entry is not None:
                 key, value = entry
@@ -162,8 +171,13 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         title: str,
         si: SceneIllustration,
         target: Path,
+        timeout: float,
     ) -> tuple[tuple[int, int], tuple[str, str]] | None:
-        """Render one scene's illustration into ``target``; ``None`` when the render fails."""
+        """Render one scene's illustration into ``target``; ``None`` when the render fails.
+
+        ``timeout`` is the batch-scaled budget shared by every concurrent render of
+        this batch (``illustration_timeout_per_image`` x batch size).
+        """
         try:
             path = await self.generate_image(
                 si.prompt,
@@ -172,6 +186,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
                 width=novel_config.illustration_width,
                 height=novel_config.illustration_height,
                 seed=novel_config.illustration_seed,
+                timeout=timeout,
             )
         except Exception as e:  # noqa: BLE001 - per-scene degrade: one bad render must not fail the run
             logger.warn(f"Image generation failed for scene '{title}': {e}; skipping")

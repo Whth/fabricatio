@@ -235,6 +235,7 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `illustration_height` | `int \| None` | `None` | scene illustration height in pixels; `None` keeps the bundled ComfyUI template's value. |
 | `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |
 | `illustration_skip_existing` | `bool` | `True` | skip scenes whose illustration PNG already exists so re-runs fill only the gaps. |
+| `illustration_timeout_per_image` | `float` | `210.0` | per-image render timeout in seconds; the total render timeout scales linearly with the batch size (value x pending renders) since all renders share one ComfyUI queue; `0` falls back to `[ext.comfyui] timeout`. |
 
 Access at runtime: `from fabricatio_novel.config import novel_config`.
 
