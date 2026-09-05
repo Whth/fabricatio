@@ -392,3 +392,26 @@ class TestUseSkill:
 
         assert [s.name for s in role.skills] == ["auto_one"]
         assert result == "# One\nbody one."
+
+    @pytest.mark.asyncio
+    async def test_select_skills_k_overrides_cap(self) -> None:
+        """k=None falls back to the config cap; k>0 trims; k=0 keeps everything above the cap."""
+        role = SkillRole(name="skill")
+        role.add_skills(
+            [Skill(name=f"s{i}", description=f"D{i}", tags=[], content=f"c{i}", path=f"{i}.md") for i in range(1, 6)]
+        )
+        role.mock_llm_response('["s1", "s2", "s3", "s4", "s5"]')
+
+        capped = await role.select_skills("pick", k=2)
+        assert capped is not None
+        assert [s.name for s in capped] == ["s1", "s2"]
+
+        role.mock_llm_response('["s1", "s2", "s3", "s4", "s5"]')
+        unlimited = await role.select_skills("pick", k=0)
+        assert unlimited is not None
+        assert [s.name for s in unlimited] == ["s1", "s2", "s3", "s4", "s5"]
+
+        role.mock_llm_response('["s1", "s2", "s3", "s4", "s5"]')
+        config_cap = await role.select_skills("pick")
+        assert config_cap is not None
+        assert len(config_cap) == 5

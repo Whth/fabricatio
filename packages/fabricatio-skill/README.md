@@ -127,6 +127,7 @@ same thing: there is nothing to consult):
 | Call | Returns |
 |---|---|
 | `await self.consult_skills(q)` | Distilled essence of LLM-selected skills (2 extra LLM calls on the `SMOL` tier). |
+| `await self.consult_skills(q, k=3)` | Same, but this call fetches at most 3 skills (`k=0` = no limit, `k=None` = the `max_selected_skills` config). |
 | `await self.consult_skills(q, names=["rust-async"])` | Forced skills — skips LLM selection entirely. |
 | `await self.consult_skills(q, distill=False)` | Full bodies of selected skills — no compression call. |
 | `await self.consult_skills(q, select=False, distill=False)` | Every registered skill verbatim — zero LLM calls. |
@@ -150,7 +151,7 @@ else:
   unknown names are ignored, duplicates collapse, unparseable replies are
   retried automatically (up to 3 attempts). A deterministic Rust keyword
   search (`search_skills`) pre-filters the pool first when it exceeds
-  `prefilter_threshold`, and the result is trimmed to `max_selected_skills`.
+  `prefilter_threshold`, and the result is trimmed to `max_selected_skills` (or the per-call `k`).
 - *DISTILL* — only the selected skills' **bodies** enter this prompt, with the
   instruction to extract just the parts relevant to the question and discard
   everything else.

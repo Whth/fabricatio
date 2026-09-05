@@ -110,6 +110,7 @@ class UseSkill(UseLLM, ABC):
         self,
         question: str,
         available: list[str] | None = None,
+        k: int | None = None,
         send_to: str | None = SMOL,
         **kwargs: Unpack[ChooseKwargs[Skill]],
     ) -> list[Skill] | None:
@@ -121,11 +122,13 @@ class UseSkill(UseLLM, ABC):
         unknown names are ignored, duplicates collapse, and unparseable
         replies are retried automatically. A deterministic Rust keyword
         pre-filter thins the pool first when it exceeds ``prefilter_threshold``,
-        and the final selection is trimmed to ``max_selected_skills``.
+        and the final selection is trimmed to ``max_selected_skills`` (or ``k``).
 
         Args:
             question: The question/task to match skills against.
             available: Skill name pool to select from. Defaults to self.skill_names.
+            k: Max skills this call may fetch. ``None`` → the ``max_selected_skills`` config;
+                    ``0`` → no limit; ``n`` → at most ``n``. Overrides the config cap.
             send_to (str | None): Routing-group variant for the LLM call. Resolved against
                     the agent variant registry (see ``fabricatio_core.rust``). Defaults to
                     ``SMOL`` (small-model tier: selection/distillation are light jobs);
@@ -134,7 +137,7 @@ class UseSkill(UseLLM, ABC):
             **kwargs: Extra arguments for the framework chooser (e.g. ``max_validations``).
 
         Returns:
-            Skills deemed relevant by the LLM, capped at ``max_selected_skills``;
+            Skills deemed relevant by the LLM, capped at ``max_selected_skills`` (or ``k``);
             ``[]`` when nothing matched (or the pool is empty) and ``None`` when
             the LLM failed to produce a parseable selection after retries.
         """
@@ -153,7 +156,7 @@ class UseSkill(UseLLM, ABC):
                 logger.warn("No keyword matches; nothing to select from.")
                 return []
 
-        cap = skill_config.max_selected_skills
+        cap = skill_config.max_selected_skills if k is None else k
         instruction = (
             f"{question}\nSelect at most {cap} skills relevant to the question. "
             "Fewer is fine when only some of them are relevant."
@@ -226,6 +229,7 @@ class UseSkill(UseLLM, ABC):
         names: list[str] | None = None,
         select: bool = True,
         distill: bool = True,
+        k: int | None = None,
         send_to: str | None = SMOL,
         **kwargs: Unpack[ChooseKwargs[Skill]],
     ) -> str:
@@ -250,6 +254,8 @@ class UseSkill(UseLLM, ABC):
                    If None and select=False, uses all self.skill_names.
             select: Whether to use LLM for skill selection (default True).
             distill: Whether to use LLM for distillation (default True).
+            k: Max skills this call may fetch. ``None`` → the ``max_selected_skills`` config;
+                    ``0`` → no limit; ``n`` → at most ``n``. Ignored with ``names=``.
             send_to (str | None): Routing-group variant for the LLM call. Resolved against
                     the agent variant registry (see ``fabricatio_core.rust``). Defaults to
                     ``SMOL`` (small-model tier: selection/distillation are light jobs);
@@ -270,7 +276,7 @@ class UseSkill(UseLLM, ABC):
                 missing = [n for n in names if n not in found]
                 logger.warn(f"Skills not found: {missing}")
         elif select:
-            selected = await self.select_skills(question, send_to=send_to, **kwargs)
+            selected = await self.select_skills(question, k=k, send_to=send_to, **kwargs)
         else:
             selected = self._resolve_skills()
 
