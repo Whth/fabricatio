@@ -182,6 +182,10 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
             else (Prop.of(novel_config.illustration_prop) if novel_config.illustration_prop else None)
         )
         mp = si.mp if si.mp is not None else novel_config.illustration_mp
+        ceiling = novel_config.illustration_mp_max
+        if mp is not None and mp > ceiling:
+            logger.warn(f"Clamping scene '{title}' illustration mp {mp} to the {ceiling} ceiling")
+            mp = ceiling
         try:
             path = await self.generate_image(
                 si.prompt,

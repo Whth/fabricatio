@@ -231,7 +231,8 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `scene_illustration_prompt_template` | `str` | `"built-in/scene_illustration_prompt"` | template used to propose one image-generation prompt for a composed scene. |
 | `illustration_constraint` | `str` | `""` | global style/content constraint merged into every scene illustration prompt proposal; empty when unset. |
 | `illustration_negative_prompt` | `str` | quality/anatomy exclusion list | negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own. |
-| `illustration_mp` | `float \| None` | `None` | megapixel budget of each scene illustration (1.0 = 1,000,000 px); a per-scene proposal's `mp` wins, otherwise `None` falls back to `[ext.comfyui] mp`, then the active ComfyUI template's canvas. |
+| `illustration_mp` | `float \| None` | `None` | megapixel budget of each scene illustration's finished image (1.0 = 1,000,000 px); a per-scene proposal's `mp` wins, otherwise `None` falls back to `[ext.comfyui] mp`, then the active ComfyUI template's canvas. |
+| `illustration_mp_max` | `float` | `1.2` | hard ceiling on every scene illustration's megapixel budget, enforced at render time even when the LLM proposes a larger `mp`; the renderable quality brink (512x512x2.2x2.2) is ~1.27 MP, so 1.2 keeps a margin under it. |
 | `illustration_prop` | `str \| None` | `None` | aspect ratio of each scene illustration — `"16:9"` style values or `prop_16_9` names (e.g. `prop_2_3` for a portrait scene); a per-scene proposal's `prop` wins, otherwise `None` falls back to `[ext.comfyui] prop`, then the active ComfyUI template's ratio. |
 | `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |
 | `illustration_skip_existing` | `bool` | `True` | skip scenes whose illustration PNG already exists so re-runs fill only the gaps. |

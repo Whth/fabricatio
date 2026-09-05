@@ -354,6 +354,66 @@ class TestIllustrateNovelPhase:
         assert set(illustrations) == {(1, 1), (1, 2)}
         assert seen == [(Prop.prop_16_9, 1.0), (Prop.prop_3_4, 0.75)]
 
+    async def test_illustrate_novel_phase_clamps_oversized_mp_proposal(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert a proposal exceeding the mp ceiling is clamped before rendering."""
+        ctx = build_novel_ctx("S1", "S2")
+        seen: list[object] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["mp"])
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(seen)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        proposals = [
+            SketchSpec(prompt="over budget", mp=6.0),
+            SketchSpec(prompt="within budget", mp=0.8),
+        ]
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2)}
+        assert seen == [1.2, 0.8]
+
+    async def test_illustrate_novel_phase_ceiling_follows_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the clamping ceiling follows the configured illustration_mp_max."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            dataclasses.replace(novel_config, illustration_mp_max=0.5),
+        )
+        ctx = build_novel_ctx("S1", "S2")
+        seen: list[object] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["mp"])
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(seen)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        proposals = [
+            SketchSpec(prompt="way over", mp=6.0),
+            SketchSpec(prompt="just under", mp=0.4),
+        ]
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2)}
+        assert seen == [0.5, 0.4]
+
 
 class TestAttachIllustrations:
     """Test suite for attaching rendered illustrations onto the assembled novel."""

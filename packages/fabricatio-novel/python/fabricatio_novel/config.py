@@ -81,10 +81,20 @@ class NovelConfig:
     """negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own."""
 
     illustration_mp: float | None = None
-    """megapixel budget of each scene illustration (``1.0`` = 1,000,000 pixels).
+    """megapixel budget of each scene illustration's finished image (``1.0`` = 1,000,000 pixels).
 
-    ``None`` falls back to ``[ext.comfyui] mp``, then to the active
+    The ComfyUI template derives its base canvas from this budget and
+    its upscale factor, so the output lands at this size.  ``None``
+    falls back to ``[ext.comfyui] mp``, then to the active
     ComfyUI template's built-in canvas.
+    """
+
+    illustration_mp_max: float = 1.2
+    """hard ceiling on every scene illustration's finished-image megapixel budget.
+
+    Enforced at render time even when the LLM proposes a larger ``mp``;
+    the renderable quality brink (``512x512x2.2x2.2``) is ~1.27 MP, so
+    1.2 keeps a margin under it.
     """
 
     illustration_prop: str | None = None
