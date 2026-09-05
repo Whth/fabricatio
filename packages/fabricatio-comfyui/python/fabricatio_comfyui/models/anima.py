@@ -310,6 +310,8 @@ class AnimaGraph(BaseModel):
         return _project_api_with_loras(
             self,
             self.loras,
+            model_source=NodeRef.first("loader"),
+            clip_source=NodeRef.first("clip"),
             model_inputs=("sampler",),
             clip_inputs=("positive", "negative"),
         )

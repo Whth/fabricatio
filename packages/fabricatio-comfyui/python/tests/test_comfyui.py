@@ -204,7 +204,7 @@ class TestGraph:
         assert lora0["class_type"] == "LoraLoader"
         inputs0 = cast("dict[str, object]", lora0["inputs"])
         assert inputs0["model"] == ["loader", 0]
-        assert inputs0["clip"] == ["clip", 0]
+        assert inputs0["clip"] == ["loader", 1]
         assert inputs0["lora_name"] == "a.safetensors"
         assert inputs0["strength_model"] == 0.5
         inputs1 = cast("dict[str, object]", lora1["inputs"])

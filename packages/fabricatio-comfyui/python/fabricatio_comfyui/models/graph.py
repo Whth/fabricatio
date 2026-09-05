@@ -14,7 +14,7 @@ the Python field name *is* the node ID.
 object lifetime.
 """
 
-from typing import Literal, Self, cast
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
@@ -73,10 +73,33 @@ class LoraSpec(BaseModel):
     """LoRA strength applied to both the model and CLIP branches."""
 
 
+def _dump_node(node: BaseModel) -> dict[str, object]:
+    """Project one node model to its ComfyUI API wire mapping (``meta`` becomes ``_meta``)."""
+    payload = node.model_dump()
+    payload["_meta"] = payload.pop("meta")
+    return payload
+
+
+def _rewire(node: BaseModel, field: str, ref: NodeRef) -> BaseModel:
+    """Copy *node* with its ``inputs.<field>`` link pointed at *ref*.
+
+    Raises:
+        ValueError: when the node's inputs have no field named *field*.
+    """
+    clone = node.model_copy(deep=True)
+    inputs = clone.__dict__["inputs"]
+    if field not in type(inputs).model_fields:
+        raise ValueError(f"{type(clone).__name__} has no {field!r} input")
+    setattr(inputs, field, ref)
+    return clone
+
+
 def _project_api_with_loras(
     graph: BaseModel,
     loras: list[LoraSpec],
     *,
+    model_source: NodeRef,
+    clip_source: NodeRef,
     model_inputs: tuple[str, ...],
     clip_inputs: tuple[str, ...],
 ) -> dict[str, object]:
@@ -85,50 +108,81 @@ def _project_api_with_loras(
     The field name doubles as the wire node ID, so serialization is a
     plain per-field projection; ``NodeRef`` fields serialize to
     ``[node_id, output_index]`` lists.  When *loras* are given, a chain
-    of ``LoraLoader`` nodes is inserted between the checkpoint/CLIP
-    sources and the node inputs named by *model_inputs* / *clip_inputs*.
+    of ``LoraLoader`` nodes is inserted between *model_source* and
+    *clip_source* and the node inputs named by *model_inputs* /
+    *clip_inputs*.  The two sources are declared per template at the
+    :meth:`to_api` call site, where each graph knows its own model and
+    CLIP provenance.
     """
-    out: dict[str, object] = {}
+    nodes: dict[str, BaseModel] = {}
     for name in type(graph).model_fields:
-        if name == "loras":
-            continue
-        node = getattr(graph, name)
-        payload = node.model_dump(exclude={"meta"})
-        payload["_meta"] = node.meta.model_dump()
-        out[name] = payload
+        if name != "loras":
+            nodes[name] = getattr(graph, name)
     if not loras:
-        return out
-    prev_model: list[str | int] = ["loader", 0]
-    prev_clip: list[str | int] = ["clip", 0]
+        return {name: _dump_node(node) for name, node in nodes.items()}
+    model_ref, clip_ref = model_source, clip_source
     for i, spec in enumerate(loras):
         node_id = f"lora_{i}"
-        out[node_id] = {
-            "class_type": "LoraLoader",
-            "inputs": {
-                "model": prev_model,
-                "clip": prev_clip,
-                "lora_name": spec.lora_name,
-                "strength_model": spec.strength,
-                "strength_clip": spec.strength,
-            },
-            "_meta": {"title": f"LoRA {spec.lora_name}"},
-        }
-        prev_model = [node_id, 0]
-        prev_clip = [node_id, 1]
-    last_id = f"lora_{len(loras) - 1}"
+        nodes[node_id] = LoraLoaderNode.chained(model_ref, clip_ref, spec)
+        model_ref = NodeRef.first(node_id)
+        clip_ref = NodeRef(node_id=node_id, output_index=1)
     for name in model_inputs:
-        inputs = cast("dict[str, object]", cast("dict[str, object]", out[name])["inputs"])
-        inputs["model"] = [last_id, 0]
+        nodes[name] = _rewire(nodes[name], "model", model_ref)
     for name in clip_inputs:
-        inputs = cast("dict[str, object]", cast("dict[str, object]", out[name])["inputs"])
-        inputs["clip"] = [last_id, 1]
-    return out
+        nodes[name] = _rewire(nodes[name], "clip", clip_ref)
+    return {name: _dump_node(node) for name, node in nodes.items()}
 
 
 class NodeInputs(BaseModel):
     """Base for node input blocks — exact keys only, no silent extras."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
+
+
+class LoraLoaderInputs(NodeInputs):
+    """Inputs of ``LoraLoader``."""
+
+    model: NodeRef
+    """Incoming model source (the checkpoint loader or the previous LoRA's output 0)."""
+
+    clip: NodeRef
+    """Incoming CLIP source (the CLIP loader or the previous LoRA's output 1)."""
+
+    lora_name: str
+    """LoRA filename on the server."""
+
+    strength_model: float
+    """Strength applied to the model branch."""
+
+    strength_clip: float
+    """Strength applied to the CLIP branch."""
+
+
+class LoraLoaderNode(BaseModel):
+    """``LoraLoader`` chain link, synthesized per LoRA at serialization time.
+
+    Output 0 carries the weighted model, output 1 the weighted CLIP.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
+
+    class_type: Literal["LoraLoader"] = "LoraLoader"
+    inputs: LoraLoaderInputs
+    meta: NodeMeta = Field(validation_alias="_meta")
+
+    @classmethod
+    def chained(cls, model_source: NodeRef, clip_source: NodeRef, spec: LoraSpec) -> Self:
+        """Build one chain link fed from *model_source*/*clip_source*, both branches weighted by *spec*."""
+        return cls(
+            inputs=LoraLoaderInputs(
+                model=model_source,
+                clip=clip_source,
+                lora_name=spec.lora_name,
+                strength_model=spec.strength,
+                strength_clip=spec.strength,
+            ),
+            meta=NodeMeta(title=f"LoRA {spec.lora_name}"),
+        )
 
 
 class CheckpointLoaderInputs(NodeInputs):
@@ -451,6 +505,8 @@ class Graph(BaseModel):
         return _project_api_with_loras(
             self,
             self.loras,
+            model_source=NodeRef.first("loader"),
+            clip_source=NodeRef(node_id="loader", output_index=1),
             model_inputs=("sampler_base", "sampler_refine"),
             clip_inputs=("positive", "negative"),
         )
