@@ -1,23 +1,19 @@
-"""Illustration models: the LLM proposal target and the illustrated scene output."""
+"""Illustration models: the illustrated scene output and per-role settings.
+
+The propose-able generation instruction for scene illustrations is the
+ComfyUI :class:`~fabricatio_comfyui.models.specs.SketchSpec` (positive
+prompt, negative prompt, and canvas); the models below carry the rendered
+result and the scoped settings.
+"""
 
 from typing import Self
 
-from fabricatio_core.models.generic import ScopedConfig, SketchedAble
+from fabricatio_core.models.generic import ScopedConfig
 
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.scene import Scene
 
-__all__ = ["IllustratedScene", "IllustrationScopedConfig", "SceneIllustration"]
-
-
-class SceneIllustration(SketchedAble):
-    """A scene's illustration specification: the image prompt plus its negative prompt."""
-
-    prompt: str
-    """The image-generation prompt describing the scene's key visual, in English."""
-
-    negative_prompt: str = ""
-    """Text describing what the image must avoid; empty when nothing is excluded."""
+__all__ = ["IllustratedScene", "IllustrationScopedConfig"]
 
 
 class IllustrationScopedConfig(ScopedConfig):

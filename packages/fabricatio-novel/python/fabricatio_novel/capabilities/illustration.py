@@ -15,6 +15,8 @@ from fabricatio_core.utils import cfg, first_available
 cfg(["comfyui"])
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.models.resolution import Prop
+from fabricatio_comfyui.models.specs import SketchSpec
 
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.config import novel_config
@@ -22,7 +24,6 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.illustration import (
     IllustratedScene,
     IllustrationScopedConfig,
-    SceneIllustration,
 )
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.utils import scene_image_name
@@ -135,13 +136,10 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         """
         # Phase 2: propose all image prompts concurrently; one failure skips only its scene.
         proposals = await asyncio.gather(
-            *(
-                self.propose(SceneIllustration, requirement, send_to=send_to, **kwargs)
-                for _, _, requirement, _ in pending
-            ),
+            *(self.propose(SketchSpec, requirement, send_to=send_to, **kwargs) for _, _, requirement, _ in pending),
             return_exceptions=True,
         )
-        jobs: list[tuple[tuple[int, int], str, SceneIllustration, Path]] = []
+        jobs: list[tuple[tuple[int, int], str, SketchSpec, Path]] = []
         for (key, title, _, target), proposal in zip(pending, proposals, strict=True):
             if isinstance(proposal, BaseException):
                 logger.warn(f"Illustration prompt proposal failed for scene '{title}': {proposal}; skipping")
@@ -169,7 +167,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         self,
         key: tuple[int, int],
         title: str,
-        si: SceneIllustration,
+        si: SketchSpec,
         target: Path,
         timeout: float,
     ) -> tuple[tuple[int, int], tuple[str, str]] | None:
@@ -178,13 +176,19 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         ``timeout`` is the batch-scaled budget shared by every concurrent render of
         this batch (``illustration_timeout_per_image`` x batch size).
         """
+        prop = (
+            si.prop
+            if si.prop is not None
+            else (Prop.of(novel_config.illustration_prop) if novel_config.illustration_prop else None)
+        )
+        mp = si.mp if si.mp is not None else novel_config.illustration_mp
         try:
             path = await self.generate_image(
                 si.prompt,
                 download_dir=target.parent,
                 negative_prompt=si.negative_prompt or novel_config.illustration_negative_prompt or None,
-                width=novel_config.illustration_width,
-                height=novel_config.illustration_height,
+                prop=prop,
+                mp=mp,
                 seed=novel_config.illustration_seed,
                 timeout=timeout,
             )

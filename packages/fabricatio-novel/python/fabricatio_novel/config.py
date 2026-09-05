@@ -80,11 +80,20 @@ class NovelConfig:
     )
     """negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own."""
 
-    illustration_width: int | None = None
-    """scene illustration width in pixels; ``None`` keeps the bundled ComfyUI template's value."""
+    illustration_mp: float | None = None
+    """megapixel budget of each scene illustration (``1.0`` = 1,000,000 pixels).
 
-    illustration_height: int | None = None
-    """scene illustration height in pixels; ``None`` keeps the bundled ComfyUI template's value."""
+    ``None`` falls back to ``[ext.comfyui] mp``, then to the active
+    ComfyUI template's built-in canvas.
+    """
+
+    illustration_prop: str | None = None
+    """aspect ratio of each scene illustration for ComfyUI.
+
+    Accepts ``"16:9"`` style values or ``prop_16_9``-style names (e.g.
+    ``prop_2_3`` for a portrait scene).  ``None`` falls back to
+    ``[ext.comfyui] prop``, then to the active ComfyUI template's ratio.
+    """
 
     illustration_seed: int | None = None
     """scene illustration sampler seed; ``None`` keeps the bundled ComfyUI template's seed."""
