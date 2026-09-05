@@ -165,10 +165,10 @@ class TestNovelWorkflow:
         import base64
         import zipfile
 
+        from fabricatio_comfyui.models.specs import SketchSpec
         from fabricatio_core import Event, Role, Task
         from fabricatio_novel.actions.novel import IllustrateNovelStage
         from fabricatio_novel.capabilities.rag import RAGCompose
-        from fabricatio_novel.models.illustration import SceneIllustration
         from fabricatio_novel.workflows.novel import RagIllustrationDebugNovelWorkflow
 
         png_1x1 = base64.b64decode(
@@ -214,7 +214,7 @@ class TestNovelWorkflow:
         ]
         story_plans_json = [{"title": "Departure", "description": "The mooring lines are cut at dawn.", "weight": 1.0}]
         scene_plans_json = [{"title": "Cut Lines", "description": "The city pulls away from the sea.", "weight": 1.0}]
-        illustration = SceneIllustration(prompt="a lone rider at dawn")
+        illustration = SketchSpec(prompt="a lone rider at dawn")
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),

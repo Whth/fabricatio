@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 from _support import IllustrationRole
+from fabricatio_comfyui.models.resolution import Prop
+from fabricatio_comfyui.models.specs import SketchSpec
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
@@ -15,7 +17,7 @@ from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.illustration import IllustratedScene, SceneIllustration
+from fabricatio_novel.models.illustration import IllustratedScene
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.scene import Scene
 
@@ -90,8 +92,8 @@ class TestIllustrateNovelPhase:
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")
         proposals = [
-            SceneIllustration(prompt="a lone rider at dawn", negative_prompt="text, watermark"),
-            SceneIllustration(prompt="a stranger at the gate"),
+            SketchSpec(prompt="a lone rider at dawn", negative_prompt="text, watermark"),
+            SketchSpec(prompt="a stranger at the gate"),
         ]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
@@ -114,7 +116,7 @@ class TestIllustrateNovelPhase:
         (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
         role = IllustrationRole(name="illustrator")
-        proposal = SceneIllustration(prompt="a stranger at the gate")
+        proposal = SketchSpec(prompt="a stranger at the gate")
         with install_router_usage(*return_mixed_router_usage(Value(proposal, "model"))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
@@ -136,7 +138,7 @@ class TestIllustrateNovelPhase:
         (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")
-        proposals = [SceneIllustration(prompt="redrawn dawn"), SceneIllustration(prompt="redrawn gate")]
+        proposals = [SketchSpec(prompt="redrawn dawn"), SketchSpec(prompt="redrawn gate")]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
@@ -151,8 +153,8 @@ class TestIllustrateNovelPhase:
         prompts = install_fake_renderer(monkeypatch, [None, RuntimeError("comfyui down")])
         role = IllustrationRole(name="illustrator")
         proposals = [
-            SceneIllustration(prompt="a lone rider at dawn"),
-            SceneIllustration(prompt="a stranger at the gate"),
+            SketchSpec(prompt="a lone rider at dawn"),
+            SketchSpec(prompt="a stranger at the gate"),
         ]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
@@ -169,9 +171,9 @@ class TestIllustrateNovelPhase:
         ctx = build_novel_ctx("S1", "S2")
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
         role = IllustrationRole(name="illustrator")
-        proposal = SceneIllustration(prompt="a stranger at the gate")
+        proposal = SketchSpec(prompt="a stranger at the gate")
 
-        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SceneIllustration | None:
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SketchSpec | None:
             # Key the failure to the S1 requirement so the outcome is deterministic under batching.
             return None if "Title: S1" in requirement else proposal
 
@@ -188,7 +190,7 @@ class TestIllustrateNovelPhase:
         ctx = build_two_story_novel_ctx()
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 3)
         role = IllustrationRole(name="illustrator")
-        proposals = [SceneIllustration(prompt=f"scene {i}") for i in range(1, 4)]
+        proposals = [SketchSpec(prompt=f"scene {i}") for i in range(1, 4)]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
@@ -216,8 +218,8 @@ class TestIllustrateNovelPhase:
             path.write_bytes(_PNG_1X1)
             return path
 
-        async def fake_propose(model: object, requirement: object, **kwargs: object) -> SceneIllustration:
-            return SceneIllustration(prompt=f"prompt {len(seen) + 1}")
+        async def fake_propose(model: object, requirement: object, **kwargs: object) -> SketchSpec:
+            return SketchSpec(prompt=f"prompt {len(seen) + 1}")
 
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
         monkeypatch.setattr(IllustrateScenes, "propose", staticmethod(fake_propose))
@@ -247,7 +249,7 @@ class TestIllustrateNovelPhase:
 
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
         role = IllustrationRole(name="illustrator")
-        proposals = [SceneIllustration(prompt=f"dawn {i}") for i in range(3)]
+        proposals = [SketchSpec(prompt=f"dawn {i}") for i in range(3)]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
@@ -278,7 +280,7 @@ class TestIllustrateNovelPhase:
 
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
         role = IllustrationRole(name="illustrator")
-        proposals = [SceneIllustration(prompt="dawn"), SceneIllustration(prompt="dusk")]
+        proposals = [SketchSpec(prompt="dawn"), SketchSpec(prompt="dusk")]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
             illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
 
@@ -291,9 +293,9 @@ class TestIllustrateNovelPhase:
         """Assert the constraint reaches every proposal requirement, per-call arg winning over scoped."""
         requirements: list[str] = []
 
-        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SceneIllustration:
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> SketchSpec:
             requirements.append(requirement)
-            return SceneIllustration(prompt="a lone rider at dawn")
+            return SketchSpec(prompt="a lone rider at dawn")
 
         async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
             assert download_dir is not None
@@ -319,6 +321,38 @@ class TestIllustrateNovelPhase:
         plain_role = IllustrationRole(name="plain")
         await plain_role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path / "plain")
         assert all("## Style Constraints" not in req for req in requirements[2:])
+
+    async def test_illustrate_novel_phase_scene_knobs_override_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert per-scene SketchSpec mp/prop win over the global illustration config."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            dataclasses.replace(novel_config, illustration_mp=0.75, illustration_prop="3:4"),
+        )
+        ctx = build_novel_ctx("S1", "S2")
+        seen: list[tuple[object, object]] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append((kwargs["prop"], kwargs["mp"]))
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / f"img_{len(seen)}.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        proposals = [
+            SketchSpec(prompt="wide dawn", prop="16:9", mp=1.0),
+            SketchSpec(prompt="tall gate"),  # no size: falls back to the global illustration_mp/prop
+        ]
+        with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
+            illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+
+        assert set(illustrations) == {(1, 1), (1, 2)}
+        assert seen == [(Prop.prop_16_9, 1.0), (Prop.prop_3_4, 0.75)]
 
 
 class TestAttachIllustrations:
@@ -363,8 +397,8 @@ class TestPostProcessNovelHook:
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")
         proposals = [
-            SceneIllustration(prompt="a lone rider at dawn"),
-            SceneIllustration(prompt="a stranger at the gate"),
+            SketchSpec(prompt="a lone rider at dawn"),
+            SketchSpec(prompt="a stranger at the gate"),
         ]
         novel = Novel.from_context(ctx)
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
