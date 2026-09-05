@@ -65,7 +65,13 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
         return self
 
     async def afetch_document(self, query: str | list[str], config: FC | None = None) -> list[D]:
-        """Fetch documents from the LanceDB collection."""
+        """Fetch documents from the LanceDB collection.
+
+        For a list of queries, the per-head rankings are fused: results are round-robin
+        interleaved so every query head gets a fair share of the budget, documents already
+        surfaced by an earlier-ranked head are dropped, and the total is capped at
+        `config.limit` across all heads.
+        """
         conf = config or LancedbFetchRAGConfig.default()
         doc_model = ok(conf.document_model)
         table = await (await get_service()).open_table(conf.table_name)
@@ -80,10 +86,12 @@ class LancedbRAG[D: LancedbDocumentModel, AC: LancedbAddRAGConfig, FC: LancedbFe
             return [doc_model.from_raw(s) for s in searched]
 
         search_vec = await self.vectorize(query)
-        searched = await asyncio.gather(
-            *[table.search_document(v, limit=conf.limit, dedup_threshold=conf.dedup_cos_threshold) for v in search_vec],
+        searched = await table.search_documents(
+            search_vec,
+            limit=conf.limit,
+            dedup_threshold=conf.dedup_cos_threshold,
         )
-        return [doc_model.from_raw(s) for s in flatten(searched)]
+        return [doc_model.from_raw(s) for s in searched]
 
     async def rebuild_index(self, table_name: str | None = None) -> Self:
         """Rebuild the index of the given table."""

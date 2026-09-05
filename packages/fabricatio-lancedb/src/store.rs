@@ -23,6 +23,7 @@ use pyo3_stub_gen::derive::*;
 use pythonize::depythonize;
 use rayon::prelude::*;
 use serde_json::Value;
+use std::collections::HashSet;
 use std::iter::repeat_n;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -412,6 +413,91 @@ impl VectorStoreTable {
         kept_docs
     }
 
+    /// Column projection for a search: the vector column is only needed when
+    /// cosine deduplication is enabled.
+    fn search_columns(dedup: bool) -> Vec<String> {
+        let mut columns = vec![
+            ID_FIELD_NAME.to_string(),
+            TIMESTAMP_FIELD_NAME.to_string(),
+            CONTENT_FIELD_NAME.to_string(),
+            METADATA_FIELD_NAME.to_string(),
+        ];
+        if dedup {
+            columns.push(VECTOR_FIELD_NAME.to_string());
+        }
+        columns
+    }
+
+    /// Executes one nearest-neighbour query and collects its rows together with
+    /// the row vectors (present only when projected).
+    async fn query_rows(
+        table: Table,
+        embedding: Vector,
+        fetch_limit: usize,
+        columns: Vec<String>,
+    ) -> PyResult<Vec<(SearchedDocument, Option<Vector>)>> {
+        let batches = table
+            .query()
+            .nearest_to(embedding)
+            .into_pyresult()?
+            .limit(fetch_limit)
+            .select(Select::Columns(columns))
+            .execute()
+            .await
+            .into_pyresult()?
+            .try_collect::<Vec<RecordBatch>>()
+            .await
+            .into_pyresult()?;
+
+        let mut rows: Vec<(SearchedDocument, Option<Vector>)> = Vec::new();
+        for batch in batches {
+            for i in 0..batch.num_rows() {
+                rows.push((
+                    SearchedDocument::from_record_batch_row(&batch, i)?,
+                    Self::extract_vector_column(&batch, i)?,
+                ));
+            }
+        }
+        Ok(rows)
+    }
+
+    /// Runs a single-head search: fetch oversampled candidates when deduplication
+    /// is enabled, then greedily filter down to `limit` results.
+    async fn search_one(
+        table: Table,
+        embedding: Vector,
+        limit: usize,
+        dedup_threshold: Option<f32>,
+    ) -> PyResult<Vec<SearchedDocument>> {
+        let dedup = dedup_threshold.is_some();
+        let fetch_limit = if dedup {
+            limit.saturating_mul(DEDUP_OVERSAMPLE_FACTOR)
+        } else {
+            limit
+        };
+        let rows =
+            Self::query_rows(table, embedding, fetch_limit, Self::search_columns(dedup)).await?;
+
+        Ok(match dedup_threshold {
+            None => rows.into_iter().map(|(doc, _)| doc).collect(),
+            Some(threshold) => Self::dedup_by_cosine(rows, limit, threshold),
+        })
+    }
+
+    /// Fuses per-head ranked result lists into one deduplicated list capped at
+    /// `limit`: round-robin interleave gives every head a fair share, and the
+    /// first occurrence of an id (its best rank) wins.
+    fn fuse_heads(heads: Vec<Vec<SearchedDocument>>, limit: usize) -> Vec<SearchedDocument> {
+        let longest = heads.iter().map(Vec::len).max().unwrap_or(0);
+        let mut seen = HashSet::new();
+        (0..longest)
+            .flat_map(|rank| heads.iter().filter_map(move |head| head.get(rank)))
+            .filter(|doc| seen.insert(doc.id.as_str()))
+            .take(limit)
+            .cloned()
+            .collect()
+    }
+
     /// Extracts the row's vector column value, returning `None` when the column is absent
     /// from the projection or the cell is null.
     fn extract_vector_column(batch: &RecordBatch, row_idx: usize) -> PyResult<Option<Vector>> {
@@ -526,50 +612,46 @@ impl VectorStoreTable {
         let table = self.table.clone();
 
         future_into_py(python, async move {
-            let dedup = dedup_threshold.is_some();
-            let fetch_limit = if dedup {
-                limit.saturating_mul(DEDUP_OVERSAMPLE_FACTOR)
-            } else {
-                limit
-            };
+            Self::search_one(table, embedding, limit, dedup_threshold).await
+        })
+    }
 
-            let mut columns = vec![
-                ID_FIELD_NAME.to_string(),
-                TIMESTAMP_FIELD_NAME.to_string(),
-                CONTENT_FIELD_NAME.to_string(),
-                METADATA_FIELD_NAME.to_string(),
-            ];
-            if dedup {
-                columns.push(VECTOR_FIELD_NAME.to_string());
-            }
+    #[gen_stub(
+        override_return_type(type_repr = "typing.Awaitable[builtins.list[SearchedDocument]]", imports = ("typing", "builtins"))
+    )]
+    #[pyo3(signature = (embeddings, limit, dedup_threshold=None))]
+    /// Searches for documents similar to each embedding vector, fusing the per-head rankings into a single deduplicated list.
+    ///
+    /// All queries execute concurrently inside Rust behind one Python boundary
+    /// crossing. Within each head, the cosine deduplication described in
+    /// [`search_document`](#method.search_document) applies first; the per-head
+    /// rankings are then interleaved round-robin so every query head gets a fair
+    /// share of `limit`, a document surfaced by multiple heads is kept once at
+    /// its best rank, and the result is capped at `limit` overall.
+    ///
+    /// Args:
+    ///     embeddings: A list of query embedding vectors.
+    ///     limit: The maximum number of documents to return in total.
+    ///     dedup_threshold: Optional per-head cosine similarity deduplication threshold.
+    ///
+    /// Returns:
+    ///     An awaitable that resolves to a list of at most `limit` SearchedDocument objects.
+    fn search_documents<'a>(
+        &self,
+        python: Python<'a>,
+        embeddings: Vec<Vector>,
+        limit: usize,
+        dedup_threshold: Option<f32>,
+    ) -> PyResult<Bound<'a, PyAny>> {
+        let table = self.table.clone();
 
-            let a = table
-                .query()
-                .nearest_to(embedding)
-                .into_pyresult()?
-                .limit(fetch_limit)
-                .select(Select::Columns(columns))
-                .execute()
-                .await
-                .into_pyresult()?
-                .try_collect::<Vec<RecordBatch>>()
-                .await
-                .into_pyresult()?;
-
-            let mut rows: Vec<(SearchedDocument, Option<Vector>)> = Vec::new();
-            for batch in a {
-                for i in 0..batch.num_rows() {
-                    rows.push((
-                        SearchedDocument::from_record_batch_row(&batch, i)?,
-                        Self::extract_vector_column(&batch, i)?,
-                    ));
-                }
-            }
-
-            Ok(match dedup_threshold {
-                None => rows.into_iter().map(|(doc, _)| doc).collect::<Vec<_>>(),
-                Some(threshold) => Self::dedup_by_cosine(rows, limit, threshold),
-            })
+        future_into_py(python, async move {
+            let searches = embeddings.into_iter().map(|embedding| {
+                let table = table.clone();
+                async move { Self::search_one(table, embedding, limit, dedup_threshold).await }
+            });
+            let heads = futures_util::future::try_join_all(searches).await?;
+            Ok(Self::fuse_heads(heads, limit))
         })
     }
 }
@@ -580,4 +662,54 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<StoreDocument>()?;
     m.add_class::<SearchedDocument>()?;
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::{SearchedDocument, VectorStoreTable};
+
+    fn doc(id: &str, content: &str) -> SearchedDocument {
+        SearchedDocument {
+            id: id.to_string(),
+            content: content.to_string(),
+            timestamp: 0,
+            metadata: None,
+        }
+    }
+
+    #[test]
+    fn fuse_caps_and_dedups_across_heads() {
+        let heads = vec![
+            vec![
+                doc("id0", "a0"),
+                doc("id1", "a1"),
+                doc("id2", "a2"),
+                doc("id3", "a3"),
+            ],
+            vec![
+                doc("id2", "b0"),
+                doc("id10", "b1"),
+                doc("id11", "b2"),
+                doc("id12", "b3"),
+            ],
+        ];
+        let fused = VectorStoreTable::fuse_heads(heads, 4);
+        let contents: Vec<&str> = fused.iter().map(|d| d.content.as_str()).collect();
+        assert_eq!(contents, ["a0", "b0", "a1", "b1"]);
+    }
+
+    #[test]
+    fn fuse_returns_all_distinct_when_budget_exceeds_pool() {
+        let heads = vec![
+            vec![doc("id0", "a"), doc("id1", "b")],
+            vec![doc("id1", "b"), doc("id2", "c")],
+        ];
+        let fused = VectorStoreTable::fuse_heads(heads, 10);
+        let contents: Vec<&str> = fused.iter().map(|d| d.content.as_str()).collect();
+        assert_eq!(contents, ["a", "b", "c"]);
+    }
+
+    #[test]
+    fn fuse_empty_heads_yields_empty() {
+        assert!(VectorStoreTable::fuse_heads(vec![], 5).is_empty());
+    }
 }

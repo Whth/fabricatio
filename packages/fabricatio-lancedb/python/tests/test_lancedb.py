@@ -3,10 +3,12 @@
 import math
 import uuid
 from collections.abc import Sequence
-from typing import Any, Self
+from dataclasses import dataclass, field
+from typing import Any, Self, Unpack
 
 import pytest
 from fabricatio_core.capabilities.usages import UseEmbedding
+from fabricatio_core.models.kwargs_types import EmbeddingKwargs
 from fabricatio_core.utils import ok
 from fabricatio_lancedb.capabilities import lancedb as lancedb_capabilities
 from fabricatio_lancedb.capabilities.lancedb import LancedbFetchRAGConfig, LancedbRAG
@@ -578,14 +580,13 @@ class TestRAGEndToEnd:
         assert results[0].content == "hello world"
 
 
+@dataclass
 class RecordingTable:
     """Wraps a real table while recording search_document arguments."""
 
-    def __init__(self, inner: VectorStoreTable) -> None:
-        """Wrap ``inner`` and start with empty call recordings."""
-        self.inner = inner
-        self.limits: list[int] = []
-        self.thresholds: list[float | None] = []
+    inner: VectorStoreTable
+    limits: list[int] = field(default_factory=list)
+    thresholds: list[float | None] = field(default_factory=list)
 
     async def search_document(
         self,
@@ -599,12 +600,11 @@ class RecordingTable:
         return await self.inner.search_document(embedding, limit=limit, dedup_threshold=dedup_threshold)
 
 
+@dataclass
 class RecordingService:
     """Service stub returning a fixed recording table from open_table."""
 
-    def __init__(self, table: RecordingTable) -> None:
-        """Serve ``table`` from every open_table call."""
-        self.table = table
+    table: RecordingTable
 
     async def open_table(self, table_name: str) -> RecordingTable:
         """Return the recording table regardless of the requested name."""
@@ -652,3 +652,126 @@ class TestFetchConfigDedup:
 
         assert recording.limits == [5]
         assert recording.thresholds == [0.9]
+
+
+# ---------------------------------------------------------------------------
+# RAG capability - multi-query budget fusion
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FusionHit:
+    """Duck-typed stand-in for SearchedDocument carrying only id and content."""
+
+    id: str
+    content: str
+
+    def access_metadata(self) -> dict[str, object]:
+        """Return empty metadata, mirroring metadata-less SearchedDocument rows."""
+        return {}
+
+
+@dataclass
+class ScriptedTable:
+    """Stub table serving one scripted fused result list per search_documents call."""
+
+    scripted: list[list[FusionHit]]
+    call_args: list[tuple[int, int, float | None]] = field(default_factory=list)
+
+    async def search_documents(
+        self,
+        embeddings: list[list[float]],
+        limit: int,
+        dedup_threshold: float | None = None,
+    ) -> list[FusionHit]:
+        """Serve the next scripted result list, recording the call arguments."""
+        self.call_args.append((len(embeddings), limit, dedup_threshold))
+        results = self.scripted[len(self.call_args) - 1]
+        return results[:limit]
+
+
+@dataclass
+class PassthroughTable:
+    """Wraps a real table, exposing only the batched search used by multi-query fetch."""
+
+    inner: VectorStoreTable
+
+    async def search_documents(
+        self,
+        embeddings: list[list[float]],
+        limit: int,
+        dedup_threshold: float | None = None,
+    ) -> list[SearchedDocument]:
+        """Delegate to the wrapped table's batched search."""
+        return await self.inner.search_documents(embeddings, limit=limit, dedup_threshold=dedup_threshold)
+
+
+@dataclass
+class ScriptedService:
+    """Service stub returning a fixed stub table from open_table."""
+
+    table: ScriptedTable | PassthroughTable
+
+    async def open_table(self, table_name: str) -> ScriptedTable | PassthroughTable:
+        """Return the stub table regardless of the requested name."""
+        return self.table
+
+
+class FusionRole(DedupThreadRole):
+    """LancedbRAG role with a deterministic per-query vectorize override."""
+
+    async def vectorize(
+        self,
+        input_text: str | list[str],
+        **kwargs: Unpack[EmbeddingKwargs],
+    ) -> list[list[float]]:
+        """Serve one fixed vector per query, bypassing the embedding router."""
+        count = 1 if isinstance(input_text, str) else len(input_text)
+        return [[0.9, 0.1, 0.0, 0.0]] * count
+
+
+class TestFetchBudgetFusion:
+    """Tests for the batched multi-query fetch: one Rust call, fused results."""
+
+    async def test_multi_query_issues_single_batched_call(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Multi-query fetch performs one batched search_documents call and passes results through."""
+        fused = [FusionHit("id0", "a0"), FusionHit("id2", "b0"), FusionHit("id1", "a1"), FusionHit("id10", "b1")]
+        stub = ScriptedTable([fused])
+
+        async def fake_get_service() -> ScriptedService:
+            """Return the scripted service in place of the cached one."""
+            return ScriptedService(stub)
+
+        monkeypatch.setattr(lancedb_capabilities, "get_service", fake_get_service)
+        conf = LancedbFetchRAGConfig(document_model=LancedbDocumentModel, limit=4, dedup_cos_threshold=0.9)
+        role = FusionRole()
+
+        results = await role.afetch_document(["q0", "q1"], config=conf)
+
+        assert stub.call_args == [(2, 4, 0.9)]
+        assert [r.content for r in results] == ["a0", "b0", "a1", "b1"]
+
+    async def test_multi_query_fuses_through_real_table(
+        self,
+        table: VectorStoreTable,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """The Rust-side fusion returns unique results capped at the global limit."""
+        await table.add_documents(_dedup_docs())
+
+        async def fake_get_service() -> ScriptedService:
+            """Serve the real table behind the batched-search passthrough."""
+            return ScriptedService(PassthroughTable(table))
+
+        monkeypatch.setattr(lancedb_capabilities, "get_service", fake_get_service)
+        conf = LancedbFetchRAGConfig(document_model=LancedbDocumentModel, limit=10, dedup_cos_threshold=None)
+        role = FusionRole()
+
+        results = await role.afetch_document(["q0", "q1"], config=conf)
+
+        contents = [r.content for r in results]
+        assert 0 < len(contents) <= 10
+        assert len(set(contents)) == len(contents)

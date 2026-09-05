@@ -23,7 +23,7 @@ struct VectorStoreService {
 #[cfg_attr(not(feature = "stubgen"), remove_gen_stub)]
 #[pymethods]
 impl VectorStoreService {
-    /// Connect to a lancedb instance
+    /// Connects to a LanceDB instance.
     #[staticmethod]
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[typing.Self]",imports=("typing",))
@@ -42,7 +42,7 @@ impl VectorStoreService {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
     )]
-    /// Create a table
+    /// Creates a table.
     fn create_table<'a>(
         &self,
         python: Python<'a>,
@@ -73,7 +73,7 @@ impl VectorStoreService {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
     )]
-    /// Open a table
+    /// Opens a table.
     fn open_table<'a>(&self, python: Python<'a>, table_name: String) -> PyResult<Bound<'a, PyAny>> {
         let fut = self.conn.open_table(table_name.as_str()).execute();
 
@@ -87,7 +87,7 @@ impl VectorStoreService {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[VectorStoreTable]", imports = ("typing",))
     )]
-    /// Create or open a table
+    /// Creates or opens a table.
     fn create_or_open_table<'a>(
         &self,
         python: Python<'a>,

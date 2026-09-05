@@ -55,17 +55,12 @@ class StoreDocument:
     @metadata.setter
     def metadata(self, value: builtins.str | None) -> None: ...
     def __new__(
-        cls,
-        content: builtins.str,
-        vector: typing.Sequence[builtins.float],
-        metadata: builtins.str | None,
+        cls, content: builtins.str, vector: typing.Sequence[builtins.float], metadata: builtins.str | None
     ) -> StoreDocument:
         r"""Create a new Document instance."""
     @staticmethod
     def with_metadata(
-        content: builtins.str,
-        vector: typing.Sequence[builtins.float],
-        metadata: dict | None,
+        content: builtins.str, vector: typing.Sequence[builtins.float], metadata: dict | None
     ) -> StoreDocument:
         r"""Create a new Document instance with metadata dict."""
 
@@ -79,20 +74,18 @@ class VectorStoreService:
     """
     @staticmethod
     def connect(uri: builtins.str) -> typing.Awaitable[typing.Self]:
-        r"""Connect to a lancedb instance."""
+        r"""Connects to a LanceDB instance."""
     def create_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create a table."""
+        r"""Creates a table."""
     def open_table(self, table_name: builtins.str) -> typing.Awaitable[VectorStoreTable]:
-        r"""Open a table."""
+        r"""Opens a table."""
     def create_or_open_table(self, table_name: builtins.str, ndim: builtins.int) -> typing.Awaitable[VectorStoreTable]:
-        r"""Create or open a table."""
+        r"""Creates or opens a table."""
 
 @typing.final
 class VectorStoreTable:
     def add_documents(
-        self,
-        documents: typing.Sequence[StoreDocument],
-        rebuild_index: builtins.bool = True,
+        self, documents: typing.Sequence[StoreDocument], rebuild_index: builtins.bool = True
     ) -> typing.Awaitable[builtins.list[builtins.str]]:
         r"""Adds multiple documents to the vector store.
 
@@ -128,4 +121,27 @@ class VectorStoreTable:
 
         Returns:
             An awaitable that resolves to a list of SearchedDocument objects.
+        """
+    def search_documents(
+        self,
+        embeddings: typing.Sequence[typing.Sequence[builtins.float]],
+        limit: builtins.int,
+        dedup_threshold: builtins.float | None = None,
+    ) -> typing.Awaitable[builtins.list[SearchedDocument]]:
+        r"""Searches for documents similar to each embedding vector, fusing the per-head rankings into a single deduplicated list.
+
+        All queries execute concurrently inside Rust behind one Python boundary
+        crossing. Within each head, the cosine deduplication described in
+        [`search_document`](#method.search_document) applies first; the per-head
+        rankings are then interleaved round-robin so every query head gets a fair
+        share of `limit`, a document surfaced by multiple heads is kept once at
+        its best rank, and the result is capped at `limit` overall.
+
+        Args:
+            embeddings: A list of query embedding vectors.
+            limit: The maximum number of documents to return in total.
+            dedup_threshold: Optional per-head cosine similarity deduplication threshold.
+
+        Returns:
+            An awaitable that resolves to a list of at most `limit` SearchedDocument objects.
         """
