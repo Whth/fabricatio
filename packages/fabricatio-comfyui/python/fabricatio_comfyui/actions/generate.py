@@ -44,7 +44,7 @@ class GenerateImage(Action, UseComfyUI):
     """Aspect-ratio preset (e.g. ``Prop.prop_16_9``); ``None`` keeps the template's canvas ratio."""
 
     mp: float | None = None
-    """Megapixel budget of the latent canvas (``1.0`` = 1,000,000 pixels); ``None`` keeps the template's canvas area."""
+    """Megapixel budget of the finished image (``1.0`` = 1,000,000 pixels); ``None`` keeps the template's canvas area."""
 
     seed: int | None = None
     """Sampler seed; ``None`` keeps the bundled template's seed."""

@@ -231,10 +231,16 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         size_mp = first_available((kwargs.get("mp"), comfyui_config.mp), raise_exception=False)
         size_prop = first_available((kwargs.get("prop"), comfyui_config.prop), raise_exception=False)
         if size_mp is not None or size_prop is not None:
+            # mp budgets the FINAL image; the two-pass template upscales its base
+            # canvas (ImageScaleBy) before the refine pass, so the base canvas
+            # carries mp / scale**2 and the finished output lands at the budget.
+            # The anima template has no upscale step (scale 1.0): latent = output.
+            upscale = getattr(graph, "upscale", None)
             width, height = resolve_canvas(
                 mp=size_mp,
                 prop=size_prop,
                 base=(graph.latent.inputs.width, graph.latent.inputs.height),
+                scale=upscale.inputs.scale_by if upscale is not None else 1.0,
             )
             graph.with_resolution(width=width, height=height)
         seed = kwargs.get("seed")

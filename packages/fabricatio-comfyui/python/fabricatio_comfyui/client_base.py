@@ -83,9 +83,12 @@ class ComfyUIClientBase(ABC):
         callers never see or construct one.  Keyword knobs
         (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
         override the active template only where provided: *mp* and *prop*
-        size the latent canvas (a per-call value wins over
+        size the image canvas (a per-call value wins over
         :data:`comfyui_config`, and unset knobs keep the template's own
-        canvas), *checkpoint* falls back to config then the template, and
+        canvas), with *mp* budgeting the **finished** image — the
+        two-pass template derives its base-pass canvas so the upscaled
+        output lands at the budget — and *prop* setting the aspect
+        ratio; *checkpoint* falls back to config then the template, and
         the remaining keys are direct template-level overrides.
         *front* enqueues at the head of the queue and *timeout* bounds each
         poll — both are queueing knobs consumed by the client and never

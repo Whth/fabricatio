@@ -76,34 +76,49 @@ def resolve_canvas(
     mp: float | None = None,
     prop: Prop | str | None = None,
     base: tuple[int, int],
+    scale: float = 1.0,
 ) -> tuple[int, int]:
-    """Compute a latent canvas ``(width, height)`` from a megapixel budget and an aspect preset.
+    """Compute a base latent canvas ``(width, height)`` from an image budget and an aspect preset.
 
     The canvas starts from the active workflow template's *base*
-    dimensions; a given *mp* replaces the total pixel area and a given
-    *prop* replaces the aspect ratio.  Each side is then snapped to the
-    nearest multiple of 64 (half-up), clamped to at least 64.  Knobs
-    left unset keep the template's side of the equation, so a partial
-    override (only a budget, only a ratio) sizes relative to the
+    dimensions; a given *mp* replaces the total **final-image** pixel
+    area and a given *prop* replaces the aspect ratio.  Templates that
+    upscale the base canvas before their refine pass pass their linear
+    *scale* factor, so the base canvas carries ``mp / scale**2`` and the
+    finished image lands at the megapixel budget.  Each side is then
+    snapped to the nearest multiple of 64 (half-up), clamped to at least
+    64.  Knobs left unset keep the template's side of the equation, so a
+    partial override (only a budget, only a ratio) sizes relative to the
     template's default canvas.
 
     Args:
-        mp: Megapixel budget (``1.0`` = 1,000,000 pixels).
+        mp: Megapixel budget of the finished image (``1.0`` = 1,000,000 pixels).
         prop: Aspect preset as a :class:`Prop` member, a ``"16:9"`` value, or a
             ``prop_16_9`` name.
         base: The template canvas to size from when a knob is missing.
+        scale: Linear upscale factor the template applies after the base canvas
+            (``1.0`` when the workflow has no upscale step).  Used only when *mp*
+            is given.
 
     Raises:
-        ValueError: when *mp* is not positive, or *prop* names no preset.
+        ValueError: when *mp* is not positive, *scale* is not positive, or *prop*
+            names no preset.
 
     Examples:
         >>> resolve_canvas(mp=1.0, prop=Prop.prop_1_1, base=(768, 512))
         (1024, 1024)
+        >>> resolve_canvas(mp=1.0, prop=Prop.prop_1_1, base=(768, 512), scale=2.3)
+        (448, 448)
         >>> resolve_canvas(prop="16:9", base=(768, 512))  # keeps the 0.39 MP area
         (832, 448)
     """
     base_w, base_h = base
-    area = float(base_w * base_h) if mp is None else float(mp) * _PIXELS_PER_MP
+    if mp is None:
+        area = float(base_w * base_h)
+    elif scale <= 0:
+        raise ValueError(f"scale must be positive, got {scale!r}")
+    else:
+        area = float(mp) * _PIXELS_PER_MP / (scale * scale)
     if area <= 0:
         raise ValueError(f"mp must be positive, got {mp!r}")
     if prop is None:

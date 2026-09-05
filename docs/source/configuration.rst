@@ -941,7 +941,7 @@ fabricatio-comfyui
    * - ``mp``
      - float | None
      - ``None``
-     - Default megapixel budget of the latent canvas (1.0 = 1,000,000 px); per-call ``mp=`` wins; ``None`` keeps the active template's canvas (768x512 default, 1344x1024 anima).
+     - Default megapixel budget of the finished image (1.0 = 1,000,000 px); the two-pass template sizes its base canvas so the upscaled output lands at the budget; per-call ``mp=`` wins; ``None`` keeps the active template's canvas (768x512 default, 1344x1024 anima).
    * - ``prop``
      - string | None
      - ``None``

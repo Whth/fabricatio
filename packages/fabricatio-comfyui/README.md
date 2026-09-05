@@ -62,7 +62,7 @@ download_dir = "./outputs"
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
 | `workflow` | `"default" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph or the anima preset. |
-| `mp` | `float \| None` | `None` | Default megapixel budget of the latent canvas (`1.0` = 1,000,000 px); a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
+| `mp` | `float \| None` | `None` | Default megapixel budget of the finished image (`1.0` = 1,000,000 px); the two-pass template sizes its base canvas so the upscaled output lands at the budget; a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
 | `prop` | `str \| None` | `None` | Default aspect-ratio preset — `"16:9"` style values or `prop_16_9` names (`1:1`, `4:3`, `3:4`, `3:2`, `2:3`, `16:9`, `9:16`, `5:4`, `4:5`, `21:9`, `9:21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
 | `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
 | `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
@@ -110,16 +110,22 @@ Sizes are specified as a total pixel budget and an aspect ratio instead
 of raw pixel dimensions, giving LLM callers a small discrete choice
 surface while the package computes a model-friendly canvas:
 
-* `mp` — megapixel budget of the latent canvas (`1.0` = 1,000,000 px).
+* `mp` — megapixel budget of the **finished** image (`1.0` = 1,000,000 px).
 * `prop` — aspect-ratio preset from the `Prop` StrEnum (member names
   `prop_16_9`, values `"16:9"`; both spellings are accepted).
 
 The canvas derives from the active template's built-in canvas: a given
-`mp` replaces its pixel area, a given `prop` replaces its ratio, then
-both dimensions snap to the nearest multiple of 64 (half-up, floor 64
-px).  Either knob may be omitted — per-call knobs win over `[ext.comfyui]`
-defaults, which win over the template canvas (768x512 for the default
-workflow, 1344x1024 for the anima preset).
+`mp` replaces the final pixel area, a given `prop` replaces its ratio,
+then both dimensions snap to the nearest multiple of 64 (half-up, floor
+64 px).  Either knob may be omitted — per-call knobs win over
+`[ext.comfyui]` defaults, which win over the template canvas (768x512
+for the default workflow, 1344x1024 for the anima preset).
+
+The default two-pass template upscales its base canvas by 2.3x (area
+5.29x) before the refine pass, so its base canvas is sized to
+`mp / 2.3**2` and the finished image lands at the budget.  The
+single-pass anima template has no upscale step: its latent canvas *is*
+the finished image, so the budget applies directly.
 
 Presets: `prop_1_1` (1:1), `prop_16_9` / `prop_9_16` (16:9 / 9:16),
 `prop_3_2` / `prop_2_3` (3:2 / 2:3), `prop_4_3` / `prop_3_4` (4:3 /

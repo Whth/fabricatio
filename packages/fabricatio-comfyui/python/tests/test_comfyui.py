@@ -493,6 +493,28 @@ class TestResolve:
         with pytest.raises(ValueError, match="mp must be positive"):
             resolve_canvas(mp=-1.0, base=(768, 512))
 
+    def test_scale_divides_the_budget_off_the_base_canvas(self) -> None:
+        """An upscaling template carries mp / scale**2 on its base canvas."""
+        # Two-pass template: base 448x448, upscaled 2.3x -> ~1030x1030 ~= 1.06 MP final.
+        assert resolve_canvas(mp=1.0, prop=Prop.prop_1_1, base=(768, 512), scale=2.3) == (448, 448)
+        assert resolve_canvas(mp=1.5, prop=Prop.prop_3_2, base=(768, 512), scale=2.3) == (640, 448)
+
+    def test_scale_default_one_keeps_latent_budget(self) -> None:
+        """Without a scale factor the base canvas is the whole budget (anima path)."""
+        assert resolve_canvas(mp=1.0, prop=Prop.prop_1_1, base=(1344, 1024)) == (1024, 1024)
+
+    def test_scale_ignored_without_budget(self) -> None:
+        """Scale only reshapes a given budget; no-knob and prop-only calls ignore it."""
+        assert resolve_canvas(base=(768, 512), scale=2.3) == (768, 512)
+        assert resolve_canvas(prop="16:9", base=(768, 512), scale=2.3) == (832, 448)
+
+    def test_scale_must_be_positive(self) -> None:
+        """Non-positive scale factors are loud errors when a budget is given."""
+        with pytest.raises(ValueError, match="scale must be positive"):
+            resolve_canvas(mp=1.0, base=(768, 512), scale=0.0)
+        with pytest.raises(ValueError, match="scale must be positive"):
+            resolve_canvas(mp=1.0, base=(768, 512), scale=-2.0)
+
     def test_unknown_prop_is_loud(self) -> None:
         """Unknown ratio spellings raise with the preset list."""
         with pytest.raises(ValueError, match="Unknown aspect ratio"):
@@ -777,8 +799,10 @@ async def test_generate_applies_knobs_to_bundled_graph() -> None:
     assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "custom.safetensors"
     assert cast("dict[str, object]", prompt["positive"])["inputs"]["text"] == "a cat"
     assert cast("dict[str, object]", prompt["negative"])["inputs"]["text"] == "ugly"
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1024
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
+    # mp budgets the FINAL image; the two-pass template upscales the base canvas
+    # by 2.3 before the refine pass, so the base latent carries mp / 2.3**2.
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 448
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 448
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["noise_seed"] == 42
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["steps"] == 20
     assert cast("dict[str, object]", prompt["sampler_base"])["inputs"]["cfg"] == 7.0
@@ -808,8 +832,8 @@ async def test_generate_applies_config_size_defaults() -> None:
         await client.generate("a cat")
 
     prompt = cast("dict[str, object]", captured["prompt"])
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1472
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 640
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 448
 
 
 @pytest.mark.asyncio
@@ -834,8 +858,41 @@ async def test_generate_per_call_size_beats_config_defaults() -> None:
         await client.generate("a cat", prop=Prop.prop_1_1, mp=1.0)
 
     prompt = cast("dict[str, object]", captured["prompt"])
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1024
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 1024
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 448
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 448
+
+
+@pytest.mark.asyncio
+async def test_generate_anima_workflow_keeps_full_budget() -> None:
+    """The single-pass anima template has no upscale, so mp sizes the latent directly."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    sized_config = replace(
+        comfyui_config,
+        workflow="anima",
+        anima_checkpoint="ckpt.safetensors",
+        anima_clip="clip.safetensors",
+        anima_vae="vae.safetensors",
+        mp=1.0,
+    )
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat")
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1152
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 896
 
 
 @pytest.mark.asyncio
@@ -858,8 +915,8 @@ async def test_generate_mp_only_keeps_template_ratio() -> None:
         await client.generate("a cat", mp=0.25)
 
     prompt = cast("dict[str, object]", captured["prompt"])
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 640
-    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 384
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 256
+    assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 192
 
 
 @pytest.mark.asyncio

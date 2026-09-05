@@ -29,10 +29,12 @@ class ComfyUIConfig:
     """
 
     mp: float | None = None
-    """Default megapixel budget of the latent canvas (``1.0`` = 1,000,000 pixels).
+    """Default megapixel budget of the finished image (``1.0`` = 1,000,000 pixels).
 
     Resolves every generation's canvas from this budget and :attr:`prop`;
-    a per-call ``mp=`` / ``prop=`` knob takes precedence.  ``None`` keeps
+    the two-pass template sizes its base canvas so the upscaled output
+    lands at the budget.  A per-call ``mp=`` / ``prop=`` knob takes
+    precedence.  ``None`` keeps
     the active template's built-in canvas (768x512 for the default
     workflow, 1344x1024 for the anima preset).
     """
