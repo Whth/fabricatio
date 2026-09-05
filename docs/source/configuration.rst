@@ -937,7 +937,15 @@ fabricatio-comfyui
    * - ``workflow``
      - string
      - ``default``
-     - Bundled template to run: ``default`` (two-pass txt2img) or ``anima`` (separate checkpoint/CLIP/VAE, fixed 4:3 canvas).
+     - Bundled template to run: ``default`` (two-pass txt2img) or ``anima`` (separate checkpoint/CLIP/VAE, default 4:3 canvas).
+   * - ``mp``
+     - float | None
+     - ``None``
+     - Default megapixel budget of the latent canvas (1.0 = 1,000,000 px); per-call ``mp=`` wins; ``None`` keeps the active template's canvas (768x512 default, 1344x1024 anima).
+   * - ``prop``
+     - string | None
+     - ``None``
+     - Default aspect-ratio preset; accepts ``"16:9"`` style values or ``prop_16_9`` names (``1:1``, ``4:3``, ``3:4``, ``3:2``, ``2:3``, ``16:9``, ``9:16``, ``5:4``, ``4:5``, ``21:9``, ``9:21``); per-call ``prop=`` wins; ``None`` keeps the active template's ratio.
    * - ``anima_checkpoint``
      - string
      - ``None``
@@ -1156,9 +1164,13 @@ then the scoped field, then this global). ``illustration_negative_prompt`` (stri
 defaulting to a quality/anatomy exclusion list such as ``low quality``, ``multiple
 fingers``, ``watermark``, ``jpeg artifacts``, ``blurry``) forwards a negative prompt
 to ComfyUI for every scene illustration;
-``illustration_width``, ``illustration_height`` (int, unset by default) override the
-pixel dimensions and ``illustration_seed`` (int, unset by default) pins the sampler
-seed, with unset values keeping the bundled ComfyUI template's behavior;
+``illustration_mp`` (float, unset by default) and ``illustration_prop`` (string,
+unset by default; e.g. ``prop_2_3`` or ``"2:3"``) size each scene illustration by
+megapixel budget and aspect ratio — unset sides fall back to ``[ext.comfyui] mp`` /
+``prop``, then to the bundled ComfyUI template's canvas; per-scene proposals win over these globals: every scene illustration is
+proposed as a ``SketchSpec`` (prompt, negative prompt, and LLM-chosen ``mp`` /
+``prop``), and these keys are the fallback only when a proposal omits a side; ``illustration_seed`` (int,
+unset by default) pins the sampler seed;
 ``illustration_skip_existing`` (bool, default ``True``) skips scenes whose illustration
 PNG already exists so re-runs fill only the gaps. Pending scenes are proposed and
 rendered concurrently (two batched phases), with per-scene failures degrading to a

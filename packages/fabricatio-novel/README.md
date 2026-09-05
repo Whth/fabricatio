@@ -89,7 +89,7 @@ allocation, character-arc stitching, prefix propagation, assembly — is determi
 | Story boundaries | `story_character_span` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
 | Scene plans | `scene_plan` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
 | Scene prose | `scene_requirement` ← 11 variables, see below | plain prose → `Scene.content` |
-| Scene illustration | `scene_illustration_prompt` ← novel/chapter/story/scene titles, description, content, cast, `illustration_constraint` | `SceneIllustration` → PNGs rendered concurrently per scene (post-process) |
+| Scene illustration | `scene_illustration_prompt` ← novel/chapter/story/scene titles, description, content, cast, `illustration_constraint` | `SketchSpec` (prompt, negative prompt, LLM-chosen `mp`/`prop`) → PNGs rendered concurrently per scene (post-process) |
 
 Templates live in `templates/built-in/` and are selectable through the
 [Configuration](#configuration) keys below.
@@ -149,7 +149,7 @@ history stays intact.
 | `NovelPlan` | Novel metadata: title, description, word count, global constraint, bible |
 | `ChapterPlan` / `StoryPlan` / `ScenePlan` | Weighted per-element plans (title, description, weight, style, constraint, cast) |
 | `Scene` / `Story` / `Chapter` / `Novel` | Materialized output tree with word-count satisfaction |
-| `SceneIllustration` / `IllustratedScene` | LLM-proposed image prompt (plus negative prompt); the scene output carrying its rendered illustration |
+| `SketchSpec` / `IllustratedScene` | LLM-proposed generation instruction — positive/negative prompt plus per-scene `mp`/`prop` (comfyui model); the scene output carrying its rendered illustration |
 | `WritingStyleDocument` / `EnrichedDocument` | LanceDB-backed writing-style references |
 
 ### Capabilities (mixins)
@@ -162,7 +162,7 @@ history stays intact.
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
 | `RAGCompose` | Retrieves style docs once per story; extends scene prompts |
 | `BibleCompose` | Creates/updates the setting bible from an outline |
-| `IllustrateScenes` | Post-process illustration: batch-proposes one image prompt per pending scene (honoring `illustration_constraint`), renders them concurrently via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
+| `IllustrateScenes` | Post-process illustration: batch-proposes one complete generation instruction (`SketchSpec`: prompt, negative prompt, LLM-chosen `mp`/`prop`) per pending scene (honoring `illustration_constraint`), renders them concurrently via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
 
 ### Actions (staged workflow)
 
@@ -231,8 +231,8 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `scene_illustration_prompt_template` | `str` | `"built-in/scene_illustration_prompt"` | template used to propose one image-generation prompt for a composed scene. |
 | `illustration_constraint` | `str` | `""` | global style/content constraint merged into every scene illustration prompt proposal; empty when unset. |
 | `illustration_negative_prompt` | `str` | quality/anatomy exclusion list | negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own. |
-| `illustration_width` | `int \| None` | `None` | scene illustration width in pixels; `None` keeps the bundled ComfyUI template's value. |
-| `illustration_height` | `int \| None` | `None` | scene illustration height in pixels; `None` keeps the bundled ComfyUI template's value. |
+| `illustration_mp` | `float \| None` | `None` | megapixel budget of each scene illustration (1.0 = 1,000,000 px); a per-scene proposal's `mp` wins, otherwise `None` falls back to `[ext.comfyui] mp`, then the active ComfyUI template's canvas. |
+| `illustration_prop` | `str \| None` | `None` | aspect ratio of each scene illustration — `"16:9"` style values or `prop_16_9` names (e.g. `prop_2_3` for a portrait scene); a per-scene proposal's `prop` wins, otherwise `None` falls back to `[ext.comfyui] prop`, then the active ComfyUI template's ratio. |
 | `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |
 | `illustration_skip_existing` | `bool` | `True` | skip scenes whose illustration PNG already exists so re-runs fill only the gaps. |
 | `illustration_timeout_per_image` | `float` | `210.0` | per-image render timeout in seconds; the total render timeout scales linearly with the batch size (value x pending renders) since all renders share one ComfyUI queue; `0` falls back to `[ext.comfyui] timeout`. |

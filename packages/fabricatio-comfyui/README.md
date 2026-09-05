@@ -15,7 +15,7 @@ The package owns its workflow graph: it is initialised entirely in Python
 code (an internal typed `Graph` model) and serialized to ComfyUI's API
 format only on submission. Callers never see, construct, or operate on a
 workflow — they supply high-level knobs (`prompt`, `negative_prompt`,
-`width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`) and the package
+`prop`, `mp`, `seed`, `steps`, `cfg`, `checkpoint`) and the package
 parameterises the built-in template internally. There is no `dict[str, Any]`
 workflow injection anywhere in the public signatures.
 
@@ -62,6 +62,8 @@ download_dir = "./outputs"
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
 | `workflow` | `"default" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph or the anima preset. |
+| `mp` | `float \| None` | `None` | Default megapixel budget of the latent canvas (`1.0` = 1,000,000 px); a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
+| `prop` | `str \| None` | `None` | Default aspect-ratio preset — `"16:9"` style values or `prop_16_9` names (`1:1`, `4:3`, `3:4`, `3:2`, `2:3`, `16:9`, `9:16`, `5:4`, `4:5`, `21:9`, `9:21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
 | `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
 | `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
 | `anima_vae` | `str \| None` | `None` | VAE filename for the anima workflow. |
@@ -83,8 +85,8 @@ anima_vae = "your-anima-vae.safetensors"
 
 The template's model fields are placeholders in source; generation
 resolves them from these keys and fails loudly while any is unset.  The
-anima template samples once (`er_sde`, 32 steps) at a fixed 4:3
-1344×1024 canvas.  LoRAs apply per call via the `loras` knob — each
+anima template samples once (`er_sde`, 32 steps) on a default 4:3
+1344x1024 canvas (overridable per call or config via `mp` / `prop`).  LoRAs apply per call via the `loras` knob — each
 entry names a server-side file and a strength, chained as stock
 `LoraLoader` nodes between the model/CLIP sources and the sampler
 (no custom node pack required).  Without a `loras` list the submitted
@@ -102,6 +104,28 @@ path = await generate_image(
 
 Access at runtime: `from fabricatio_comfyui.config import comfyui_config`.
 
+## Image size: megapixels x aspect ratio
+
+Sizes are specified as a total pixel budget and an aspect ratio instead
+of raw pixel dimensions, giving LLM callers a small discrete choice
+surface while the package computes a model-friendly canvas:
+
+* `mp` — megapixel budget of the latent canvas (`1.0` = 1,000,000 px).
+* `prop` — aspect-ratio preset from the `Prop` StrEnum (member names
+  `prop_16_9`, values `"16:9"`; both spellings are accepted).
+
+The canvas derives from the active template's built-in canvas: a given
+`mp` replaces its pixel area, a given `prop` replaces its ratio, then
+both dimensions snap to the nearest multiple of 64 (half-up, floor 64
+px).  Either knob may be omitted — per-call knobs win over `[ext.comfyui]`
+defaults, which win over the template canvas (768x512 for the default
+workflow, 1344x1024 for the anima preset).
+
+Presets: `prop_1_1` (1:1), `prop_16_9` / `prop_9_16` (16:9 / 9:16),
+`prop_3_2` / `prop_2_3` (3:2 / 2:3), `prop_4_3` / `prop_3_4` (4:3 /
+3:4), `prop_5_4` / `prop_4_5` (5:4 / 4:5), `prop_21_9` / `prop_9_21`
+(21:9 / 9:21).
+
 ## Usage
 
 ### One-shot functions
@@ -111,14 +135,15 @@ The lowest-friction entry point — no Role, no client, no workflow:
 ```python
 import asyncio
 from fabricatio_comfyui import generate_image
+from fabricatio_comfyui.models import Prop
 
 
 async def main() -> None:
     path = await generate_image(
         "masterpiece, best quality, a mountain landscape",
         negative_prompt="worst quality, blurry",
-        width=1024,
-        height=768,
+        prop=Prop.prop_16_9,
+        mp=1.0,
     )
     print(path)  # Path to the generated image, or None on failure
 
@@ -140,6 +165,23 @@ class ImageRole(Role, UseComfyUI):
 
 
 # then: path = await role.generate_image("a mountain landscape")  # Path | None
+```
+
+### Propose the whole instruction (`SketchSpec`)
+
+`SketchSpec` is the propose-able generation instruction: positive prompt,
+negative prompt, and canvas size in one Pydantic model.  Let the LLM fill
+it in a single `propose` call (role needs the framework's `Propose` mixin
+as usual) instead of composing prompt and size knobs by hand:
+
+```python
+from fabricatio_comfyui import SketchSpec
+
+spec = await role.propose(SketchSpec, "a wide establishing shot of the harbour at dusk")
+# spec: SketchSpec | None — prompt/negative_prompt plus the LLM-chosen prop and mp
+path = await role.generate_image(
+    spec.prompt, negative_prompt=spec.negative_prompt, prop=spec.prop, mp=spec.mp
+)
 ```
 
 ### Action (in a WorkFlow)
@@ -192,7 +234,7 @@ asyncio.run(main())
 |-------------------------------|------------------------------------------------------------------------|
 | `generate_image(prompt, …)`   | Queue the bundled graph → poll → download → return the image path (`Path \| None`); cancelling the call interrupts the running job server-side |
 
-`generate_image` keyword parameters: `negative_prompt`, `width`, `height`,
+`generate_image` keyword parameters: `negative_prompt`, `prop`, `mp`,
 `seed`, `steps`, `cfg`, `checkpoint`, `loras`, `download_dir`, `timeout`.
 `download_dir` resolution: per-call argument → scoped config on the
 Role (`UseComfyUI` inherits `ComfyUIScopedConfig`; set it as a subclass
@@ -234,11 +276,12 @@ its awaiting task is cancelled.
 
 | Class          | Fields                                                                                                    | Description                        |
 |----------------|-----------------------------------------------------------------------------------------------------------|------------------------------------|
-| `GenerateImage` | `prompt`, `negative_prompt`, `width`, `height`, `seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout` | Generate images from typed knobs |
+| `GenerateImage` | `prompt`, `negative_prompt`, `prop`, `mp`, `seed`, `steps`, `cfg`, `checkpoint`, `download_dir`, `timeout` | Generate images from typed knobs |
 
 ### Models
 
-All API responses are deserialized into frozen Pydantic models:
+API responses are deserialized into frozen Pydantic models; `SketchSpec`
+below is the propose-able generation instruction:
 
 | Model            | Description                                              |
 |------------------|----------------------------------------------------------|
@@ -248,6 +291,7 @@ All API responses are deserialized into frozen Pydantic models:
 | `HistoryEntry`   | Execution history — `status`, per-node `outputs`         |
 | `QueueInfo`      | Queue state — `queue_running`, `queue_pending`           |
 | `UploadResponse` | Upload result — `name`, `subfolder`, `type`              |
+| `SketchSpec`     | Complete generation instruction — `prompt`, `negative_prompt`, `prop`, `mp` — proposed by the LLM in one `propose` call |
 
 ## License
 
