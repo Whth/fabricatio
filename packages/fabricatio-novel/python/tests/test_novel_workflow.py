@@ -205,8 +205,9 @@ class TestNovelWorkflow:
         task = Task(name="wf novel illustration").update_init_context(
             # Unique outline: every LLM prompt embeds it, so no persistent mock-router
             # cache entry can serve any call and skip its turn on the dummy response
-            # stack — the illustration proposal is the last consumer and starves first.
-            novel_outline="A cartographer's apprentice charts a drifting archipelago above the Amber Sea.",
+            # stack. The illustration proposal itself is outline-independent; the
+            # stack below keeps its value first so the steady state self-heals.
+            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait.",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -223,6 +224,12 @@ class TestNovelWorkflow:
         illustration = SketchSpec(prompt="a lone rider at dawn")
         with install_router_usage(
             *return_mixed_router_usage(
+                # Illustration value first: upstream earlier stages are steady
+                # cache hits, so the (outline-independent) illustrate prompt is
+                # the only consumer that can reach the stack — whether as a
+                # cache miss (attempt 0) or as the first no-cache retry after a
+                # poisoned/stale cache hit. Keeping it at the top heals both.
+                Value(illustration, "model"),
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),
                 Value(["A quiet riverside town in late summer."], "json"),
@@ -231,7 +238,6 @@ class TestNovelWorkflow:
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
-                Value(illustration, "model"),
             ),
         ):
             epub = await task.delegate(namespace)

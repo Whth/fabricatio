@@ -6,12 +6,14 @@ prompt, negative prompt, and canvas); the models below carry the rendered
 result and the scoped settings.
 """
 
+import html
+from pathlib import Path
 from typing import Self
 
 from fabricatio_core.models.generic import ScopedConfig
-
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.scene import Scene
+from fabricatio_novel.utils import scene_image_name
 
 __all__ = ["IllustratedScene", "IllustrationScopedConfig"]
 
@@ -48,14 +50,35 @@ class IllustratedScene(Scene):
 
     @classmethod
     def from_context(
-        cls,
-        ctx: SceneContext,
-        *,
-        illustration_prompt: str = "",
-        illustration_image: str = "",
+            cls,
+            ctx: SceneContext,
+            *,
+            illustration_prompt: str = "",
+            illustration_image: str = "",
     ) -> Self:
         """Materialize an illustrated scene from its context, recording the rendered illustration."""
-        scene = super().from_context(ctx)
-        scene.illustration_prompt = illustration_prompt
-        scene.illustration_image = illustration_image
-        return scene
+
+        return cls(
+            title=ctx.title,
+            description=ctx.description,
+            expected_word_count=ctx.expected_word_count,
+            content=ctx.content,
+            illustration_prompt=illustration_prompt,
+            illustration_image=illustration_image
+        )
+
+    def to_xhtml(self, chapter_index: int, scene_index: int) -> str:
+        """Render the scene's paragraphs followed by its illustration figure."""
+        sections = [super().to_xhtml(chapter_index, scene_index)]
+        if self.illustration_image:
+            sections.append(
+                f'<figure class="illustration"><img src="{scene_image_name(chapter_index, scene_index)}" '
+                f'alt="{html.escape(self.title)}"/></figure>'
+            )
+        return "\n".join(sections)
+
+    def epub_resources(self, chapter_index: int, scene_index: int) -> list[tuple[str, Path]]:
+        """Return this scene's illustration as an EPUB image resource, or nothing before one exists."""
+        if not self.illustration_image:
+            return []
+        return [(scene_image_name(chapter_index, scene_index), Path(self.illustration_image))]

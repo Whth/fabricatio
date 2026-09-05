@@ -4,21 +4,14 @@ from pathlib import Path
 from typing import Self
 
 from fabricatio_capabilities.models.generic import PersistentAble
-from fabricatio_core import logger
 from pydantic import Field
 
+from fabricatio_novel.export import DEFAULT_EPUB_CSS
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.illustration import IllustratedScene
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 from fabricatio_novel.rust import NovelBuilder
-from fabricatio_novel.utils import scene_image_name
-
-_ILLUSTRATION_CSS = (
-    "figure.illustration { text-indent: 0; margin: 1em auto; text-align: center; } "
-    "figure.illustration img { max-width: 100%; }"
-)
 
 
 class Novel(PersistentAble, NovelPlan):
@@ -55,19 +48,17 @@ class Novel(PersistentAble, NovelPlan):
     ) -> Path:
         """Export the novel to an EPUB file at the given path.
 
-        Registers every illustrated scene's PNG as an EPUB image resource and
-        embeds the matching ``<figure>`` in the chapter body. Optionally embeds
-        a font and cover, then returns the written path.
+        Delegates per-chapter resource registration and body rendering to
+        :meth:`Chapter.write_epub`; scenes inject their own figures and image
+        resources via :meth:`Scene.write_epub`. Optionally embeds a font
+        and cover, then returns the written path.
         """
         builder = (
             NovelBuilder()
             .new_novel()
             .set_title(self.title)
             .set_description(self.description)
-            .add_css(
-                css
-                or f"p {{ text-indent: 2em; margin: 1em 0; line-height: 1.5; text-align: justify; }} {_ILLUSTRATION_CSS}"
-            )
+            .add_css(css or DEFAULT_EPUB_CSS)
         )
         if font:
             family = font_family or Path(font).stem
@@ -77,20 +68,7 @@ class Novel(PersistentAble, NovelPlan):
             source = Path(cover)
             builder.add_cover_image(f"cover{source.suffix}", source)
         for chapter_index, chapter in enumerate(self.chapter, start=1):
-            scene_index = 0
-            for story in chapter.story:
-                for scene in story.scenes:
-                    scene_index += 1
-                    if not isinstance(scene, IllustratedScene) or not scene.illustration_image:
-                        continue
-                    source = Path(scene.illustration_image)
-                    if source.is_file():
-                        builder.add_resource(scene_image_name(chapter_index, scene_index), source)
-                    else:
-                        logger.warn(
-                            f"Illustration file missing for scene {scene_index} of chapter {chapter_index}: {source}"
-                        )
-            builder.add_chapter(chapter.title, chapter.to_xhtml(chapter_index))
+            chapter.write_epub(builder, chapter_index)
         builder.export(Path(path))
         return Path(path)
 

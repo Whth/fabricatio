@@ -1,6 +1,5 @@
 """Output model for a composed chapter: the chapter plan plus its materialized stories."""
 
-import html
 from typing import Self
 
 from fabricatio_capabilities.models.generic import WordCount
@@ -8,17 +7,20 @@ from fabricatio_core import TEMPLATE_MANAGER
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
-from fabricatio_novel.models.illustration import IllustratedScene
 from fabricatio_novel.models.plan import ChapterPlan
+from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.models.story import Story
-from fabricatio_novel.rust import text_to_xhtml_paragraphs
-from fabricatio_novel.utils import scene_image_name
+from fabricatio_novel.rust import NovelBuilder
 
 
 class Chapter(ChapterPlan, WordCount):
     """A composed chapter: its plan fields and the stories it contains."""
 
     story: list[Story]
+
+    def scenes(self) -> list[Scene]:
+        """Every scene of this chapter in narrative order, flattened across stories."""
+        return [scene for story in self.story for scene in story.scenes]
 
     @property
     def exact_word_count(self) -> int:
@@ -37,7 +39,7 @@ class Chapter(ChapterPlan, WordCount):
 
     def to_text(self) -> str:
         """Render the chapter body as plain text: scene contents separated by blank lines."""
-        return "\n\n".join(scene.content for story in self.story for scene in story.scenes)
+        return "\n\n".join(scene.content for scene in self.scenes())
 
     def to_xhtml(self, chapter_index: int = 0) -> str:
         """Render the chapter body as a full XHTML document.
@@ -45,21 +47,24 @@ class Chapter(ChapterPlan, WordCount):
         The chapter title is deliberately omitted: ``dump_epub`` already
         registers it once on the EPUB side via ``add_chapter(title, ...)``,
         so embedding it here would duplicate it in every chapter document.
-        Illustrated scenes append a figure referencing their EPUB image
-        resource; the matching resource is registered by ``Novel.dump_epub``.
+        Scenes render their own body fragments via :meth:`Scene.to_xhtml`,
+        so illustrated scenes append their figure inline; image resources
+        are registered by :meth:`write_epub`.
         """
-        sections = []
-        scene_index = 0
-        for story in self.story:
-            for scene in story.scenes:
-                scene_index += 1
-                sections.append(text_to_xhtml_paragraphs(scene.content))
-                if isinstance(scene, IllustratedScene) and scene.illustration_image:
-                    sections.append(
-                        f'<figure class="illustration"><img src="{scene_image_name(chapter_index, scene_index)}" '
-                        f'alt="{html.escape(scene.title, quote=True)}"/></figure>'
-                    )
+        sections = [
+            scene.to_xhtml(chapter_index, scene_index) for scene_index, scene in enumerate(self.scenes(), start=1)
+        ]
         return TEMPLATE_MANAGER.render_template(
             novel_config.render_chapter_xhtml_template,
             {"content": "\n".join(sections), "title": self.title},
         )
+
+    def write_epub(self, builder: NovelBuilder, chapter_index: int) -> None:
+        """Write this chapter into an EPUB under construction.
+
+        Each scene registers its own image resources via
+        :meth:`Scene.write_epub`; the rendered chapter body is appended last.
+        """
+        for scene_index, scene in enumerate(self.scenes(), start=1):
+            scene.write_epub(builder, chapter_index, scene_index)
+        builder.add_chapter(self.title, self.to_xhtml(chapter_index))
