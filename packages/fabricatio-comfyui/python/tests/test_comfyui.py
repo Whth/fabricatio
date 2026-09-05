@@ -120,6 +120,10 @@ class TestGraph:
         assert ref.output_index == 1
         assert ref.model_dump() == ["sampler_base", 1]
 
+    def test_node_ref_first_factory(self) -> None:
+        """NodeRef.first points at the source node's first output."""
+        assert NodeRef.first("sampler_base").model_dump() == ["sampler_base", 0]
+
     def test_node_ref_rejects_short_list(self) -> None:
         """A node reference without an output index is invalid."""
         with pytest.raises(ValidationError):

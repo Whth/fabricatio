@@ -43,6 +43,11 @@ class NodeRef(BaseModel):
         """Serialize back to ComfyUI's ``[node_id, output_index]`` list form."""
         return [self.node_id, self.output_index]
 
+    @classmethod
+    def first(cls, node_id: str) -> Self:
+        """Build a link to *node_id*'s first output (index 0)."""
+        return cls(node_id=node_id)
+
 
 class NodeMeta(BaseModel):
     """The ``_meta`` block of a node (display metadata, ignored by the server)."""
@@ -227,7 +232,7 @@ class NegativePromptNode(CLIPEncodeNode):
 class VAEDecodeInputs(NodeInputs):
     """Inputs of ``VAEDecode``."""
 
-    samples: NodeRef = Field(default_factory=lambda: NodeRef(node_id="sampler_base", output_index=0))
+    samples: NodeRef = Field(default_factory=lambda: NodeRef.first("sampler_base"))
     vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=2))
 
 
@@ -249,7 +254,7 @@ class VAEDecodeNode(BaseModel):
 class _RefineDecodeInputs(VAEDecodeInputs):
     """Refine-pass decode source of the bundled template."""
 
-    samples: NodeRef = Field(default_factory=lambda: NodeRef(node_id="sampler_refine", output_index=0))
+    samples: NodeRef = Field(default_factory=lambda: NodeRef.first("sampler_refine"))
 
 
 class RefineDecodeNode(VAEDecodeNode):
@@ -261,7 +266,7 @@ class RefineDecodeNode(VAEDecodeNode):
 class VAEEncodeInputs(NodeInputs):
     """Inputs of ``VAEEncode``."""
 
-    pixels: NodeRef = Field(default_factory=lambda: NodeRef(node_id="upscale", output_index=0))
+    pixels: NodeRef = Field(default_factory=lambda: NodeRef.first("upscale"))
     vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=2))
 
 
@@ -283,7 +288,7 @@ class VAEEncodeNode(BaseModel):
 class PreviewImageInputs(NodeInputs):
     """Inputs of ``PreviewImage``."""
 
-    images: NodeRef = Field(default_factory=lambda: NodeRef(node_id="refine_decode", output_index=0))
+    images: NodeRef = Field(default_factory=lambda: NodeRef.first("refine_decode"))
 
 
 class PreviewImageNode(BaseModel):
@@ -306,7 +311,7 @@ class ImageScaleByInputs(NodeInputs):
 
     upscale_method: str = "nearest-exact"
     scale_by: float = 2.3
-    image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="decode", output_index=0))
+    image: NodeRef = Field(default_factory=lambda: NodeRef.first("decode"))
 
 
 class ImageScaleByNode(BaseModel):
@@ -336,10 +341,10 @@ class SamplerInputs(NodeInputs):
     start_at_step: int = 0
     end_at_step: int = 990
     return_with_leftover_noise: Literal["disable"] = "disable"
-    model: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=0))
-    positive: NodeRef = Field(default_factory=lambda: NodeRef(node_id="positive", output_index=0))
-    negative: NodeRef = Field(default_factory=lambda: NodeRef(node_id="negative", output_index=0))
-    latent_image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="latent", output_index=0))
+    model: NodeRef = Field(default_factory=lambda: NodeRef.first("loader"))
+    positive: NodeRef = Field(default_factory=lambda: NodeRef.first("positive"))
+    negative: NodeRef = Field(default_factory=lambda: NodeRef.first("negative"))
+    latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("latent"))
 
 
 class _RefineSamplerInputs(SamplerInputs):
@@ -349,7 +354,7 @@ class _RefineSamplerInputs(SamplerInputs):
     cfg: float = 8.5
     start_at_step: int = 20
     end_at_step: int = 999
-    latent_image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="encode", output_index=0))
+    latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("encode"))
 
 
 class KSamplerAdvancedNode(BaseModel):

@@ -119,7 +119,7 @@ class AnimaEmptyLatentNode(BaseModel):
 class AnimaPositivePromptInputs(CLIPEncodeInputs):
     """Positive prompt of the anima template."""
 
-    clip: NodeRef = Field(default_factory=lambda: NodeRef(node_id="clip", output_index=0))
+    clip: NodeRef = Field(default_factory=lambda: NodeRef.first("clip"))
     text: str = (
         "best quality,masterpiece,4k,highres,1girl, selfie, holding phone, bedroom, "
         "morning sunlight, messy bed, pillows, white sheets, pajamas, pink hair, "
@@ -130,7 +130,7 @@ class AnimaPositivePromptInputs(CLIPEncodeInputs):
 class AnimaNegativePromptInputs(CLIPEncodeInputs):
     """Negative prompt of the anima template."""
 
-    clip: NodeRef = Field(default_factory=lambda: NodeRef(node_id="clip", output_index=0))
+    clip: NodeRef = Field(default_factory=lambda: NodeRef.first("clip"))
     text: str = (
         "worst,lowres,low quality,mulform,sketch,texts,censor,terrible quality,"
         "garbage,multiple arms,multiple legs,multiple fingers, low quality, "
@@ -180,10 +180,10 @@ class AnimaSamplerInputs(NodeInputs):
     start_at_step: int = 0
     end_at_step: int = 999
     return_with_leftover_noise: Literal["disable"] = "disable"
-    model: NodeRef = Field(default_factory=lambda: NodeRef(node_id="loader", output_index=0))
-    positive: NodeRef = Field(default_factory=lambda: NodeRef(node_id="positive", output_index=0))
-    negative: NodeRef = Field(default_factory=lambda: NodeRef(node_id="negative", output_index=0))
-    latent_image: NodeRef = Field(default_factory=lambda: NodeRef(node_id="latent", output_index=0))
+    model: NodeRef = Field(default_factory=lambda: NodeRef.first("loader"))
+    positive: NodeRef = Field(default_factory=lambda: NodeRef.first("positive"))
+    negative: NodeRef = Field(default_factory=lambda: NodeRef.first("negative"))
+    latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("latent"))
 
 
 class AnimaSamplerNode(BaseModel):
@@ -204,8 +204,8 @@ class AnimaSamplerNode(BaseModel):
 class AnimaVAEDecodeInputs(NodeInputs):
     """Inputs of ``VAEDecode`` in the anima template."""
 
-    samples: NodeRef = Field(default_factory=lambda: NodeRef(node_id="sampler", output_index=0))
-    vae: NodeRef = Field(default_factory=lambda: NodeRef(node_id="vae", output_index=0))
+    samples: NodeRef = Field(default_factory=lambda: NodeRef.first("sampler"))
+    vae: NodeRef = Field(default_factory=lambda: NodeRef.first("vae"))
 
 
 class AnimaVAEDecodeNode(BaseModel):
@@ -226,7 +226,7 @@ class AnimaVAEDecodeNode(BaseModel):
 class AnimaPreviewInputs(NodeInputs):
     """Inputs of ``PreviewImage`` in the anima template."""
 
-    images: NodeRef = Field(default_factory=lambda: NodeRef(node_id="decode", output_index=0))
+    images: NodeRef = Field(default_factory=lambda: NodeRef.first("decode"))
 
 
 class AnimaPreviewNode(BaseModel):
