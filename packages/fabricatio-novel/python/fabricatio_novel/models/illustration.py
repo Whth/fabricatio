@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Self
 
 from fabricatio_core.models.generic import ScopedConfig
+
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.utils import scene_image_name
@@ -50,21 +51,20 @@ class IllustratedScene(Scene):
 
     @classmethod
     def from_context(
-            cls,
-            ctx: SceneContext,
-            *,
-            illustration_prompt: str = "",
-            illustration_image: str = "",
+        cls,
+        ctx: SceneContext,
+        *,
+        illustration_prompt: str = "",
+        illustration_image: str = "",
     ) -> Self:
         """Materialize an illustrated scene from its context, recording the rendered illustration."""
-
         return cls(
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
             content=ctx.content,
             illustration_prompt=illustration_prompt,
-            illustration_image=illustration_image
+            illustration_image=illustration_image,
         )
 
     def to_xhtml(self, chapter_index: int, scene_index: int) -> str:
