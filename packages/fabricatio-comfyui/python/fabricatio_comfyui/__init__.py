@@ -32,6 +32,7 @@ from fabricatio_comfyui.models import (
     OutputImage,
     PromptResponse,
     QueueInfo,
+    SketchSpec,
     SystemStats,
     UploadResponse,
 )
@@ -46,6 +47,7 @@ __all__ = [
     "OutputImage",
     "PromptResponse",
     "QueueInfo",
+    "SketchSpec",
     "SystemStats",
     "UploadResponse",
     "UseComfyUI",

@@ -25,9 +25,12 @@ from fabricatio_comfyui.models.graph import LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     GenerateKwargs,
     PollKwargs,
+    TemplateKwargs,
     UploadKwargs,
     ViewImageKwargs,
 )
+from fabricatio_comfyui.models.resolution import Prop
+from fabricatio_comfyui.models.specs import SketchSpec
 
 __all__ = [
     "ComfyUIScopedConfig",
@@ -41,9 +44,12 @@ __all__ = [
     "PollKwargs",
     "PromptRequest",
     "PromptResponse",
+    "Prop",
     "QueueEntry",
     "QueueInfo",
+    "SketchSpec",
     "SystemStats",
+    "TemplateKwargs",
     "UploadKwargs",
     "UploadResponse",
     "ViewImageKwargs",
