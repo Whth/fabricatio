@@ -7,14 +7,15 @@ slice machinery was removed entirely; only the flat CharacterSpan design
 remains.
 """
 
-from dataclasses import dataclass
-
+from fabricatio_comfyui.models import Prop
 from fabricatio_core import CONFIG
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(frozen=True)
-class NovelConfig:
+class NovelConfig(BaseModel):
     """Configuration for fabricatio-novel."""
+
+    model_config = ConfigDict(frozen=True)
 
     novel_metadata_requirement_template: str = "built-in/novel_metadata_requirement"
     """template used to extract the novel metadata (title, synopsis, word count) from the outline."""
@@ -97,12 +98,13 @@ class NovelConfig:
     1.2 keeps a margin under it.
     """
 
-    illustration_prop: str | None = None
-    """aspect ratio of each scene illustration for ComfyUI.
+    illustration_prop: Prop | None = None
+    """aspect-ratio preset of each scene illustration for ComfyUI.
 
-    Accepts enum member names (the member values, e.g. ``"prop_2_3"``
-    for a portrait scene).  ``None`` falls back to
-    ``[ext.comfyui] prop``, then to the active ComfyUI template's ratio.
+    TOML takes enum member names like ``"prop_2_3"`` (the member values),
+    coerced to :class:`~fabricatio_comfyui.models.resolution.Prop` at
+    load.  ``None`` falls back to ``[ext.comfyui] prop``, then to the
+    active ComfyUI template's ratio.
     """
 
     illustration_seed: int | None = None

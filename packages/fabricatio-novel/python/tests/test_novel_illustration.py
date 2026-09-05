@@ -2,7 +2,6 @@
 
 import asyncio
 import base64
-import dataclasses
 from pathlib import Path
 
 import pytest
@@ -130,7 +129,7 @@ class TestIllustrateNovelPhase:
         """Assert illustration_skip_existing=False re-renders scenes whose PNG already exists."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            dataclasses.replace(novel_config, illustration_skip_existing=False),
+            novel_config.model_copy(update={"illustration_skip_existing": False}),
         )
         ctx = build_novel_ctx("S1", "S2")
         images_dir = tmp_path / "images"
@@ -262,7 +261,7 @@ class TestIllustrateNovelPhase:
         """Assert a custom ``illustration_timeout_per_image`` scales the batch timeout linearly."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            dataclasses.replace(novel_config, illustration_timeout_per_image=5.0),
+            novel_config.model_copy(update={"illustration_timeout_per_image": 5.0}),
         )
         ctx = build_novel_ctx("S1", "S2")
         timeouts: list[float] = []
@@ -328,7 +327,7 @@ class TestIllustrateNovelPhase:
         """Assert per-scene SketchSpec mp/prop win over the global illustration config."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            dataclasses.replace(novel_config, illustration_mp=0.75, illustration_prop="prop_3_4"),
+            novel_config.model_copy(update={"illustration_mp": 0.75, "illustration_prop": Prop.prop_3_4}),
         )
         ctx = build_novel_ctx("S1", "S2")
         seen: list[tuple[object, object]] = []
@@ -345,7 +344,7 @@ class TestIllustrateNovelPhase:
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
         role = IllustrationRole(name="illustrator")
         proposals = [
-            SketchSpec(prompt="wide dawn", prop="prop_16_9", mp=1.0),
+            SketchSpec(prompt="wide dawn", prop=Prop.prop_16_9, mp=1.0),
             SketchSpec(prompt="tall gate"),  # no size: falls back to the global illustration_mp/prop
         ]
         with install_router_usage(*return_mixed_router_usage(*(Value(p, "model") for p in proposals))):
@@ -388,7 +387,7 @@ class TestIllustrateNovelPhase:
         """Assert the clamping ceiling follows the configured illustration_mp_max."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            dataclasses.replace(novel_config, illustration_mp_max=0.5),
+            novel_config.model_copy(update={"illustration_mp_max": 0.5}),
         )
         ctx = build_novel_ctx("S1", "S2")
         seen: list[object] = []
