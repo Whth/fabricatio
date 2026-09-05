@@ -331,8 +331,8 @@ class SamplerInputs(NodeInputs):
     noise_seed: int = 1072236688235494
     steps: int = 21
     cfg: float = 7.9
-    sampler_name: str = "er_sde"
-    scheduler: str = "beta"
+    sampler_name: str = "euler"
+    scheduler: str = "simple"
     start_at_step: int = 0
     end_at_step: int = 990
     return_with_leftover_noise: Literal["disable"] = "disable"

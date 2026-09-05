@@ -105,6 +105,13 @@ class TestGraph:
         assert graph.sampler_base.class_type == "KSamplerAdvanced"
         assert graph.sampler_refine.class_type == "KSamplerAdvanced"
 
+    def test_default_sampler_settings(self) -> None:
+        """The bundled template samples with euler on the simple schedule."""
+        graph = Graph.default()
+        for sampler in (graph.sampler_base, graph.sampler_refine):
+            assert sampler.inputs.sampler_name == "euler"
+            assert sampler.inputs.scheduler == "simple"
+
     def test_node_ref_round_trip(self) -> None:
         """NodeRef parses the API list form and serializes back to it."""
         ref = NodeRef.model_validate(["sampler_base", 1])
