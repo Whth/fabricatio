@@ -24,9 +24,9 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
-from fabricatio_comfyui.models.graph import LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
+    TemplateKwargs,
     UploadKwargs,
     ViewImageKwargs,
 )
@@ -69,32 +69,29 @@ class ComfyUIClientBase(ABC):
     # ------------------------------------------------------------------
 
     @abstractmethod
-    async def generate(  # noqa: PLR0913 — public API keeps every override explicit
+    async def generate(
         self,
         prompt: str | list[str],
         *,
-        negative_prompt: str | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        seed: int | None = None,
-        steps: int | None = None,
-        cfg: float | None = None,
-        checkpoint: str | None = None,
-        loras: list[LoraSpec] | None = None,
         front: bool = False,
         timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
     ) -> list[ExecutionResult]:
         """Queue one or more prompts and poll each to completion.
 
         The workflow graph is built internally from the bundled template —
-        callers never see or construct one.  Only the provided (non-``None``)
-        knobs override the template; ``None`` keeps the template's value.
-        *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
-        the template's own checkpoint.  *loras* chain into the model/CLIP
-        path of the active template (each names a server-side file and a
-        strength).  *front* enqueues at the head of the
-        queue.  Prompts run sequentially; the return holds one execution
-        result per input prompt, in input order, without downloading images.
+        callers never see or construct one.  Keyword knobs
+        (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
+        override the active template only where provided: *mp* and *prop*
+        size the latent canvas (a per-call value wins over
+        :data:`comfyui_config`, and unset knobs keep the template's own
+        canvas), *checkpoint* falls back to config then the template, and
+        the remaining keys are direct template-level overrides.
+        *front* enqueues at the head of the queue and *timeout* bounds each
+        poll — both are queueing knobs consumed by the client and never
+        reach the template.  Prompts run sequentially; the return holds one
+        execution result per input prompt, in input order, without
+        downloading images.
         """
 
     @abstractmethod

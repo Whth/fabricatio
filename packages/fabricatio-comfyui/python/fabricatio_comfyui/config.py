@@ -5,6 +5,8 @@ from typing import Literal
 
 from fabricatio_core import CONFIG
 
+from fabricatio_comfyui.models.resolution import Prop
+
 __all__ = ["ComfyUIConfig", "comfyui_config"]
 
 
@@ -23,7 +25,25 @@ class ComfyUIConfig:
 
     The anima template loads checkpoint / CLIP / VAE from separate nodes
     (see ``anima_checkpoint``, ``anima_clip``, ``anima_vae``) and samples
-    once at a fixed 4:3 canvas.
+    once at a fixed 4:3 canvas (overridable via ``mp`` / ``prop``).
+    """
+
+    mp: float | None = None
+    """Default megapixel budget of the latent canvas (``1.0`` = 1,000,000 pixels).
+
+    Resolves every generation's canvas from this budget and :attr:`prop`;
+    a per-call ``mp=`` / ``prop=`` knob takes precedence.  ``None`` keeps
+    the active template's built-in canvas (768x512 for the default
+    workflow, 1344x1024 for the anima preset).
+    """
+
+    prop: Prop | None = None
+    """Default aspect-ratio preset applied to every generation.
+
+    TOML accepts either spelling: ``"16:9"`` style values or
+    ``prop_16_9``-style names.  Pairs with :attr:`mp`; a per-call
+    ``prop=`` knob takes precedence.  ``None`` keeps the active
+    template's canvas ratio.
     """
 
     checkpoint: str | None = None

@@ -2,7 +2,7 @@
 
 Mix into a Role to gain ComfyUI image generation methods.  The public
 surface is intentionally **narrow**: callers supply high-level knobs
-(``prompt``, ``width``, ``height``, ``seed``, ``steps``, ``cfg```,
+(``prompt``, ``prop``, ``mp``, ``seed``, ``steps``, ``cfg``,
 ``checkpoint``) and the package parameterises a bundled workflow template
 internally.  Workflow graphs are an implementation detail — external
 callers never see or operate on one.

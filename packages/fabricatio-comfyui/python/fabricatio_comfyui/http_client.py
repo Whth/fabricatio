@@ -42,9 +42,11 @@ from fabricatio_comfyui.models.comfyui import (
 from fabricatio_comfyui.models.graph import Graph, LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
+    TemplateKwargs,
     UploadKwargs,
     ViewImageKwargs,
 )
+from fabricatio_comfyui.models.resolution import resolve_canvas
 
 __all__ = ["ComfyUIHttpClient", "get_comfyui_client"]
 
@@ -208,32 +210,61 @@ class ComfyUIHttpClient(ComfyUIClientBase):
             template.with_lora(spec.lora_name, strength=spec.strength)
         return template
 
-    async def generate(  # noqa: PLR0913 — public API keeps every override explicit
+    def _render_graph(
+        self,
+        prompt: str,
+        *,
+        template: Graph | AnimaGraph,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> Graph | AnimaGraph:
+        """Copy *template* and apply the overrides for one prompt.
+
+        Only provided (non-``None``) knobs change the graph; canvas and
+        checkpoint knobs fall back to :data:`comfyui_config` before the
+        template's own values, and computed sizes snap to the 64px grid.
+        """
+        graph = template.model_copy(deep=True)
+        if prompt:
+            graph.with_positive_prompt(prompt)
+        if (negative_prompt := kwargs.get("negative_prompt")) is not None:
+            graph.with_negative_prompt(negative_prompt)
+        size_mp = first_available((kwargs.get("mp"), comfyui_config.mp), raise_exception=False)
+        size_prop = first_available((kwargs.get("prop"), comfyui_config.prop), raise_exception=False)
+        if size_mp is not None or size_prop is not None:
+            width, height = resolve_canvas(
+                mp=size_mp,
+                prop=size_prop,
+                base=(graph.latent.inputs.width, graph.latent.inputs.height),
+            )
+            graph.with_resolution(width=width, height=height)
+        seed = kwargs.get("seed")
+        steps = kwargs.get("steps")
+        cfg = kwargs.get("cfg")
+        if seed is not None or steps is not None or cfg is not None:
+            graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
+        return graph
+
+    async def generate(
         self,
         prompt: str | list[str],
         *,
-        negative_prompt: str | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        seed: int | None = None,
-        steps: int | None = None,
-        cfg: float | None = None,
-        checkpoint: str | None = None,
-        loras: list[LoraSpec] | None = None,
         front: bool = False,
         timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
     ) -> list[ExecutionResult]:
         """Queue one or more prompts and poll each to completion.
 
         The workflow graph is built internally from the bundled template —
         callers never see or construct one.  Only the provided (non-``None``)
-        knobs override the template; ``None`` keeps the template's value.
-        *checkpoint* falls back to :data:`comfyui_config.checkpoint`, then to
-        the template's own checkpoint.  *loras* chain into the model/CLIP
-        path of the active template (each names a server-side file and a
-        strength).  *front* enqueues at the head of the
-        queue.  Prompts run sequentially; the return holds one execution
-        result per input prompt, in input order, without downloading images.
+        template knobs
+        (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
+        override the active template; unset knobs keep the template's value,
+        with canvas and checkpoint falling back to :data:`comfyui_config`
+        first.  *front* enqueues at the head of the queue and *timeout*
+        bounds each poll — both are queueing knobs consumed here and never
+        reach the template.  Prompts run sequentially; the return holds one
+        execution result per input prompt, in input order, without
+        downloading images.
 
         The active template comes from :data:`comfyui_config.workflow`: the
         default two-pass graph, or the anima preset whose model filenames
@@ -244,19 +275,13 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         is interrupted server-side before the cancellation propagates.
         """
         prompts = [prompt] if isinstance(prompt, str) else list(prompt)
+        template = self._build_template(
+            checkpoint=kwargs.get("checkpoint"),
+            loras=kwargs.get("loras"),
+        )
         results: list[ExecutionResult] = []
-        template = self._build_template(checkpoint=checkpoint, loras=loras)
         for one in prompts:
-            graph = template.model_copy(deep=True)
-            if one:
-                graph.with_positive_prompt(one)
-            if negative_prompt is not None:
-                graph.with_negative_prompt(negative_prompt)
-            if width is not None or height is not None:
-                graph.with_resolution(width=width, height=height)
-            if seed is not None or steps is not None or cfg is not None:
-                graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
-
+            graph = self._render_graph(one, template=template, **kwargs)
             req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
             data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
             resp = PromptResponse.from_raw(data)

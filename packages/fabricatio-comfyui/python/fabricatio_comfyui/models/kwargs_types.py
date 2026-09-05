@@ -8,23 +8,25 @@ callers get full IDE completion and type-checking via ``**kwargs: Unpack[...]``.
 from typing import TypedDict
 
 from fabricatio_comfyui.models.graph import LoraSpec
+from fabricatio_comfyui.models.resolution import Prop
 
 
-class GenerateKwargs(TypedDict, total=False):
-    """Generation knobs forwarded verbatim to :meth:`ComfyUIClientBase.generate`.
+class TemplateKwargs(TypedDict, total=False):
+    """Workflow-template knobs accepted directly by :meth:`ComfyUIClientBase.generate`.
 
     Only the provided keys override the bundled workflow template; absent
-    keys keep the template's values.
+    keys keep the template's values, falling back to :data:`comfyui_config`
+    where the config defines a default.
     """
 
     negative_prompt: str | None
     """Optional negative prompt text."""
 
-    width: int | None
-    """Output image width (pixels)."""
+    prop: Prop | None
+    """Aspect-ratio preset (e.g. :attr:`Prop.prop_16_9`); ``None`` keeps the template's canvas ratio."""
 
-    height: int | None
-    """Output image height (pixels)."""
+    mp: float | None
+    """Megapixel budget of the latent canvas (``1.0`` = 1,000,000 pixels); ``None`` keeps the template's canvas area."""
 
     seed: int | None
     """Sampler seed; ``None`` keeps the bundled template's seed."""
@@ -40,6 +42,13 @@ class GenerateKwargs(TypedDict, total=False):
 
     loras: list[LoraSpec] | None
     """LoRAs chained into the generation; each names a server-side file and a strength."""
+
+
+class GenerateKwargs(TemplateKwargs, total=False):
+    """High-level generation knobs for :func:`fabricatio_comfyui.api.generate_image`.
+
+    Inherits every :class:`TemplateKwargs` key and adds *timeout*.
+    """
 
     timeout: float | None
     """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""

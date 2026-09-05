@@ -19,6 +19,7 @@ from fabricatio_core.models.action import Action
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
+from fabricatio_comfyui.models.resolution import Prop
 
 __all__ = ["GenerateImage"]
 
@@ -39,11 +40,11 @@ class GenerateImage(Action, UseComfyUI):
     negative_prompt: str | None = None
     """Optional negative prompt text."""
 
-    width: int | None = None
-    """Output image width (pixels)."""
+    prop: Prop | None = None
+    """Aspect-ratio preset (e.g. ``Prop.prop_16_9``); ``None`` keeps the template's canvas ratio."""
 
-    height: int | None = None
-    """Output image height (pixels)."""
+    mp: float | None = None
+    """Megapixel budget of the latent canvas (``1.0`` = 1,000,000 pixels); ``None`` keeps the template's canvas area."""
 
     seed: int | None = None
     """Sampler seed; ``None`` keeps the bundled template's seed."""
@@ -73,8 +74,8 @@ class GenerateImage(Action, UseComfyUI):
             download_dir=self.download_dir,
             **GenerateKwargs(
                 negative_prompt=self.negative_prompt,
-                width=self.width,
-                height=self.height,
+                prop=self.prop,
+                mp=self.mp,
                 seed=self.seed,
                 steps=self.steps,
                 cfg=self.cfg,
