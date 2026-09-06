@@ -7,7 +7,7 @@ slice machinery was removed entirely; only the flat CharacterSpan design
 remains.
 """
 
-from fabricatio_comfyui.models import Prop
+from fabricatio_comfyui.models import LoraEntry, Prop
 from fabricatio_core import CONFIG
 from pydantic import BaseModel, ConfigDict
 
@@ -105,6 +105,17 @@ class NovelConfig(BaseModel):
     coerced to :class:`~fabricatio_comfyui.models.resolution.Prop` at
     load.  ``None`` falls back to ``[ext.comfyui] prop``, then to the
     active ComfyUI template's ratio.
+    """
+
+    illustration_always_loras: list[LoraEntry] = []
+    """LoRA entries chained into every scene illustration render before any selection.
+
+    The slot for always-on LoRAs such as a character/style LoRA: each
+    entry rides the render chain verbatim and its ``trigger_words``
+    activate it in the prompt.  On top of this chain the LLM may pick
+    per scene from the comfyui LoRA catalog (``[ext.comfyui] loras``)
+    for LoRAs that should be selected rather than always-on; an empty
+    catalog or empty pick chains just this list.
     """
 
     illustration_seed: int | None = None

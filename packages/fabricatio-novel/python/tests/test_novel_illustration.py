@@ -6,17 +6,22 @@ from pathlib import Path
 
 import pytest
 from _support import IllustrationRole
+from fabricatio_comfyui.models import LoraCatalog, LoraEntry, LoraPick, LoraSelection, LoraSpec
 from fabricatio_comfyui.models.resolution import Prop
 from fabricatio_comfyui.models.specs import SketchSpec
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
-from fabricatio_novel.config import novel_config
+from fabricatio_novel.config import NovelConfig, novel_config
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.illustration import IllustratedScene
+from fabricatio_novel.models.illustration_queue import (
+    PendingIllustration,
+    SceneIllustrationQueue,
+)
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.scene import Scene
 
@@ -52,6 +57,17 @@ def build_two_story_novel_ctx() -> NovelContext:
         chapter_ctx.story_context.append(story_ctx)
     ctx.chapter_context.append(chapter_ctx)
     return ctx
+
+
+def novel_config_with(**overrides: object) -> NovelConfig:
+    """Return a NovelConfig clone carrying the given field overrides.
+
+    The TOML-declared always-on lora chain is stripped unless the caller
+    overrides ``illustration_always_loras`` explicitly, keeping prompt
+    assertions independent of local config drift.
+    """
+    base = {**novel_config.model_dump(), "illustration_always_loras": []}
+    return NovelConfig.model_validate({**base, **overrides})
 
 
 def install_fake_renderer(monkeypatch: pytest.MonkeyPatch, outcomes: list[Path | Exception | None]) -> list[str]:
@@ -128,8 +144,8 @@ class TestIllustrateNovelPhase:
     ) -> None:
         """Assert illustration_skip_existing=False re-renders scenes whose PNG already exists."""
         monkeypatch.setattr(
-            "fabricatio_novel.capabilities.illustration.novel_config",
-            novel_config.model_copy(update={"illustration_skip_existing": False}),
+            "fabricatio_novel.models.illustration_queue.novel_config",
+            novel_config_with(illustration_skip_existing=False),
         )
         ctx = build_novel_ctx("S1", "S2")
         images_dir = tmp_path / "images"
@@ -261,7 +277,7 @@ class TestIllustrateNovelPhase:
         """Assert a custom ``illustration_timeout_per_image`` scales the batch timeout linearly."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            novel_config.model_copy(update={"illustration_timeout_per_image": 5.0}),
+            novel_config_with(illustration_timeout_per_image=5.0),
         )
         ctx = build_novel_ctx("S1", "S2")
         timeouts: list[float] = []
@@ -327,7 +343,7 @@ class TestIllustrateNovelPhase:
         """Assert per-scene SketchSpec mp/prop win over the global illustration config."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            novel_config.model_copy(update={"illustration_mp": 0.75, "illustration_prop": Prop.prop_3_4}),
+            novel_config_with(illustration_mp=0.75, illustration_prop=Prop.prop_3_4),
         )
         ctx = build_novel_ctx("S1", "S2")
         seen: list[tuple[object, object]] = []
@@ -387,7 +403,7 @@ class TestIllustrateNovelPhase:
         """Assert the clamping ceiling follows the configured illustration_mp_max."""
         monkeypatch.setattr(
             "fabricatio_novel.capabilities.illustration.novel_config",
-            novel_config.model_copy(update={"illustration_mp_max": 0.5}),
+            novel_config_with(illustration_mp_max=0.5),
         )
         ctx = build_novel_ctx("S1", "S2")
         seen: list[object] = []
@@ -412,6 +428,130 @@ class TestIllustrateNovelPhase:
 
         assert set(illustrations) == {(1, 1), (1, 2)}
         assert seen == [0.5, 0.4]
+
+    async def test_illustrate_novel_phase_chains_always_loras(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert always-on loras ride every render chain and their trigger words activate."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(
+                illustration_always_loras=[
+                    LoraEntry(
+                        lora_name="style.safetensors", strength=0.5, effect="style anchor", trigger_words="xstyle"
+                    )
+                ]
+            ),
+        )
+        ctx = build_novel_ctx("S1")
+        seen: list[object] = []
+        prompts: list[str] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["loras"])
+            prompts.append(prompt)
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "img.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(*return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"))):
+            await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+        assert seen == [[LoraSpec(lora_name="style.safetensors", strength=0.5)]]
+        assert prompts == ["dawn, xstyle"]
+
+    async def test_illustrate_novel_phase_chooses_loras_from_catalog(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert selectable catalog loras resolve per scene and their trigger words augment."""
+        catalog = LoraCatalog(
+            entries=[
+                LoraEntry(
+                    lora_name="pose.safetensors", strength=0.65, effect="poses the subject", trigger_words="xpose"
+                )
+            ]
+        )
+        monkeypatch.setattr(LoraCatalog, "from_config", classmethod(lambda cls: catalog))
+        seen: list[object] = []
+        prompts: list[str] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["loras"])
+            prompts.append(prompt)
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "img.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(SketchSpec(prompt="dawn"), "model"),
+                Value(LoraSelection(picks=[LoraPick(lora_name="pose.safetensors")]), "model"),
+            )
+        ):
+            await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        assert seen == [[LoraSpec(lora_name="pose.safetensors", strength=0.65)]]
+        assert prompts == ["dawn, xpose"]
+
+    async def test_illustrate_novel_phase_chains_always_and_selected_loras(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert picked loras chain after the always loras; both contribute trigger words."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(
+                illustration_always_loras=[
+                    LoraEntry(
+                        lora_name="style.safetensors", strength=0.8, effect="style anchor", trigger_words="xstyle"
+                    )
+                ]
+            ),
+        )
+        catalog = LoraCatalog(
+            entries=[
+                LoraEntry(
+                    lora_name="pose.safetensors", strength=0.65, effect="poses the subject", trigger_words="xpose"
+                )
+            ]
+        )
+        monkeypatch.setattr(LoraCatalog, "from_config", classmethod(lambda cls: catalog))
+        seen: list[object] = []
+        prompts: list[str] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["loras"])
+            prompts.append(prompt)
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "img.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(SketchSpec(prompt="dawn"), "model"),
+                Value(LoraSelection(picks=[LoraPick(lora_name="pose.safetensors")]), "model"),
+            )
+        ):
+            await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        assert seen == [
+            [
+                LoraSpec(lora_name="style.safetensors", strength=0.8),
+                LoraSpec(lora_name="pose.safetensors", strength=0.65),
+            ]
+        ]
+        assert prompts == ["dawn, xstyle, xpose"]
 
 
 class TestAttachIllustrations:
@@ -470,3 +610,67 @@ class TestPostProcessNovelHook:
         assert out_scenes[1].illustration_prompt == "a stranger at the gate"
         assert (tmp_path / "images" / "scene_01_01.png").is_file()
         assert (tmp_path / "images" / "scene_01_02.png").is_file()
+
+
+class TestSceneIllustrationQueue:
+    """Test suite for the compiled pending-illustration queue."""
+
+    def test_from_context_collects_scenes_with_keys_targets_and_titles(self, tmp_path: Path) -> None:
+        """Assert every scene is queued in walk order with its key, title, and render target."""
+        queue = SceneIllustrationQueue.from_context(build_novel_ctx("S1", "S2"), persist_dir=tmp_path, constraint="")
+
+        assert queue.images_dir == tmp_path / "images"
+        assert queue.images_dir.is_dir()
+        assert [entry.key for entry in queue.entries] == [(1, 1), (1, 2)]
+        assert [entry.scene_title for entry in queue.entries] == ["S1", "S2"]
+        assert [entry.target for entry in queue.entries] == [
+            tmp_path / "images" / "scene_01_01.png",
+            tmp_path / "images" / "scene_01_02.png",
+        ]
+        assert all(isinstance(entry, PendingIllustration) for entry in queue.entries)
+
+    def test_from_context_numbers_scenes_across_stories(self, tmp_path: Path) -> None:
+        """Assert scene keys keep increasing across stories, matching the EPUB naming."""
+        queue = SceneIllustrationQueue.from_context(build_two_story_novel_ctx(), persist_dir=tmp_path, constraint="")
+        assert [entry.key for entry in queue.entries] == [(1, 1), (1, 2), (1, 3)]
+
+    def test_from_context_skips_existing_png_when_enabled(self, tmp_path: Path) -> None:
+        """Assert scenes whose PNG exists drop out of the queue while skip-existing is on (default)."""
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
+        queue = SceneIllustrationQueue.from_context(build_novel_ctx("S1", "S2"), persist_dir=tmp_path, constraint="")
+        assert [entry.key for entry in queue.entries] == [(1, 2)]
+
+    def test_from_context_keeps_existing_png_when_skip_disabled(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert illustration_skip_existing=False queues scenes whose PNG already exists."""
+        monkeypatch.setattr(
+            "fabricatio_novel.models.illustration_queue.novel_config",
+            novel_config_with(illustration_skip_existing=False),
+        )
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
+        queue = SceneIllustrationQueue.from_context(build_novel_ctx("S1", "S2"), persist_dir=tmp_path, constraint="")
+        assert [entry.key for entry in queue.entries] == [(1, 1), (1, 2)]
+
+    def test_from_context_renders_requirement_from_template_vars(self, tmp_path: Path) -> None:
+        """Assert the requirement renders the shared template with the scene variables."""
+        queue = SceneIllustrationQueue.from_context(
+            build_novel_ctx("S1"), persist_dir=tmp_path, constraint="watercolor, muted palette"
+        )
+        requirement = queue.entries[0].requirement
+        assert "Title: S1" in requirement
+        assert "Description: S1 description." in requirement
+        assert "Ch1" in requirement
+        assert "St1" in requirement
+        assert "watercolor, muted palette" in requirement
+
+    def test_from_context_omits_empty_sections_from_requirement(self, tmp_path: Path) -> None:
+        """Assert guarded variables (constraint, novel title) leave their sections out when empty."""
+        queue = SceneIllustrationQueue.from_context(build_novel_ctx("S1"), persist_dir=tmp_path, constraint="")
+        requirement = queue.entries[0].requirement
+        assert "## Style Constraints" not in requirement
+        assert "## Novel" not in requirement

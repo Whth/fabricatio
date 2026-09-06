@@ -6,7 +6,7 @@ from pathlib import Path
 from shutil import copyfile
 from typing import Unpack
 
-from fabricatio_core import TEMPLATE_MANAGER, logger
+from fabricatio_core import logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
@@ -15,6 +15,8 @@ from fabricatio_core.utils import cfg, first_available
 cfg(["comfyui"])
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.capabilities.loras import ChooseLoras
+from fabricatio_comfyui.models import LoraCatalog, LoraSpec
 from fabricatio_comfyui.models.resolution import Prop
 from fabricatio_comfyui.models.specs import SketchSpec
 
@@ -25,13 +27,16 @@ from fabricatio_novel.models.illustration import (
     IllustratedScene,
     IllustrationScopedConfig,
 )
+from fabricatio_novel.models.illustration_queue import (
+    PendingIllustration,
+    SceneIllustrationQueue,
+)
 from fabricatio_novel.models.novel import Novel
-from fabricatio_novel.utils import scene_image_name
 
 __all__ = ["IllustrateScenes"]
 
 
-class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfyUI, ABC):
+class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Propose, UseComfyUI, ABC):
     """Post-process illustration over a finished context: propose, render, then attach.
 
     Collects every pending scene of the composed context tree, proposes all
@@ -79,48 +84,25 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
             Mapping of ``(chapter_index, scene_index)`` to the proposed prompt and the
             absolute path of the rendered PNG; only successfully rendered scenes appear.
         """
-        images_dir = Path(persist_dir) / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-        constraint = (
-            first_available(
-                (illustration_constraint, self.illustration_constraint, novel_config.illustration_constraint)
-            )
-            or ""
+        queue = SceneIllustrationQueue.from_context(
+            novel_ctx,
+            persist_dir=persist_dir,
+            constraint=(
+                first_available(
+                    (illustration_constraint, self.illustration_constraint, novel_config.illustration_constraint)
+                )
+                or ""
+            ),
         )
-
-        # Phase 1: collect the pending scenes, rendering each proposal requirement.
-        pending: list[tuple[tuple[int, int], str, str, Path]] = []
-        for ci, chapter in enumerate(novel_ctx.iter_prefixed_contexts(), 1):
-            scene_offset = 0
-            for story in chapter.iter_prefixed_contexts():
-                for scene_idx, scene in enumerate(story.scene_context, scene_offset + 1):
-                    target = images_dir / Path(scene_image_name(ci, scene_idx)).name
-                    if novel_config.illustration_skip_existing and target.is_file():
-                        continue
-                    requirement = TEMPLATE_MANAGER.render_template(
-                        novel_config.scene_illustration_prompt_template,
-                        {
-                            "novel_title": novel_ctx.title,
-                            "chapter_title": chapter.title,
-                            "story_title": story.title,
-                            "scene_title": scene.title,
-                            "scene_description": scene.description,
-                            "scene_content": scene.content,
-                            "cast": scene.scene_plan.cast if scene.scene_plan else [],
-                            "illustration_constraint": constraint,
-                        },
-                    )
-                    pending.append(((ci, scene_idx), scene.title, requirement, target))
-                scene_offset += len(story.scene_context)
-        if not pending:
+        if not queue.entries:
             return {}
-        illustrations = await self._propose_and_render(pending, send_to=send_to, **kwargs)
+        illustrations = await self._propose_and_render(queue.entries, send_to=send_to, **kwargs)
         logger.info(f"Illustrated {len(illustrations)} new scene(s) for novel '{novel_ctx.title}'")
         return illustrations
 
     async def _propose_and_render(
         self,
-        pending: list[tuple[tuple[int, int], str, str, Path]],
+        pending: tuple[PendingIllustration, ...],
         *,
         send_to: str | None,
         **kwargs: Unpack[LLMKwargs],
@@ -136,18 +118,33 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         """
         # Phase 2: propose all image prompts concurrently; one failure skips only its scene.
         proposals = await asyncio.gather(
-            *(self.propose(SketchSpec, requirement, send_to=send_to, **kwargs) for _, _, requirement, _ in pending),
+            *(self.propose(SketchSpec, p.requirement, send_to=send_to, **kwargs) for p in pending),
             return_exceptions=True,
         )
         jobs: list[tuple[tuple[int, int], str, SketchSpec, Path]] = []
-        for (key, title, _, target), proposal in zip(pending, proposals, strict=True):
+        for p, proposal in zip(pending, proposals, strict=True):
             if isinstance(proposal, BaseException):
-                logger.warn(f"Illustration prompt proposal failed for scene '{title}': {proposal}; skipping")
+                logger.warn(f"Illustration prompt proposal failed for scene '{p.scene_title}': {proposal}; skipping")
                 continue
             if proposal is None:
-                logger.warn(f"Illustration prompt proposal failed for scene '{title}'; skipping")
+                logger.warn(f"Illustration prompt proposal failed for scene '{p.scene_title}'; skipping")
                 continue
-            jobs.append((key, title, proposal, target))
+            jobs.append((p.key, p.scene_title, proposal, p.target))
+
+        # LoRA chain per job: ``illustration_always_loras`` entries ride
+        # every render and their trigger words activate them; the comfyui
+        # catalog stays the selectable pool — the LLM picks per scene on
+        # top, with picked words resolved from the catalog entries.
+        always_entries = novel_config.illustration_always_loras
+        always_specs = [LoraSpec(lora_name=e.lora_name, strength=e.strength) for e in always_entries]
+        catalog = LoraCatalog.from_config()
+        render_jobs: list[tuple[tuple[int, int], str, SketchSpec, Path, str, list[LoraSpec]]] = []
+        for key, title, si, target in jobs:
+            picked = await self.choose_loras(si.prompt, catalog=catalog)
+            prompt = si.prompt
+            for entry in always_entries:
+                prompt = entry.augmented_prompt(prompt)
+            render_jobs.append((key, title, si, target, catalog.augment(prompt, picked), [*always_specs, *picked]))
 
         # Phase 3: render all prompts concurrently; each failure degrades its own scene.
         # Renders queue at the shared ComfyUI server, so the timeout grows linearly
@@ -156,7 +153,10 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         logger.info(f"Rendering {len(jobs)} scene illustration(s) with batch-scaled timeout {timeout:.0f}s")
         illustrations: dict[tuple[int, int], tuple[str, str]] = {}
         for entry in await asyncio.gather(
-            *(self._render_scene(key, title, si, target, timeout) for key, title, si, target in jobs)
+            *(
+                self._render_scene(key, title, si, target, timeout, prompt, loras)
+                for key, title, si, target, prompt, loras in render_jobs
+            )
         ):
             if entry is not None:
                 key, value = entry
@@ -170,11 +170,15 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
         si: SketchSpec,
         target: Path,
         timeout: float,
+        prompt: str,
+        loras: list[LoraSpec],
     ) -> tuple[tuple[int, int], tuple[str, str]] | None:
         """Render one scene's illustration into ``target``; ``None`` when the render fails.
 
         ``timeout`` is the batch-scaled budget shared by every concurrent render of
-        this batch (``illustration_timeout_per_image`` x batch size).
+        this batch (``illustration_timeout_per_image`` x batch size).  ``prompt``
+        and ``loras`` are the resolved render prompt (possibly trigger-augmented)
+        and LoRA chain handed down from the proposal phase.
         """
         prop = (
             si.prop
@@ -188,12 +192,13 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
             mp = ceiling
         try:
             path = await self.generate_image(
-                si.prompt,
+                prompt,
                 download_dir=target.parent,
                 negative_prompt=si.negative_prompt or novel_config.illustration_negative_prompt or None,
                 prop=prop,
                 mp=mp,
                 seed=novel_config.illustration_seed,
+                loras=loras,
                 timeout=timeout,
             )
         except Exception as e:  # noqa: BLE001 - per-scene degrade: one bad render must not fail the run
@@ -203,7 +208,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, Propose, UseComfy
             logger.warn(f"Image generation failed for scene '{title}'; skipping")
             return None
         copyfile(path, target)
-        return key, (si.prompt, str(target.resolve()))
+        return key, (prompt, str(target.resolve()))
 
     def attach_illustrations(
         self,
