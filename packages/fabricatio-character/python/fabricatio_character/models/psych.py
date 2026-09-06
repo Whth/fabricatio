@@ -18,10 +18,18 @@ Contents:
 - LinguisticStyle: decoupled expression patterns (TTM, Zhan et al., 2025)
 """
 
+from collections.abc import Mapping
 from enum import IntEnum, StrEnum, auto
+from typing import Self
 
 from fabricatio_core.models.generic import Base, ProposedAble
 from pydantic import Field
+
+
+def _clamp(value: float) -> float:
+    """Clamp *value* to the 0-100 trait range."""
+    return max(0.0, min(100.0, value))
+
 
 # -- Domain enums --
 
@@ -130,6 +138,10 @@ class SituationProfile(ProposedAble):
         vals = self.as_vector()
         return dims[vals.index(max(vals))]
 
+    def dimension(self, dim: SituationDimension) -> float:
+        """Return the score of *dim* (``as_vector`` order mirrors the enum)."""
+        return self.as_vector()[list(SituationDimension).index(dim)]
+
 
 # ── Stable identity components ──
 
@@ -178,6 +190,23 @@ class BigFiveProfile(Base):
         }
         return flag_map.get(flag, False)
 
+    def shifted(self, deltas: Mapping[BigFiveDimension, float], *, scale: float = 1.0) -> Self:
+        """Return a copy with each dimension nudged by ``delta * scale``, clamped to 0-100."""
+        clone = self.model_copy(deep=True)
+        for dim, delta in deltas.items():
+            match dim:
+                case BigFiveDimension.OPENNESS:
+                    clone.openness = _clamp(clone.openness + delta * scale)
+                case BigFiveDimension.CONSCIENTIOUSNESS:
+                    clone.conscientiousness = _clamp(clone.conscientiousness + delta * scale)
+                case BigFiveDimension.EXTRAVERSION:
+                    clone.extraversion = _clamp(clone.extraversion + delta * scale)
+                case BigFiveDimension.AGREEABLENESS:
+                    clone.agreeableness = _clamp(clone.agreeableness + delta * scale)
+                case BigFiveDimension.NEUROTICISM:
+                    clone.neuroticism = _clamp(clone.neuroticism + delta * scale)
+        return clone
+
 
 class CognitiveDistortion(Base):
     """CBT cognitive distortion tendency weights for a character."""
@@ -197,6 +226,23 @@ class CognitiveDistortion(Base):
     should_thinking: float = Field(ge=0, le=100, default=20.0)
     """Rigid expectations."""
 
+    def raised(self, weights: Mapping[Distortion, float]) -> Self:
+        """Return a copy with each *distortion*'s tendency weight set to its *weight*."""
+        clone = self.model_copy(deep=True)
+        for distortion, weight in weights.items():
+            match distortion:
+                case Distortion.CATASTROPHIZING:
+                    clone.catastrophizing = weight
+                case Distortion.BLACK_AND_WHITE:
+                    clone.black_and_white = weight
+                case Distortion.PERSONALIZATION:
+                    clone.personalization = weight
+                case Distortion.EMOTIONAL_REASONING:
+                    clone.emotional_reasoning = weight
+                case Distortion.SHOULD_THINKING:
+                    clone.should_thinking = weight
+        return clone
+
     def top(self, n: int = 1) -> list["Distortion"]:
         """Return top-N most likely distortion types."""
         scores: dict[str, float] = self.model_dump()
@@ -212,7 +258,7 @@ class CognitiveDistortion(Base):
 
         scores: dict[str, float] = self.model_dump()
         for dim_enum, distortion_boosts in character_config.mind_diamonds_distortion_boost.items():
-            dim_score = getattr(situation, dim_enum.value, 0.0)
+            dim_score = situation.dimension(dim_enum)
             if dim_score > 0:
                 for distortion, boost in distortion_boosts.items():
                     key = distortion.value

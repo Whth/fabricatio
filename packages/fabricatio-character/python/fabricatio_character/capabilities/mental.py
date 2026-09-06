@@ -91,10 +91,7 @@ class UseMind(Propose, ABC):
 
         initial_need = need_result[0] if need_result else MaslowLevel.BELONGING
 
-        cognitive = CognitiveDistortion()
-        for dist, triggered in distortion_results.items():
-            if triggered:
-                setattr(cognitive, dist.value, 70.0)
+        cognitive = CognitiveDistortion().raised({dist: 70.0 for dist, hit in distortion_results.items() if hit})
 
         return MentalState(
             mind=CharacterMind(character_name=card.name, age=age, cognitive_tendencies=cognitive),

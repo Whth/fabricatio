@@ -181,11 +181,7 @@ class MentalState(AsPrompt, PersistentAble):
 
         # 2. Personality drift (age-scaled from this mind's own age)
         scale = character_config.age_shift_scale(new_state.mind.age)
-        for dim, delta in impact.personality_shift.items():
-            if hasattr(new_state.mind.personality, dim.value):
-                current = getattr(new_state.mind.personality, dim.value)
-                new_val = max(0.0, min(100.0, current + delta * scale))
-                setattr(new_state.mind.personality, dim.value, new_val)
+        new_state.mind.personality = new_state.mind.personality.shifted(impact.personality_shift, scale=scale)
 
         # 3. Suffering accumulation
         if impact.created_suffering is not None:
@@ -193,7 +189,7 @@ class MentalState(AsPrompt, PersistentAble):
 
         # 4. Situation storage (independent of emotion — always apply if present)
         if impact.situation is not None:
-            new_state.emotion = new_state.emotion.model_copy(update={"latest_situation": impact.situation})
+            new_state.emotion.latest_situation = impact.situation
 
         # 5. Emotional state (replace, not mutate)
         if impact.emotion is not None:
