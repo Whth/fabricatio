@@ -2,7 +2,6 @@
 
 import asyncio
 import threading
-from dataclasses import replace
 from pathlib import Path
 from typing import cast
 from unittest.mock import patch
@@ -10,9 +9,11 @@ from unittest.mock import patch
 import httpx
 import pytest
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.capabilities.loras import ChooseLoras
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.http_client import ComfyUIHttpClient, get_comfyui_client
 from fabricatio_comfyui.models.anima import AnimaGraph
+from fabricatio_comfyui.models.catalog import LoraCatalog, LoraEntry, LoraPick, LoraSelection
 from fabricatio_comfyui.models.comfyui import (
     ExecutionResult,
     HistoryEntry,
@@ -21,6 +22,13 @@ from fabricatio_comfyui.models.comfyui import (
     QueueInfo,
     UploadResponse,
 )
+
+
+def replace(obj: object, **updates: object) -> object:
+    """Pydantic stand-in for ``dataclasses.replace`` — frozen copy with field overrides."""
+    return obj.model_copy(update=updates)  # ty: ignore[unresolved-attribute]
+
+
 from fabricatio_comfyui.models.graph import Graph, LoraSpec, NodeRef
 from fabricatio_comfyui.models.resolution import Prop, resolve_canvas
 from fabricatio_comfyui.models.specs import SketchSpec
@@ -1398,3 +1406,80 @@ class TestSketchSpec:
         """model_dump_json emits member-value prop ("prop_3_2") that revalidates to the same spec."""
         spec = SketchSpec(prompt="a lone rider at dawn", negative_prompt="text", prop="prop_3_2", mp=1.5)
         assert SketchSpec.model_validate_json(spec.model_dump_json()) == spec
+
+
+# ======================================================================
+# LoRA catalog — manual declaration + LLM selection
+# ======================================================================
+
+
+def _catalog() -> LoraCatalog:
+    return LoraCatalog(
+        entries=[
+            LoraEntry(
+                lora_name="detail.safetensors",
+                strength=0.7,
+                effect="Adds fine detail and crisp lineart.",
+                trigger_words="detailed lineart",
+            ),
+            LoraEntry(lora_name="soft.safetensors", strength=0.8, effect="Softens lighting."),
+        ]
+    )
+
+
+class TestLoraCatalog:
+    """Manual catalog declaration, loud resolution, and trigger-word augmentation."""
+
+    def test_resolve_falls_strength_back_to_recommendation(self) -> None:
+        """Missing strengths fall back to each entry's recommendation; overrides win."""
+        specs = _catalog().resolve(
+            [LoraPick(lora_name="detail.safetensors"), LoraPick(lora_name="soft.safetensors", strength=0.5)]
+        )
+        assert specs == [
+            LoraSpec(lora_name="detail.safetensors", strength=0.7),
+            LoraSpec(lora_name="soft.safetensors", strength=0.5),
+        ]
+
+    def test_resolve_unknown_name_raises(self) -> None:
+        """A pick naming an undeclared LoRA raises instead of wiring a bogus node."""
+        with pytest.raises(ValueError, match="Unknown LoRA"):
+            _catalog().resolve([LoraPick(lora_name="nope.safetensors")])
+
+    def test_augment_appends_trigger_words_in_chain_order(self) -> None:
+        """Trigger words append in chain order; entries without triggers contribute nothing."""
+        specs = _catalog().resolve([LoraPick(lora_name="soft.safetensors"), LoraPick(lora_name="detail.safetensors")])
+        assert _catalog().augment("a cat", specs) == "a cat, detailed lineart"
+
+    def test_augmented_prompt_noop_without_triggers(self) -> None:
+        """An entry without trigger words leaves the prompt untouched."""
+        entry = LoraEntry(lora_name="soft.safetensors", strength=0.8, effect="Softens lighting.")
+        assert entry.augmented_prompt("a cat") == "a cat"
+
+    def test_brief_lists_every_entry(self) -> None:
+        """The brief names every declared entry for the LLM to choose from."""
+        brief = _catalog().brief()
+        assert "detail.safetensors" in brief
+        assert "soft.safetensors" in brief
+
+
+class TestChooseLoras:
+    """LLM selection resolves strictly against the catalog."""
+
+    @pytest.mark.asyncio
+    async def test_choose_loras_resolves_selection(self) -> None:
+        """Role under test with a mocked LLM."""
+        role = ChooseLoras()
+        payload = LoraSelection(picks=[LoraPick(lora_name="detail.safetensors", strength=0.9)])
+
+        async def fake_aask_validate(_self: object, **kwargs: object) -> LoraSelection:
+            return payload
+
+        with patch.object(ChooseLoras, "aask_validate", new=fake_aask_validate):
+            specs = await role.choose_loras("a knight in ornate armor", catalog=_catalog())
+        assert specs == [LoraSpec(lora_name="detail.safetensors", strength=0.9)]
+
+    @pytest.mark.asyncio
+    async def test_choose_loras_empty_catalog_short_circuits(self) -> None:
+        """Role under test against an empty catalog."""
+        role = ChooseLoras()
+        assert await role.choose_loras("anything", catalog=LoraCatalog()) == []

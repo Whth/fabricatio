@@ -6,6 +6,12 @@ and is *not* re-exported here — external callers interact with the package
 through high-level knobs (:meth:`UseComfyUI.generate_image` and friends).
 """
 
+from fabricatio_comfyui.models.catalog import (
+    LoraCatalog,
+    LoraEntry,
+    LoraPick,
+    LoraSelection,
+)
 from fabricatio_comfyui.models.comfyui import (
     ComfyUIScopedConfig,
     ExecutionResult,
@@ -39,6 +45,10 @@ __all__ = [
     "HistoryEntry",
     "HistoryNodeOutput",
     "HistoryStatus",
+    "LoraCatalog",
+    "LoraEntry",
+    "LoraPick",
+    "LoraSelection",
     "LoraSpec",
     "OutputImage",
     "PollKwargs",

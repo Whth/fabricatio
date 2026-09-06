@@ -23,12 +23,16 @@ workflow.
 from fabricatio_comfyui.actions import GenerateImage
 from fabricatio_comfyui.api import generate_image
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
+from fabricatio_comfyui.capabilities.loras import ChooseLoras
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import ComfyUIConfig, comfyui_config
 from fabricatio_comfyui.http_client import ComfyUIHttpClient
 from fabricatio_comfyui.models import (
     ExecutionResult,
     HistoryEntry,
+    LoraCatalog,
+    LoraEntry,
+    LoraSelection,
     OutputImage,
     PromptResponse,
     QueueInfo,
@@ -38,12 +42,16 @@ from fabricatio_comfyui.models import (
 )
 
 __all__ = [
+    "ChooseLoras",
     "ComfyUIClientBase",
     "ComfyUIConfig",
     "ComfyUIHttpClient",
     "ExecutionResult",
     "GenerateImage",
     "HistoryEntry",
+    "LoraCatalog",
+    "LoraEntry",
+    "LoraSelection",
     "OutputImage",
     "PromptResponse",
     "QueueInfo",

@@ -1,17 +1,17 @@
 """Configuration for fabricatio-comfyui."""
 
-from dataclasses import dataclass
 from typing import Literal
 
 from fabricatio_core import CONFIG
+from pydantic import BaseModel
 
+from fabricatio_comfyui.models.catalog import LoraEntry
 from fabricatio_comfyui.models.resolution import Prop
 
 __all__ = ["ComfyUIConfig", "comfyui_config"]
 
 
-@dataclass(frozen=True)
-class ComfyUIConfig:
+class ComfyUIConfig(BaseModel):
     """Configuration for the ComfyUI API client."""
 
     base_url: str = "http://127.0.0.1:8188"
@@ -76,6 +76,12 @@ class ComfyUIConfig:
     :func:`fabricatio_comfyui.api.generate_image`) when no per-call
     ``download_dir`` is given; the directory is created on demand.
     """
+
+    choose_loras_template: str = "built-in/lora_selection"
+    """Template used by :meth:`ChooseLoras.choose_loras` to render the LoRA-selection prompt."""
+
+    loras: tuple[LoraEntry, ...] = ()
+    """User-declared LoRAs the LLM may choose from (see :mod:`fabricatio_comfyui.models.catalog`)."""
 
 
 comfyui_config = CONFIG.load("comfyui", ComfyUIConfig)
