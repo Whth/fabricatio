@@ -72,7 +72,7 @@ class IllustratedScene(Scene):
         sections = [super().to_xhtml(chapter_index, scene_index)]
         if self.illustration_image:
             sections.append(
-                f'<figure class="illustration"><img src="{scene_image_name(chapter_index, scene_index)}" '
+                f'<figure class="illustration"><img src="images/{scene_image_name(chapter_index, scene_index)}" '
                 f'alt="{html.escape(self.title)}"/></figure>'
             )
         return "\n".join(sections)
@@ -81,4 +81,4 @@ class IllustratedScene(Scene):
         """Return this scene's illustration as an EPUB image resource, or nothing before one exists."""
         if not self.illustration_image:
             return []
-        return [(scene_image_name(chapter_index, scene_index), Path(self.illustration_image))]
+        return [(f"images/{scene_image_name(chapter_index, scene_index)}", Path(self.illustration_image))]

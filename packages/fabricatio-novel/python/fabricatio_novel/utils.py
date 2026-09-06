@@ -1,13 +1,15 @@
 """Utility helpers for the fabricatio novel package."""
 
+from pathlib import Path
+
 from fabricatio_core import logger
 
 __all__ = ["scene_image_name", "strip_overlapping_prefix"]
 
 
-def scene_image_name(chapter_index: int, scene_index: int) -> str:
-    """Return the EPUB resource name of a scene's illustration; both indices are 1-based."""
-    return f"images/scene_{chapter_index:02d}_{scene_index:02d}.png"
+def scene_image_name(chapter_index: int, scene_index: int) -> Path:
+    """Return the file name of a scene's illustration; both indices are 1-based."""
+    return Path(f"scene_{chapter_index:02d}_{scene_index:02d}.png")
 
 
 def _normalized_with_offsets(text: str) -> tuple[str, list[int]]:
