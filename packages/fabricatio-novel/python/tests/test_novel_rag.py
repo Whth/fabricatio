@@ -19,7 +19,7 @@ class TestRAGCompose:
     """Test suite for writing style RAG scene prompts."""
 
     async def test_prepare_scene_requirement_injects_style_docs_in_order(self) -> None:
-        """Assert raw style docs render between the before-story prefix and the story so far."""
+        """Assert raw style docs render after the leading novel-so-far block."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("Chapter One\n\nThe hero leaves home.", title="Battle"))
@@ -30,8 +30,7 @@ class TestRAGCompose:
 
         assert "## Writing Styles" in requirement
         assert "Dark gothic prose with terse action lines." in requirement
-        assert requirement.index("# Previous Content") < requirement.index("## Writing Styles")
-        assert requirement.index("## Writing Styles") < requirement.index("## Story so far")
+        assert requirement.index("--- End of Novel so far ---") < requirement.index("## Writing Styles")
         assert "## Writing Style Guideline" not in requirement
 
     async def test_compose_story_keeps_stable_prefix_byte_identical(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,16 +68,14 @@ class TestRAGCompose:
         assert result is not None
         reqs = [await role.prepare_scene_requirement(scene) for scene in story.scene_context]
 
-        stable = reqs[1][: reqs[1].index("## Story so far")]
-        assert reqs[0][: reqs[0].index("## Scene")] == stable
-        assert reqs[2][: reqs[2].index("## Story so far")] == stable
-        assert "Dark gothic prose with terse action lines." in stable
-        assert "The world is cold." in stable
+        assert reqs[0].startswith("--- Start of Novel so far ---")
+        assert "Dark gothic prose with terse action lines." in reqs[0]
+        assert "The world is cold." in reqs[0]
 
+        # each later prompt shares every byte of the earlier prompt's novel-so-far bodies
         for prev, nxt in pairwise(reqs):
-            if "--- End of Story so far ---" in prev:
-                shared = prev.index("\n--- End of Story so far ---")
-                assert nxt.startswith(prev[:shared])
+            cut = prev.rindex("\n--- End of Novel so far ---")
+            assert nxt.startswith(prev[:cut])
 
     async def test_prepare_story_retrieves_docs_once(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert plan_scenes_phase retrieves style docs exactly once."""

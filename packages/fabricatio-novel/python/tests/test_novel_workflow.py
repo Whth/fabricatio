@@ -224,11 +224,12 @@ class TestNovelWorkflow:
         illustration = SketchSpec(prompt="a lone rider at dawn")
         with install_router_usage(
             *return_mixed_router_usage(
-                # Illustration value first: upstream earlier stages are steady
-                # cache hits, so the (outline-independent) illustrate prompt is
-                # the only consumer that can reach the stack — whether as a
-                # cache miss (attempt 0) or as the first no-cache retry after a
-                # poisoned/stale cache hit. Keeping it at the top heals both.
+                # The scene-write and illustration prompts embed the manuscript
+                # context first, so their first post-change runs miss the
+                # persistent cache and consume the stack head in stage order:
+                # the scene write takes the raw prose, the illustrate-stage
+                # proposal takes the illustration value next.
+                raw_value("He left."),
                 Value(illustration, "model"),
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),

@@ -9,6 +9,7 @@ from pydantic import Field
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.rag import RagRetrieval
+from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
@@ -51,6 +52,15 @@ class ChapterContext(Titled, Described, ContextBase):
     def iter_child_contexts(self) -> Generator[StoryContext, None, None]:
         """Yield this chapter's story contexts, in composition order."""
         yield from self.story_context
+
+    @final
+    def iter_scenes(self) -> Generator[tuple[int, StoryContext, SceneContext], None, None]:
+        """Yield every scene in prefix order as ``(scene_index, story, scene)``; indices are 1-based, chapter-scoped, and continuous across stories."""
+        offset = 0
+        for story in self.iter_prefixed_contexts():
+            for scene_idx, scene in enumerate(story.iter_prefixed_contexts(), offset + 1):
+                yield scene_idx, story, scene
+            offset += len(story.scene_context)
 
     @final
     def render_prefixed_header(self) -> str:

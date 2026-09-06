@@ -152,15 +152,15 @@ class TestBibleConsumption:
         assert kinds[0] == "setting_bible"
         assert "Hero — brave protagonist" in scene.prefix_log.render()
 
-    async def test_seeded_bible_renders_inside_previous_content(self) -> None:
-        """Assert the bible renders within the previous-content block, not a dedicated section."""
+    async def test_seeded_bible_renders_inside_novel_so_far(self) -> None:
+        """Assert the bible renders within the leading novel-so-far block, not a dedicated section."""
         role = BibleRole(name="bible_role")
         scene = self._scene_with_seeded_prefix()
         requirement = await role.prepare_scene_requirement(scene)
-        assert requirement.startswith("# Scene Writing")
-        assert "## Setting Bible" in requirement
-        assert requirement.index("## Setting Bible") > requirement.index("# Previous Content")
-        assert requirement.index("Hero — brave protagonist") > requirement.index("# Previous Content")
+        assert requirement.startswith("--- Start of Novel so far ---")
+        assert requirement.index("## Setting Bible") < requirement.index("--- End of Novel so far ---")
+        assert requirement.index("Hero — brave protagonist") < requirement.index("--- End of Novel so far ---")
+        assert requirement.index("# Scene Writing") > requirement.index("--- End of Novel so far ---")
         assert requirement.index("## Setting Bible") < requirement.index("## Scene")
 
     async def test_unseeded_scene_omits_the_bible(self) -> None:

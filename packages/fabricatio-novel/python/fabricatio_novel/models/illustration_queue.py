@@ -77,26 +77,23 @@ class SceneIllustrationQueue:
         images_dir.mkdir(parents=True, exist_ok=True)
         entries: list[PendingIllustration] = []
         for ci, chapter in enumerate(novel_ctx.iter_prefixed_contexts(), 1):
-            scene_offset = 0
-            for story in chapter.iter_prefixed_contexts():
-                for scene_idx, scene in enumerate(story.iter_prefixed_contexts(), scene_offset + 1):
-                    target = images_dir.joinpath(scene_image_name(ci, scene_idx))
-                    if novel_config.illustration_skip_existing and target.is_file():
-                        continue
-                    requirement = TEMPLATE_MANAGER.render_template(
-                        novel_config.scene_illustration_prompt_template,
-                        {
-                            "novel_title": novel_ctx.title,
-                            "chapter_title": chapter.title,
-                            "story_title": story.title,
-                            "scene_title": scene.title,
-                            "scene_description": scene.description,
-                            "prefixed_content": scene.prefix_log.render(),
-                            "scene_content": scene.content,
-                            "cast": scene.scene_plan.cast if scene.scene_plan else [],
-                            "illustration_constraint": constraint,
-                        },
-                    )
-                    entries.append(PendingIllustration((ci, scene_idx), scene.title, requirement, target))
-                scene_offset += len(story.scene_context)
+            for scene_idx, story, scene in chapter.iter_scenes():
+                target = images_dir.joinpath(scene_image_name(ci, scene_idx))
+                if novel_config.illustration_skip_existing and target.is_file():
+                    continue
+                requirement = TEMPLATE_MANAGER.render_template(
+                    novel_config.scene_illustration_prompt_template,
+                    {
+                        "novel_title": novel_ctx.title,
+                        "chapter_title": chapter.title,
+                        "story_title": story.title,
+                        "scene_title": scene.title,
+                        "scene_description": scene.description,
+                        "novel_so_far": scene.prefix_log.render(),
+                        "scene_content": scene.content,
+                        "cast": scene.scene_plan.cast if scene.scene_plan else [],
+                        "illustration_constraint": constraint,
+                    },
+                )
+                entries.append(PendingIllustration((ci, scene_idx), scene.title, requirement, target))
         return cls(entries=tuple(entries), images_dir=images_dir)

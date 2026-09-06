@@ -1,40 +1,26 @@
+{{#if novel_so_far}}
+{{ block novel_so_far "Novel so far" }}
+
+{{/if}}
 # Scene Writing
 
 ## Goal
-Write a single scene of the novel in full prose, as a seamless continuation of the story so far.
+Write a single scene of the novel in full prose, as a seamless continuation of the text above.
 
 ## Requirements
 - Write exactly the scene defined by its Title and Description below; stay inside this scene and do not advance other plotlines or skip ahead in time.
 - Keep every character consistent with their established traits, speech patterns, and motivations, and honor the story's start and end states.
-- When there is previous content, match its narrative voice, tense, and point of view, and never repeat or contradict anything already written.
+- The novel text above is everything written so far: match its narrative voice, tense, and point of view, continue seamlessly from where it ends, and never repeat or contradict it. Your prose will be appended directly after it.
 - Output ONLY the scene prose as plain paragraphs — no headings, no title, no blockquotes, no JSON, no commentary, no summary.
 
 Respond entirely in "{{ language }}".
 
-{{#if prefixed_content}}
-# Previous Content
-
-The novel written before this story follows. Continue seamlessly from where it ends — your response will be appended directly after it. Do not repeat or contradict it.
-
-{{ block prefixed_content "Previous content" }}
-
----
-{{/if}}
 {{#if writing_styles}}
 ## Writing Styles
 
 Apply these style directives — inherited guidance shared by every scene of this story; reference excerpts show techniques to emulate where they fit.
 
 {{ writing_styles }}
-
----
-{{/if}}
-{{#if scenes_so_far}}
-## Story so far
-
-The scenes of this story written so far follow. Continue seamlessly from where they end — do not repeat or contradict them.
-
-{{ block scenes_so_far "Story so far" }}
 
 ---
 {{/if}}

@@ -246,18 +246,18 @@ class TestNovelCompose:
             novel = await role.compose_novel(ctx)
         assert novel is None
 
-    async def test_prepare_scene_requirement_renders_prefixed_content_after_static_head(self) -> None:
-        """Assert the static head leads and prefixed content renders after the Previous Content marker."""
+    async def test_prepare_scene_requirement_leads_with_novel_so_far(self) -> None:
+        """Assert the novel-so-far block leads the prompt and the stage instructions follow it."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("He walked into the dark.", title="S2"))
 
         requirement = await role.prepare_scene_requirement(ctx)
 
-        # the static head (incl. per-run language) leads so it stays prefix-cacheable
-        assert requirement.startswith("# Scene Writing")
-        assert requirement.index("Respond entirely in") < requirement.index("# Previous Content")
-        assert requirement.index("He walked into the dark.") > requirement.index("# Previous Content")
+        # the shared manuscript context leads so the provider prefix cache hits across stages
+        assert requirement.startswith("--- Start of Novel so far ---")
+        assert requirement.index("He walked into the dark.") < requirement.index("--- End of Novel so far ---")
+        assert requirement.index("# Scene Writing") > requirement.index("--- End of Novel so far ---")
         assert requirement.index("A stranger appears.") > requirement.index("## Scene")
         # the per-scene word count must not sit inside the static Requirements block
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
