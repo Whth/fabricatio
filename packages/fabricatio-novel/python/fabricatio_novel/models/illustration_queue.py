@@ -61,8 +61,9 @@ class SceneIllustrationQueue:
 
         Creates the run's ``images/`` directory, applies the
         ``[ext.novel] illustration_skip_existing`` filter against each scene's
-        canonical PNG name, and renders each proposal requirement from
-        ``[ext.novel] scene_illustration_prompt_template``.
+        canonical PNG name, and renders each proposal requirement — the scene's
+        running prefix included, so the proposal sees everything composed before
+        it — from ``[ext.novel] scene_illustration_prompt_template``.
 
         Args:
             novel_ctx: The composed novel context whose scenes get queued.
@@ -78,8 +79,8 @@ class SceneIllustrationQueue:
         for ci, chapter in enumerate(novel_ctx.iter_prefixed_contexts(), 1):
             scene_offset = 0
             for story in chapter.iter_prefixed_contexts():
-                for scene_idx, scene in enumerate(story.scene_context, scene_offset + 1):
-                    target = images_dir / Path(scene_image_name(ci, scene_idx)).name
+                for scene_idx, scene in enumerate(story.iter_prefixed_contexts(), scene_offset + 1):
+                    target = images_dir.joinpath(scene_image_name(ci, scene_idx))
                     if novel_config.illustration_skip_existing and target.is_file():
                         continue
                     requirement = TEMPLATE_MANAGER.render_template(
@@ -90,6 +91,7 @@ class SceneIllustrationQueue:
                             "story_title": story.title,
                             "scene_title": scene.title,
                             "scene_description": scene.description,
+                            "prefixed_content": scene.prefix_log.render(),
                             "scene_content": scene.content,
                             "cast": scene.scene_plan.cast if scene.scene_plan else [],
                             "illustration_constraint": constraint,
