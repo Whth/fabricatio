@@ -1,8 +1,9 @@
 """Flat per-element plan models and their bare-JSON-array list classes."""
 
+from pydantic import Field, PositiveFloat
+
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
-from pydantic import Field, PositiveFloat
 
 
 class WeightedPlan(SketchedAble, Titled, Described):
@@ -34,7 +35,7 @@ class ScenePlan(WeightedPlan):
     its end. The model writes the scene's prose directly from this description, so give concrete,
     stageable details — not a theme or a summary."""
 
-    writing_style: str = ""
+    writing_style: str
     """1-2 sentences stating the writing technique for this scene's prose: narrative voice and
     point of view, sentence rhythm, tone and atmosphere, dialogue handling, and description
     density. The model writes the prose directly from this, so name concrete, applicable
@@ -57,7 +58,7 @@ class StoryPlan(WeightedPlan):
     the characters involved, and what changes by the end. It is shown when planning the story's
     scenes, so name the concrete events to stage rather than restating the chapter."""
 
-    writing_style: str = ""
+    writing_style: str
     """1-3 sentences stating the writing style its scenes should share: a consistent voice, tone,
     and technique across the story's scenes. Empty when the chapter's style already suffices."""
 
@@ -78,7 +79,7 @@ class ChapterPlan(WeightedPlan):
     the key event or reversal, and where it leaves the characters. Focus on the chapter's own
     arc — it is shown when planning the chapter's stories, so name the events that stage it."""
 
-    writing_style: str = ""
+    writing_style: str
     """2-3 sentences stating the writing style its stories should follow: the chapter's narrative
     voice, tone, and pacing. Empty when the novel's style already suffices."""
 
@@ -99,14 +100,12 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     central conflict blocking them, and the stakes. Convey genre and tone. This description
     seeds every chapter's planning prompt, so be specific and evocative, never a tagline."""
 
-    writing_style: str = ""
+    writing_style: str
     """6-9 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
     and recurring techniques. It seeds the style guidance of every chapter, story, and scene."""
 
-    writing_constraint: str = ""
-    """The novel's global writing constraint, generated from the author's stated intent
-    (e.g. first person view): concrete, enforceable rules every chapter, story, and scene
-    must honor. It is allocated down the tree and accumulated onto every scene prompt."""
+    writing_constraint: str
+    """6-12 sentences. Represent hard quality check standards, shall be extracted carefully from the outline."""
 
 
 class ScenePlans(JSONList[ScenePlan]):
