@@ -26,5 +26,7 @@ class Story(StoryPlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
+            writing_style=ctx.story_plan.writing_style if ctx.story_plan is not None else "",
+            writing_constraint=ctx.writing_constraint,
             scenes=[Scene.from_context(sc) for sc in ctx.scene_context],
         )

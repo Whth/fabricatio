@@ -38,9 +38,33 @@ class TestNovelWorkflow:
             description="A hero searching for his father.",
             expected_word_count=100,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [
+            {
+                "title": "Ch1",
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
@@ -92,9 +116,33 @@ class TestNovelWorkflow:
             description="A hero searching for his father.",
             expected_word_count=100,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [
+            {
+                "title": "Ch1",
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
@@ -143,15 +191,39 @@ class TestNovelWorkflow:
             description="A hero searching for his father.",
             expected_word_count=100,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [
+            {
+                "title": "Ch1",
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         with install_router_usage(
             *return_mixed_router_usage(
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),
                 Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -217,28 +289,49 @@ class TestNovelWorkflow:
             expected_word_count=100,
         )
         chapter_plans_json = [
-            {"title": "Harbor", "description": "The apprentice boards the ferry barge.", "weight": 1.0}
+            {
+                "title": "Harbor",
+                "description": "The apprentice boards the ferry barge.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
         ]
-        story_plans_json = [{"title": "Departure", "description": "The mooring lines are cut at dawn.", "weight": 1.0}]
-        scene_plans_json = [{"title": "Cut Lines", "description": "The city pulls away from the sea.", "weight": 1.0}]
+        story_plans_json = [
+            {
+                "title": "Departure",
+                "description": "The mooring lines are cut at dawn.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "Cut Lines",
+                "description": "The city pulls away from the sea.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         illustration = SketchSpec(prompt="a lone rider at dawn")
         with install_router_usage(
             *return_mixed_router_usage(
-                # The span-stage prompt changed with the required metric, so its
-                # first post-change run misses the persistent cache and burns the
-                # stack head before the scene-write call pops its raw prose; the
-                # spans value leads so the span stage lands it on attempt 2 and
-                # re-warms its cache entry for later runs.
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
-                raw_value("He left."),
-                Value(illustration, "model"),
+                # Stacks mirror the workflow's true LLM call order so the run is
+                # deterministic whether or not the persistent cache serves any
+                # key: metadata, bible roster and background, roster spans,
+                # chapter/story/scene plan lists, the scene write, and finally
+                # the outline-independent illustration proposal.
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),
                 Value(["A quiet riverside town in late summer."], "json"),
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
                 raw_value("He left."),
+                Value(illustration, "model"),
             ),
         ):
             epub = await task.delegate(namespace)

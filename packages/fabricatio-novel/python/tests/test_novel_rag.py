@@ -131,7 +131,7 @@ class TestRAGCompose:
             return []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> ScenePlans:
-            return ScenePlans(root=[ScenePlan(title="S1", description="Leaving home.", weight=1.0)])
+            return ScenePlans(root=[ScenePlan(title="S1", description="Leaving home.", weight=1.0, writing_style="", writing_constraint="")])
 
         monkeypatch.setattr(RAGRole, "_fetch_style_docs", staticmethod(fake_fetch_docs))
         monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
@@ -240,7 +240,7 @@ class TestRAGCompose:
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         with install_router_usage(
-            *return_router_usage('[{"title": "S1", "description": "Leaving home.", "weight": 1.0}]', "He left."),
+            *return_router_usage('[{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]', "He left."),
         ):
             result = await role.compose_story(story)
 

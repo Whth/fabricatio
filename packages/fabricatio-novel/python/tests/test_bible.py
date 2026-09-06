@@ -186,9 +186,9 @@ class TestBibleThreading:
             description="A hero searching.",
             expected_word_count=40,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
@@ -218,9 +218,9 @@ class TestBibleThreading:
             description="A hero searching.",
             expected_word_count=40,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),

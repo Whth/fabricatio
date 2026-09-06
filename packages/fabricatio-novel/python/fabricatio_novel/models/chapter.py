@@ -34,6 +34,8 @@ class Chapter(ChapterPlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
+            writing_style=ctx.chapter_plan.writing_style if ctx.chapter_plan is not None else "",
+            writing_constraint=ctx.writing_constraint,
             story=[Story.from_context(sc) for sc in ctx.story_context],
         )
 

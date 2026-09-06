@@ -28,9 +28,33 @@ class TestNovelPlan:
             description="A hero searching for his father.",
             expected_word_count=100,
         )
-        chapter_plans_json = [{"title": "Ch1", "description": "The hero sets out.", "weight": 1.0}]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        chapter_plans_json = [
+            {
+                "title": "Ch1",
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         responses = return_mixed_router_usage(
             Value(meta, "model"),
             Value(chapter_plans_json, "json"),
@@ -72,15 +96,25 @@ class TestNovelPlan:
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
+                "writing_style": "",
                 "writing_constraint": "Keep first person during the road journey.",
             },
         ]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_constraint": ""}]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         scene_plans_json = [
             {
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
+                "writing_style": "",
                 "writing_constraint": "Stay in the protagonist's head; no head-hopping.",
             },
         ]
@@ -143,8 +177,24 @@ class TestNovelPlan:
             description="A hero searching.",
             expected_word_count=100,
         )
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
 
         responses = return_mixed_router_usage(
             Value(meta, "model"),
@@ -179,11 +229,27 @@ class TestWordCountAllocation:
             expected_word_count=400,
         )
         chapter_plans_json = [
-            {"title": "Ch1", "description": "The start.", "weight": 3.0},
-            {"title": "Ch2", "description": "The road.", "weight": 1.0},
+            {"title": "Ch1", "description": "The start.", "weight": 3.0, "writing_style": "", "writing_constraint": ""},
+            {"title": "Ch2", "description": "The road.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
         ]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        story_plans_json = [
+            {
+                "title": "St1",
+                "description": "The departure.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
+        scene_plans_json = [
+            {
+                "title": "S1",
+                "description": "Leaving home.",
+                "weight": 1.0,
+                "writing_style": "",
+                "writing_constraint": "",
+            }
+        ]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),

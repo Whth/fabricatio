@@ -34,11 +34,11 @@ class TestCharacterSpans:
         novel_end = novel_start.model_copy(update={"look": "wounded"})
         chapter_boundary = novel_start.model_copy(update={"act": "cautious"})
         chapter_plans_json = [
-            {"title": "Ch1", "description": "The start.", "weight": 1.0},
-            {"title": "Ch2", "description": "The road.", "weight": 1.0},
+            {"title": "Ch1", "description": "The start.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
+            {"title": "Ch2", "description": "The road.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
         ]
-        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0}]
-        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
+        story_plans_json = [{"title": "St1", "description": "The departure.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
+        scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(meta, "model"),
@@ -268,7 +268,7 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
         ctx.set_scene_plan(
-            ScenePlan(title="S2", description="A stranger appears.", writing_style="Close first person."),
+            ScenePlan(title="S2", description="A stranger appears.", writing_style="Close first person.", writing_constraint=""),
         )
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" in requirement

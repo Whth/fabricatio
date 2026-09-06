@@ -1,9 +1,8 @@
 """Flat per-element plan models and their bare-JSON-array list classes."""
 
-from pydantic import Field, PositiveFloat
-
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
+from pydantic import Field, PositiveFloat
 
 
 class WeightedPlan(SketchedAble, Titled, Described):
@@ -12,11 +11,11 @@ class WeightedPlan(SketchedAble, Titled, Described):
     weight: PositiveFloat = 1.0
     """Relative importance for allocating the parent's expected word count; assign by narrative importance."""
 
-    writing_style: str = ""
+    writing_style: str
     """Writing technique guidance for this element's prose: narrative voice, point of view,
     tone, rhythm, and recurring techniques; empty when no specific style is required."""
 
-    writing_constraint: str = ""
+    writing_constraint: str
     """Additional hard writing constraint for this element on top of the parent's: point of
     view, tense, perspective, prohibitions. The parent's constraint stays in force and is
     accumulated down the tree; empty when no extra constraint applies."""
@@ -41,6 +40,14 @@ class ScenePlan(WeightedPlan):
     density. The model writes the prose directly from this, so name concrete, applicable
     techniques — not a genre label or a theme."""
 
+    writing_constraint: str
+    """1-2 sentences stating the hard writing constraint binding this scene alone, on top of
+    the story's: whose head the prose stays in (no head-hopping), where this beat may start
+    or end, and scene-specific dialogue or sensory restrictions. The parent's constraint
+    stays in force verbatim and accumulates down the tree automatically — extract only what
+    this scene itself adds, never restate the parent's; empty when the scene adds no rule
+    of its own."""
+
 
 class StoryPlan(WeightedPlan):
     """Plan of a single story; its weight allocates the chapter's expected word count."""
@@ -54,6 +61,14 @@ class StoryPlan(WeightedPlan):
     """1-3 sentences stating the writing style its scenes should share: a consistent voice, tone,
     and technique across the story's scenes. Empty when the chapter's style already suffices."""
 
+    writing_constraint: str
+    """1-2 sentences stating the hard writing constraint binding this story as a whole, on
+    top of the chapter's: the story's own point of view or tense, how its scenes progress,
+    and prohibitions spanning its scenes — not the chapter-wide sequencing, which the
+    chapter plan owns. The parent's constraint stays in force verbatim and accumulates
+    automatically — extract only what this story itself adds, never restate the parent's;
+    empty when the story adds no rule of its own."""
+
 
 class ChapterPlan(WeightedPlan):
     """Plan of a single chapter; its weight allocates the novel's expected word count."""
@@ -66,6 +81,14 @@ class ChapterPlan(WeightedPlan):
     writing_style: str = ""
     """2-3 sentences stating the writing style its stories should follow: the chapter's narrative
     voice, tone, and pacing. Empty when the novel's style already suffices."""
+
+    writing_constraint: str
+    """2-3 sentences stating the hard writing constraint binding this chapter as a whole,
+    on top of the novel's global one: the chapter-wide sequencing its stories must follow
+    (e.g. the act order), any chapter-wide point of view or tense, and prohibitions
+    spanning stories. The parent's constraint stays in force verbatim and accumulates
+    automatically — extract only what this chapter itself adds, never restate the parent's;
+    empty when the chapter adds no rule of its own."""
 
 
 class NovelPlan(SketchedAble, Titled, Described, WordCount):

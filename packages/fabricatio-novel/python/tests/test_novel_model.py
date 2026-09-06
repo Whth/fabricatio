@@ -82,14 +82,14 @@ class TestNovelContext:
             .set_content("He left.")
             .set_prefix_log(prefix_log("Before.", title="S1"))
             .set_writing_constraint("First person view throughout.")
-            .set_scene_plan(ScenePlan(title="S1", description="Leaving home."))
+            .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", writing_style="", writing_constraint=""))
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
         story.add_scene_context(scene)
-        story.set_story_plan(StoryPlan(title="St1", description="The departure."))
+        story.set_story_plan(StoryPlan(title="St1", description="The departure.", writing_style="", writing_constraint=""))
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
         chapter.add_story_context(story)
-        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start."))
+        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start.", writing_style="", writing_constraint=""))
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
@@ -178,7 +178,7 @@ class TestFromContext:
 
     def test_from_plan_copies_plan_fields(self) -> None:
         """Assert SceneContext.from_plan copies plan fields and keeps the plan reference."""
-        plan = ScenePlan(title="S1", description="The descent.", weight=1.0, writing_style="Gothic, lyrical prose.")
+        plan = ScenePlan(title="S1", description="The descent.", weight=1.0, writing_style="Gothic, lyrical prose.", writing_constraint="")
         ctx = SceneContext.from_plan(plan, expected_word_count=300)
         assert ctx.title == "S1"
         assert ctx.description == "The descent."
@@ -188,15 +188,15 @@ class TestFromContext:
 
     def test_plans_default_to_empty_cast(self) -> None:
         """Assert every weighted plan proposes an empty cast unless the planner names one."""
-        assert ScenePlan(title="S1", description="D").cast == []
-        assert StoryPlan(title="St1", description="D").cast == []
-        assert ChapterPlan(title="C1", description="D").cast == []
+        assert ScenePlan(title="S1", description="D", writing_style="", writing_constraint="").cast == []
+        assert StoryPlan(title="St1", description="D", writing_style="", writing_constraint="").cast == []
+        assert ChapterPlan(title="C1", description="D", writing_style="", writing_constraint="").cast == []
 
     def test_from_plan_copies_cast(self) -> None:
         """Assert from_plan copies the proposed cast onto every context level."""
-        scene = SceneContext.from_plan(ScenePlan(title="S1", description="D", cast=["Hero", "Villain"]), 100)
-        story = StoryContext.from_plan(StoryPlan(title="St1", description="D", cast=["Hero"]), 300)
-        chapter = ChapterContext.from_plan(ChapterPlan(title="C1", description="D", cast=["Hero"]), 1000)
+        scene = SceneContext.from_plan(ScenePlan(title="S1", description="D", cast=["Hero", "Villain"], writing_style="", writing_constraint=""), 100)
+        story = StoryContext.from_plan(StoryPlan(title="St1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 300)
+        chapter = ChapterContext.from_plan(ChapterPlan(title="C1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 1000)
         assert scene.cast == ["Hero", "Villain"]
         assert story.cast == ["Hero"]
         assert chapter.cast == ["Hero"]
