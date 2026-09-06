@@ -162,6 +162,7 @@ class TestCharacterCard:
             where="nowhere",
             condition="fine",
             mood="calm",
+            metric={},
         )
         assert plain.metric == {}
         assert "## Metrics" not in plain.as_prompt()
@@ -188,6 +189,7 @@ class TestDumpCard:
             where="Downtown",
             condition="Fine",
             mood="Eager",
+            metric={},
         )
         result = dump_card(card)
         assert isinstance(result, str)
@@ -207,6 +209,7 @@ class TestDumpCard:
                 where="Where",
                 condition="Condition",
                 mood="Mood",
+                metric={},
             )
             for i in range(3)
         ]
@@ -229,6 +232,7 @@ class TestDumpCard:
                 where="X",
                 condition="C",
                 mood="M",
+                metric={},
             ),
             CharacterCard(
                 name="B",
@@ -241,6 +245,7 @@ class TestDumpCard:
                 where="X",
                 condition="C",
                 mood="M",
+                metric={},
             ),
         ]
         result = dump_card(*cards)
@@ -278,6 +283,7 @@ class TestCharacterCompose:
             where="Arena",
             condition="Rested",
             mood="Resolute",
+            metric={},
         )
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_card):
             result = await role.compose_characters("Create a warrior character")
@@ -298,6 +304,7 @@ class TestCharacterCompose:
                 where="Arena",
                 condition="Rested",
                 mood="Resolute",
+                metric={},
             ),
             CharacterCard(
                 name="Mage",
@@ -310,6 +317,7 @@ class TestCharacterCompose:
                 where="Library",
                 condition="Fine",
                 mood="Curious",
+                metric={},
             ),
         ]
         with patch.object(type(role), "propose", new_callable=AsyncMock, return_value=mock_cards):

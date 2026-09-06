@@ -22,6 +22,7 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
         where="starting village",
         condition="healthy",
         mood="determined",
+        metric={},
     )
 
 

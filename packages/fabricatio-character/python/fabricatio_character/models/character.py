@@ -2,11 +2,11 @@
 
 from typing import ClassVar, Self
 
-from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
-from fabricatio_core.models.generic import JSONList, Named, SketchedAble
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import ValidationInfo, field_validator
 
+from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_character.config import character_config
+from fabricatio_core.models.generic import JSONList, Named, SketchedAble
 
 
 class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
@@ -15,7 +15,8 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     The identity fields (``name``, ``roles``, ``activated_role``, ``want``) change slowly; the state fields
     (``look``, ``act``, ``flaw``, ``where``, ``condition``, ``mood``) describe
     how the character is right now and evolve as the story progresses. All fields are
-    required and non-empty; ``metric`` is an optional map of tracked numerical stats.
+    required and non-empty; ``metric`` is a required, possibly empty map of
+    tracked numerical stats.
     """
 
     name: str
@@ -48,12 +49,8 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
     mood: str
     """The character's current emotional state."""
 
-    metric: dict[str, int | float] = Field(default_factory=dict)
-    """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
-
-    Entries are surfaced via :meth:`metric_prompt` and rendered into the prompt
-    as inline ``name=value`` pairs when non-empty.
-    """
+    metric: dict[str, int | float]
+    """Any measurable quantity, including physical stats, event counter, invisible attr"""
 
     @field_validator("roles")
     @classmethod
@@ -71,14 +68,6 @@ class CharacterCard(SketchedAble, Named, AsPrompt, PersistentAble):
         if value not in roles:
             raise ValueError(f"activated_role '{value}' must be one of roles: {roles}")
         return value
-
-    metric: dict[str, int | float] = Field(default_factory=dict)
-    """Tracked numerical stats of the character (e.g. ``{"hp": 80, "reputation": 30}``).
-
-    Any measurable quantity, including physical stats such as body weight or
-    height. Empty when no stats are tracked; diffs merge entries instead of
-    replacing the map.
-    """
 
     rendering_template: ClassVar[str] = character_config.render_character_card_template
 

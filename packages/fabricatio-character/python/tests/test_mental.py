@@ -178,6 +178,7 @@ class TestMentalState:
             where="home",
             condition="healthy",
             mood="hopeful",
+            metric={},
         )
         state = MentalState.from_card(card)
         assert state.mind.character_name == "Hero"
@@ -393,6 +394,7 @@ class TestSeedFrom:
             where="Elsinore Castle",
             condition="haggard",
             mood="melancholic",
+            metric={},
         )
         state = asyncio.run(mind.seed_from(card))
         assert state.mind.character_name == "Hamlet"

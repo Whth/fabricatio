@@ -148,10 +148,10 @@ class TestNovelWorkflow:
         scene_plans_json = [{"title": "S1", "description": "Leaving home.", "weight": 1.0}]
         with install_router_usage(
             *return_mixed_router_usage(
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),
                 Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
@@ -224,17 +224,17 @@ class TestNovelWorkflow:
         illustration = SketchSpec(prompt="a lone rider at dawn")
         with install_router_usage(
             *return_mixed_router_usage(
-                # The scene-write and illustration prompts embed the manuscript
-                # context first, so their first post-change runs miss the
-                # persistent cache and consume the stack head in stage order:
-                # the scene write takes the raw prose, the illustrate-stage
-                # proposal takes the illustration value next.
+                # The span-stage prompt changed with the required metric, so its
+                # first post-change run misses the persistent cache and burns the
+                # stack head before the scene-write call pops its raw prose; the
+                # spans value leads so the span stage lands it on attempt 2 and
+                # re-warms its cache entry for later runs.
+                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 raw_value("He left."),
                 Value(illustration, "model"),
                 Value(meta, "model"),
                 Value(["Hero — brave protagonist, seeking his father."], "json"),
                 Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
                 Value(chapter_plans_json, "json"),
                 Value(story_plans_json, "json"),
                 Value(scene_plans_json, "json"),
