@@ -1,6 +1,6 @@
 # Critical Constraints:
 ‼️ Your response MUST contain ONLY the JSON object within the Markdown format codeblock
-‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.), you should omit the field on which the you trying to repeat the default value.
+‼️ STRICTLY FOLLOW schema-defined formats (quotes, indentation, etc.), If Schema tells you a field has default value, and the stuff you want to fill in the field is actually the same as the default value, then you need not to repeat the default value and can omit that field in the output json, which saves token, ONLY when after satisfying the Constrains and Requirements from the user.
 ‼️ PROPERLY ESCAPE special characters in strings (quotes, newlines, etc.)
 ‼️ Numerical values MUST SATISFY comparison operators (e.g., >N for exclusiveMinimum)
 ‼️ Handle optional parameters context-appropriately
