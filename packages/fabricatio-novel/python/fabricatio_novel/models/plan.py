@@ -1,8 +1,9 @@
 """Flat per-element plan models and their bare-JSON-array list classes."""
 
+from pydantic import Field, PositiveFloat
+
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
-from pydantic import Field, PositiveFloat
 
 
 class WeightedPlan(SketchedAble, Titled, Described):
@@ -71,20 +72,18 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     """Plan of the novel itself: metadata only, chapters are planned separately."""
 
     description: str
-    """2-4 sentences stating the novel's premise: who the protagonist is, what they want, the
+    """6-10 sentences stating the novel's premise: who the protagonist is, what they want, the
     central conflict blocking them, and the stakes. Convey genre and tone. This description
     seeds every chapter's planning prompt, so be specific and evocative, never a tagline."""
 
     writing_style: str = ""
-    """4-5 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
-    and recurring techniques. It seeds the style guidance of every chapter, story, and scene;
-    empty when the outline implies no particular style."""
+    """6-9 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
+    and recurring techniques. It seeds the style guidance of every chapter, story, and scene."""
 
     writing_constraint: str = ""
     """The novel's global writing constraint, generated from the author's stated intent
     (e.g. first person view): concrete, enforceable rules every chapter, story, and scene
-    must honor. It is allocated down the tree and accumulated onto every scene prompt;
-    empty when no constraint applies."""
+    must honor. It is allocated down the tree and accumulated onto every scene prompt."""
 
 
 class ScenePlans(JSONList[ScenePlan]):
