@@ -86,10 +86,14 @@ class TestNovelContext:
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
         story.add_scene_context(scene)
-        story.set_story_plan(StoryPlan(title="St1", description="The departure.", writing_style="", writing_constraint=""))
+        story.set_story_plan(
+            StoryPlan(title="St1", description="The departure.", writing_style="", writing_constraint="")
+        )
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
         chapter.add_story_context(story)
-        chapter.set_chapter_plan(ChapterPlan(title="Ch1", description="The start.", writing_style="", writing_constraint=""))
+        chapter.set_chapter_plan(
+            ChapterPlan(title="Ch1", description="The start.", writing_style="", writing_constraint="")
+        )
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
@@ -178,7 +182,13 @@ class TestFromContext:
 
     def test_from_plan_copies_plan_fields(self) -> None:
         """Assert SceneContext.from_plan copies plan fields and keeps the plan reference."""
-        plan = ScenePlan(title="S1", description="The descent.", weight=1.0, writing_style="Gothic, lyrical prose.", writing_constraint="")
+        plan = ScenePlan(
+            title="S1",
+            description="The descent.",
+            weight=1.0,
+            writing_style="Gothic, lyrical prose.",
+            writing_constraint="",
+        )
         ctx = SceneContext.from_plan(plan, expected_word_count=300)
         assert ctx.title == "S1"
         assert ctx.description == "The descent."
@@ -194,9 +204,16 @@ class TestFromContext:
 
     def test_from_plan_copies_cast(self) -> None:
         """Assert from_plan copies the proposed cast onto every context level."""
-        scene = SceneContext.from_plan(ScenePlan(title="S1", description="D", cast=["Hero", "Villain"], writing_style="", writing_constraint=""), 100)
-        story = StoryContext.from_plan(StoryPlan(title="St1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 300)
-        chapter = ChapterContext.from_plan(ChapterPlan(title="C1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 1000)
+        scene = SceneContext.from_plan(
+            ScenePlan(title="S1", description="D", cast=["Hero", "Villain"], writing_style="", writing_constraint=""),
+            100,
+        )
+        story = StoryContext.from_plan(
+            StoryPlan(title="St1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 300
+        )
+        chapter = ChapterContext.from_plan(
+            ChapterPlan(title="C1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 1000
+        )
         assert scene.cast == ["Hero", "Villain"]
         assert story.cast == ["Hero"]
         assert chapter.cast == ["Hero"]

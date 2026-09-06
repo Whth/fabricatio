@@ -49,11 +49,6 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
         self.title = other.title
         self.description = other.description
         self.expected_word_count = other.expected_word_count
-        if isinstance(other, NovelContext):
-            self.writing_styles = list(other.writing_styles)
-        else:
-            self.writing_styles = [other.writing_style] if other.writing_style else []
-        self.writing_constraint = other.writing_constraint or self.writing_constraint
         return self
 
     @final

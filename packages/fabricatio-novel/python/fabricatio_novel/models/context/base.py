@@ -138,6 +138,11 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
         self.writing_styles.extend(style for style in styles if style)
         return self
 
+    def add_writing_style(self, style: str) -> Self:
+        """Append non-empty writing style entries and return self."""
+        self.writing_styles.append(style)
+        return self
+
     def dump_writing_styles(self) -> str:
         """Render the style entries as bullet lines for prompts."""
         return "\n".join(f"- {style}" for style in self.writing_styles if style)

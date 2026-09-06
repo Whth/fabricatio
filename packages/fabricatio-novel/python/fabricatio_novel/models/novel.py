@@ -34,6 +34,8 @@ class Novel(PersistentAble, NovelPlan):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
+            writing_constraint=ctx.writing_constraint,
+            writing_style=ctx.dump_writing_styles(),
             series_bible=ctx.series_bible or SeriesBible(),
             chapter=[Chapter.from_context(cc) for cc in ctx.chapter_context],
         )

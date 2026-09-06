@@ -14,7 +14,6 @@ from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import (
     CharacterSpans,
     merge_writing_constraints,
-    merge_writing_styles,
     stitch_boundaries,
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
@@ -200,7 +199,8 @@ class NovelCompose(ChapterCompose, ABC):
                     .set_language(ctx.language)
                     .set_outline(ctx.outline)
                     .set_rag(ctx.rag)
-                    .set_writing_styles(merge_writing_styles(ctx.writing_styles, chapter_plan.writing_style))
+                    .set_writing_styles(ctx.writing_styles)
+                    .add_writing_style(chapter_plan.writing_style)
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint),
                     ),

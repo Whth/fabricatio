@@ -1,9 +1,8 @@
 """Flat per-element plan models and their bare-JSON-array list classes."""
 
-from pydantic import Field, PositiveFloat
-
 from fabricatio_capabilities.models.generic import WordCount
 from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
+from pydantic import Field, PositiveFloat
 
 
 class WeightedPlan(SketchedAble, Titled, Described):

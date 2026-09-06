@@ -7,3 +7,5 @@
     - [ ] Per-chapter image caching + regeneration on content changes
 - [x] `fabricatio-novel` support rag
 - [x] Novel generation fix
+- [ ] Seal RAG out of the base context tree: standard novel generation shall not carry `rag: RagRetrieval | None` + `set_rag` on `NovelContext`/`ChapterContext`/`StoryContext`; move retrieval settings into a RAG-specific context subclass.
+

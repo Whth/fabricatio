@@ -94,7 +94,8 @@ class StoryCompose(SceneCompose, ABC):
                     SceneContext.from_plan(scene_plan, expected_word_count=count)
                     .set_language(ctx.language)
                     .set_outline(ctx.outline)
-                    .set_writing_styles(list(ctx.writing_styles))
+                    .set_writing_styles(ctx.writing_styles)
+                    .add_writing_style(scene_plan.writing_style)
                     .set_writing_constraint(
                         merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint),
                     ),
