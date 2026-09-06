@@ -14,17 +14,18 @@ this module — the client resolves them from config
 before submission and fails loudly when a value is missing.
 """
 
-from typing import Literal, Self
+from typing import ClassVar, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
 
 from fabricatio_comfyui.models.graph import (
+    BaseGraph,
     CLIPEncodeInputs,
-    LoraSpec,
     NodeInputs,
     NodeMeta,
     NodeRef,
-    _project_api_with_loras,
+    RewireField,
+    WireNode,
 )
 
 
@@ -34,14 +35,14 @@ class AnimaCheckpointLoaderInputs(NodeInputs):
     ckpt_name: str = "<anima_checkpoint>"
 
 
-class AnimaCheckpointLoaderNode(BaseModel):
+class AnimaCheckpointLoaderNode(WireNode):
     """``CheckpointLoaderSimple`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CheckpointLoaderSimple"] = "CheckpointLoaderSimple"
     inputs: AnimaCheckpointLoaderInputs = Field(default_factory=AnimaCheckpointLoaderInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -57,14 +58,14 @@ class AnimaCLIPLoaderInputs(NodeInputs):
     device: Literal["default"] = "default"
 
 
-class AnimaCLIPLoaderNode(BaseModel):
+class AnimaCLIPLoaderNode(WireNode):
     """``CLIPLoader`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CLIPLoader"] = "CLIPLoader"
     inputs: AnimaCLIPLoaderInputs = Field(default_factory=AnimaCLIPLoaderInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -78,14 +79,14 @@ class AnimaVAELoaderInputs(NodeInputs):
     vae_name: str = "<anima_vae>"
 
 
-class AnimaVAELoaderNode(BaseModel):
+class AnimaVAELoaderNode(WireNode):
     """``VAELoader`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAELoader"] = "VAELoader"
     inputs: AnimaVAELoaderInputs = Field(default_factory=AnimaVAELoaderInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -101,14 +102,14 @@ class AnimaEmptyLatentInputs(NodeInputs):
     batch_size: int = 1
 
 
-class AnimaEmptyLatentNode(BaseModel):
+class AnimaEmptyLatentNode(WireNode):
     """``EmptyLatentImage`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["EmptyLatentImage"] = "EmptyLatentImage"
     inputs: AnimaEmptyLatentInputs = Field(default_factory=AnimaEmptyLatentInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -138,14 +139,14 @@ class AnimaNegativePromptInputs(CLIPEncodeInputs):
     )
 
 
-class AnimaPositivePromptNode(BaseModel):
+class AnimaPositivePromptNode(WireNode):
     """``positive`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CLIPTextEncode"] = "CLIPTextEncode"
     inputs: AnimaPositivePromptInputs = Field(default_factory=AnimaPositivePromptInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -153,14 +154,14 @@ class AnimaPositivePromptNode(BaseModel):
         return cls(meta=NodeMeta(title="CLIP Text Encode (Prompt)"))
 
 
-class AnimaNegativePromptNode(BaseModel):
+class AnimaNegativePromptNode(WireNode):
     """``negative`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["CLIPTextEncode"] = "CLIPTextEncode"
     inputs: AnimaNegativePromptInputs = Field(default_factory=AnimaNegativePromptInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -186,14 +187,14 @@ class AnimaSamplerInputs(NodeInputs):
     latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("latent"))
 
 
-class AnimaSamplerNode(BaseModel):
+class AnimaSamplerNode(WireNode):
     """``KSamplerAdvanced`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["KSamplerAdvanced"] = "KSamplerAdvanced"
     inputs: AnimaSamplerInputs = Field(default_factory=AnimaSamplerInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -208,14 +209,14 @@ class AnimaVAEDecodeInputs(NodeInputs):
     vae: NodeRef = Field(default_factory=lambda: NodeRef.first("vae"))
 
 
-class AnimaVAEDecodeNode(BaseModel):
+class AnimaVAEDecodeNode(WireNode):
     """``VAEDecode`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["VAEDecode"] = "VAEDecode"
     inputs: AnimaVAEDecodeInputs = Field(default_factory=AnimaVAEDecodeInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -229,14 +230,14 @@ class AnimaPreviewInputs(NodeInputs):
     images: NodeRef = Field(default_factory=lambda: NodeRef.first("decode"))
 
 
-class AnimaPreviewNode(BaseModel):
+class AnimaPreviewNode(WireNode):
     """``PreviewImage`` node of the anima template."""
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
 
     class_type: Literal["PreviewImage"] = "PreviewImage"
     inputs: AnimaPreviewInputs = Field(default_factory=AnimaPreviewInputs)
-    meta: NodeMeta = Field(validation_alias="_meta")
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
 
     @classmethod
     def default(cls) -> Self:
@@ -244,7 +245,7 @@ class AnimaPreviewNode(BaseModel):
         return cls(meta=NodeMeta(title="Preview Image"))
 
 
-class AnimaGraph(BaseModel):
+class AnimaGraph(BaseGraph):
     """The bundled anima txt2img graph, initialised in Python.
 
     Single sampler pass (no refine); model pieces load from separate
@@ -253,7 +254,10 @@ class AnimaGraph(BaseModel):
     submission — see :data:`comfyui_config.anima_checkpoint` and friends.
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
+    model_source: ClassVar[NodeRef] = NodeRef.first("loader")
+    clip_source: ClassVar[NodeRef] = NodeRef.first("clip")
+    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler,)
+    clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
 
     loader: AnimaCheckpointLoaderNode
     """Checkpoint loader node."""
@@ -282,9 +286,6 @@ class AnimaGraph(BaseModel):
     preview: AnimaPreviewNode
     """Preview image node."""
 
-    loras: list[LoraSpec] = Field(default_factory=list)
-    """LoRAs chained into the model/CLIP path between the loaders and the sampler."""
-
     @classmethod
     def default(cls) -> Self:
         """Assemble the anima template from each node class's own default.
@@ -305,25 +306,9 @@ class AnimaGraph(BaseModel):
             preview=AnimaPreviewNode.default(),
         )
 
-    def to_api(self) -> dict[str, object]:
-        """Serialize to ComfyUI API format, chaining any :attr:`loras` into the model/CLIP paths."""
-        return _project_api_with_loras(
-            self,
-            self.loras,
-            model_source=NodeRef.first("loader"),
-            clip_source=NodeRef.first("clip"),
-            model_inputs=("sampler",),
-            clip_inputs=("positive", "negative"),
-        )
-
     # ------------------------------------------------------------------
     # Chainable parameterisation — direct typed mutation, no lookups
     # ------------------------------------------------------------------
-
-    def with_lora(self, lora_name: str, *, strength: float = 1.0) -> Self:
-        """Append a LoRA to the model/CLIP chain; return *self* for chaining."""
-        self.loras.append(LoraSpec(lora_name=lora_name, strength=strength))
-        return self
 
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""
