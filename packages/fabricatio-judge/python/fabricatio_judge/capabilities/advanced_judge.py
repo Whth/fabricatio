@@ -2,16 +2,18 @@
 
 from abc import ABC
 from asyncio import gather
+from pathlib import Path
 from typing import Unpack, overload
 
-from fabricatio_core import logger
+from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.models.generic import ScopedConfig
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_core.rust import TINY
+from fabricatio_core.rust import TINY, VISION
 from fabricatio_core.utils import ok, override_kwargs
 
-from fabricatio_judge.models.judgement import JudgeMent
+from fabricatio_judge.config import judge_config
+from fabricatio_judge.models.judgement import ImageVerdict, JudgeMent
 
 
 class EvidentlyJudge(Propose, ABC):
@@ -158,3 +160,46 @@ class VoteJudge(EvidentlyJudge, VoteLLMConfig, ABC):
         return sum(weights) * vote_pass_threshold <= sum(
             w * p.final_judgement for w, p in zip(weights, judgments, strict=True)
         )
+
+
+class VisuallyJudge(EvidentlyJudge, ABC):
+    """A class that judges a rendered image against an issue via a vision-capable LLM."""
+
+    async def visually_judge(
+        self,
+        image: str | Path,
+        *,
+        issue_to_judge: str,
+        send_to: str | None = VISION,
+        **kwargs: Unpack[ValidateKwargs[ImageVerdict]],
+    ) -> ImageVerdict | None:
+        """Judge the attached image on glitch-freeness and coherence with *issue_to_judge*.
+
+        Args:
+            image: Path of the PNG (or any image the router can MIME-detect) to inspect.
+            issue_to_judge: What the image is supposed to show.
+            send_to: Routing group for the vision LLM; defaults to the ``VISION`` variant slot so the configured image-understanding model is used.
+            **kwargs: Extra LLM knobs forwarded to the proposal call.
+
+        Returns:
+            The structured verdict, or ``None`` when the LLM output fails validation.
+        """
+        image_path = Path(image)
+        if not image_path.is_file():
+            logger.error(f"Image to judge does not exist: {image_path}")
+            return None
+        prompt = TEMPLATE_MANAGER.render_template(
+            judge_config.image_verdict_template,
+            {"issue_to_judge": issue_to_judge},
+        )
+        verdict = await self.propose(
+            ImageVerdict,
+            prompt,
+            send_to=send_to,
+            images=[image_path.read_bytes()],
+            **kwargs,
+        )
+        if not isinstance(verdict, ImageVerdict):
+            logger.error(f"Failed to obtain an image verdict for: {issue_to_judge}")
+            return None
+        return verdict

@@ -1,13 +1,15 @@
 """Test the judge method."""
 
+import tempfile
+from pathlib import Path
 from typing import Any
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import ok
-from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VoteJudge
-from fabricatio_judge.models.judgement import JudgeMent
+from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VisuallyJudge, VoteJudge
+from fabricatio_judge.models.judgement import ImageVerdict, JudgeMent
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_mock.models.mock_router import return_model_json_router_usage
 from fabricatio_mock.utils import install_router_usage
@@ -274,3 +276,88 @@ async def test_vote_judge_multiple_prompts(vote_role: VoteJudgeRole) -> None:
     with install_router_usage(*responses):
         result = await vote_role.vote_judge(["prompt1", "prompt2"])  # type: ignore[arg-type]
         assert result == [True, False]
+
+
+def iv(passed: bool) -> ImageVerdict:
+    """Create an ImageVerdict with test data.
+
+    Args:
+        passed (bool): Whether the verdict passes
+
+    Returns:
+        ImageVerdict: The verdict under test
+    """
+    return ImageVerdict(
+        issue_to_judge="test",
+        affirm_evidence=["clean render"] if passed else [],
+        deny_evidence=[] if passed else ["drift"],
+        final_judgement=passed,
+        glitch_reasons=[] if passed else ["extra finger"],
+        coherence_reasons=[] if passed else ["wrong background"],
+    )
+
+
+class VisualJudgeRole(LLMTestRole, VisuallyJudge):
+    """A class that tests the visually_judge method."""
+
+    pass
+
+
+@pytest.fixture
+def visual_role() -> VisualJudgeRole:
+    """Create a VisualJudgeRole instance.
+
+    Returns:
+        VisualJudgeRole: The role under test
+    """
+    return VisualJudgeRole(name="visual-judge")
+
+
+@pytest.mark.parametrize("passed", [True, False])
+@pytest.mark.asyncio
+async def test_visually_judge(passed: bool, visual_role: VisualJudgeRole) -> None:
+    """Test visually_judge with a mocked router and a real PNG file.
+
+    Args:
+        passed (bool): Whether the mocked verdict passes
+        visual_role (VisualJudgeRole): The role under test
+    """
+    expected = iv(passed)
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as handle:
+        handle.write(b"\x89PNG\r\n\x1a\nfake-bytes")
+        image_path = Path(handle.name)
+    try:
+        with install_router_usage(*return_model_json_router_usage(expected)):
+            verdict = ok(await visual_role.visually_judge(image_path, issue_to_judge="test"))
+            assert verdict.model_dump_json() == expected.model_dump_json()
+            assert bool(verdict) == passed
+    finally:
+        image_path.unlink()
+
+
+@pytest.mark.asyncio
+async def test_visually_judge_missing_image(visual_role: VisualJudgeRole) -> None:
+    """Test visually_judge fails loudly on a missing image path.
+
+    Args:
+        visual_role (VisualJudgeRole): The role under test
+    """
+    verdict = await visual_role.visually_judge(Path("Z:/definitely/missing.png"), issue_to_judge="test")
+    assert verdict is None
+
+
+@pytest.mark.parametrize(
+    ("verdict", "expected_feedback"),
+    [
+        (iv(True), ""),
+        (iv(False), "extra finger; wrong background"),
+    ],
+)
+def test_image_verdict_feedback(verdict: ImageVerdict, expected_feedback: str) -> None:
+    """Test the feedback property joins reasons and stays empty on pass.
+
+    Args:
+        verdict (ImageVerdict): The verdict under test
+        expected_feedback (str): The expected feedback string
+    """
+    assert verdict.feedback == expected_feedback

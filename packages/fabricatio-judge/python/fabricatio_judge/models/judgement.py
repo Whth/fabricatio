@@ -1,6 +1,7 @@
-"""Module containing the JudgeMent class for holding judgment results."""
+"""Module containing the JudgeMent classes for holding judgment results."""
 
 from fabricatio_core.models.generic import SketchedAble
+from pydantic import Field
 
 
 class JudgeMent(SketchedAble):
@@ -28,3 +29,25 @@ class JudgeMent(SketchedAble):
             bool: The stored final_judgement value indicating the judgment result.
         """
         return self.final_judgement
+
+
+class ImageVerdict(JudgeMent):
+    """Judgment over a rendered image: glitch-freeness, coherence with the request, and actionable feedback.
+
+    Extends :class:`JudgeMent` with structured reason lists so a failed verdict
+    converts directly into a re-generation instruction — the feedback loop needs
+    no extra LLM call to know what to fix.
+    """
+
+    glitch_reasons: list[str] = Field(default_factory=list)
+    """Technical defects seen in the image (artifacts, broken anatomy, garbled text); empty when clean."""
+
+    coherence_reasons: list[str] = Field(default_factory=list)
+    """Ways the image drifts from the requested subject or composition; empty when on-brief."""
+
+    @property
+    def feedback(self) -> str:
+        """Re-prompt instruction built from every recorded reason; empty string when the verdict passes."""
+        if self.final_judgement:
+            return ""
+        return "; ".join([*self.glitch_reasons, *self.coherence_reasons])
