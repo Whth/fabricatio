@@ -10,7 +10,6 @@ from pydantic import Field
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
-from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
@@ -31,9 +30,6 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
 
     charactor_span: list[CharacterSpan] = Field(default_factory=list)
 
-    rag: RagRetrieval | None = None
-    """Opt-in writing style retrieval settings; None when the run uses no RAG."""
-
     series_bible: SeriesBible | None = None
     """The novel's setting bible; consumed at this root only — roster proposal and the
     seeded prefix entry that every descendant inherits through its prefix log."""
@@ -49,6 +45,12 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
         self.title = other.title
         self.description = other.description
         self.expected_word_count = other.expected_word_count
+        if isinstance(other, NovelContext):
+            self.set_writing_styles(other.writing_styles)
+        else:
+            self.set_writing_styles([other.writing_style])
+        if other.writing_constraint:
+            self.writing_constraint = other.writing_constraint
         return self
 
     @final
@@ -88,11 +90,6 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
     def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
         """Replace the novel's roster character spans and return self."""
         self.charactor_span = spans
-        return self
-
-    def set_rag(self, rag: RagRetrieval | None) -> Self:
-        """Set the opt-in writing style retrieval settings and return self."""
-        self.rag = rag
         return self
 
     def set_series_bible(self, series_bible: SeriesBible | None) -> Self:

@@ -33,6 +33,12 @@ class TestNovelContext:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         assert ctx.language == "English"
 
+    def test_base_contexts_carry_no_rag_state(self) -> None:
+        """Assert the standard context tree is RAG-free; retrieval lives on RagStoryContext."""
+        assert "rag" not in NovelContext.model_fields
+        assert "rag" not in ChapterContext.model_fields
+        assert "rag" not in StoryContext.model_fields
+
     def test_update_from_adopts_plan_fields(self) -> None:
         """Assert update_from copies the plan fields into the context and returns self."""
         ctx = NovelContext.create("The hero.", language="English")
@@ -40,6 +46,7 @@ class TestNovelContext:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
+            writing_style="",
             writing_constraint="First person view throughout.",
         )
         result = ctx.update_from(plan)
@@ -54,7 +61,13 @@ class TestNovelContext:
         """Assert the author's stated constraint survives an empty plan constraint."""
         ctx = NovelContext.create("The hero.", language="English")
         ctx.set_writing_constraint("I hope the novel is first person view.")
-        plan = NovelPlan(title="The Search", description="A hero searching.", expected_word_count=100)
+        plan = NovelPlan(
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
+        )
         ctx.update_from(plan)
         assert ctx.writing_constraint == "I hope the novel is first person view."
 
@@ -63,7 +76,13 @@ class TestNovelContext:
         ctx = NovelContext.create("The hero.", language="English")
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
-        plan = NovelPlan(title="The Search", description="A hero searching.", expected_word_count=100)
+        plan = NovelPlan(
+            title="The Search",
+            description="A hero searching.",
+            expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
+        )
         ctx.update_from(plan)
         assert ctx.title == "The Search"
         assert ctx.series_bible is bible
@@ -97,7 +116,13 @@ class TestNovelContext:
         novel = NovelContext.create("The hero.", language="English")
         novel.add_chapter_context(chapter)
         novel.set_novel_plan(
-            NovelPlan(title="The Hero", description="A hero.", expected_word_count=100),
+            NovelPlan(
+                title="The Hero",
+                description="A hero.",
+                expected_word_count=100,
+                writing_style="",
+                writing_constraint="",
+            ),
         )
 
         assert scene.title == "S1"

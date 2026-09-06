@@ -1,6 +1,7 @@
 """Staged-workflow tests for fabricatio-novel: DebugNovelWorkflow end to end."""
 
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from _support import card, raw_value
@@ -37,6 +38,8 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -115,6 +118,8 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -181,15 +186,20 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer_hook").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel hook").update_init_context(
-            novel_outline="The clockmaker's apprentice winds the great gear at dawn.",
+            # Unique per run: every planning prompt embeds the outline and the span
+            # prompt embeds the meta description, so a stale persistent-cache entry
+            # can never serve a call and the dummy stack pops in seeded order.
+            novel_outline=f"The clockmaker's apprentice winds the great gear at dawn. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
             format="txt",
         )
         meta = NovelPlan(
             title="The Search",
-            description="A hero searching for his father.",
+            description=f"A hero searching for his father. [run:{uuid4().hex[:8]}]",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -287,6 +297,8 @@ class TestNovelWorkflow:
             title="The Floating Atlas II",
             description="An apprentice mapping a city that drifts among the clouds.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {

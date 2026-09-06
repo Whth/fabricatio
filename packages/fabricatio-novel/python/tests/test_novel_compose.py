@@ -29,6 +29,8 @@ class TestCharacterSpans:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         novel_start = card()
         novel_end = novel_start.model_copy(update={"look": "wounded"})
@@ -190,6 +192,8 @@ class TestNovelCompose:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=40,
+            writing_style="",
+            writing_constraint="",
         )
 
         with install_router_usage(
@@ -231,6 +235,8 @@ class TestNovelCompose:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=40,
+            writing_style="",
+            writing_constraint="",
         )
 
         with install_router_usage(
@@ -447,6 +453,8 @@ class TestPrefixAccumulation:
             title="The Search",
             description="A hero searching.",
             expected_word_count=80,
+            writing_style="",
+            writing_constraint="",
         )
         with install_router_usage(
             *return_mixed_router_usage(
@@ -519,6 +527,8 @@ class TestComposeHookOrdering:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=20,
+            writing_style="",
+            writing_constraint="",
         )
         with install_router_usage(*return_mixed_router_usage(Value(meta, "model"), raw_value("He left."))):
             novel = await role.compose_novel(ctx)

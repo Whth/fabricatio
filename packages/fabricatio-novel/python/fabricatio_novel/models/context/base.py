@@ -140,7 +140,8 @@ class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
 
     def add_writing_style(self, style: str) -> Self:
         """Append non-empty writing style entries and return self."""
-        self.writing_styles.append(style)
+        if style:
+            self.writing_styles.append(style)
         return self
 
     def dump_writing_styles(self) -> str:

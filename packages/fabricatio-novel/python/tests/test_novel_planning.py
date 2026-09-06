@@ -27,6 +27,8 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -89,6 +91,7 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
+            writing_style="",
             writing_constraint="First person view throughout: narrate from the protagonist's perspective using I.",
         )
         chapter_plans_json = [
@@ -156,7 +159,7 @@ class TestNovelPlan:
         """Assert compose_novel returns None when chapter plan generation fails."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
-        meta = NovelPlan(title="T", description="D", expected_word_count=10)
+        meta = NovelPlan(title="T", description="D", expected_word_count=10, writing_style="", writing_constraint="")
         with install_router_usage(
             *return_model_json_router_usage(meta)[:1],
             "not valid json",
@@ -176,6 +179,8 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
+            writing_style="",
+            writing_constraint="",
         )
         story_plans_json = [
             {
@@ -227,6 +232,8 @@ class TestWordCountAllocation:
             title="The Search",
             description="A hero searching.",
             expected_word_count=400,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {"title": "Ch1", "description": "The start.", "weight": 3.0, "writing_style": "", "writing_constraint": ""},

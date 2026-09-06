@@ -27,7 +27,6 @@ from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.context.rag import RagRetrieval
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.series_book import SeriesBible
 from fabricatio_novel.models.story import Story
@@ -81,7 +80,6 @@ class InitNovelContext(StageAction, NovelCompose):
         if bible_path := cxt.get("bible_path"):
             ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
         ctx.seed_bible_prefix()
-        ctx.set_rag(RagRetrieval(query=str(cxt.get("rag_query") or ""), limit=int(cxt.get("rag_limit") or 15)))
         ctx = await self.before_compose_novel_context(ctx)
         await self.snapshot(ctx, cxt)
         return ctx
@@ -164,6 +162,17 @@ class PlanStoriesStage(StageAction, ChapterCompose):
                 return False
         await self.snapshot(novel_ctx, cxt)
         return True
+
+
+class RagPlanStoriesStage(PlanStoriesStage, RAGCompose):
+    """Story planning with the RAG seal.
+
+    :meth:`RAGCompose.plan_stories_phase` seals each chapter's stories with
+    the context-overridden retrieval settings right after they are planned;
+    the later scene stages only consume the sealed story contexts.
+    """
+
+    ctx_override: ClassVar[bool] = True
 
 
 class PlanScenesStage(StageAction, StoryCompose):
@@ -274,11 +283,16 @@ class DumpNovelStage(Action, NovelCompose):
 
 
 class RagPlanScenesStage(PlanScenesStage, RAGCompose):
-    """Scene planning with story-level writing style retrieval."""
+    """Scene planning over stories already sealed by :class:`RagPlanStoriesStage`.
+
+    Mixing in :class:`RAGCompose` resolves :meth:`RAGCompose.prepare_story`
+    ahead of the plain implementation, so each sealed story's style
+    references are retrieved before its scenes are planned.
+    """
 
 
 class RagComposeScenesStage(ComposeScenesStage, RAGCompose):
-    """Scene write preparation with the story's style digest."""
+    """Scene composition over stories already sealed by :class:`RagPlanScenesStage`."""
 
 
 class IllustrateNovelStage(DumpNovelStage, IllustrateScenes):

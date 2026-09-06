@@ -185,6 +185,8 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -241,6 +243,8 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
+            writing_style="",
+            writing_constraint="",
         )
         chapter_plans_json = [
             {
@@ -302,6 +306,8 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
+            writing_style="",
+            writing_constraint="",
         )
         with install_router_usage(
             *return_mixed_router_usage(

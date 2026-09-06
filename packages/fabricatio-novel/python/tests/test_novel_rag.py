@@ -6,8 +6,10 @@ import pytest
 from _support import RAGRole, prefix_log
 from fabricatio_mock.models.mock_router import return_router_usage
 from fabricatio_mock.utils import install_router_usage
+from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-from fabricatio_novel.models.context.rag import RagRetrieval
+from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ScenePlan, ScenePlans
@@ -80,8 +82,7 @@ class TestRAGCompose:
     async def test_prepare_story_retrieves_docs_once(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert plan_scenes_phase retrieves style docs exactly once."""
         role = RAGRole(name="rag_role")
-        story = StoryContext(title="St1", description="The departure.")
-        story.set_rag(RagRetrieval())
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
         fetched: list[object] = []
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
@@ -104,10 +105,9 @@ class TestRAGCompose:
     async def test_prepare_story_without_docs_keeps_requirement_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert a story without retrieved style docs renders no references section."""
         role = RAGRole(name="rag_role")
-        story = StoryContext(title="St1", description="The departure.")
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         scene = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         story.scene_context.append(scene)
-        story.set_rag(RagRetrieval())
 
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
@@ -124,10 +124,10 @@ class TestRAGCompose:
     async def test_plan_scenes_propagates_style_docs_to_scenes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scenes materialized after the story prep inherit the story's style references."""
         role = RAGRole(name="rag_role")
-        story = StoryContext(title="St1", description="The departure.")
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
 
-        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
+        async def fake_fetch_docs(ctx: RagStoryContext) -> list[WritingStyleDocument]:
             return []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> ScenePlans:
@@ -168,8 +168,9 @@ class TestRAGCompose:
     async def test_fetch_style_docs_combines_query_and_applies_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert _fetch_style_docs joins description and rag_query and applies the limit."""
         role = RAGRole(name="rag_role")
-        ctx = StoryContext(title="Battle", description="The hero fights.")
-        ctx.set_rag(RagRetrieval(query="中文查询指南", limit=7))
+        ctx = RagStoryContext(
+            title="Battle", description="The hero fights.", rag=RagRetrieval(query="中文查询指南", limit=7)
+        )
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: list[object] = []
         captured_configs: list[WritingStyleFetchConfig] = []
@@ -195,8 +196,7 @@ class TestRAGCompose:
     async def test_fetch_style_docs_defaults_to_story_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert _fetch_style_docs uses the story description when no rag_query is set."""
         role = RAGRole(name="rag_role")
-        ctx = StoryContext(title="Battle", description="The hero fights.")
-        ctx.set_rag(RagRetrieval())
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
 
         async def fake_fetch(
@@ -215,8 +215,7 @@ class TestRAGCompose:
     async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert docs whose prompt renders blank are filtered out."""
         role = RAGRole(name="rag_role")
-        ctx = StoryContext(title="Battle", description="The hero fights.")
-        ctx.set_rag(RagRetrieval())
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         blank = WritingStyleDocument.with_text_chunk("   ")
 
@@ -235,8 +234,7 @@ class TestRAGCompose:
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
         role = RAGRole(name="rag_role")
-        story = StoryContext(title="St1", description="The departure.")
-        story.set_rag(RagRetrieval(query="guide", limit=7))
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7))
 
         async def fake_fetch(
             query: object,
@@ -256,3 +254,49 @@ class TestRAGCompose:
         assert result is not None
         assert story.rag == RagRetrieval(query="guide", limit=7)
         assert story.scene_context[0].writing_styles == []
+
+    async def test_plan_stories_phase_seals_and_is_idempotent(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the RAG story-planning phase seals plain stories and leaves sealed ones untouched."""
+        from fabricatio_novel.actions.novel import RagPlanStoriesStage
+        from fabricatio_novel.capabilities.chapter import ChapterCompose
+
+        async def fake_plan(self: ChapterCompose, ctx: ChapterContext, send_to: str | None = None) -> bool:
+            return True
+
+        monkeypatch.setattr(ChapterCompose, "plan_stories_phase", fake_plan)
+        stage = RagPlanStoriesStage(rag_query="guide", rag_limit=3)
+        chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
+        chapter.add_story_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
+        chapter.add_story_context(RagStoryContext(title="St2", description="The return.", rag=RagRetrieval()))
+
+        assert await stage.plan_stories_phase(chapter) is True
+
+        sealed = chapter.story_context[0]
+        assert isinstance(sealed, RagStoryContext)
+        assert sealed.rag == RagRetrieval(query="guide", limit=3)
+        assert sealed.title == "St1"
+        assert chapter.story_context[1].rag == RagRetrieval()
+
+        await RagPlanStoriesStage(rag_query="other").plan_stories_phase(chapter)
+        assert chapter.story_context[0].rag == RagRetrieval(query="guide", limit=3)
+        assert chapter.story_context[1].rag == RagRetrieval()
+
+    async def test_rag_plan_stage_seals_stories_from_task_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert RagPlanStoriesStage seals each chapter's stories with the context-overridden settings."""
+        from fabricatio_novel.actions.novel import RagPlanStoriesStage
+        from fabricatio_novel.capabilities.chapter import ChapterCompose
+
+        async def fake_plan(self: ChapterCompose, ctx: ChapterContext, send_to: str | None = None) -> bool:
+            return True
+
+        monkeypatch.setattr(ChapterCompose, "plan_stories_phase", fake_plan)
+        stage = RagPlanStoriesStage(rag_query="guide", rag_limit=3)
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
+        chapter.add_story_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
+        novel.add_chapter_context(chapter)
+
+        assert await stage._execute(novel) is True
+        sealed = chapter.story_context[0]
+        assert isinstance(sealed, RagStoryContext)
+        assert sealed.rag == RagRetrieval(query="guide", limit=3)

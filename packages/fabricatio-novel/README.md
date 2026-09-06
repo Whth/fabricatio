@@ -129,7 +129,8 @@ of a story, and divergence starts exactly at the per-scene tail.
 |---|---|
 | `NovelContext` | Root channel: outline, language, roster `charactor_span`, `chapter_context` |
 | `ChapterContext` | Chapter channel: `charactor_span`, `story_context`, heading block |
-| `StoryContext` | Story channel: `charactor_span`, `scene_context`, accumulated `writing_styles`, optional `rag` retrieval settings |
+| `StoryContext` | Story channel: `charactor_span`, `scene_context`, accumulated `writing_styles` |
+| `RagStoryContext` | `StoryContext` subclass sealed with `RagRetrieval` settings; the RAG pipeline swaps it in before scene planning |
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
 | `CharacterSpan` | Start + end `CharacterCard`; `derive_child_spans` stitches boundary cards |
 | `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
@@ -172,7 +173,7 @@ history stays intact.
 | `ProposeNovelMetadataStage` | `02_metadata` — `propose_novel_metadata` |
 | `PrepareCharacterSpanStage` | `03_characters` — `prepare_character_span` (roster) |
 | `PlanChaptersStage` | `04_chapter_plans` — `plan_chapters_phase` + boundary drafting |
-| `PlanStoriesStage` | `05_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting |
+| `PlanStoriesStage` / `RagPlanStoriesStage` | `05_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting (RAG seals each chapter's stories) |
 | `PlanScenesStage` / `RagPlanScenesStage` | `06_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
 | `ComposeScenesStage` / `RagComposeScenesStage` | `07_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
 | `AssembleNovelStage` | `08_novel` — fires `after_compose_novel_context`, then `assemble_novel` |

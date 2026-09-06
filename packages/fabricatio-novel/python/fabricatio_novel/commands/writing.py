@@ -178,7 +178,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         0,
         "--retrieve-limit",
         "-rl",
-        help="Final reference documents kept after reranking (0 = default 15).",
+        help="Reference documents kept per story (0 = default 15).",
     ),
     font: Path | None = typer.Option(
         None,
@@ -271,7 +271,7 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         0,
         "--retrieve-limit",
         "-rl",
-        help="Final reference documents kept after reranking (0 = default 15).",
+        help="Reference documents kept per story (0 = default 15).",
     ),
     font: Path | None = typer.Option(
         None,
