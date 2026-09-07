@@ -50,7 +50,6 @@ class UpdateFrom[S](ABC):
         Raises:
             TypeError: If the other object is not of the same type.
         """
-
         return self
 
     @abstractmethod
