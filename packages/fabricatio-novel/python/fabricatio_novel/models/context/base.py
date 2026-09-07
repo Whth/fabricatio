@@ -9,7 +9,7 @@ from pydantic import Field
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import logger
-from fabricatio_core.models.generic import JSONList, SketchedAble
+from fabricatio_core.models.generic import JSONList, SketchedAble, Described, Titled
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 
 
@@ -80,14 +80,8 @@ class CharacterSpans(JSONList[CharacterSpan]):
     """An ordered list of character spans, one per roster character."""
 
 
-class ContextBase[C: ContextBase](WordCount, PersistentAble, ABC):
+class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, ABC):
     """Base class for hierarchical novel contexts shared across chapter, story and scene levels."""
-
-    title: str = ""
-    """The title of this element; the novel root keeps it empty until planned."""
-
-    description: str = ""
-    """A detailed description of this element's intent and content."""
 
     writing_styles: list[str] = Field(default_factory=list)
     """Writing style directives accumulated down the tree: inherited guidance first, this
