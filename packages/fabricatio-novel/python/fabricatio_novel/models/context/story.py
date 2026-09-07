@@ -3,7 +3,6 @@
 from collections.abc import Generator
 from typing import Self, final
 
-from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
@@ -12,7 +11,7 @@ from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.plan import StoryPlan
 
 
-class StoryContext(Titled, Described, ContextBase):
+class StoryContext(ContextBase[SceneContext]):
     """A story's composition channel: its plan and the scene contexts it writes."""
 
     story_plan: StoryPlan | None = None

@@ -4,7 +4,7 @@ The generic machinery lives in :mod:`fabricatio_context`; this module narrows it
 to the manuscript vocabulary and re-exports the novel-facing names.
 """
 
-from typing import Literal, Self
+from typing import Self
 
 from fabricatio_context.models.context import ContextEntry as BaseContextEntry
 from fabricatio_context.models.context import ContextLog as BaseContextLog
@@ -12,9 +12,6 @@ from fabricatio_context.models.context import ContextLog as BaseContextLog
 
 class ContextEntry(BaseContextEntry):
     """One immutable block of composed manuscript."""
-
-    kind: Literal["chapter_header", "scene_content", "setting_bible"]
-    """What composed this block: a chapter's heading, a scene's prose, or the seeded setting bible."""
 
 
 class ContextLog(BaseContextLog):

@@ -2,7 +2,6 @@
 
 from typing import Self, final
 
-from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
@@ -10,7 +9,7 @@ from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.plan import ScenePlan
 
 
-class SceneContext(Titled, Described, ContextBase):
+class SceneContext(ContextBase):
     """A scene's composition channel: its plan and the composed prose it owns."""
 
     content: str = ""

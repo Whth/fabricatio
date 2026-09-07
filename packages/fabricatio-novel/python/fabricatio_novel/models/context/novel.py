@@ -14,11 +14,8 @@ from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
+class NovelContext(UpdateFrom[NovelPlan], ContextBase[ChapterContext]):
     """The novel root channel: outline, language, plan and the chapter contexts it writes."""
-
-    outline: str
-    language: str
 
     title: str = ""
     description: str = ""
@@ -34,23 +31,19 @@ class NovelContext(UpdateFrom, ContextBase[ChapterContext]):
     """The novel's setting bible; consumed at this root only — roster proposal and the
     seeded prefix entry that every descendant inherits through its prefix log."""
 
-    def update_pre_check(self, other: NovelPlan | Self) -> Self:
+    def update_pre_check(self, other: NovelPlan) -> Self:
         """Accept a novel plan (or another novel context) as the update source."""
         if not isinstance(other, (NovelPlan, NovelContext)):
             raise TypeError(f"Cannot update {self.__class__.__name__} from a {other.__class__.__name__} instance.")
         return self
 
-    def update_from_inner(self, other: NovelPlan | Self) -> Self:
+    def update_from_inner(self, other: NovelPlan) -> Self:
         """Adopt the plan's fields onto the context."""
         self.title = other.title
         self.description = other.description
         self.expected_word_count = other.expected_word_count
-        if isinstance(other, NovelContext):
-            self.set_writing_styles(other.writing_styles)
-        else:
-            self.set_writing_styles([other.writing_style])
-        if other.writing_constraint:
-            self.writing_constraint = other.writing_constraint
+        self.set_writing_styles([other.writing_style])
+        self.set_writing_constraints([other.writing_constraint])
         return self
 
     @final

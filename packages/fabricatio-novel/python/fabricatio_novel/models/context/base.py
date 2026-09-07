@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator, Sequence
 from typing import Self, final
 
-from pydantic import Field
-
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import logger
-from fabricatio_core.models.generic import JSONList, SketchedAble, Described, Titled
+from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
+from pydantic import Field
+
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 
 
@@ -48,12 +48,12 @@ class CharacterSpan(SketchedAble):
 
 
 def stitch_boundaries[C](
-        parent_spans: list[CharacterSpan],
-        children: Sequence[C],
-        spans_accessor: Callable[[C], list[CharacterSpan]],
-        proposed: list[list[CharacterCard]],
-        expected_boundaries: int,
-        level: str,
+    parent_spans: list[CharacterSpan],
+    children: Sequence[C],
+    spans_accessor: Callable[[C], list[CharacterSpan]],
+    proposed: list[list[CharacterCard]],
+    expected_boundaries: int,
+    level: str,
 ) -> None:
     """Stitch one child span per element from the parent spans and proposed boundaries.
 
@@ -83,24 +83,24 @@ class CharacterSpans(JSONList[CharacterSpan]):
 class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, ABC):
     """Base class for hierarchical novel contexts shared across chapter, story and scene levels."""
 
-    writing_styles: list[str] = Field(default_factory=list)
-    """Writing style directives accumulated down the tree: inherited guidance first, this
-    element's own plan entry last; RAG reference texts join the same list when enabled."""
-
-    writing_constraint: str = ""
-    """Hard writing constraint allocated down from the novel (point of view, tense,
-    prohibitions); the accumulated chain of the parent's constraint plus this element's own
-    allocation. Empty when no constraint applies."""
-
-    cast: list[str] = Field(default_factory=list)
-    """Names of the characters on stage in this element, proposed with its plan."""
-
     language: str = ""
     """Written language; run-wide constant, set progressively during context creation."""
 
     outline: str = ""
     """The raw novel outline; run-wide constant, copied down every creation chain so each
     planning prompt grounds on the full source text instead of compressed parent descriptions."""
+
+    writing_styles: list[str] = Field(default_factory=list)
+    """Writing style directives accumulated down the tree: inherited guidance first, this
+    element's own plan entry last; RAG reference texts join the same list when enabled."""
+
+    writing_constraints: list[str] = Field(default_factory=list)
+    """Hard writing constraint allocated down from the novel (point of view, tense,
+    prohibitions); the accumulated chain of the parent's constraint plus this element's own
+    allocation. Empty when no constraint applies."""
+
+    cast: list[str] = Field(default_factory=list)
+    """Names of the characters on stage in this element, proposed with its plan."""
 
     prefix_log: ContextLog = Field(default_factory=ContextLog)
     """Everything composed before this element as an append-only entry log; injected by the
@@ -136,9 +136,14 @@ class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, 
         """Render the style entries as bullet lines for prompts."""
         return "\n".join(f"- {style}" for style in self.writing_styles if style)
 
-    def set_writing_constraint(self, writing_constraint: str) -> Self:
+    def set_writing_constraints(self, writing_constraints: list[str]) -> Self:
         """Set the accumulated writing constraint carried down to the written scenes."""
-        self.writing_constraint = writing_constraint
+        self.writing_constraints = writing_constraints
+        return self
+
+    def add_writing_constraint(self, writing_constraint: str) -> Self:
+
+        self.writing_constraints.append(writing_constraint)
         return self
 
     def set_cast(self, cast: list[str]) -> Self:

@@ -3,7 +3,6 @@
 from collections.abc import Generator
 from typing import ClassVar, Self, final
 
-from fabricatio_core.models.generic import Described, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
@@ -13,7 +12,7 @@ from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
 
-class ChapterContext(Titled, Described, ContextBase):
+class ChapterContext(ContextBase[StoryContext]):
     """A chapter's composition channel: its plan, story contexts and heading block."""
 
     heading_level: ClassVar[str] = "#"
