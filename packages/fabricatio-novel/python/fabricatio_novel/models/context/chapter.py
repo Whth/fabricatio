@@ -1,61 +1,35 @@
 """Pipeline channel model for a chapter: its plan and the story contexts it writes."""
 
 from collections.abc import Generator
-from typing import ClassVar, Self, final
+from itertools import count
+from typing import ClassVar, final
 
-from pydantic import Field
-
-from fabricatio_novel.models.context.base import CharacterSpan, ContextBase
+from fabricatio_novel.models.context.base import ParentContextBase
 from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
 
-class ChapterContext(ContextBase[StoryContext]):
+class ChapterContext(ParentContextBase[StoryContext, ChapterPlan]):
     """A chapter's composition channel: its plan, story contexts and heading block."""
 
     heading_level: ClassVar[str] = "#"
 
-    chapter_plan: ChapterPlan | None = None
-    """The chapter's own plan; proposed before the story contexts are created."""
-
-    story_context: list[StoryContext] = Field(default_factory=list)
-
-    charactor_span: list[CharacterSpan] = Field(default_factory=list)
-
-    @classmethod
-    def from_plan(cls, plan: ChapterPlan, expected_word_count: int) -> Self:
-        """Build the chapter context from its proposed plan."""
-        return (
-            cls(
-                title=plan.title,
-                description=plan.description,
-                expected_word_count=expected_word_count,
-            )
-            .set_chapter_plan(plan)
-            .set_cast(plan.cast)
-        )
 
     @final
     def iter_story_content(self) -> Generator[str, None, None]:
         """Yield each story's composed content, in chapter order."""
-        for story_ctx in self.story_context:
+        for story_ctx in self.child_contexts:
             yield from story_ctx.iter_scene_content()
-
-    @final
-    def iter_child_contexts(self) -> Generator[StoryContext, None, None]:
-        """Yield this chapter's story contexts, in composition order."""
-        yield from self.story_context
 
     @final
     def iter_scenes(self) -> Generator[tuple[int, StoryContext, SceneContext], None, None]:
         """Yield every scene in prefix order as ``(scene_index, story, scene)``; indices are 1-based, chapter-scoped, and continuous across stories."""
-        offset = 0
+        counter = count(1)
         for story in self.iter_prefixed_contexts():
-            for scene_idx, scene in enumerate(story.iter_prefixed_contexts(), offset + 1):
-                yield scene_idx, story, scene
-            offset += len(story.scene_context)
+            for scene in story.iter_prefixed_contexts():
+                yield next(counter), story, scene
 
     @final
     def render_prefixed_header(self) -> str:
@@ -74,32 +48,3 @@ class ChapterContext(ContextBase[StoryContext]):
         for child in self.iter_child_contexts():
             entries.extend(child.prefixed_entries())
         return tuple(entries)
-
-    def dump_characters(self) -> str:
-        """Render every character's start and end states for prompts, in span order."""
-        return "\n\n".join(span.dump_to_prompt() for span in self.charactor_span)
-
-    def set_chapter_plan(self, plan: ChapterPlan) -> Self:
-        """Set the chapter's plan and return self."""
-        self.chapter_plan = plan
-        return self
-
-    def set_story_contexts(self, stories: list[StoryContext]) -> Self:
-        """Replace the chapter's story contexts and return self."""
-        self.story_context = stories
-        return self
-
-    def add_story_context(self, story: StoryContext) -> Self:
-        """Append a story context to the chapter and return self."""
-        self.story_context.append(story)
-        return self
-
-    def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
-        """Replace this chapter's character spans and return self."""
-        self.charactor_span = spans
-        return self
-
-    def add_charactor_span(self, span: CharacterSpan) -> Self:
-        """Append one character span to this chapter and return self."""
-        self.charactor_span.append(span)
-        return self

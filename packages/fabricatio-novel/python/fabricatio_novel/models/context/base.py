@@ -4,47 +4,14 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator, Sequence
 from typing import Self, final
 
-from fabricatio_capabilities.models.generic import PersistentAble, WordCount
-from fabricatio_character.models.character import CharacterCard
+from fabricatio_capabilities.models.generic import PersistentAble, UpdateFrom, WordCount
+from fabricatio_character.models.character import CharacterCard, CharacterSpan
 from fabricatio_core import logger
-from fabricatio_core.models.generic import Described, JSONList, SketchedAble, Titled
+from fabricatio_core.models.generic import Described, JSONList, Titled
 from pydantic import Field
 
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-
-
-def merge_writing_constraints(parent: str, own: str) -> str:
-    """Accumulate a parent's writing constraint with this element's own allocation.
-
-    The parent's constraint stays in force verbatim; the element's own allocation
-    (empty when none) is appended on a new line. Both empty yields an empty string.
-    """
-    return "\n".join(part for part in (parent, own) if part)
-
-
-class CharacterSpan(SketchedAble):
-    """A character's state arc between two cards: the start card and the end card."""
-
-    start: CharacterCard
-    """The character state at the beginning of this span."""
-    end: CharacterCard
-    """The character state at the end of this span."""
-
-    @final
-    def dump_to_prompt(self) -> str:
-        """Render this span as the Initial State / finalizing State prompt pair."""
-        return f"Initial State:\n{self.start.as_prompt()}\n\nfinalizing State:\n{self.end.as_prompt()}"
-
-    def derive_child_spans(self, boundaries: list[CharacterCard]) -> list["CharacterSpan"]:
-        """Split a parent span into child spans at the given boundary cards.
-
-        The parent's start opens the first child span and its end closes the
-        last one; each boundary card closes one child and opens the next.
-        ``len(boundaries) + 1`` child spans are returned, so with N children
-        only N-1 intermediate cards need to be drafted.
-        """
-        chain = [self.start, *boundaries, self.end]
-        return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
+from fabricatio_novel.models.plan import WeightedPlan
 
 
 def stitch_boundaries[C](
@@ -80,13 +47,23 @@ class CharacterSpans(JSONList[CharacterSpan]):
     """An ordered list of character spans, one per roster character."""
 
 
-class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, ABC):
+class ContextBase[P: WeightedPlan](
+    Described,
+    Titled,
+    WordCount,
+    PersistentAble,
+    UpdateFrom[P],
+    ABC,
+):
     """Base class for hierarchical novel contexts shared across chapter, story and scene levels."""
 
-    language: str = ""
+    plan: P | None = None
+
+    charactor_span: list[CharacterSpan] = Field(default_factory=list)
+    language: str = Field("", exclude=True)
     """Written language; run-wide constant, set progressively during context creation."""
 
-    outline: str = ""
+    outline: str = Field("", exclude=True)
     """The raw novel outline; run-wide constant, copied down every creation chain so each
     planning prompt grounds on the full source text instead of compressed parent descriptions."""
 
@@ -102,9 +79,36 @@ class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, 
     cast: list[str] = Field(default_factory=list)
     """Names of the characters on stage in this element, proposed with its plan."""
 
-    prefix_log: ContextLog = Field(default_factory=ContextLog)
+    prefix_log: ContextLog = Field(default_factory=ContextLog, exclude=True)
     """Everything composed before this element as an append-only entry log; injected by the
     parent before composition."""
+
+    @classmethod
+    def from_plan(cls, plan: P, expected_word_count: int) -> Self:
+        """Build the story context from its proposed plan."""
+        return cls(
+            title=plan.title,
+            description=plan.description,
+            expected_word_count=expected_word_count,
+            plan=plan,
+            cast=plan.cast,
+        )
+
+    def update_pre_check(self, other: P) -> Self:
+        """Reject update sources that are not the expected weighted plan."""
+        if not isinstance(other, WeightedPlan):
+            raise TypeError(f"Expected a {type(self).__name__} plan, got {type(other).__name__}")
+        return self
+
+    def update_from_inner(self, other: P) -> Self:
+        """Adopt the plan's fields onto the context; empty plan lists keep any preset."""
+        self.title = other.title
+        self.description = other.description
+        if other.writing_styles:
+            self.set_writing_styles(other.writing_styles)
+        if other.writing_constraints:
+            self.set_writing_constraints(other.writing_constraints)
+        return self
 
     def set_language(self, language: str) -> Self:
         """Set the written language of this element and return self."""
@@ -126,24 +130,9 @@ class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, 
         self.writing_styles.extend(style for style in styles if style)
         return self
 
-    def add_writing_style(self, style: str) -> Self:
-        """Append non-empty writing style entries and return self."""
-        if style:
-            self.writing_styles.append(style)
-        return self
-
-    def dump_writing_styles(self) -> str:
-        """Render the style entries as bullet lines for prompts."""
-        return "\n".join(f"- {style}" for style in self.writing_styles if style)
-
     def set_writing_constraints(self, writing_constraints: list[str]) -> Self:
         """Set the accumulated writing constraint carried down to the written scenes."""
         self.writing_constraints = writing_constraints
-        return self
-
-    def add_writing_constraint(self, writing_constraint: str) -> Self:
-
-        self.writing_constraints.append(writing_constraint)
         return self
 
     def set_cast(self, cast: list[str]) -> Self:
@@ -156,9 +145,30 @@ class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, 
         self.prefix_log = prefix_log
         return self
 
-    def iter_child_contexts(self) -> Generator[C, None, None]:
-        """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
-        yield from ()
+    def set_charactor_spans(self, spans: list[CharacterSpan]) -> Self:
+        """Replace this chapter's character spans and return self."""
+        self.charactor_span = spans
+        return self
+
+    def add_charactor_span(self, span: CharacterSpan) -> Self:
+        """Append one character span to this chapter and return self."""
+        self.charactor_span.append(span)
+        return self
+
+    def dump_characters(self) -> str:
+        """Render every character's start and end states for prompts, in span order."""
+        return "\n".join(s.dump_to_prompt() for s in self.charactor_span)
+
+    def cast_missing_spans(self) -> list[str]:
+        """Return cast members that have no character span on this context.
+
+        A non-empty result means the proposed cast names characters the
+        roster does not know, so the rendered character prompt cannot cover
+        them; this is the check that the character parse into the model
+        carries the proper cast.
+        """
+        covered = {span.start.name for span in self.charactor_span}
+        return [name for name in self.cast if name not in covered]
 
     def prefixed_header_entry(self) -> ContextEntry | None:
         """This element's heading block as an entry seeded into every child's prefix.
@@ -176,6 +186,26 @@ class ContextBase[C: ContextBase](Described, Titled, WordCount, PersistentAble, 
         scenes' entries and scenes contribute their composed content.
         """
         ...
+
+    def set_plan(self, plan: P) -> Self:
+        """Set the novel's plan and return self."""
+        self.plan = plan
+        return self
+
+
+class ParentContextBase[C: ContextBase, P: WeightedPlan](ContextBase[P], ABC):
+    """Base for non-leaf contexts: a plan-typed channel that owns and iterates child contexts."""
+
+    child_contexts: list[C] = Field(default_factory=list)
+
+    def add_context(self, child_ctx: C) -> Self:
+        """Append one child context and return self."""
+        self.child_contexts.append(child_ctx)
+        return self
+
+    def iter_child_contexts(self) -> Generator[C, None, None]:
+        """Yield this context's child contexts, in composition order; leaf contexts yield nothing."""
+        yield from self.child_contexts
 
     @final
     def iter_prefixed_contexts(self) -> Generator[C, None, None]:
