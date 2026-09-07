@@ -1,6 +1,6 @@
 """This module contains the models for the character."""
 
-from typing import ClassVar, Self
+from typing import ClassVar, Self, final
 
 from fabricatio_capabilities.models.generic import AsPrompt, PersistentAble
 from fabricatio_core.models.generic import JSONList, Named, SketchedAble
@@ -162,3 +162,28 @@ class CharacterCardBoundaries(JSONList[list[CharacterCard]]):
     carries the character's state at every element boundary except the
     parent's start and end, which the parent span already fixes.
     """
+
+
+class CharacterSpan(SketchedAble):
+    """A character's state arc between two cards: the start card and the end card."""
+
+    start: CharacterCard
+    """The character state at the beginning of this span."""
+    end: CharacterCard
+    """The character state at the end of this span."""
+
+    @final
+    def dump_to_prompt(self) -> str:
+        """Render this span as the Initial State / finalizing State prompt pair."""
+        return f"Initial State:\n{self.start.as_prompt()}\n\nfinalizing State:\n{self.end.as_prompt()}"
+
+    def derive_child_spans(self, boundaries: list[CharacterCard]) -> list["CharacterSpan"]:
+        """Split a parent span into child spans at the given boundary cards.
+
+        The parent's start opens the first child span and its end closes the
+        last one; each boundary card closes one child and opens the next.
+        ``len(boundaries) + 1`` child spans are returned, so with N children
+        only N-1 intermediate cards need to be drafted.
+        """
+        chain = [self.start, *boundaries, self.end]
+        return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]

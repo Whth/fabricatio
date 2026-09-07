@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.config import CharacterConfig, character_config
-from fabricatio_character.models.character import CharacterCard, CharacterCardDiff
+from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterSpan
 from fabricatio_character.utils import dump_card
 from fabricatio_mock.models.mock_role import ProposeTestRole
 
@@ -325,3 +325,75 @@ class TestCharacterCompose:
         assert isinstance(result, list)
         assert len(result) == 2
         assert all(isinstance(c, CharacterCard) for c in result)
+
+
+def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
+    """Build a default protagonist CharacterCard for tests."""
+    return CharacterCard(
+        name=name,
+        roles=["protagonist"],
+        activated_role="protagonist",
+        look=look,
+        act="brave",
+        want="seek truth",
+        flaw="stubborn",
+        where="starting village",
+        condition="healthy",
+        mood="determined",
+        metric={},
+    )
+
+
+class TestCharacterSpan:
+    """Tests for CharacterSpan."""
+
+    def test_dump_to_prompt_renders_start_and_end(self) -> None:
+        """Assert dump_to_prompt shows both states as Initial and finalizing."""
+        start = card()
+        end = card()
+        end.look = "scarred"
+        span = CharacterSpan(start=start, end=end)
+        prompt = span.dump_to_prompt()
+        assert prompt.startswith("Initial State:")
+        assert "finalizing State:" in prompt
+        assert prompt.count("# Name") == 2
+        assert prompt.count("## Look") == 2
+        assert "tall" in prompt
+        assert "scarred" in prompt
+
+    def test_dump_to_prompt_with_same_start_and_end(self) -> None:
+        """Assert a span whose end equals its start renders the same card twice."""
+        start = card()
+        end = card()
+        span = CharacterSpan(start=start, end=end)
+        prompt = span.dump_to_prompt()
+        assert prompt.count("# Name") == 2
+        assert "Initial State:" in prompt
+        assert "finalizing State:" in prompt
+
+    def test_derive_child_spans_stitches_boundaries_between_parent_ends(self) -> None:
+        """Assert N children need N-1 boundary cards; the parent ends anchor the chain."""
+        start = card()
+        b1 = card()
+        b1.act = "cautious"
+        b2 = card()
+        b2.flaw = "distrustful"
+        end = card()
+        end.look = "wounded"
+        spans = CharacterSpan(start=start, end=end).derive_child_spans([b1, b2])
+        assert len(spans) == 3
+        assert [s.start for s in spans] == [start, b1, b2]
+        assert [s.end for s in spans] == [b1, b2, end]
+        # the chain is continuous by construction
+        assert spans[0].end is spans[1].start
+        assert spans[1].end is spans[2].start
+
+    def test_derive_child_spans_without_boundaries_returns_single_span(self) -> None:
+        """Assert one child inherits the parent span unchanged when no boundaries are drafted."""
+        start = card()
+        end = card()
+        end.look = "wounded"
+        spans = CharacterSpan(start=start, end=end).derive_child_spans([])
+        assert len(spans) == 1
+        assert spans[0].start is start
+        assert spans[0].end is end
