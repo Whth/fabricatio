@@ -32,13 +32,13 @@ class ModelHash(Base, ABC):
         return hash(self.model_dump_json())
 
 
-class UpdateFrom(ABC):
+class UpdateFrom[S](ABC):
     """Class that provides a method to update the object from another object.
 
     This class includes methods to update the current object with the attributes of another object.
     """
 
-    def update_pre_check(self, other: Self) -> Self:
+    def update_pre_check(self, other: S) -> Self:
         """Pre-check for updating the object from another object.
 
         Args:
@@ -56,7 +56,7 @@ class UpdateFrom(ABC):
         return self
 
     @abstractmethod
-    def update_from_inner(self, other: Self) -> Self:
+    def update_from_inner(self, other: S) -> Self:
         """Updates the current instance with the attributes of another instance.
 
         This method should be implemented by subclasses to provide the specific update logic.
@@ -69,7 +69,7 @@ class UpdateFrom(ABC):
         """
 
     @final
-    def update_from(self, other: Self) -> Self:
+    def update_from(self, other: S) -> Self:
         """Updates the current instance with the attributes of another instance.
 
         Args:
