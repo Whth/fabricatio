@@ -12,10 +12,10 @@ Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
 {{#if writing_styles}}
 - Writing styles:
-{{ writing_styles }}
+{{ls writing_styles}}
 {{/if}}
-{{#if writing_constraint}}
-- Writing constraint in force: {{ writing_constraint }}
+{{#if writing_constraints}}
+{{ls writing_constraints}}
 {{/if}}
 
 {{#if characters}}

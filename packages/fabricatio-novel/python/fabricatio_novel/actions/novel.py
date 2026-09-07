@@ -74,9 +74,9 @@ class InitNovelContext(StageAction, NovelCompose):
 
     async def _execute(self, *_: Any, **cxt: Any) -> NovelContext:
         outline = ok(cxt.get("novel_outline"), "`novel_outline` is required in the task init context")
-        ctx = NovelContext.create(outline, cxt.get("novel_language"))
+        ctx = NovelContext.create(outline, language=cxt.get("novel_language"))
         if constraint := cxt.get("writing_constraint"):
-            ctx.set_writing_constraint(str(constraint))
+            ctx.set_writing_constraints([str(constraint)])
         if bible_path := cxt.get("bible_path"):
             ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
         ctx.seed_bible_prefix()
@@ -155,7 +155,7 @@ class PlanStoriesStage(StageAction, ChapterCompose):
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
-        for chapter in novel_ctx.chapter_context:
+        for chapter in novel_ctx.child_contexts:
             chapter_ctx = await self.before_compose_chapter_context(chapter)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
                 await self.snapshot(novel_ctx, cxt)

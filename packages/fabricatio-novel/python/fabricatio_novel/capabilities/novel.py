@@ -13,7 +13,6 @@ from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import (
     CharacterSpans,
-    merge_writing_constraints,
     stitch_boundaries,
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
@@ -66,8 +65,8 @@ class NovelCompose(ChapterCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
-                "writing_styles": ctx.dump_writing_styles(),
-                "writing_constraint": ctx.writing_constraint,
+                "writing_styles": ctx.writing_styles,
+                "writing_constraints": ctx.writing_constraints,
                 "characters": ctx.dump_characters(),
             },
         )
@@ -88,13 +87,13 @@ class NovelCompose(ChapterCompose, ABC):
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
-            {"outline": ctx.outline, "language": ctx.language, "constraint": ctx.writing_constraint},
+            {"outline": ctx.outline, "language": ctx.language, "constraint": ctx.writing_constraints},
         )
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:
             logger.error("Novel metadata proposal failed; aborting novel generation")
             return False
-        ctx.set_novel_plan(plan).update_from(plan)
+        ctx.set_plan(plan).update_from(plan).expect_(plan.expected_word_count)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         return True
 
@@ -143,13 +142,13 @@ class NovelCompose(ChapterCompose, ABC):
         unchanged. A single chapter inherits the roster spans directly
         without any LLM call.
         """
-        if not ctx.charactor_span or not ctx.chapter_context:
+        if not ctx.charactor_span or not ctx.child_contexts:
             return
-        if len(ctx.chapter_context) == 1:
-            ctx.chapter_context[0].set_charactor_spans(ctx.charactor_span)
+        if len(ctx.child_contexts) == 1:
+            ctx.child_contexts[0].set_charactor_spans(ctx.charactor_span)
             logger.debug("Single chapter inherits the novel roster spans")
             return
-        logger.debug(f"Drafting {len(ctx.chapter_context) - 1} chapter boundary card(s) per character")
+        logger.debug(f"Drafting {len(ctx.child_contexts) - 1} chapter boundary card(s) per character")
         proposed = ok(
             await self.propose(
                 CharacterCardBoundaries,
@@ -160,7 +159,7 @@ class NovelCompose(ChapterCompose, ABC):
                         "novel_description": ctx.description,
                         "language": ctx.language,
                         "roster_spans": ctx.dump_characters(),
-                        "chapters": [{"title": c.title, "description": c.description} for c in ctx.chapter_context],
+                        "chapters": [{"title": c.title, "description": c.description} for c in ctx.child_contexts],
                     },
                 ),
                 send_to=send_to,
@@ -169,10 +168,10 @@ class NovelCompose(ChapterCompose, ABC):
         )
         stitch_boundaries(
             ctx.charactor_span,
-            ctx.chapter_context,
+            ctx.child_contexts,
             lambda chapter_ctx: chapter_ctx.charactor_span,
             proposed.root,
-            len(ctx.chapter_context) - 1,
+            len(ctx.child_contexts) - 1,
             "chapter",
         )
 
@@ -187,24 +186,22 @@ class NovelCompose(ChapterCompose, ABC):
         Returns:
             bool: True when the chapters are planned; False on planning failure.
         """
-        if not ctx.chapter_context:
+        if not ctx.child_contexts:
             chapter_plans = await self.plan_chapters(ctx, send_to, **kwargs)
             if chapter_plans is None:
                 logger.error("Chapter planning failed; aborting novel generation")
                 return False
             counts = ctx.allocate([p.weight for p in chapter_plans]) if chapter_plans else []
             for chapter_plan, count in zip(chapter_plans, counts, strict=True):
-                ctx.add_chapter_context(
-                    ChapterContext.from_plan(chapter_plan, expected_word_count=count)
-                    .set_language(ctx.language)
-                    .set_outline(ctx.outline)
-                    .set_writing_styles(ctx.writing_styles)
-                    .add_writing_style(chapter_plan.writing_style)
-                    .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, chapter_plan.writing_constraint),
-                    ),
+                ctx.add_context(
+                    ChapterContext.create(ctx.outline, language=ctx.language)
+                    .update_from(chapter_plan)
+                    .set_plan(chapter_plan)
+                    .expect_(count)
+                    .set_writing_styles([*ctx.writing_styles, *chapter_plan.writing_styles])
+                    .set_writing_constraints([*ctx.writing_constraints, *chapter_plan.writing_constraints]),
                 )
-            logger.info(f"Planned {len(ctx.chapter_context)} chapter(s)")
+            logger.info(f"Planned {len(ctx.child_contexts)} chapter(s)")
         await self.draft_chapter_spans(ctx, send_to, **kwargs)
         return True
 
@@ -220,7 +217,7 @@ class NovelCompose(ChapterCompose, ABC):
             bool: True when every chapter composed; False on any failure.
         """
         ctx.seed_bible_prefix()
-        total = len(ctx.chapter_context)
+        total = len(ctx.child_contexts)
         for i, chapter_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing chapter {i}/{total} '{chapter_ctx.title}'")
             if await self.compose_chapter(chapter_ctx, send_to, **kwargs) is None:

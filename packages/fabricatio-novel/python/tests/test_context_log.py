@@ -25,10 +25,9 @@ class TestContextEntry:
         with pytest.raises(ValidationError):
             e.body = "changed"
 
-    def test_entry_kinds_are_restricted(self) -> None:
-        """Assert unknown kinds are rejected."""
-        with pytest.raises(ValidationError):
-            ContextEntry(kind="prose", title="S1", body="text")
+    def test_entry_kinds_are_free_form(self) -> None:
+        """Assert kinds accept arbitrary vocabularies; packages narrow them via subclassing."""
+        assert ContextEntry(kind="prose", title="S1", body="text").kind == "prose"
 
 
 class TestContextLogAppend:

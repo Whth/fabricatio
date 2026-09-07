@@ -22,20 +22,19 @@ digraph assembly {
         style="rounded";
 
         src_prefix [label="prefix_log.render()\lrunning manuscript prefix:\lheadings, prior chapters,\lstories, scenes, seeded bible\l"];
-        src_styles [label="dump_writing_styles()\lstyle directives\l(+ retrieved RAG refs)\l"];
-        src_sofar  [label="scenes_log.render()\lprior scenes of this story;\lgrows after every scene —\leach result becomes\lthe next “so far”\l"];
-        src_scene  [label="plan fields — the only tail\ltitle · description · count\lscene style · constraint\l"];
+        src_styles [label="writing_styles (list, {{ls}})\lstyle directives inherited by\lthe story; RAG reference excerpts\lmerged in at story planning\l"];
+        src_constr [label="writing_constraints (list, {{ls}})\laccumulated POV / prohibitions;\lthe scene's own allocation\lcomes from its plan\l"];
+        src_scene  [label="plan fields — the only tail\ltitle · description · count\l"];
         src_chars  [label="dump_characters()\lstart/end state cards\lper character\l"];
-        src_misc   [label="cast (comma list) · language\l"];
+        src_misc   [label="cast (comma list)\l"];
     }
 
     prompt [shape=plaintext, style="", fillcolor="white",
             label=<
                 <table border="1" cellborder="0" cellspacing="0" cellpadding="6" bgcolor="white">
-                    <tr><td align="left"><b># Scene Writing</b> — static head</td></tr>
-                    <tr><td align="left"># Previous Content — prefix log</td></tr>
-                    <tr><td align="left">## Writing Styles — directives</td></tr>
-                    <tr><td align="left">## Story so far — prior scenes</td></tr>
+                    <tr><td align="left"># Novel so far — prefix_log.render()</td></tr>
+                    <tr><td align="left"><b># Scene Writing</b> — static head + language directive</td></tr>
+                    <tr><td align="left">## Writing Styles — directives + RAG refs</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Scene — title, words, style</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Writing Constraint</td></tr>
                     <tr><td align="left" bgcolor="#E8E8E8">## Characters' state arc</td></tr>
@@ -43,14 +42,14 @@ digraph assembly {
                 </table>
             >];
 
-    write [label="one LLM call per scene\l⇒ plain prose (no JSON)\lScene.content via set_content\l"];
+    write [label="one LLM call per scene\l⇒ plain prose, no JSON\lstrip_overlapping_prefix vs prior\lscene_content entries in the prefix log\lScene.content via set_content\l"];
 
     // keep the outcome box directly below the prompt, not to its right
     { rank=same; prompt; write; }
 
     src_prefix -> prompt;
     src_styles -> prompt;
-    src_sofar  -> prompt;
+    src_constr -> prompt;
     src_scene  -> prompt;
     src_chars  -> prompt;
     src_misc   -> prompt;
@@ -58,5 +57,5 @@ digraph assembly {
     prompt -> write [constraint=false];
 
     labelloc="b";
-    label="  gray rows = per-scene tail; white rows are byte-identical across a story's scenes,\l  so repeated prefixes hit the provider cache";
+    label="  gray rows = per-scene tail; head + styles stay byte-stable within a story,\l  and each scene's prompt extends the previous one byte-for-byte — the provider cache stays warm";
 }

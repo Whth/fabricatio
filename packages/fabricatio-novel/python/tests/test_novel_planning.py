@@ -27,16 +27,16 @@ class TestNovelPlan:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -44,8 +44,8 @@ class TestNovelPlan:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -53,8 +53,8 @@ class TestNovelPlan:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         responses = return_mixed_router_usage(
@@ -72,35 +72,35 @@ class TestNovelPlan:
         assert len(novel.chapter) == 1
         assert novel.chapter[0].title == "Ch1"
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
-        assert ctx.novel_plan is not None
-        assert ctx.novel_plan.title == "The Search"
-        assert ctx.chapter_context[0].chapter_plan is not None
-        assert ctx.chapter_context[0].chapter_plan.title == "Ch1"
-        assert ctx.chapter_context[0].story_context[0].story_plan is not None
-        assert ctx.chapter_context[0].story_context[0].story_plan.title == "St1"
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
+        assert ctx.plan is not None
+        assert ctx.plan.title == "The Search"
+        assert ctx.child_contexts[0].plan is not None
+        assert ctx.child_contexts[0].plan.title == "Ch1"
+        assert ctx.child_contexts[0].child_contexts[0].plan is not None
+        assert ctx.child_contexts[0].child_contexts[0].plan.title == "St1"
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].plan is not None
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].plan.title == "S1"
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].language == "English"
 
     async def test_compose_novel_allocates_writing_constraint_down_tree(self) -> None:
         """Assert the global constraint is generated and accumulated down to every scene."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
-        ctx.set_writing_constraint("I hope the novel is first person view.")
+        ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="First person view throughout: narrate from the protagonist's perspective using I.",
+            writing_styles=[],
+            writing_constraints=["First person view throughout: narrate from the protagonist's perspective using I."],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "Keep first person during the road journey.",
+                "writing_styles": [],
+                "writing_constraints": ["Keep first person during the road journey."],
             },
         ]
         story_plans_json = [
@@ -108,8 +108,8 @@ class TestNovelPlan:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -117,8 +117,8 @@ class TestNovelPlan:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "Stay in the protagonist's head; no head-hopping.",
+                "writing_styles": [],
+                "writing_constraints": ["Stay in the protagonist's head; no head-hopping."],
             },
         ]
         responses = return_mixed_router_usage(
@@ -132,23 +132,23 @@ class TestNovelPlan:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        chapter_ctx = ctx.chapter_context[0]
-        story_ctx = chapter_ctx.story_context[0]
-        scene_ctx = story_ctx.scene_context[0]
+        chapter_ctx = ctx.child_contexts[0]
+        story_ctx = chapter_ctx.child_contexts[0]
+        scene_ctx = story_ctx.child_contexts[0]
         # the generated global constraint replaces the author's raw intent
-        assert ctx.writing_constraint == meta.writing_constraint
+        assert ctx.writing_constraints == meta.writing_constraints
         # each level accumulates its own allocation on top of the parent's
-        assert chapter_ctx.writing_constraint == (
-            "First person view throughout: narrate from the protagonist's perspective using I.\n"
-            "Keep first person during the road journey."
-        )
+        assert chapter_ctx.writing_constraints == [
+            "First person view throughout: narrate from the protagonist's perspective using I.",
+            "Keep first person during the road journey.",
+        ]
         # a level without its own allocation inherits the parent's accumulated constraint
-        assert story_ctx.writing_constraint == chapter_ctx.writing_constraint
-        assert scene_ctx.writing_constraint == (
-            "First person view throughout: narrate from the protagonist's perspective using I.\n"
-            "Keep first person during the road journey.\n"
-            "Stay in the protagonist's head; no head-hopping."
-        )
+        assert story_ctx.writing_constraints == chapter_ctx.writing_constraints
+        assert scene_ctx.writing_constraints == [
+            "First person view throughout: narrate from the protagonist's perspective using I.",
+            "Keep first person during the road journey.",
+            "Stay in the protagonist's head; no head-hopping.",
+        ]
         # the full accumulated chain reaches the scene's prose requirement
         requirement = await role.prepare_scene_requirement(scene_ctx)
         assert "## Writing Constraint" in requirement
@@ -159,7 +159,7 @@ class TestNovelPlan:
         """Assert compose_novel returns None when chapter plan generation fails."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero.", language="English")
-        meta = NovelPlan(title="T", description="D", expected_word_count=10, writing_style="", writing_constraint="")
+        meta = NovelPlan(title="T", description="D", expected_word_count=10, writing_styles=[], writing_constraints=[])
         with install_router_usage(
             *return_model_json_router_usage(meta)[:1],
             "not valid json",
@@ -173,22 +173,22 @@ class TestNovelPlan:
         """Assert compose_novel plans stories and scenes under a prefilled chapter context."""
         role = NovelRole(name="novel_role")
         ctx = NovelContext.create("The hero seeks his father.", language="English")
-        ctx.add_chapter_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
+        ctx.add_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
 
         meta = NovelPlan(
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         story_plans_json = [
             {
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -196,8 +196,8 @@ class TestNovelPlan:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
 
@@ -212,13 +212,13 @@ class TestNovelPlan:
 
         assert novel is not None
         assert novel.chapter[0].story[0].scenes[0].content == "He left."
-        assert len(ctx.chapter_context) == 1
-        assert len(ctx.chapter_context[0].story_context) == 1
-        assert ctx.chapter_context[0].story_context[0].story_plan is not None
-        assert ctx.chapter_context[0].story_context[0].story_plan.title == "St1"
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan is not None
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].scene_plan.title == "S1"
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].language == "English"
+        assert len(ctx.child_contexts) == 1
+        assert len(ctx.child_contexts[0].child_contexts) == 1
+        assert ctx.child_contexts[0].child_contexts[0].plan is not None
+        assert ctx.child_contexts[0].child_contexts[0].plan.title == "St1"
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].plan is not None
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].plan.title == "S1"
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].language == "English"
 
 
 class TestWordCountAllocation:
@@ -232,20 +232,32 @@ class TestWordCountAllocation:
             title="The Search",
             description="A hero searching.",
             expected_word_count=400,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
-            {"title": "Ch1", "description": "The start.", "weight": 3.0, "writing_style": "", "writing_constraint": ""},
-            {"title": "Ch2", "description": "The road.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
+            {
+                "title": "Ch1",
+                "description": "The start.",
+                "weight": 3.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            },
+            {
+                "title": "Ch2",
+                "description": "The road.",
+                "weight": 1.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            },
         ]
         story_plans_json = [
             {
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -253,8 +265,8 @@ class TestWordCountAllocation:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -272,12 +284,12 @@ class TestWordCountAllocation:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        assert ctx.chapter_context[0].expected_word_count == 300
-        assert ctx.chapter_context[1].expected_word_count == 100
-        assert ctx.chapter_context[0].story_context[0].expected_word_count == 300
-        assert ctx.chapter_context[1].story_context[0].expected_word_count == 100
-        assert ctx.chapter_context[0].story_context[0].scene_context[0].expected_word_count == 300
-        assert ctx.chapter_context[1].story_context[0].scene_context[0].expected_word_count == 100
+        assert ctx.child_contexts[0].expected_word_count == 300
+        assert ctx.child_contexts[1].expected_word_count == 100
+        assert ctx.child_contexts[0].child_contexts[0].expected_word_count == 300
+        assert ctx.child_contexts[1].child_contexts[0].expected_word_count == 100
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].expected_word_count == 300
+        assert ctx.child_contexts[1].child_contexts[0].child_contexts[0].expected_word_count == 100
 
 
 class TestPlanningOutlineGrounding:

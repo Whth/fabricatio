@@ -96,7 +96,9 @@ Templates live in `templates/built-in/` and are selectable through the
 
 ### What flows down the tree
 
-Plans materialize into child contexts via `from_plan`; each level then passes state down:
+Each level materializes its plan via `create(outline).update_from(plan).set_plan(plan)`,
+with word counts assigned out-of-band via `expect_` (the root takes the novel plan's
+count, children take their allocated share); each level then passes state down:
 
 - **Running manuscript** — an append-only `ContextLog`; every walk seeds each child with
   exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)

@@ -91,7 +91,7 @@ class SceneIllustrationQueue:
                         "scene_description": scene.description,
                         "novel_so_far": scene.prefix_log.render(),
                         "scene_content": scene.content,
-                        "cast": scene.scene_plan.cast if scene.scene_plan else [],
+                        "cast": scene.plan.cast if scene.plan else [],
                         "illustration_constraint": constraint,
                     },
                 )

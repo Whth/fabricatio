@@ -20,7 +20,7 @@ Respond entirely in "{{ language }}".
 
 Apply these style directives — inherited guidance shared by every scene of this story; reference excerpts show techniques to emulate where they fit.
 
-{{ writing_styles }}
+{{ls writing_styles}}
 
 ---
 {{/if}}
@@ -29,13 +29,9 @@ Title: {{ title }}
 Description: {{ description }}
 - Write approximately {{ expected_word_count }} words.
 
-{{#if scene_style}}
-- Style: {{ scene_style }}
-{{/if}}
-
-{{#if writing_constraint}}
+{{#if writing_constraints}}
 ## Writing Constraint
-{{ writing_constraint }}
+{{ls writing_constraints}}
 {{/if}}
 
 {{#if characters}}

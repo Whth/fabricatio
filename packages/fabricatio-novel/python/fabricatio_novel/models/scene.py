@@ -45,7 +45,7 @@ class Scene(ScenePlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_style=ctx.scene_plan.writing_style if ctx.scene_plan is not None else "",
-            writing_constraint=ctx.writing_constraint,
+            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_constraints=list(ctx.writing_constraints),
             content=ctx.content,
         )

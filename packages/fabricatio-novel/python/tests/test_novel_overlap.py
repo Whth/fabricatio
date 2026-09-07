@@ -23,9 +23,11 @@ def _two_scene_ctx() -> NovelContext:
     chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
     story_ctx = StoryContext(title="St1", description="The departure.")
     for title in ("S1", "S2"):
-        story_ctx.scene_context.append(SceneContext(title=title, description=f"{title} prose.", expected_word_count=20))
-    chapter_ctx.story_context.append(story_ctx)
-    ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.append(
+            SceneContext(title=title, description=f"{title} prose.", expected_word_count=20)
+        )
+    chapter_ctx.child_contexts.append(story_ctx)
+    ctx.child_contexts.append(chapter_ctx)
     return ctx
 
 
@@ -77,15 +79,15 @@ def test_compose_scenes_phase_strips_and_propagates_stripped_prose(
     monkeypatch.setattr(NovelRole, "aask", fake_aask)
     role = NovelRole(name="writer")
     ctx = _two_scene_ctx()
-    story_ctx = ctx.chapter_context[0].story_context[0]
+    story_ctx = ctx.child_contexts[0].child_contexts[0]
     story_ctx.set_prefix_log(prefix_log("Chapter One.", title="Ch1"))
     story_ctx.set_charactor_spans([])
 
     ok = asyncio.run(role.compose_scenes_phase(story_ctx))
 
     assert ok is True
-    first, second = (scene.content for scene in story_ctx.scene_context)
+    first, second = (scene.content for scene in story_ctx.child_contexts)
     assert first == f"The ropes groaned. {_TAIL}"
     assert second == _REMAINDER
-    logged_bodies = [entry.body for entry in story_ctx.scenes_log.entries]
-    assert logged_bodies == [first, second]
+    later_prose = [entry.body for entry in story_ctx.child_contexts[1].prefix_log.entries]
+    assert later_prose == ["Chapter One.", first]

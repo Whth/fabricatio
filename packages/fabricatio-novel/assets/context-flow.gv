@@ -1,0 +1,52 @@
+// fabricatio-novel: context flow — task props enter stages, stages create/consume the context tree.
+// Render: dot -Tsvg context-flow.gv -o context-flow.svg
+digraph context_flow {
+    rankdir=TB;
+    bgcolor="white";
+    fontname="serif";
+    pad="0.45";
+    nodesep=0.34;
+    ranksep=0.48;
+    labelloc="b";
+    label="  gray = pure code; white = stage with LLM calls; dashed = RAG seal/consume (wr / wri workflows only)";
+
+    node [shape=box, style="filled", fillcolor="white", color="black",
+          fontname="serif", fontsize=12, margin="0.16,0.09"];
+    edge [color="black", arrowsize=0.75, fontname="serif", fontsize=10];
+
+    // ---- left column: stage chain ----
+    task   [label="task init context\l rag_query · rag_limit\l writing_constraint · bible_path\l outline · language\l", shape=note, fillcolor="#F2F2F2"];
+    st05   [label="05 RagPlanStoriesStage\l ctx_override = True\l rag_query/rag_limit → self fields\l plan_stories_phase per chapter\l"];
+    st06   [label="06 PlanScenesStage\l iter_prefixed_contexts walk\l prepare_story consumes sealed stories\l"];
+    st07   [label="07 ComposeScenesStage\l scene prose, serial per scene\l iter_prefixed_contexts seeds each scene\l"];
+    asm    [label="08–09 Assemble & Dump\l EPUB / TXT export\l", fillcolor="#E8E8E8"];
+
+    task -> st05 [label=" ctx_override\l action.py:154 setattr\l"];
+    st05 -> st06;
+    st06 -> st07;
+    st07 -> asm;
+
+    // ---- right column: context tree ----
+    novel [label="NovelContext\l outline · language · plan\l prefix_log seed = [bible]\l"];
+    ch1   [label="ChapterContext ×C\l prefix_log = all so far\l"];
+    s11   [label="RagStoryContext\l rag = RagRetrieval\l (query, limit)\l writing_styles += retrieved refs\l"];
+    s12   [label="StoryContext, no RAG\l writing_styles = inherited chain\l"];
+    sc    [label="SceneContext ×N\l content = the prose\l prefix_log = everything so far, prior scenes included\l"];
+
+    novel -> ch1  [label=" iter_prefixed_contexts()\l set_prefix_log(seed)\l"];
+    ch1  -> s11;
+    ch1  -> s12   [label=" elder sibling feeds the seed\l"];
+    s11  -> sc;
+    s12  -> sc    [style=dotted, arrowsize=0.55, constraint=false];
+
+    // ---- RAG seal / consume (dashed) ----
+    node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=11, margin="0.14,0.11"];
+    edge [style=dotted, arrowsize=0.55, fontname="serif", fontsize=9];
+
+    seal [label="RagStoryContext.seal(story, rag)\l idempotent model_dump rebind\l"];
+    fetch [label="_fetch_style_docs\l vector top-limit, no rerank\l"];
+    st05 -> seal;
+    seal -> s11;
+    st06 -> fetch;
+    fetch -> s11;
+}

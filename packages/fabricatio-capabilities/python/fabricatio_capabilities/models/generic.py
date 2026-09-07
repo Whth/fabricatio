@@ -50,8 +50,6 @@ class UpdateFrom[S](ABC):
         Raises:
             TypeError: If the other object is not of the same type.
         """
-        if not isinstance(other, self.__class__):
-            raise TypeError(f"Cannot update from a non-{self.__class__.__name__} instance.")
 
         return self
 

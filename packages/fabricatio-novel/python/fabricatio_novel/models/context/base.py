@@ -8,6 +8,7 @@ from fabricatio_capabilities.models.generic import PersistentAble, UpdateFrom, W
 from fabricatio_character.models.character import CharacterCard, CharacterSpan
 from fabricatio_core import logger
 from fabricatio_core.models.generic import Described, JSONList, Titled
+from fabricatio_core.rust import detect_language
 from pydantic import Field
 
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
@@ -84,14 +85,15 @@ class ContextBase[P: WeightedPlan](
     parent before composition."""
 
     @classmethod
-    def from_plan(cls, plan: P, expected_word_count: int) -> Self:
-        """Build the story context from its proposed plan."""
+    def create(
+        cls, outline: str, *, language: str | None = None, title: str | None = None, description: str | None = None
+    ) -> Self:
+        """Build a context from the run-wide outline, detecting the language when none is given."""
         return cls(
-            title=plan.title,
-            description=plan.description,
-            expected_word_count=expected_word_count,
-            plan=plan,
-            cast=plan.cast,
+            outline=outline,
+            language=language or detect_language(outline),
+            title=title or "",
+            description=description or "",
         )
 
     def update_pre_check(self, other: P) -> Self:
@@ -101,9 +103,10 @@ class ContextBase[P: WeightedPlan](
         return self
 
     def update_from_inner(self, other: P) -> Self:
-        """Adopt the plan's fields onto the context; empty plan lists keep any preset."""
+        """Adopt the plan's fields onto the context; empty plan style lists keep any preset."""
         self.title = other.title
         self.description = other.description
+        self.set_cast(other.cast)
         if other.writing_styles:
             self.set_writing_styles(other.writing_styles)
         if other.writing_constraints:

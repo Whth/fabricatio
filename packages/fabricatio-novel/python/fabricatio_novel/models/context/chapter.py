@@ -16,7 +16,6 @@ class ChapterContext(ParentContextBase[StoryContext, ChapterPlan]):
 
     heading_level: ClassVar[str] = "#"
 
-
     @final
     def iter_story_content(self) -> Generator[str, None, None]:
         """Yield each story's composed content, in chapter order."""

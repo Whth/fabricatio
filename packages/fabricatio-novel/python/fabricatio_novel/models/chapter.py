@@ -34,9 +34,9 @@ class Chapter(ChapterPlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_style=ctx.chapter_plan.writing_style if ctx.chapter_plan is not None else "",
-            writing_constraint=ctx.writing_constraint,
-            story=[Story.from_context(sc) for sc in ctx.story_context],
+            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_constraints=list(ctx.writing_constraints),
+            story=[Story.from_context(sc) for sc in ctx.child_contexts],
         )
 
     def to_text(self) -> str:

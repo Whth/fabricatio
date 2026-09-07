@@ -11,14 +11,14 @@ class WeightedPlan(SketchedAble, Titled, Described):
     weight: PositiveFloat = 1.0
     """Relative importance for allocating the parent's expected word count; assign by narrative importance."""
 
-    writing_style: str
-    """Writing technique guidance for this element's prose: narrative voice, point of view,
-    tone, rhythm, and recurring techniques; empty when no specific style is required."""
+    writing_styles: list[str]
+    """Style directives for this element's prose: narrative voice, point of view, tone,
+    rhythm, and recurring techniques; empty list when no specific style is required."""
 
-    writing_constraint: str
-    """Additional hard writing constraint for this element on top of the parent's: point of
-    view, tense, perspective, prohibitions. The parent's constraint stays in force and is
-    accumulated down the tree; empty when no extra constraint applies."""
+    writing_constraints: list[str]
+    """Additional hard writing constraints for this element on top of the parent's: point
+    of view, tense, perspective, prohibitions. The parent's constraints stay in force and
+    accumulate down the tree; empty list when no extra constraint applies."""
 
     cast: list[str] = Field(default_factory=list)
     """Names of the characters on stage in this element; the planner proposes the cast.
@@ -34,19 +34,19 @@ class ScenePlan(WeightedPlan):
     its end. The model writes the scene's prose directly from this description, so give concrete,
     stageable details — not a theme or a summary."""
 
-    writing_style: str
-    """1-2 sentences stating the writing technique for this scene's prose: narrative voice and
-    point of view, sentence rhythm, tone and atmosphere, dialogue handling, and description
-    density. The model writes the prose directly from this, so name concrete, applicable
-    techniques — not a genre label or a theme."""
+    writing_styles: list[str]
+    """1-2 directive entries stating the writing technique for this scene's prose: narrative
+    voice and point of view, sentence rhythm, tone and atmosphere, dialogue handling, and
+    description density. The model writes the prose directly from these, so name concrete,
+    applicable techniques — not a genre label or a theme."""
 
-    writing_constraint: str
-    """1-2 sentences stating the hard writing constraint binding this scene alone, on top of
+    writing_constraints: list[str]
+    """1-2 entries stating the hard writing constraints binding this scene alone, on top of
     the story's: whose head the prose stays in (no head-hopping), where this beat may start
-    or end, and scene-specific dialogue or sensory restrictions. The parent's constraint
-    stays in force verbatim and accumulates down the tree automatically — extract only what
-    this scene itself adds, never restate the parent's; empty when the scene adds no rule
-    of its own."""
+    or end, and scene-specific dialogue or sensory restrictions. The parent's constraints
+    stay in force verbatim and accumulate down the tree automatically — extract only what
+    this scene itself adds, never restate the parent's; empty list when the scene adds no
+    rule of its own."""
 
 
 class StoryPlan(WeightedPlan):
@@ -57,17 +57,18 @@ class StoryPlan(WeightedPlan):
     the characters involved, and what changes by the end. It is shown when planning the story's
     scenes, so name the concrete events to stage rather than restating the chapter."""
 
-    writing_style: str
-    """1-3 sentences stating the writing style its scenes should share: a consistent voice, tone,
-    and technique across the story's scenes. Empty when the chapter's style already suffices."""
+    writing_styles: list[str]
+    """1-2 directive entries stating the writing style its scenes should share: a consistent
+    voice, tone, and technique across the story's scenes. Empty list when the chapter's
+    style already suffices."""
 
-    writing_constraint: str
-    """1-2 sentences stating the hard writing constraint binding this story as a whole, on
+    writing_constraints: list[str]
+    """1-2 entries stating the hard writing constraints binding this story as a whole, on
     top of the chapter's: the story's own point of view or tense, how its scenes progress,
     and prohibitions spanning its scenes — not the chapter-wide sequencing, which the
-    chapter plan owns. The parent's constraint stays in force verbatim and accumulates
+    chapter plan owns. The parent's constraints stay in force verbatim and accumulate
     automatically — extract only what this story itself adds, never restate the parent's;
-    empty when the story adds no rule of its own."""
+    empty list when the story adds no rule of its own."""
 
 
 class ChapterPlan(WeightedPlan):
@@ -78,20 +79,21 @@ class ChapterPlan(WeightedPlan):
     the key event or reversal, and where it leaves the characters. Focus on the chapter's own
     arc — it is shown when planning the chapter's stories, so name the events that stage it."""
 
-    writing_style: str
-    """2-3 sentences stating the writing style its stories should follow: the chapter's narrative
-    voice, tone, and pacing. Empty when the novel's style already suffices."""
+    writing_styles: list[str]
+    """1-2 directive entries stating the writing style its stories should follow: the
+    chapter's narrative voice, tone, and pacing. Empty list when the novel's style
+    already suffices."""
 
-    writing_constraint: str
-    """2-3 sentences stating the hard writing constraint binding this chapter as a whole,
-    on top of the novel's global one: the chapter-wide sequencing its stories must follow
-    (e.g. the act order), any chapter-wide point of view or tense, and prohibitions
-    spanning stories. The parent's constraint stays in force verbatim and accumulates
-    automatically — extract only what this chapter itself adds, never restate the parent's;
-    empty when the chapter adds no rule of its own."""
+    writing_constraints: list[str]
+    """2-3 entries stating the hard writing constraints binding this chapter as a whole,
+    on top of the novel's global ones: the chapter-wide sequencing its stories must
+    follow (e.g. the act order), any chapter-wide point of view or tense, and prohibitions
+    spanning stories. The parent's constraints stay in force verbatim and accumulate
+    automatically — extract only what this chapter itself adds, never restate the
+    parent's; empty list when the chapter adds no rule of its own."""
 
 
-class NovelPlan(SketchedAble, Titled, Described, WordCount):
+class NovelPlan(WeightedPlan, WordCount):
     """Plan of the novel itself: metadata only, chapters are planned separately."""
 
     description: str
@@ -99,12 +101,13 @@ class NovelPlan(SketchedAble, Titled, Described, WordCount):
     central conflict blocking them, and the stakes. Convey genre and tone. This description
     seeds every chapter's planning prompt, so be specific and evocative, never a tagline."""
 
-    writing_style: str
-    """6-9 sentences stating the novel's overall writing style: narrative voice, tone, rhythm,
-    and recurring techniques. It seeds the style guidance of every chapter, story, and scene."""
+    writing_styles: list[str]
+    """2-4 directive entries stating the novel's overall writing style: narrative voice,
+    tone, rhythm, and recurring techniques. They seed the style guidance of every chapter,
+    story, and scene."""
 
-    writing_constraint: str
-    """6-12 sentences. Represent hard quality check standards, shall be extracted carefully from the outline."""
+    writing_constraints: list[str]
+    """3-6 entries. Represent hard quality check standards, shall be extracted carefully from the outline."""
 
 
 class ScenePlans(JSONList[ScenePlan]):

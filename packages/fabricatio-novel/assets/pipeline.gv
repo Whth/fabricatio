@@ -17,13 +17,13 @@ digraph pipeline {
 
     // left column — novel scope
     outline [label="outline\l(+ optional bible, constraint,\lRAG query)\l", shape=note, fillcolor="#F2F2F2"];
-    initmeta [label="01–02 Init & metadata\lnovel_metadata_requirement\l⇒ NovelPlan (title, word count,\lconstraint, bible)\l"];
+    initmeta [label="01–02 Init & metadata\lnovel_metadata_requirement\l⇒ NovelPlan (title, word count,\lwriting constraints, bible)\l"];
     chars    [label="03 Roster spans\lnovel_character_span\l⇒ CharacterSpan[] per character\l(skipped without a roster)\l"];
     chapters [label="04 Chapters\lchapter_plan ⇒ ChapterPlan[]\lchapter_character_span ⇒ N−1\lboundary cards, stitched in code\l"];
 
     // right column — chapter scope
-    stories [label="05 Stories\lstory_plan ⇒ StoryPlan[]\lstory_character_span ⇒ S−1\lboundary cards, stitched in code\l"];
-    splan   [label="06 Scene plans\lscene_plan ⇒ ScenePlan[]\l(+ optional style-RAG retrieval)\l"];
+    stories [label="05 Stories\lstory_plan ⇒ StoryPlan[]\lstory_character_span ⇒ S−1\lboundary cards, stitched in code\loptional RAG: seals rag (query, limit)\l"];
+    splan   [label="06 Scene plans\lscene_plan ⇒ ScenePlan[]\loptional RAG: fetch + merge style refs\l"];
     prose   [label="07 Scene prose\lscene_requirement ⇒ plain prose\lthe only content-writing call\l(serial per scene)\l"];
     asm     [label="08–09 Assemble & export\lNovel.from_context\l⇒ EPUB / chapters/NN.txt\l", fillcolor="#E8E8E8"];
 

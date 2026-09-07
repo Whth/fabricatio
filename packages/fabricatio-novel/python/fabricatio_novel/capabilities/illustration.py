@@ -224,10 +224,10 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
         :class:`~fabricatio_novel.models.illustration.IllustratedScene` copy; the
         remaining scenes pass through untouched.
         """
-        for ci, (chapter, chapter_ctx) in enumerate(zip(novel.chapter, novel_ctx.chapter_context, strict=True), 1):
+        for ci, (chapter, chapter_ctx) in enumerate(zip(novel.chapter, novel_ctx.child_contexts, strict=True), 1):
             scene_offset = 0
-            for story, story_ctx in zip(chapter.story, chapter_ctx.story_context, strict=True):
-                for index, scene_ctx in enumerate(story_ctx.scene_context):
+            for story, story_ctx in zip(chapter.story, chapter_ctx.child_contexts, strict=True):
+                for index, scene_ctx in enumerate(story_ctx.child_contexts):
                     scene_idx = scene_offset + index + 1
                     if (ci, scene_idx) not in illustrations:
                         continue
@@ -235,7 +235,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
                     story.scenes[index] = IllustratedScene.from_context(
                         scene_ctx, illustration_prompt=prompt, illustration_image=image
                     )
-                scene_offset += len(story_ctx.scene_context)
+                scene_offset += len(story_ctx.child_contexts)
         return novel
 
     async def post_process_novel(

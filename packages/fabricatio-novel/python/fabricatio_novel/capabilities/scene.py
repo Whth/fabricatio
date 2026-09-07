@@ -50,13 +50,12 @@ class SceneCompose(CharacterCompose, ABC):
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,
-            "writing_styles": ctx.dump_writing_styles(),
-            "scene_style": ctx.scene_plan.writing_style if ctx.scene_plan is not None else "",
-            "writing_constraint": ctx.writing_constraint,
+            "writing_styles": ctx.writing_styles,
+            "writing_constraints": ctx.writing_constraints,
             "characters": characters,
             "cast": ", ".join(ctx.cast),
             "language": ctx.language or detect_language(ctx.description),
-            "novel_so_far": "\n\n".join(x for x in (ctx.prefix_log.render(), ctx.scenes_log.render()) if x),
+            "novel_so_far": ctx.prefix_log.render(),
         }
 
     async def prepare_scene_requirement(
@@ -89,7 +88,7 @@ class SceneCompose(CharacterCompose, ABC):
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
         content = (await self.aask(requirement, send_to=send_to, **kwargs)).strip()
-        previous = "\n".join(entry.body for entry in ctx.scenes_log.entries)
+        previous = "\n".join(entry.body for entry in ctx.prefix_log.entries if entry.kind == "scene_content")
         content = strip_overlapping_prefix(
             content,
             previous,

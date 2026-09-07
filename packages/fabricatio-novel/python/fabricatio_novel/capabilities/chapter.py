@@ -13,7 +13,6 @@ from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.base import (
-    merge_writing_constraints,
     stitch_boundaries,
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
@@ -63,8 +62,8 @@ class ChapterCompose(StoryCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
-                "writing_styles": ctx.dump_writing_styles(),
-                "writing_constraint": ctx.writing_constraint,
+                "writing_styles": ctx.writing_styles,
+                "writing_constraints": ctx.writing_constraints,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
                 "cast": ", ".join(ctx.cast),
@@ -90,13 +89,13 @@ class ChapterCompose(StoryCompose, ABC):
         unchanged. A single story inherits the chapter's spans directly
         without any LLM call.
         """
-        if not ctx.charactor_span or not ctx.story_context:
+        if not ctx.charactor_span or not ctx.child_contexts:
             return
-        if len(ctx.story_context) == 1:
-            ctx.story_context[0].set_charactor_spans(ctx.charactor_span)
+        if len(ctx.child_contexts) == 1:
+            ctx.child_contexts[0].set_charactor_spans(ctx.charactor_span)
             logger.debug(f"Single story inherits chapter '{ctx.title}' spans")
             return
-        logger.debug(f"Drafting {len(ctx.story_context) - 1} story boundary card(s) per character")
+        logger.debug(f"Drafting {len(ctx.child_contexts) - 1} story boundary card(s) per character")
         proposed = ok(
             await self.propose(
                 CharacterCardBoundaries,
@@ -107,7 +106,7 @@ class ChapterCompose(StoryCompose, ABC):
                         "chapter_description": ctx.description,
                         "language": ctx.language,
                         "chapter_spans": ctx.dump_characters(),
-                        "stories": [{"title": s.title, "description": s.description} for s in ctx.story_context],
+                        "stories": [{"title": s.title, "description": s.description} for s in ctx.child_contexts],
                     },
                 ),
                 send_to=send_to,
@@ -116,10 +115,10 @@ class ChapterCompose(StoryCompose, ABC):
         )
         stitch_boundaries(
             ctx.charactor_span,
-            ctx.story_context,
+            ctx.child_contexts,
             lambda story_ctx: story_ctx.charactor_span,
             proposed.root,
-            len(ctx.story_context) - 1,
+            len(ctx.child_contexts) - 1,
             "story",
         )
 
@@ -134,24 +133,22 @@ class ChapterCompose(StoryCompose, ABC):
         Returns:
             bool: True when the stories are planned; False on planning failure.
         """
-        if not ctx.story_context:
+        if not ctx.child_contexts:
             story_plans = await self.plan_stories(ctx, send_to, **kwargs)
             if story_plans is None:
                 logger.error(f"Story planning failed for chapter '{ctx.title}'; aborting chapter generation")
                 return False
             counts = ctx.allocate([s.weight for s in story_plans]) if story_plans else []
             for story_plan, count in zip(story_plans, counts, strict=True):
-                ctx.add_story_context(
-                    StoryContext.from_plan(story_plan, expected_word_count=count)
-                    .set_language(ctx.language)
-                    .set_outline(ctx.outline)
-                    .set_writing_styles(ctx.writing_styles)
-                    .add_writing_style(story_plan.writing_style)
-                    .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, story_plan.writing_constraint),
-                    ),
+                ctx.add_context(
+                    StoryContext.create(ctx.outline, language=ctx.language)
+                    .update_from(story_plan)
+                    .set_plan(story_plan)
+                    .expect_(count)
+                    .set_writing_styles([*ctx.writing_styles, *story_plan.writing_styles])
+                    .set_writing_constraints([*ctx.writing_constraints, *story_plan.writing_constraints]),
                 )
-            logger.info(f"Planned {len(ctx.story_context)} story(s) for chapter '{ctx.title}'")
+            logger.info(f"Planned {len(ctx.child_contexts)} story(s) for chapter '{ctx.title}'")
         await self.draft_story_spans(ctx, send_to, **kwargs)
         return True
 
@@ -166,7 +163,7 @@ class ChapterCompose(StoryCompose, ABC):
         Returns:
             bool: True when every story composed; False on any failure.
         """
-        total = len(ctx.story_context)
+        total = len(ctx.child_contexts)
         for i, story_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing story {i}/{total} '{story_ctx.title}'")
             if await self.compose_story(story_ctx, send_to, **kwargs) is None:

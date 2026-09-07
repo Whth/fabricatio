@@ -135,13 +135,13 @@ class TestBibleConsumption:
         novel.set_series_bible(self._bible())
         novel.seed_bible_prefix()
         chapter = ChapterContext(title="Ch1", description="The start.")
-        novel.add_chapter_context(chapter)
+        novel.add_context(chapter)
         list(novel.iter_prefixed_contexts())
         story = StoryContext(title="St1", description="The departure.")
-        chapter.add_story_context(story)
+        chapter.add_context(story)
         list(chapter.iter_prefixed_contexts())
         scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        story.add_scene_context(scene)
+        story.add_context(scene)
         scene.set_prefix_log(story.prefix_log)
         return scene
 
@@ -185,16 +185,16 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -202,8 +202,8 @@ class TestBibleThreading:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -211,8 +211,8 @@ class TestBibleThreading:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -228,7 +228,7 @@ class TestBibleThreading:
 
         assert novel is not None
         assert novel.series_bible == bible
-        scene = ctx.chapter_context[0].story_context[0].scene_context[0]
+        scene = ctx.child_contexts[0].child_contexts[0].child_contexts[0]
         kinds = [entry.kind for entry in scene.prefix_log.entries]
         assert "setting_bible" in kinds
         assert "Qi is vital." in scene.prefix_log.render()
@@ -243,16 +243,16 @@ class TestBibleThreading:
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -260,8 +260,8 @@ class TestBibleThreading:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -269,8 +269,8 @@ class TestBibleThreading:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -286,7 +286,7 @@ class TestBibleThreading:
 
         assert novel is not None
         assert novel.series_bible is bible
-        scene = ctx.chapter_context[0].story_context[0].scene_context[0]
+        scene = ctx.child_contexts[0].child_contexts[0].child_contexts[0]
         assert "Qi is vital." in scene.prefix_log.render()
 
     async def test_compose_novel_seeds_prefilled_tree_exactly_once(self) -> None:
@@ -297,17 +297,17 @@ class TestBibleThreading:
         ctx.set_series_bible(bible)
         scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=40)
         story_ctx = StoryContext(title="St1", description="The departure.")
-        story_ctx.add_scene_context(scene_ctx)
+        story_ctx.add_context(scene_ctx)
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
-        chapter_ctx.add_story_context(story_ctx)
-        ctx.add_chapter_context(chapter_ctx)
+        chapter_ctx.add_context(story_ctx)
+        ctx.add_context(chapter_ctx)
 
         meta = NovelPlan(
             title="The Search",
             description="A hero searching.",
             expected_word_count=40,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         with install_router_usage(
             *return_mixed_router_usage(

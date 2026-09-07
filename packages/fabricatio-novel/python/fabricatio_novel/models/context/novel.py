@@ -3,8 +3,6 @@
 from collections.abc import Generator
 from typing import Self, final
 
-from fabricatio_core.rust import detect_language
-
 from fabricatio_novel.models.context.base import ParentContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
@@ -59,8 +57,3 @@ class NovelContext(ParentContextBase[ChapterContext, NovelPlan]):
             ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip()),
         )
         return self
-
-    @classmethod
-    def create(cls, outline: str, language: str | None = None) -> Self:
-        """Build a novel context from an outline, detecting the language from the outline when none is given."""
-        return cls(outline=outline, language=language or detect_language(outline))

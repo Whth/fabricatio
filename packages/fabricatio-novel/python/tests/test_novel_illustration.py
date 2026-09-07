@@ -36,11 +36,11 @@ def build_novel_ctx(*scene_titles: str) -> NovelContext:
     chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
     story_ctx = StoryContext(title="St1", description="The departure.")
     for title in scene_titles:
-        story_ctx.scene_context.append(
+        story_ctx.child_contexts.append(
             SceneContext(title=title, description=f"{title} description.", expected_word_count=20)
         )
-    chapter_ctx.story_context.append(story_ctx)
-    ctx.chapter_context.append(chapter_ctx)
+    chapter_ctx.child_contexts.append(story_ctx)
+    ctx.child_contexts.append(chapter_ctx)
     return ctx
 
 
@@ -51,11 +51,11 @@ def build_two_story_novel_ctx() -> NovelContext:
     for story_title, scene_titles in (("St1", ("S1",)), ("St2", ("S2", "S3"))):
         story_ctx = StoryContext(title=story_title, description=f"The {story_title} leg.")
         for title in scene_titles:
-            story_ctx.scene_context.append(
+            story_ctx.child_contexts.append(
                 SceneContext(title=title, description=f"{title} description.", expected_word_count=20)
             )
-        chapter_ctx.story_context.append(story_ctx)
-    ctx.chapter_context.append(chapter_ctx)
+        chapter_ctx.child_contexts.append(story_ctx)
+    ctx.child_contexts.append(chapter_ctx)
     return ctx
 
 
@@ -561,7 +561,7 @@ class TestAttachIllustrations:
         """Assert keyed scenes become IllustratedScene outputs and the rest stay plain."""
         role = IllustrationRole(name="illustrator")
         ctx = build_novel_ctx("S1", "S2")
-        ctx.chapter_context[0].story_context[0].scene_context[0].content = "He left."
+        ctx.child_contexts[0].child_contexts[0].child_contexts[0].content = "He left."
 
         novel = role.attach_illustrations(
             ctx, Novel.from_context(ctx), {(1, 1): ("a lone rider at dawn", str(tmp_path / "img.png"))}

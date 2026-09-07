@@ -9,7 +9,6 @@ from fabricatio_core.rust import TASK
 
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
-from fabricatio_novel.models.context.base import merge_writing_constraints
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ScenePlan, ScenePlans
@@ -58,8 +57,8 @@ class StoryCompose(SceneCompose, ABC):
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
-                "writing_styles": ctx.dump_writing_styles(),
-                "writing_constraint": ctx.writing_constraint,
+                "writing_styles": ctx.writing_styles,
+                "writing_constraints": ctx.writing_constraints,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
                 "cast": ", ".join(ctx.cast),
@@ -83,24 +82,22 @@ class StoryCompose(SceneCompose, ABC):
             bool: True when the scenes are planned; False on planning failure.
         """
         await self.prepare_story(ctx, send_to, **kwargs)
-        if not ctx.scene_context:
+        if not ctx.child_contexts:
             scene_plans = await self.plan_scenes(ctx, send_to, **kwargs)
             if scene_plans is None:
                 logger.error(f"Scene planning failed for story '{ctx.title}'; aborting story generation")
                 return False
             counts = ctx.allocate([s.weight for s in scene_plans]) if scene_plans else []
             for scene_plan, count in zip(scene_plans, counts, strict=True):
-                ctx.add_scene_context(
-                    SceneContext.from_plan(scene_plan, expected_word_count=count)
-                    .set_language(ctx.language)
-                    .set_outline(ctx.outline)
-                    .set_writing_styles(ctx.writing_styles)
-                    .add_writing_style(scene_plan.writing_style)
-                    .set_writing_constraint(
-                        merge_writing_constraints(ctx.writing_constraint, scene_plan.writing_constraint),
-                    ),
+                ctx.add_context(
+                    SceneContext.create(ctx.outline, language=ctx.language)
+                    .update_from(scene_plan)
+                    .set_plan(scene_plan)
+                    .expect_(count)
+                    .set_writing_styles([*ctx.writing_styles, *scene_plan.writing_styles])
+                    .set_writing_constraints([*ctx.writing_constraints, *scene_plan.writing_constraints]),
                 )
-            logger.info(f"Planned {len(ctx.scene_context)} scene(s) for story '{ctx.title}'")
+            logger.info(f"Planned {len(ctx.child_contexts)} scene(s) for story '{ctx.title}'")
         return True
 
     async def prepare_scene_write(
@@ -110,7 +107,7 @@ class StoryCompose(SceneCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
         """Broadcast the story's character spans to every scene before the write."""
-        for scene_ctx in ctx.scene_context:
+        for scene_ctx in ctx.child_contexts:
             scene_ctx.set_charactor_spans(ctx.charactor_span)
 
     async def compose_scenes_phase(
@@ -131,14 +128,12 @@ class StoryCompose(SceneCompose, ABC):
         Returns:
             bool: True when every scene composed; False on any failure.
         """
-        total = len(ctx.scene_context)
-        for i, scene_ctx in enumerate(ctx.scene_context, start=1):
-            scene_ctx.set_prefix_log(ctx.prefix_log).set_scenes_log(ctx.scenes_log.branch())
+        total = len(ctx.child_contexts)
+        for i, scene_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):
             logger.info(f"Composing scene {i}/{total} '{scene_ctx.title}'")
             if await self.compose_scene(scene_ctx, send_to, **kwargs) is None:
                 logger.error(f"Scene '{scene_ctx.title}' failed; aborting story '{ctx.title}'")
                 return False
-            ctx.scenes_log = ctx.scenes_log.with_entries(scene_ctx.prefixed_entries())
         return True
 
     async def generate_story_context(

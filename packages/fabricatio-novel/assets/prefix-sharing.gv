@@ -1,0 +1,53 @@
+// fabricatio-novel: prefix_log sharing mechanics — the seed each element receives and who contributes to it.
+// Render: dot -Tsvg prefix-sharing.gv -o prefix-sharing.svg
+digraph prefix_sharing {
+    rankdir=TB;
+    bgcolor="white";
+    fontname="serif";
+    pad="0.45";
+    nodesep=0.30;
+    ranksep=0.50;
+    labelloc="b";
+    label="  runtime proof 11/11: object identity · value prefix · f∘f=f idempotent · byte monotone · split == accumulated · append-only";
+
+    node [shape=box, style="filled", fillcolor="white", color="black",
+          fontname="serif", fontsize=12, margin="0.16,0.09"];
+    edge [color="black", arrowsize=0.75, fontname="serif", fontsize=10];
+
+    // ---- the tree with each node's incoming seed ----
+    novel [label="NovelContext\l prefix_log = [setting_bible]\l bible rendered once at the root\l"];
+    ch1   [label="ChapterContext 1\l prefix_log = [bible]\l outgoing = [chapter_header, scenes]\l"];
+    ch2   [label="ChapterContext 2\l prefix_log = [bible, Ch1 outgoing]\l"];
+    s11   [label="RagStoryContext S1.1\l prefix_log = [bible, Ch1 header]\l"];
+    s12   [label="StoryContext S1.2\l prefix_log = [bible, Ch1 header, S1.1 outgoing]\l"];
+    sc1   [label="SceneContext S1.1.1\l prefix_log = story.prefix_log, same bytes\l"];
+    sc2   [label="SceneContext S1.1.2\l prefix_log = [bible, Ch1 header, S1.1.1 outgoing]\l"];
+
+    novel -> ch1 [label=" set_prefix_log(seed)\l"];
+    novel -> ch2 [label=" ⊕ Ch1 outgoing, then set_prefix_log\l"];
+    ch1 -> s11   [label=" ⊕ own header, chapters only\l"];
+    ch1 -> s12   [label=" ⊕ S1.1 outgoing\l"];
+    s11 -> sc1   [label=" set_prefix_log(story.prefix_log)\l"];
+    s11 -> sc2   [label=" ⊕ S1.1.1 outgoing, then set_prefix_log\l"];
+    ch1 -> ch2   [style=dotted, arrowsize=0.55, label=" prefixed_entries() feeds the seed", constraint=false];
+    s11 -> s12   [style=dotted, arrowsize=0.55, label=" scene entries feed the seed", constraint=false];
+
+    // ---- mechanism callouts ----
+    node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=11, margin="0.14,0.11"];
+    edge [style=dotted, arrowsize=0.55, fontname="serif", fontsize=9];
+
+    walk [label="iter_prefixed_contexts() — @final\l seed = self.prefix_log ⊕ own header;\l child.set_prefix_log(seed), then seed ⊕= child.prefixed_entries()\l"];
+    immut [label="ContextEntry frozen, tuple immutable;\l with_entry/with_entries rebind purely —\l siblings share history nobody can rewrite\l"];
+    wphase [label="write phase — compose_scenes_phase walks iter_prefixed_contexts();\l each scene's seed already carries every prior scene of the story\l"];
+
+    walk  -> novel;
+    immut -> ch1;
+    wphase -> sc1;
+
+    // ---- render sinks ----
+    node [style="filled", fillcolor="#E8E8E8", fontsize=12, margin="0.16,0.09"];
+    edge [style=solid, arrowsize=0.75, fontname="serif", fontsize=10];
+
+    render [label="render sinks\l scene writing & illustration: novel_so_far = prefix_log.render()\l render() joins in order — identical logs are byte-identical, keeping provider prefix caches warm\l"];
+    sc1 -> render [label=" render()"];
+}

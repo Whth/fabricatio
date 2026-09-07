@@ -4,10 +4,10 @@ from typing import Unpack
 
 import pytest
 from _support import NovelRole, card, prefix_log, raw_value
+from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage, return_router_usage
 from fabricatio_mock.utils import install_router_usage
-from fabricatio_novel.models.context.base import CharacterSpan
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -29,23 +29,35 @@ class TestCharacterSpans:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         novel_start = card()
         novel_end = novel_start.model_copy(update={"look": "wounded"})
         chapter_boundary = novel_start.model_copy(update={"act": "cautious"})
         chapter_plans_json = [
-            {"title": "Ch1", "description": "The start.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
-            {"title": "Ch2", "description": "The road.", "weight": 1.0, "writing_style": "", "writing_constraint": ""},
+            {
+                "title": "Ch1",
+                "description": "The start.",
+                "weight": 1.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            },
+            {
+                "title": "Ch2",
+                "description": "The road.",
+                "weight": 1.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            },
         ]
         story_plans_json = [
             {
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -53,8 +65,8 @@ class TestCharacterSpans:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -79,19 +91,19 @@ class TestCharacterSpans:
         assert ctx.charactor_span[0].start.name == "Hero"
         assert ctx.charactor_span[0].end.look == "wounded"
         # chapter 1 opens at the novel start and closes at the boundary
-        ch1 = ctx.chapter_context[0]
+        ch1 = ctx.child_contexts[0]
         assert len(ch1.charactor_span) == 1
         assert ch1.charactor_span[0].start.look == "tall"
         assert ch1.charactor_span[0].end.act == "cautious"
         # chapter 2 opens at the boundary and closes at the novel end
-        ch2 = ctx.chapter_context[1]
+        ch2 = ctx.child_contexts[1]
         assert len(ch2.charactor_span) == 1
         assert ch2.charactor_span[0].start.act == "cautious"
         assert ch2.charactor_span[0].end.look == "wounded"
         # a single story inherits the chapter span directly, and scenes broadcast it
-        story_ctx = ch1.story_context[0]
+        story_ctx = ch1.child_contexts[0]
         assert story_ctx.charactor_span is ch1.charactor_span
-        scene_ctx = story_ctx.scene_context[0]
+        scene_ctx = story_ctx.child_contexts[0]
         assert scene_ctx.charactor_span is ch1.charactor_span
         requirement = await role.prepare_scene_requirement(scene_ctx)
         assert "Initial State:" in requirement
@@ -105,9 +117,9 @@ class TestCharacterSpans:
         ctx = NovelContext.create("The hero.", language="English")
         span = CharacterSpan(start=card(), end=card())
         ctx.set_charactor_spans([span])
-        ctx.add_chapter_context(ChapterContext(title="Ch1", description="The start."))
+        ctx.add_context(ChapterContext(title="Ch1", description="The start."))
         await role.draft_chapter_spans(ctx)
-        assert ctx.chapter_context[0].charactor_span is ctx.charactor_span
+        assert ctx.child_contexts[0].charactor_span is ctx.charactor_span
 
     async def test_draft_story_spans_single_story_inherits_chapter_span(self) -> None:
         """Assert a single story gets the chapter's spans directly without an LLM call."""
@@ -115,9 +127,9 @@ class TestCharacterSpans:
         chapter = ChapterContext(title="Ch1", description="The start.")
         span = CharacterSpan(start=card(), end=card())
         chapter.set_charactor_spans([span])
-        chapter.add_story_context(StoryContext(title="St1", description="The departure."))
+        chapter.add_context(StoryContext(title="St1", description="The departure."))
         await role.draft_story_spans(chapter)
-        assert chapter.story_context[0].charactor_span is chapter.charactor_span
+        assert chapter.child_contexts[0].charactor_span is chapter.charactor_span
 
     async def test_scene_requirement_shows_character_span(self) -> None:
         """Assert the scene prompt renders the broadcast span's start and end."""
@@ -168,7 +180,7 @@ class TestNovelCompose:
         span = CharacterSpan(start=card(), end=card())
         story.set_charactor_spans([span])
         scene_ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
-        story.scene_context.append(scene_ctx)
+        story.child_contexts.append(scene_ctx)
         with install_router_usage(*return_router_usage("He fought.")):
             await role.prepare_scene_write(story)
             scene = await role.compose_scene(scene_ctx)
@@ -184,16 +196,16 @@ class TestNovelCompose:
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_1 = SceneContext(title="S1", description="Leaving home.", expected_word_count=20)
         scene_2 = SceneContext(title="S2", description="A stranger appears.", expected_word_count=20)
-        story_ctx.scene_context.extend([scene_1, scene_2])
-        chapter_ctx.story_context.append(story_ctx)
-        ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.extend([scene_1, scene_2])
+        chapter_ctx.child_contexts.append(story_ctx)
+        ctx.child_contexts.append(chapter_ctx)
 
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=40,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
 
         with install_router_usage(
@@ -212,13 +224,11 @@ class TestNovelCompose:
         assert len(novel.chapter[0].story[0].scenes) == 2
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
-        assert ctx.chapter_context[0].story_context[0].scene_context[1].content == "A stranger appeared."
+        assert ctx.child_contexts[0].child_contexts[0].child_contexts[1].content == "A stranger appeared."
         chapter_header = "# Ch1\n\n> The hero sets out."
-        scenes = ctx.chapter_context[0].story_context[0].scene_context
+        scenes = ctx.child_contexts[0].child_contexts[0].child_contexts
         assert scenes[0].prefix_log.render() == chapter_header
-        assert scenes[0].scenes_log.render() == ""
-        assert scenes[1].prefix_log.render() == chapter_header
-        assert scenes[1].scenes_log.render() == "He left."
+        assert scenes[1].prefix_log.render() == f"{chapter_header}\n\nHe left."
 
     async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
         """Assert composition emits per-level progress and completion log lines."""
@@ -228,15 +238,15 @@ class TestNovelCompose:
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_1 = SceneContext(title="S1", description="Leaving home.", expected_word_count=20)
         scene_2 = SceneContext(title="S2", description="A stranger appears.", expected_word_count=20)
-        story_ctx.scene_context.extend([scene_1, scene_2])
-        chapter_ctx.story_context.append(story_ctx)
-        ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.extend([scene_1, scene_2])
+        chapter_ctx.child_contexts.append(story_ctx)
+        ctx.child_contexts.append(chapter_ctx)
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=40,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
 
         with install_router_usage(
@@ -284,24 +294,23 @@ class TestNovelCompose:
         # the per-scene word count must not sit inside the static Requirements block
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
 
-    async def test_prepare_scene_requirement_renders_writing_style(self) -> None:
-        """Assert shared styles render mid-prompt and the scene's own style sits inside ## Scene."""
+    async def test_prepare_scene_requirement_renders_writing_styles(self) -> None:
+        """Assert the accumulated style entries render together inside ## Writing Styles."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
-        ctx.set_scene_plan(
+        ctx.set_plan(
             ScenePlan(
                 title="S2",
                 description="A stranger appears.",
-                writing_style="Close first person.",
-                writing_constraint="",
+                writing_styles=["Close first person."],
+                writing_constraints=[],
             ),
         )
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" in requirement
         assert "Terse action lines, present tense, close third person." in requirement
         assert requirement.index("## Writing Styles") < requirement.index("## Scene")
-        assert requirement.index("- Style: Close first person.") > requirement.index("## Scene")
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
@@ -309,13 +318,12 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Styles" not in requirement
-        assert "- Style:" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
-        ctx.writing_constraint = "First person view throughout."
+        ctx.writing_constraints = ["First person view throughout."]
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Writing Constraint" in requirement
         assert "First person view throughout." in requirement
@@ -391,7 +399,7 @@ class TestPrefixAccumulation:
         story = StoryContext(title="St1", description="The departure.")
         scene_1 = self._scene_ctx("S1", "Leaving home.")
         scene_2 = self._scene_ctx("S2", "A stranger appears.")
-        story.add_scene_context(scene_1).add_scene_context(scene_2)
+        story.add_context(scene_1).add_context(scene_2)
         with install_router_usage(
             *return_router_usage(
                 "He left.",
@@ -401,19 +409,17 @@ class TestPrefixAccumulation:
             result = await role.compose_story(story)
         assert result is not None
         assert scene_1.prefix_log.render() == ""
-        assert scene_1.scenes_log.render() == ""
-        assert scene_2.prefix_log.render() == ""
-        assert scene_2.scenes_log.render() == "He left."
+        assert scene_2.prefix_log.render() == "He left."
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         """Assert stories inherit the chapter header plus prior story blocks as prefixed_content."""
         role = NovelRole(name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         story_a = StoryContext(title="StA", description="A.")
-        story_a.add_scene_context(self._scene_ctx("S1", "Leaving home."))
+        story_a.add_context(self._scene_ctx("S1", "Leaving home."))
         story_b = StoryContext(title="StB", description="B.")
-        story_b.add_scene_context(self._scene_ctx("S2", "A stranger appears."))
-        chapter.add_story_context(story_a).add_story_context(story_b)
+        story_b.add_context(self._scene_ctx("S2", "A stranger appears."))
+        chapter.add_context(story_a).add_context(story_b)
         with install_router_usage(
             *return_router_usage(
                 "Alpha.",
@@ -426,7 +432,7 @@ class TestPrefixAccumulation:
         chapter_header = "# Ch1\n\n> The start."
         assert story_a.prefix_log.render() == chapter_header
         assert story_b.prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
-        assert story_b.scene_context[0].prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
+        assert story_b.child_contexts[0].prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         """Assert chapter and story prefixed_content chain across the whole composed novel."""
@@ -438,23 +444,23 @@ class TestPrefixAccumulation:
 
         def story(title: str, scene_title: str, scene_description: str) -> StoryContext:
             s = StoryContext(title=title, description=scene_description)
-            s.add_scene_context(self._scene_ctx(scene_title, scene_description))
+            s.add_context(self._scene_ctx(scene_title, scene_description))
             return s
 
         chapter_1 = ChapterContext(title="Ch1", description="The start.")
-        chapter_1.add_story_context(story("StA", "S1", "Leaving home."))
-        chapter_1.add_story_context(story("StB", "S2", "A stranger appears."))
+        chapter_1.add_context(story("StA", "S1", "Leaving home."))
+        chapter_1.add_context(story("StB", "S2", "A stranger appears."))
         chapter_2 = ChapterContext(title="Ch2", description="The road.")
-        chapter_2.add_story_context(story("StC", "S3", "The journey."))
-        chapter_2.add_story_context(story("StD", "S4", "The arrival."))
-        ctx.add_chapter_context(chapter_1).add_chapter_context(chapter_2)
+        chapter_2.add_context(story("StC", "S3", "The journey."))
+        chapter_2.add_context(story("StD", "S4", "The arrival."))
+        ctx.add_context(chapter_1).add_context(chapter_2)
 
         meta = NovelPlan(
             title="The Search",
             description="A hero searching.",
             expected_word_count=80,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         with install_router_usage(
             *return_mixed_router_usage(
@@ -474,18 +480,18 @@ class TestPrefixAccumulation:
         story_c_block = "C."
         assert chapter_1.prefix_log.render() == ""
         assert chapter_2.prefix_log.render() == chapter_1_block
-        assert chapter_1.story_context[1].prefix_log.render() == f"{chapter_1_header}\n\nA."
-        assert chapter_2.story_context[0].prefix_log.render() == f"{chapter_1_block}\n\n{chapter_2_header}"
+        assert chapter_1.child_contexts[1].prefix_log.render() == f"{chapter_1_header}\n\nA."
+        assert chapter_2.child_contexts[0].prefix_log.render() == f"{chapter_1_block}\n\n{chapter_2_header}"
         assert (
-            chapter_2.story_context[1].prefix_log.render()
+            chapter_2.child_contexts[1].prefix_log.render()
             == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
         )
         assert (
-            chapter_2.story_context[0].scene_context[0].prefix_log.render()
+            chapter_2.child_contexts[0].child_contexts[0].prefix_log.render()
             == f"{chapter_1_block}\n\n{chapter_2_header}"
         )
         assert (
-            chapter_2.story_context[1].scene_context[0].prefix_log.render()
+            chapter_2.child_contexts[1].child_contexts[0].prefix_log.render()
             == f"{chapter_1_block}\n\n{chapter_2_header}\n\n{story_c_block}"
         )
 
@@ -519,16 +525,16 @@ class TestComposeHookOrdering:
         ctx = NovelContext.create("The hero seeks his father.", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
-        story_ctx.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=20))
-        chapter_ctx.story_context.append(story_ctx)
-        ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=20))
+        chapter_ctx.child_contexts.append(story_ctx)
+        ctx.child_contexts.append(chapter_ctx)
 
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=20,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         with install_router_usage(*return_mixed_router_usage(Value(meta, "model"), raw_value("He left."))):
             novel = await role.compose_novel(ctx)

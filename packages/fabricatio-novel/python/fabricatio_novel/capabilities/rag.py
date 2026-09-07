@@ -51,7 +51,7 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
         if not await super().plan_stories_phase(ctx, send_to, **kwargs):
             return False
         rag = RagRetrieval(query=self.rag_query, limit=self.rag_limit)
-        ctx.story_context = [RagStoryContext.seal(story, rag) for story in ctx.story_context]
+        ctx.child_contexts = [RagStoryContext.seal(story, rag) for story in ctx.child_contexts]
         return True
 
     @logging_exec_time

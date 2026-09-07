@@ -3,8 +3,7 @@
 from pathlib import Path
 
 import pytest
-from _support import card, prefix_log
-from fabricatio_novel.models.context.base import CharacterSpan
+from _support import prefix_log
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -26,7 +25,7 @@ class TestNovelContext:
         assert ctx.title == ""
         assert ctx.description == ""
         assert ctx.series_bible is None
-        assert ctx.chapter_context == []
+        assert ctx.child_contexts == []
 
     def test_create_with_explicit_language(self) -> None:
         """Assert an explicitly passed language overrides automatic detection."""
@@ -46,30 +45,32 @@ class TestNovelContext:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="First person view throughout.",
+            writing_styles=[],
+            writing_constraints=["First person view throughout."],
         )
         result = ctx.update_from(plan)
         assert result is ctx
         assert ctx.title == "The Search"
         assert ctx.description == "A hero searching."
-        assert ctx.expected_word_count == 100
-        assert ctx.writing_constraint == "First person view throughout."
+        assert ctx.expected_word_count == 0  # word counts never come from a plan adoption
+        assert ctx.writing_constraints == ["First person view throughout."]
         assert ctx.series_bible is None
+        ctx.expect_(plan.expected_word_count)
+        assert ctx.expected_word_count == 100
 
     def test_update_from_keeps_intent_when_plan_constraint_empty(self) -> None:
         """Assert the author's stated constraint survives an empty plan constraint."""
         ctx = NovelContext.create("The hero.", language="English")
-        ctx.set_writing_constraint("I hope the novel is first person view.")
+        ctx.set_writing_constraints(["I hope the novel is first person view."])
         plan = NovelPlan(
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         ctx.update_from(plan)
-        assert ctx.writing_constraint == "I hope the novel is first person view."
+        assert ctx.writing_constraints == ["I hope the novel is first person view."]
 
     def test_update_from_keeps_preset_bible(self) -> None:
         """Assert a preset series bible survives update_from; plans never carry one."""
@@ -80,8 +81,8 @@ class TestNovelContext:
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         ctx.update_from(plan)
         assert ctx.title == "The Search"
@@ -100,28 +101,24 @@ class TestNovelContext:
             .set_language("English")
             .set_content("He left.")
             .set_prefix_log(prefix_log("Before.", title="S1"))
-            .set_writing_constraint("First person view throughout.")
-            .set_scene_plan(ScenePlan(title="S1", description="Leaving home.", writing_style="", writing_constraint=""))
+            .set_writing_constraints(["First person view throughout."])
+            .set_plan(ScenePlan(title="S1", description="Leaving home.", writing_styles=[], writing_constraints=[]))
         )
         story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
-        story.add_scene_context(scene)
-        story.set_story_plan(
-            StoryPlan(title="St1", description="The departure.", writing_style="", writing_constraint="")
-        )
+        story.add_context(scene)
+        story.set_plan(StoryPlan(title="St1", description="The departure.", writing_styles=[], writing_constraints=[]))
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
-        chapter.add_story_context(story)
-        chapter.set_chapter_plan(
-            ChapterPlan(title="Ch1", description="The start.", writing_style="", writing_constraint="")
-        )
+        chapter.add_context(story)
+        chapter.set_plan(ChapterPlan(title="Ch1", description="The start.", writing_styles=[], writing_constraints=[]))
         novel = NovelContext.create("The hero.", language="English")
-        novel.add_chapter_context(chapter)
-        novel.set_novel_plan(
+        novel.add_context(chapter)
+        novel.set_plan(
             NovelPlan(
                 title="The Hero",
                 description="A hero.",
                 expected_word_count=100,
-                writing_style="",
-                writing_constraint="",
+                writing_styles=[],
+                writing_constraints=[],
             ),
         )
 
@@ -129,67 +126,18 @@ class TestNovelContext:
         assert scene.content == "He left."
         assert scene.prefix_log.render() == "Before."
         assert scene.language == "English"
-        assert scene.writing_constraint == "First person view throughout."
-        assert story.scene_context == [scene]
-        assert chapter.story_context == [story]
-        assert novel.chapter_context == [chapter]
-        assert novel.novel_plan is not None
-        assert novel.novel_plan.title == "The Hero"
-        assert chapter.chapter_plan is not None
-        assert chapter.chapter_plan.title == "Ch1"
-        assert story.story_plan is not None
-        assert story.story_plan.title == "St1"
-        assert scene.scene_plan is not None
-        assert scene.scene_plan.title == "S1"
-
-
-class TestCharacterSpan:
-    """Test suite for CharacterSpan."""
-
-    def test_dump_to_prompt_renders_start_and_end(self) -> None:
-        """Assert dump_to_prompt shows both states as Initial and finalizing."""
-        start = card()
-        end = card().model_copy(update={"look": "scarred"})
-        span = CharacterSpan(start=start, end=end)
-        prompt = span.dump_to_prompt()
-        assert prompt.startswith("Initial State:")
-        assert "finalizing State:" in prompt
-        assert prompt.count("# Name") == 2
-        assert prompt.count("## Look") == 2
-        assert "tall" in prompt
-        assert "scarred" in prompt
-
-    def test_dump_to_prompt_with_same_start_and_end(self) -> None:
-        """Assert a span whose end equals its start renders the same card twice."""
-        start = card()
-        span = CharacterSpan(start=start, end=start.model_copy(deep=True))
-        prompt = span.dump_to_prompt()
-        assert prompt.count("# Name") == 2
-        assert "Initial State:" in prompt
-        assert "finalizing State:" in prompt
-
-    def test_derive_child_spans_stitches_boundaries_between_parent_ends(self) -> None:
-        """Assert N children need N-1 boundary cards; the parent ends anchor the chain."""
-        start = card()
-        b1 = start.model_copy(update={"act": "cautious"})
-        b2 = start.model_copy(update={"flaw": "distrustful"})
-        end = start.model_copy(update={"look": "wounded"})
-        spans = CharacterSpan(start=start, end=end).derive_child_spans([b1, b2])
-        assert len(spans) == 3
-        assert [s.start for s in spans] == [start, b1, b2]
-        assert [s.end for s in spans] == [b1, b2, end]
-        # the chain is continuous by construction
-        assert spans[0].end is spans[1].start
-        assert spans[1].end is spans[2].start
-
-    def test_derive_child_spans_without_boundaries_returns_single_span(self) -> None:
-        """Assert one child inherits the parent span unchanged when no boundaries are drafted."""
-        start = card()
-        end = start.model_copy(update={"look": "wounded"})
-        spans = CharacterSpan(start=start, end=end).derive_child_spans([])
-        assert len(spans) == 1
-        assert spans[0].start is start
-        assert spans[0].end is end
+        assert scene.writing_constraints == ["First person view throughout."]
+        assert story.child_contexts == [scene]
+        assert chapter.child_contexts == [story]
+        assert novel.child_contexts == [chapter]
+        assert novel.plan is not None
+        assert novel.plan.title == "The Hero"
+        assert chapter.plan is not None
+        assert chapter.plan.title == "Ch1"
+        assert story.plan is not None
+        assert story.plan.title == "St1"
+        assert scene.plan is not None
+        assert scene.plan.title == "S1"
 
 
 class TestFromContext:
@@ -205,39 +153,38 @@ class TestFromContext:
         assert scene.content == "He walked out."
         assert scene.expected_word_count == 50
 
-    def test_from_plan_copies_plan_fields(self) -> None:
-        """Assert SceneContext.from_plan copies plan fields and keeps the plan reference."""
+    def test_create_update_expect_build_the_context(self) -> None:
+        """Assert create, update_from, set_plan and expect_ assemble a scene context."""
         plan = ScenePlan(
             title="S1",
             description="The descent.",
             weight=1.0,
-            writing_style="Gothic, lyrical prose.",
-            writing_constraint="",
+            writing_styles=["Gothic, lyrical prose."],
+            writing_constraints=[],
         )
-        ctx = SceneContext.from_plan(plan, expected_word_count=300)
+        ctx = SceneContext.create("The hero seeks his father.").update_from(plan).set_plan(plan).expect_(300)
         assert ctx.title == "S1"
         assert ctx.description == "The descent."
         assert ctx.expected_word_count == 300
-        assert ctx.writing_styles == []
-        assert ctx.scene_plan is plan
+        assert ctx.writing_styles == ["Gothic, lyrical prose."]
+        assert ctx.plan is plan
 
     def test_plans_default_to_empty_cast(self) -> None:
         """Assert every weighted plan proposes an empty cast unless the planner names one."""
-        assert ScenePlan(title="S1", description="D", writing_style="", writing_constraint="").cast == []
-        assert StoryPlan(title="St1", description="D", writing_style="", writing_constraint="").cast == []
-        assert ChapterPlan(title="C1", description="D", writing_style="", writing_constraint="").cast == []
+        assert ScenePlan(title="S1", description="D", writing_styles=[], writing_constraints=[]).cast == []
+        assert StoryPlan(title="St1", description="D", writing_styles=[], writing_constraints=[]).cast == []
+        assert ChapterPlan(title="C1", description="D", writing_styles=[], writing_constraints=[]).cast == []
 
-    def test_from_plan_copies_cast(self) -> None:
-        """Assert from_plan copies the proposed cast onto every context level."""
-        scene = SceneContext.from_plan(
-            ScenePlan(title="S1", description="D", cast=["Hero", "Villain"], writing_style="", writing_constraint=""),
-            100,
+    def test_update_from_copies_cast(self) -> None:
+        """Assert update_from copies the proposed cast onto every context level."""
+        scene = SceneContext.create("The hero seeks his father.").update_from(
+            ScenePlan(title="S1", description="D", cast=["Hero", "Villain"], writing_styles=[], writing_constraints=[])
         )
-        story = StoryContext.from_plan(
-            StoryPlan(title="St1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 300
+        story = StoryContext.create("The hero seeks his father.").update_from(
+            StoryPlan(title="St1", description="D", cast=["Hero"], writing_styles=[], writing_constraints=[])
         )
-        chapter = ChapterContext.from_plan(
-            ChapterPlan(title="C1", description="D", cast=["Hero"], writing_style="", writing_constraint=""), 1000
+        chapter = ChapterContext.create("The hero seeks his father.").update_from(
+            ChapterPlan(title="C1", description="D", cast=["Hero"], writing_styles=[], writing_constraints=[])
         )
         assert scene.cast == ["Hero", "Villain"]
         assert story.cast == ["Hero"]
@@ -256,9 +203,9 @@ class TestFromContext:
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
         scene_ctx.content = "He left."
-        story_ctx.scene_context.append(scene_ctx)
-        chapter_ctx.story_context.append(story_ctx)
-        ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.append(scene_ctx)
+        chapter_ctx.child_contexts.append(story_ctx)
+        ctx.child_contexts.append(chapter_ctx)
 
         novel = Novel.from_context(ctx)
         assert novel.title == "The Search"
@@ -284,9 +231,9 @@ class TestNovelEpub:
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
         scene_ctx.content = "He left.\n\nHe walked into the dark."
-        story_ctx.scene_context.append(scene_ctx)
-        chapter_ctx.story_context.append(story_ctx)
-        ctx.chapter_context.append(chapter_ctx)
+        story_ctx.child_contexts.append(scene_ctx)
+        chapter_ctx.child_contexts.append(story_ctx)
+        ctx.child_contexts.append(chapter_ctx)
         novel = Novel.from_context(ctx)
 
         font_file = tmp_path / "custom.ttf"
@@ -327,9 +274,9 @@ class TestNovelTexts:
             story_ctx = StoryContext(title=f"St{index}", description="The departure.")
             scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=100)
             scene_ctx.content = f"He left {index}.\n\nHe walked into the dark."
-            story_ctx.scene_context.append(scene_ctx)
-            chapter_ctx.story_context.append(story_ctx)
-            ctx.chapter_context.append(chapter_ctx)
+            story_ctx.child_contexts.append(scene_ctx)
+            chapter_ctx.child_contexts.append(story_ctx)
+            ctx.child_contexts.append(chapter_ctx)
         return Novel.from_context(ctx)
 
     def test_dump_texts_writes_prose_per_chapter(self, tmp_path: Path) -> None:

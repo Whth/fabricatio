@@ -5,11 +5,11 @@ from uuid import uuid4
 
 import pytest
 from _support import card, raw_value
+from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.rust import CONFIG, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
-from fabricatio_novel.models.context.base import CharacterSpan
 from fabricatio_novel.models.plan import NovelPlan
 
 # Workflow tests subscribe a plain ``Role`` (no scoped ``llm_send_to``), so the real
@@ -38,16 +38,16 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -55,8 +55,8 @@ class TestNovelWorkflow:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -64,8 +64,8 @@ class TestNovelWorkflow:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -118,16 +118,16 @@ class TestNovelWorkflow:
             title="The Search",
             description="A hero searching for his father.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -135,8 +135,8 @@ class TestNovelWorkflow:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -144,8 +144,8 @@ class TestNovelWorkflow:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -198,16 +198,16 @@ class TestNovelWorkflow:
             title="The Search",
             description=f"A hero searching for his father. [run:{uuid4().hex[:8]}]",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Ch1",
                 "description": "The hero sets out.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -215,8 +215,8 @@ class TestNovelWorkflow:
                 "title": "St1",
                 "description": "The departure.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -224,8 +224,8 @@ class TestNovelWorkflow:
                 "title": "S1",
                 "description": "Leaving home.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         with install_router_usage(
@@ -297,16 +297,16 @@ class TestNovelWorkflow:
             title="The Floating Atlas II",
             description="An apprentice mapping a city that drifts among the clouds.",
             expected_word_count=100,
-            writing_style="",
-            writing_constraint="",
+            writing_styles=[],
+            writing_constraints=[],
         )
         chapter_plans_json = [
             {
                 "title": "Harbor",
                 "description": "The apprentice boards the ferry barge.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         story_plans_json = [
@@ -314,8 +314,8 @@ class TestNovelWorkflow:
                 "title": "Departure",
                 "description": "The mooring lines are cut at dawn.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         scene_plans_json = [
@@ -323,8 +323,8 @@ class TestNovelWorkflow:
                 "title": "Cut Lines",
                 "description": "The city pulls away from the sea.",
                 "weight": 1.0,
-                "writing_style": "",
-                "writing_constraint": "",
+                "writing_styles": [],
+                "writing_constraints": [],
             }
         ]
         illustration = SketchSpec(prompt="a lone rider at dawn")

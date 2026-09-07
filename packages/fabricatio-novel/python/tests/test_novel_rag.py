@@ -24,8 +24,9 @@ class TestRAGCompose:
         """Assert raw style docs render after the leading novel-so-far block."""
         role = RAGRole(name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
-        ctx.set_prefix_log(prefix_log("Chapter One\n\nThe hero leaves home.", title="Battle"))
-        ctx.set_scenes_log(prefix_log("Scene one: the hero rides north.", title="Scene one"))
+        ctx.set_prefix_log(
+            prefix_log("Chapter One\n\nThe hero leaves home.\n\nScene one: the hero rides north.", title="Battle")
+        )
         ctx.set_writing_styles(["Dark gothic prose with terse action lines."])
 
         requirement = await role.prepare_scene_requirement(ctx)
@@ -54,7 +55,7 @@ class TestRAGCompose:
         )
         story.set_prefix_log(ContextLog(entries=(seed,)))
         for title, desc in [("S1", "Leaving home."), ("S2", "A stranger appears."), ("S3", "The road.")]:
-            story.add_scene_context(
+            story.add_context(
                 SceneContext(title=title, description=desc, expected_word_count=50).set_writing_styles(
                     ["Dark gothic prose with terse action lines."],
                 ),
@@ -68,7 +69,7 @@ class TestRAGCompose:
             result = await role.compose_story(story)
 
         assert result is not None
-        reqs = [await role.prepare_scene_requirement(scene) for scene in story.scene_context]
+        reqs = [await role.prepare_scene_requirement(scene) for scene in story.child_contexts]
 
         assert reqs[0].startswith("--- Start of Novel so far ---")
         assert "Dark gothic prose with terse action lines." in reqs[0]
@@ -83,7 +84,7 @@ class TestRAGCompose:
         """Assert plan_scenes_phase retrieves style docs exactly once."""
         role = RAGRole(name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
-        story.scene_context.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
+        story.child_contexts.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
         fetched: list[object] = []
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
 
@@ -107,7 +108,7 @@ class TestRAGCompose:
         role = RAGRole(name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         scene = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
-        story.scene_context.append(scene)
+        story.child_contexts.append(scene)
 
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
@@ -134,7 +135,7 @@ class TestRAGCompose:
             return ScenePlans(
                 root=[
                     ScenePlan(
-                        title="S1", description="Leaving home.", weight=1.0, writing_style="", writing_constraint=""
+                        title="S1", description="Leaving home.", weight=1.0, writing_styles=[], writing_constraints=[]
                     )
                 ]
             )
@@ -144,8 +145,8 @@ class TestRAGCompose:
 
         await role.plan_scenes_phase(story)
 
-        assert len(story.scene_context) == 1
-        assert story.scene_context[0].writing_styles == story.writing_styles
+        assert len(story.child_contexts) == 1
+        assert story.child_contexts[0].writing_styles == story.writing_styles
 
     async def test_plan_scenes_injects_held_style_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the story's held style references render into the scene planning prompt."""
@@ -245,7 +246,7 @@ class TestRAGCompose:
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         with install_router_usage(
             *return_router_usage(
-                '[{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_style": "", "writing_constraint": ""}]',
+                '[{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_styles": [], "writing_constraints": []}]',
                 "He left.",
             ),
         ):
@@ -253,7 +254,7 @@ class TestRAGCompose:
 
         assert result is not None
         assert story.rag == RagRetrieval(query="guide", limit=7)
-        assert story.scene_context[0].writing_styles == []
+        assert story.child_contexts[0].writing_styles == []
 
     async def test_plan_stories_phase_seals_and_is_idempotent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the RAG story-planning phase seals plain stories and leaves sealed ones untouched."""
@@ -266,20 +267,20 @@ class TestRAGCompose:
         monkeypatch.setattr(ChapterCompose, "plan_stories_phase", fake_plan)
         stage = RagPlanStoriesStage(rag_query="guide", rag_limit=3)
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
-        chapter.add_story_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
-        chapter.add_story_context(RagStoryContext(title="St2", description="The return.", rag=RagRetrieval()))
+        chapter.add_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
+        chapter.add_context(RagStoryContext(title="St2", description="The return.", rag=RagRetrieval()))
 
         assert await stage.plan_stories_phase(chapter) is True
 
-        sealed = chapter.story_context[0]
+        sealed = chapter.child_contexts[0]
         assert isinstance(sealed, RagStoryContext)
         assert sealed.rag == RagRetrieval(query="guide", limit=3)
         assert sealed.title == "St1"
-        assert chapter.story_context[1].rag == RagRetrieval()
+        assert chapter.child_contexts[1].rag == RagRetrieval()
 
         await RagPlanStoriesStage(rag_query="other").plan_stories_phase(chapter)
-        assert chapter.story_context[0].rag == RagRetrieval(query="guide", limit=3)
-        assert chapter.story_context[1].rag == RagRetrieval()
+        assert chapter.child_contexts[0].rag == RagRetrieval(query="guide", limit=3)
+        assert chapter.child_contexts[1].rag == RagRetrieval()
 
     async def test_rag_plan_stage_seals_stories_from_task_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert RagPlanStoriesStage seals each chapter's stories with the context-overridden settings."""
@@ -293,10 +294,10 @@ class TestRAGCompose:
         stage = RagPlanStoriesStage(rag_query="guide", rag_limit=3)
         novel = NovelContext.create("The hero seeks his father.", language="English")
         chapter = ChapterContext(title="Ch1", description="The start.", expected_word_count=100)
-        chapter.add_story_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
-        novel.add_chapter_context(chapter)
+        chapter.add_context(StoryContext(title="St1", description="The departure.", expected_word_count=100))
+        novel.add_context(chapter)
 
         assert await stage._execute(novel) is True
-        sealed = chapter.story_context[0]
+        sealed = chapter.child_contexts[0]
         assert isinstance(sealed, RagStoryContext)
         assert sealed.rag == RagRetrieval(query="guide", limit=3)
