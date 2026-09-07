@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from _support import card, prefix_log
-from fabricatio_novel.models.context.base import CharacterSpan, derive_child_spans
+from fabricatio_novel.models.context.base import CharacterSpan
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -174,7 +174,7 @@ class TestCharacterSpan:
         b1 = start.model_copy(update={"act": "cautious"})
         b2 = start.model_copy(update={"flaw": "distrustful"})
         end = start.model_copy(update={"look": "wounded"})
-        spans = derive_child_spans(CharacterSpan(start=start, end=end), [b1, b2])
+        spans = CharacterSpan(start=start, end=end).derive_child_spans([b1, b2])
         assert len(spans) == 3
         assert [s.start for s in spans] == [start, b1, b2]
         assert [s.end for s in spans] == [b1, b2, end]
@@ -186,7 +186,7 @@ class TestCharacterSpan:
         """Assert one child inherits the parent span unchanged when no boundaries are drafted."""
         start = card()
         end = start.model_copy(update={"look": "wounded"})
-        spans = derive_child_spans(CharacterSpan(start=start, end=end), [])
+        spans = CharacterSpan(start=start, end=end).derive_child_spans([])
         assert len(spans) == 1
         assert spans[0].start is start
         assert spans[0].end is end

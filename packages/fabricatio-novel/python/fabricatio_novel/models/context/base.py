@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator, Sequence
 from typing import Self, final
 
+from pydantic import Field
+
 from fabricatio_capabilities.models.generic import PersistentAble, WordCount
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_core import logger
 from fabricatio_core.models.generic import JSONList, SketchedAble
-from pydantic import Field
-
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 
 
@@ -20,11 +20,6 @@ def merge_writing_constraints(parent: str, own: str) -> str:
     (empty when none) is appended on a new line. Both empty yields an empty string.
     """
     return "\n".join(part for part in (parent, own) if part)
-
-
-def merge_writing_styles(inherited: list[str], own: str) -> list[str]:
-    """Extend inherited writing style entries with this element's own allocation; empty adds none."""
-    return [*inherited, own] if own else list(inherited)
 
 
 class CharacterSpan(SketchedAble):
@@ -40,26 +35,25 @@ class CharacterSpan(SketchedAble):
         """Render this span as the Initial State / finalizing State prompt pair."""
         return f"Initial State:\n{self.start.as_prompt()}\n\nfinalizing State:\n{self.end.as_prompt()}"
 
+    def derive_child_spans(self, boundaries: list[CharacterCard]) -> list["CharacterSpan"]:
+        """Split a parent span into child spans at the given boundary cards.
 
-def derive_child_spans(parent: CharacterSpan, boundaries: list[CharacterCard]) -> list[CharacterSpan]:
-    """Split a parent span into child spans at the given boundary cards.
-
-    The parent's start opens the first child span and its end closes the
-    last one; each boundary card closes one child and opens the next.
-    ``len(boundaries) + 1`` child spans are returned, so with N children
-    only N-1 intermediate cards need to be drafted.
-    """
-    chain = [parent.start, *boundaries, parent.end]
-    return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
+        The parent's start opens the first child span and its end closes the
+        last one; each boundary card closes one child and opens the next.
+        ``len(boundaries) + 1`` child spans are returned, so with N children
+        only N-1 intermediate cards need to be drafted.
+        """
+        chain = [self.start, *boundaries, self.end]
+        return [CharacterSpan(start=chain[i], end=chain[i + 1]) for i in range(len(chain) - 1)]
 
 
 def stitch_boundaries[C](
-    parent_spans: list[CharacterSpan],
-    children: Sequence[C],
-    spans_accessor: Callable[[C], list[CharacterSpan]],
-    proposed: list[list[CharacterCard]],
-    expected_boundaries: int,
-    level: str,
+        parent_spans: list[CharacterSpan],
+        children: Sequence[C],
+        spans_accessor: Callable[[C], list[CharacterSpan]],
+        proposed: list[list[CharacterCard]],
+        expected_boundaries: int,
+        level: str,
 ) -> None:
     """Stitch one child span per element from the parent spans and proposed boundaries.
 
@@ -77,7 +71,7 @@ def stitch_boundaries[C](
                 f" but got {len(boundaries)}; skipping",
             )
             continue
-        for child, span in zip(children, derive_child_spans(parent_span, boundaries), strict=True):
+        for child, span in zip(children, parent_span.derive_child_spans(boundaries), strict=True):
             spans_accessor(child).append(span)
     logger.debug(f"Stitched {level} spans from boundary cards")
 
