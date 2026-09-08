@@ -56,11 +56,8 @@ class NovelConfig(BaseModel):
     novel_character_span_template: str = "built-in/novel_character_span"
     """template used to propose the novel roster as one CharacterSpan per character."""
 
-    chapter_character_span_template: str = "built-in/chapter_character_span"
-    """template used to draft the N-1 chapter-boundary cards from the novel roster spans."""
-
-    story_character_span_template: str = "built-in/story_character_span"
-    """template used to draft the S-1 story-boundary cards from the chapter's spans."""
+    boundary_requirement_template: str = "built-in/boundary_requirement"
+    """template used to draft the N-1 chapter- and the S-1 story-boundary cards from the parent's spans."""
 
     scene_illustration_prompt_template: str = "built-in/scene_illustration_prompt"
     """template used to propose one image-generation prompt for a composed scene."""

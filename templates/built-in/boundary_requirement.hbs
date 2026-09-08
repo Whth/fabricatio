@@ -1,0 +1,24 @@
+# {{ drafting_title }}
+
+## Goal
+Propose the character states at the boundaries BETWEEN consecutive {{ unit_plural }}. The endpoints are already fixed by the {{ endpoint_source }}: the first {{ unit_singular }} starts at each character's {{ card_prefix }} start card and the last {{ unit_singular }} ends at their {{ card_prefix }} end card. Only the intermediate states are drafted here, so with {{ boundary_letter }} {{ unit_plural }} exactly {{ boundary_letter }}-1 cards per character are needed.
+
+## {{ parent_title }}
+Title: {{ title }}
+Description: {{ description }}
+
+## {{ spans_title }}
+{{ls spans}}
+
+## {{ children_title }}
+{{#each children}}
+- {{ title }}: {{ description }}
+{{/each}}
+
+## Requirements
+- Output a JSON array with one inner array per roster character, in the order the characters appear in the {{ spans_title }} above.
+- Each inner array carries exactly {{ boundary_letter }}-1 CharacterCard objects, where {{ boundary_letter }} is the number of {{ unit_plural }}: the character's state at the end of every {{ unit_singular }} except the last (equivalently, at the start of every {{ unit_singular }} except the first).
+- Do not propose the first {{ unit_singular }}'s start (it is the {{ card_prefix }} start card) nor the last {{ unit_singular }}'s end (it is the {{ card_prefix }} end card).
+- Keep every card coherent with the {{ arc_noun }} arc and the bible constraints; do not contradict the {{ card_prefix }} start and end cards.
+
+Respond entirely in "{{ language }}".

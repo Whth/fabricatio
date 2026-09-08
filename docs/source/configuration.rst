@@ -1144,7 +1144,7 @@ All default to their ``built-in/<name>`` variant:
 ``setting_bible_background_template``, ``setting_bible_context_template``,
 ``setting_bible_export_template``, ``writing_style_as_prompt_template``,
 ``enriched_as_prompt_template``, ``novel_character_span_template``,
-``chapter_character_span_template``, ``story_character_span_template``,
+``boundary_requirement_template``,
 ``scene_illustration_prompt_template``.
 
 Scene overlap knobs for serial scene writing: ``scene_overlap_min_chars`` (int,

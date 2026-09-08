@@ -289,7 +289,10 @@ class TestNovelWorkflow:
             # cache entry can serve any call and skip its turn on the dummy response
             # stack. The illustration proposal itself is outline-independent; the
             # stack below keeps its value first so the steady state self-heals.
-            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait.",
+            # Resalt the outline whenever an upstream prompt template changes:
+            # stale cache entries from the old prompt text otherwise create a
+            # mixed hit/miss run that misaligns the scripted stack.
+            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait, v2 salt.",
             novel_language="English",
             persist_dir=persist_dir,
         )
