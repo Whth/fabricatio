@@ -7,7 +7,6 @@ from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK, word_count
-from fabricatio_core.utils import ok
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
@@ -87,7 +86,7 @@ class SceneCompose(CharacterCompose, ABC):
         logger.debug(f"Generating scene '{ctx.title}'")
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
-        content = ok(await self.ageneric_string(requirement, send_to=send_to, **kwargs))
+        content = await self.aask(requirement, send_to=send_to, **kwargs)
         previous = "\n".join(entry.body for entry in ctx.prefix_log.entries if entry.kind == "scene_content")
         content = strip_overlapping_prefix(
             content,
