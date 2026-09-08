@@ -66,7 +66,7 @@ class ChapterCompose(StoryCompose, ABC):
                 "writing_constraints": ctx.writing_constraints,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
-                "cast": ", ".join(ctx.cast),
+                "cast": ctx.dump_cast(),
             },
         )
         plans = await self.propose(StoryPlans, requirement, send_to=send_to, **kwargs)
