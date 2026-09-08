@@ -2,9 +2,12 @@
 
 import tempfile
 from pathlib import Path
+from typing import Self
 
 import orjson
 import pytest
+from pydantic import BaseModel
+
 from fabricatio_capabilities.models.generic import (
     AsPrompt,
     FinalizedDumpAble,
@@ -15,7 +18,7 @@ from fabricatio_capabilities.models.generic import (
     UpdateFrom,
     WordCount,
 )
-from pydantic import BaseModel
+
 
 # ---------------------------------------------------------------------------
 # Test helpers — concrete implementations of abstract classes
@@ -28,10 +31,16 @@ class _TestHashModel(ModelHash):
     name: str = "test"
 
 
-class _TestUpdateFrom(UpdateFrom, BaseModel):
+class _TestUpdateFrom(UpdateFrom["_TestUpdateFrom"], BaseModel):
     """Concrete UpdateFrom for testing."""
 
     value: int = 0
+
+    def update_pre_check(self, other: "_TestUpdateFrom") -> Self:
+        if not isinstance(other, _TestUpdateFrom):
+            raise ValueError
+
+        return self
 
     def update_from_inner(self, other: "_TestUpdateFrom") -> "_TestUpdateFrom":
         self.value = other.value
