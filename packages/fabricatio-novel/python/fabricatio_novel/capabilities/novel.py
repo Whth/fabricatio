@@ -52,21 +52,24 @@ class NovelCompose(ChapterCompose, ABC):
     ) -> list[ChapterPlan] | None:
         """Propose chapter plans for the novel via the LLM.
 
-        Renders the chapter plan template from the novel outline and context
+        Renders the plan requirement template from the novel outline and context
         and proposes a ChapterPlans batch, returning the root list of plans
         or None on failure.
         """
         logger.debug("Planning chapters from outline")
         requirement = TEMPLATE_MANAGER.render_template(
-            novel_config.chapter_plan_template,
+            novel_config.plan_requirement_template,
             {
                 "outline": ctx.outline,
-                "language": ctx.language,
+                "planning_title": "Chapter Planning",
+                "goal": "Plan the chapters of the novel from its `Novel Outline`",
+                "parent_title": "Novel",
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
                 "writing_styles": ctx.writing_styles,
                 "writing_constraints": ctx.writing_constraints,
+                "language": ctx.language,
                 "characters": ctx.dump_characters(),
             },
         )

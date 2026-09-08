@@ -53,7 +53,7 @@ class SceneCompose(CharacterCompose, ABC):
             "writing_styles": ctx.writing_styles,
             "writing_constraints": ctx.writing_constraints,
             "characters": characters,
-            "cast": ctx.dump_cast(),
+            "cast": ctx.cast,
             "language": ctx.language or detect_language(ctx.description),
             "novel_so_far": ctx.prefix_log.render(),
         }

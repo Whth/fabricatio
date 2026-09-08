@@ -158,13 +158,9 @@ class ContextBase[P: WeightedPlan](
         self.charactor_span.append(span)
         return self
 
-    def dump_characters(self) -> str:
-        """Render every character's start and end states for prompts, in span order."""
-        return "\n".join(s.dump_to_prompt() for s in self.charactor_span)
-
-    def dump_cast(self) -> str:
-        """Render the cast as a comma-joined string for prompt injection."""
-        return ", ".join(self.cast)
+    def dump_characters(self) -> list[str]:
+        """Render each character's start and end states as one prompt entry, in span order."""
+        return [s.dump_to_prompt() for s in self.charactor_span]
 
     def cast_missing_spans(self) -> list[str]:
         """Return cast members that have no character span on this context.

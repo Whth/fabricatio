@@ -1138,8 +1138,8 @@ Template names for the novel overhaul pipeline (metadata extraction, planning,
 prose writing, XHTML rendering, setting bible, writing style, character spans).
 All default to their ``built-in/<name>`` variant:
 
-``novel_metadata_requirement_template``, ``chapter_plan_template``,
-``story_plan_template``, ``scene_plan_template``, ``scene_requirement_template``,
+``novel_metadata_requirement_template``, ``plan_requirement_template``,
+``scene_requirement_template``,
 ``render_chapter_xhtml_template``, ``setting_bible_characters_template``,
 ``setting_bible_background_template``, ``setting_bible_context_template``,
 ``setting_bible_export_template``, ``writing_style_as_prompt_template``,

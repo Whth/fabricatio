@@ -215,9 +215,7 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `novel_metadata_requirement_template` | `str` | `"built-in/novel_metadata_requirement"` | template used to extract the novel metadata (title, synopsis, word count) from the outline. |
-| `chapter_plan_template` | `str` | `"built-in/chapter_plan"` | template used to plan the chapters of the novel from the outline and metadata. |
-| `story_plan_template` | `str` | `"built-in/story_plan"` | template used to plan the stories of a chapter. |
-| `scene_plan_template` | `str` | `"built-in/scene_plan"` | template used to plan the scenes of a story. |
+| `plan_requirement_template` | `str` | `"built-in/plan_requirement"` | template used to plan the chapters of the novel, the stories of a chapter and the scenes of a story. |
 | `scene_requirement_template` | `str` | `"built-in/scene_requirement"` | template used to write a single scene in full prose. |
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
 | `scene_overlap_min_chars` | `int` | `40` | minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept. |

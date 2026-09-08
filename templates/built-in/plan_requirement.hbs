@@ -1,12 +1,12 @@
 {{#if outline}}
 {{block outline "Novel Outline"}}
 {{/if}}
-# Story Planning
+# {{ planning_title }}
 
 ## Goal
-A Chapter is consist of Story obj(s), which you need to make for the chapter `{{ title }}` now
+{{ goal }}
 
-## Chapter
+## {{ parent_title }}
 Title: {{ title }}
 Description: {{ description }}
 - Expected word count: {{ expected_word_count }}
@@ -20,12 +20,12 @@ Description: {{ description }}
 
 {{#if characters}}
 ## Characters' state arc
-{{ characters }}
+{{ls characters}}
 {{/if}}
 
 {{#if cast}}
-## Chapter Cast
-{{ cast }}
+## {{ cast_title }}
+{{ls cast}}
 {{/if}}
 
 Respond entirely in "{{ language }}".

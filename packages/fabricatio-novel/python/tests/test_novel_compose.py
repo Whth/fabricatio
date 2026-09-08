@@ -343,7 +343,7 @@ class TestNovelCompose:
         ctx.set_cast(["Hero", "Villain"])
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Cast" in requirement
-        assert "Hero, Villain" in requirement
+        assert "- Hero\n- Villain" in requirement
 
     async def test_scene_requirement_omits_cast_when_empty(self) -> None:
         """Assert an empty cast renders no cast section."""
@@ -367,7 +367,7 @@ class TestNovelCompose:
 
         assert captured
         assert "## Story Cast" in captured[0]
-        assert "Hero, Villain" in captured[0]
+        assert "- Hero\n- Villain" in captured[0]
 
     async def test_plan_stories_renders_chapter_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert story planning sees the chapter's cast as context."""

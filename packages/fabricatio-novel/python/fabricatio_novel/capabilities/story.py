@@ -46,14 +46,18 @@ class StoryCompose(SceneCompose, ABC):
     ) -> list[ScenePlan] | None:
         """Propose scene plans for the story via the LLM.
 
-        Renders the scene plan template from the story context and proposes
+        Renders the plan requirement template from the story context and proposes
         a ScenePlans batch, returning the root list of plans or None on failure.
         """
         logger.debug(f"Planning scenes for story '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
-            novel_config.scene_plan_template,
+            novel_config.plan_requirement_template,
             {
                 "outline": ctx.outline,
+                "planning_title": "Scene Planning",
+                "goal": f"A Story is consist of Scene obj(s), which you need to make for the story `{ctx.title}` now",
+                "parent_title": "Story",
+                "cast_title": "Story Cast",
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
@@ -61,7 +65,7 @@ class StoryCompose(SceneCompose, ABC):
                 "writing_constraints": ctx.writing_constraints,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
-                "cast": ctx.dump_cast(),
+                "cast": ctx.cast,
             },
         )
         plans = await self.propose(ScenePlans, requirement, send_to=send_to, **kwargs)

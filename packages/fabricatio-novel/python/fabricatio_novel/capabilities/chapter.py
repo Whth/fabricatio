@@ -51,14 +51,18 @@ class ChapterCompose(StoryCompose, ABC):
     ) -> list[StoryPlan] | None:
         """Propose story plans for the chapter via the LLM.
 
-        Renders the story plan template from the chapter context and proposes
+        Renders the plan requirement template from the chapter context and proposes
         a StoryPlans batch, returning the root list of plans or None on failure.
         """
         logger.debug(f"Planning stories for chapter '{ctx.title}'")
         requirement = TEMPLATE_MANAGER.render_template(
-            novel_config.story_plan_template,
+            novel_config.plan_requirement_template,
             {
                 "outline": ctx.outline,
+                "planning_title": "Story Planning",
+                "goal": f"A Chapter is consist of Story obj(s), which you need to make for the chapter `{ctx.title}` now",
+                "parent_title": "Chapter",
+                "cast_title": "Chapter Cast",
                 "title": ctx.title,
                 "description": ctx.description,
                 "expected_word_count": ctx.expected_word_count,
@@ -66,7 +70,7 @@ class ChapterCompose(StoryCompose, ABC):
                 "writing_constraints": ctx.writing_constraints,
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
-                "cast": ctx.dump_cast(),
+                "cast": ctx.cast,
             },
         )
         plans = await self.propose(StoryPlans, requirement, send_to=send_to, **kwargs)
