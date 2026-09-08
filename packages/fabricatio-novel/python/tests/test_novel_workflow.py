@@ -30,7 +30,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel").update_init_context(
-            novel_outline="The hero seeks his father across the winter mountains.",
+            novel_outline="The hero seeks his father across the winter mountains, wf v3 salt.",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -109,7 +109,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer_txt").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel texts").update_init_context(
-            novel_outline="The lighthouse keeper's daughter charts the reef at low tide.",
+            novel_outline="The lighthouse keeper's daughter charts the reef at low tide, wf v3 salt.",
             novel_language="English",
             persist_dir=persist_dir,
             format="txt",
@@ -292,7 +292,7 @@ class TestNovelWorkflow:
             # Resalt the outline whenever an upstream prompt template changes:
             # stale cache entries from the old prompt text otherwise create a
             # mixed hit/miss run that misaligns the scripted stack.
-            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait, v2 salt.",
+            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait, v3 salt.",
             novel_language="English",
             persist_dir=persist_dir,
         )

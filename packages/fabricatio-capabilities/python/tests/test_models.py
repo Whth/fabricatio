@@ -6,8 +6,6 @@ from typing import Self
 
 import orjson
 import pytest
-from pydantic import BaseModel
-
 from fabricatio_capabilities.models.generic import (
     AsPrompt,
     FinalizedDumpAble,
@@ -18,7 +16,7 @@ from fabricatio_capabilities.models.generic import (
     UpdateFrom,
     WordCount,
 )
-
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # Test helpers — concrete implementations of abstract classes

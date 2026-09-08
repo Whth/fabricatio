@@ -4,28 +4,28 @@
 # {{ planning_title }}
 
 ## Goal
+
 {{ goal }}
 
 ## {{ parent_title }}
+
 Title: {{ title }}
 Description: {{ description }}
-- Expected word count: {{ expected_word_count }}
+Expected word count: {{ expected_word_count }}
 {{#if writing_styles}}
-- Writing styles:
-{{ls writing_styles}}
-{{/if}}
+### Writing styles References&Instructions:
+
+{{ls writing_styles}}{{/if}}
 {{#if writing_constraints}}
-{{ls writing_constraints}}
-{{/if}}
-
+### Writing Constrains:
+{{ls writing_constraints}}{{/if}}
 {{#if characters}}
-## Characters' state arc
-{{ls characters}}
-{{/if}}
+### Characters' state arc
 
+{{ls characters}}{{/if}}
 {{#if cast}}
-## {{ cast_title }}
-{{ls cast}}
-{{/if}}
+### {{ cast_title }}
+
+{{ls cast}}{{/if}}
 
 Respond entirely in "{{ language }}".

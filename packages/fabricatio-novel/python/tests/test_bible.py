@@ -14,8 +14,8 @@ from fabricatio_novel.models.series_book import SeriesBible
 
 
 def raw_value(text: str) -> Value[str]:
-    """Wrap a plain scene response for mixed router usage."""
-    return Value(text, "raw", convertor=lambda s: s)
+    """Wrap a plain scene response as a generic block for mixed router usage."""
+    return Value(text, "generic")
 
 
 class TestSeriesBibleModel:
@@ -62,7 +62,7 @@ class TestBibleSeeding:
 
     def test_seed_bible_prefix_seeds_rendered_block_once(self) -> None:
         """Assert seeding appends one rendered setting-bible entry and is idempotent."""
-        novel = NovelContext.create("The hero.", language="English")
+        novel = NovelContext.create("The hero., bible v2 salt.", language="English")
         novel.set_series_bible(SeriesBible(characters=["Hero — brave protagonist."]))
 
         novel.seed_bible_prefix()
@@ -75,7 +75,7 @@ class TestBibleSeeding:
 
     def test_seed_bible_prefix_skips_empty_and_missing_bibles(self) -> None:
         """Assert an uninitialized or empty bible seeds nothing."""
-        novel = NovelContext.create("The hero.", language="English")
+        novel = NovelContext.create("The hero., bible v2 salt.", language="English")
         novel.seed_bible_prefix()
         assert novel.prefix_log.entries == ()
         novel.set_series_bible(SeriesBible())
@@ -131,7 +131,7 @@ class TestBibleConsumption:
         )
 
     def _scene_with_seeded_prefix(self) -> SceneContext:
-        novel = NovelContext.create("The hero seeks his father.", language="English")
+        novel = NovelContext.create("The hero seeks his father., bible v2 salt.", language="English")
         novel.set_series_bible(self._bible())
         novel.seed_bible_prefix()
         chapter = ChapterContext(title="Ch1", description="The start.")
@@ -179,7 +179,7 @@ class TestBibleThreading:
         """Assert a composed run leaves the seeded bible entry in every scene's prefix log."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
-        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx = NovelContext.create("The hero seeks his father., bible v2 salt.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
             title="The Search",
@@ -237,7 +237,7 @@ class TestBibleThreading:
         """Assert a pre-set bible survives generation; plans never carry one."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
-        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx = NovelContext.create("The hero seeks his father., bible v2 salt.", language="English")
         ctx.set_series_bible(bible)
         meta = NovelPlan(
             title="The Search",
@@ -293,7 +293,7 @@ class TestBibleThreading:
         """Assert repeated composition walks over a prefilled tree never duplicate the seed."""
         role = BibleRole(name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
-        ctx = NovelContext.create("The hero seeks his father.", language="English")
+        ctx = NovelContext.create("The hero seeks his father., bible v2 salt.", language="English")
         ctx.set_series_bible(bible)
         scene_ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=40)
         story_ctx = StoryContext(title="St1", description="The departure.")

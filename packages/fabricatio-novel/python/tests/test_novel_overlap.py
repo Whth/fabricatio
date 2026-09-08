@@ -70,13 +70,13 @@ def test_compose_scenes_phase_strips_and_propagates_stripped_prose(
     """Assert the stripped content is what the log records for later scenes to see."""
     captured: list[str] = []
 
-    async def fake_aask(self: object, question: str, **kwargs: object) -> str:
+    async def fake_ageneric_string(self: object, question: str, **kwargs: object) -> str | None:
         captured.append(str(question))
         if len(captured) == 1:
             return f"The ropes groaned. {_TAIL}"
         return f"{_TAIL}\n{_REMAINDER}"
 
-    monkeypatch.setattr(NovelRole, "aask", fake_aask)
+    monkeypatch.setattr(NovelRole, "ageneric_string", fake_ageneric_string)
     role = NovelRole(name="writer")
     ctx = _two_scene_ctx()
     story_ctx = ctx.child_contexts[0].child_contexts[0]

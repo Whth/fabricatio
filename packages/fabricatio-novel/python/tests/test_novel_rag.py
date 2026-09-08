@@ -4,7 +4,11 @@ from itertools import pairwise
 
 import pytest
 from _support import RAGRole, prefix_log
-from fabricatio_mock.models.mock_router import return_router_usage
+from fabricatio_mock.models.mock_router import (
+    Value,
+    return_generic_router_usage,
+    return_mixed_router_usage,
+)
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
@@ -65,7 +69,7 @@ class TestRAGCompose:
             return []
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        with install_router_usage(*return_router_usage("One.", "Two.", "Three.")):
+        with install_router_usage(*return_generic_router_usage("One.", "Two.", "Three.")):
             result = await role.compose_story(story)
 
         assert result is not None
@@ -245,9 +249,20 @@ class TestRAGCompose:
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         with install_router_usage(
-            *return_router_usage(
-                '[{"title": "S1", "description": "Leaving home.", "weight": 1.0, "writing_styles": [], "writing_constraints": []}]',
-                "He left.",
+            *return_mixed_router_usage(
+                Value(
+                    [
+                        {
+                            "title": "S1",
+                            "description": "Leaving home.",
+                            "weight": 1.0,
+                            "writing_styles": [],
+                            "writing_constraints": [],
+                        }
+                    ],
+                    "json",
+                ),
+                Value("He left.", "generic"),
             ),
         ):
             result = await role.compose_story(story)

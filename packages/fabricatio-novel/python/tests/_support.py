@@ -27,8 +27,8 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
 
 
 def raw_value(text: str) -> Value[str]:
-    """Wrap a plain scene response for mixed router usage."""
-    return Value(text, "raw", convertor=lambda s: s)
+    """Wrap a plain scene response as a generic block for mixed router usage."""
+    return Value(text, "generic")
 
 
 def prefix_log(body: str, *, title: str = "S1") -> ContextLog:

@@ -6,7 +6,8 @@ from typing import Unpack
 from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK, detect_language, word_count
+from fabricatio_core.rust import TASK, word_count
+from fabricatio_core.utils import ok
 
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.scene import SceneContext
@@ -45,16 +46,15 @@ class SceneCompose(CharacterCompose, ABC):
         blocks before rendering. The setting bible arrives through the
         seeded prefix entry, not as a dedicated template variable.
         """
-        characters = ctx.dump_characters()
         return {
             "title": ctx.title,
             "description": ctx.description,
             "expected_word_count": ctx.expected_word_count,
             "writing_styles": ctx.writing_styles,
             "writing_constraints": ctx.writing_constraints,
-            "characters": characters,
+            "characters": ctx.dump_characters(),
             "cast": ctx.cast,
-            "language": ctx.language or detect_language(ctx.description),
+            "language": ctx.language,
             "novel_so_far": ctx.prefix_log.render(),
         }
 
@@ -87,7 +87,7 @@ class SceneCompose(CharacterCompose, ABC):
         logger.debug(f"Generating scene '{ctx.title}'")
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
         logger.debug(f"Scene '{ctx.title}' requirement rendered ({len(requirement)} chars)")
-        content = (await self.aask(requirement, send_to=send_to, **kwargs)).strip()
+        content = ok(await self.ageneric_string(requirement, send_to=send_to, **kwargs))
         previous = "\n".join(entry.body for entry in ctx.prefix_log.entries if entry.kind == "scene_content")
         content = strip_overlapping_prefix(
             content,

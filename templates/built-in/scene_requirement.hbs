@@ -4,6 +4,28 @@
 {{/if}}
 # Scene Writing
 
+## Scene
+
+Title: {{ title }}
+Description: {{ description }}
+Expected word count: {{ expected_word_count }}
+{{#if writing_styles}}
+### Writing styles References&Instructions:
+
+{{ls writing_styles}}{{/if}}
+{{#if writing_constraints}}
+### Writing Constrains:
+{{ls writing_constraints}}{{/if}}
+{{#if characters}}
+### Characters' state arc
+
+{{ls characters}}{{/if}}
+{{#if cast}}
+### {{ cast_title }}
+
+{{ls cast}}{{/if}}
+
+
 ## Goal
 Write a single scene of the novel in full prose, as a seamless continuation of the text above.
 
@@ -11,35 +33,6 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - Write exactly the scene defined by its Title and Description below; stay inside this scene and do not advance other plotlines or skip ahead in time.
 - Keep every character consistent with their established traits, speech patterns, and motivations, and honor the story's start and end states.
 - The novel text above is everything written so far: match its narrative voice, tense, and point of view, continue seamlessly from where it ends, and never repeat or contradict it. Your prose will be appended directly after it.
-- Output ONLY the scene prose as plain paragraphs — no headings, no title, no blockquotes, no JSON, no commentary, no summary.
+- Output ONLY the scene prose as plain paragraphs — no headings, no title, no explanations.
 
 Respond entirely in "{{ language }}".
-
-{{#if writing_styles}}
-## Writing Styles
-
-Apply these style directives — inherited guidance shared by every scene of this story; reference excerpts show techniques to emulate where they fit.
-
-{{ls writing_styles}}
-
----
-{{/if}}
-## Scene
-Title: {{ title }}
-Description: {{ description }}
-- Write approximately {{ expected_word_count }} words.
-
-{{#if writing_constraints}}
-## Writing Constraint
-{{ls writing_constraints}}
-{{/if}}
-
-{{#if characters}}
-## Characters' state arc
-{{ls characters}}
-{{/if}}
-
-{{#if cast}}
-## Cast
-{{ls cast}}
-{{/if}}

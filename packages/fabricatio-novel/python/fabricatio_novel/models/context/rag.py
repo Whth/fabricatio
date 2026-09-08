@@ -2,7 +2,7 @@
 
 from typing import Self
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from fabricatio_novel.models.context.story import StoryContext
 
@@ -30,7 +30,7 @@ class RagStoryContext(StoryContext):
     free of retrieval state.
     """
 
-    rag: RagRetrieval
+    rag: RagRetrieval = Field(default_factory=RagRetrieval)
     """Retrieval settings for this story's writing style references."""
 
     def set_rag(self, rag: RagRetrieval) -> Self:
@@ -46,6 +46,16 @@ class RagStoryContext(StoryContext):
         """
         if isinstance(story, RagStoryContext):
             return story
-        data = story.model_dump()
-        data["rag"] = rag
-        return cls.model_validate(data)
+
+        return (
+            RagStoryContext.create(
+                outline=story.outline,
+                language=story.language,
+            )
+            .update_from(story.plan)
+            .set_plan(story.plan)
+            .set_writing_styles(story.writing_styles)
+            .set_writing_constraints(story.writing_constraints)
+            .set_rag(rag)
+            .expect_(story.expected_word_count)
+        )

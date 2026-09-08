@@ -107,10 +107,6 @@ class ContextBase[P: WeightedPlan](
         self.title = other.title
         self.description = other.description
         self.set_cast(other.cast)
-        if other.writing_styles:
-            self.set_writing_styles(other.writing_styles)
-        if other.writing_constraints:
-            self.set_writing_constraints(other.writing_constraints)
         return self
 
     def set_language(self, language: str) -> Self:
