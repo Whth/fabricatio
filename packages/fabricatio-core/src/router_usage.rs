@@ -1,23 +1,23 @@
 use crate::parser::{
-    CodeSnippet, ValidatedDict, ValidatedList, ValueType, GENERIC_PARSER, JSON_PARSER,
-    PYTHON_PARSER, SNIPPET_PARSER,
+    CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER, ValidatedDict,
+    ValidatedList, ValueType,
 };
 use crate::templates::TEMPLATE_MANAGER;
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
-use fabricatio_router::{bytes_to_data_uri, CompletionRequest, RouteGroupName, Router};
-use futures::future::join_all;
+use fabricatio_router::{CompletionRequest, RouteGroupName, Router, bytes_to_data_uri};
 use futures::StreamExt;
+use futures::future::join_all;
+use pyo3::BoundObject;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
-use pyo3::BoundObject;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde::de::DeserializeOwned;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::hash::Hash;
 
