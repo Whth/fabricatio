@@ -1,29 +1,29 @@
 use crate::parser::{
-    CodeSnippet, GENERIC_PARSER, JSON_PARSER, PYTHON_PARSER, SNIPPET_PARSER, ValidatedDict,
-    ValidatedList, ValueType,
+    CodeSnippet, ValidatedDict, ValidatedList, ValueType, GENERIC_PARSER, JSON_PARSER,
+    PYTHON_PARSER, SNIPPET_PARSER,
 };
 use crate::templates::TEMPLATE_MANAGER;
 use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
-use fabricatio_router::{CompletionRequest, RouteGroupName, Router, bytes_to_data_uri};
-use futures::StreamExt;
+use fabricatio_router::{bytes_to_data_uri, CompletionRequest, RouteGroupName, Router};
 use futures::future::join_all;
-use pyo3::BoundObject;
+use futures::StreamExt;
 use pyo3::exceptions::*;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList, PyType};
+use pyo3::BoundObject;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
 use serde::de::DeserializeOwned;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::hash::Hash;
 
 /// Bundled completion parameters shared across all inner ask/mapping functions.
 #[derive(Clone)]
-struct CompletionParams {
+pub struct CompletionParams {
     send_to: RouteGroupName,
     stream: bool,
     top_p: Option<f32>,
@@ -37,7 +37,7 @@ struct CompletionParams {
 }
 
 #[derive(Clone)]
-enum Batch<V> {
+pub enum Batch<V> {
     Single(V),
     Batch(Vec<V>),
 }
@@ -46,7 +46,7 @@ impl<V> Batch<V> {
     fn map<U>(self, mut f: impl FnMut(V) -> U) -> Batch<U> {
         match self {
             Batch::Single(v) => Batch::Single(f(v)),
-            Batch::Batch(v) => Batch::Batch(v.into_iter().map(|v| f(v)).collect()),
+            Batch::Batch(v) => Batch::Batch(v.into_iter().map(f).collect()),
         }
     }
 }
@@ -116,7 +116,7 @@ impl CompletionParams {
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
 #[pyclass(from_py_object)]
-struct RouterUsage {
+pub struct RouterUsage {
     router: Router,
 }
 
@@ -188,7 +188,16 @@ impl RouterUsage {
             .map(async move |(i, sd, rq, rtr, vali)| {
                 trace!("Validate the {}th time.", i);
                 match rtr.invoke(sd, rq, params.no_cache).await {
-                    Ok(completion) => vali(completion.content.as_str()),
+                    Ok(completion) => {
+                        let outcome = vali(completion.content.as_str());
+                        if outcome.is_none() {
+                            trace!(
+                                "{}th validation failed; failing string:\n{}",
+                                i, completion.content
+                            );
+                        }
+                        outcome
+                    }
                     Err(e) => {
                         error!("Error while {}th validation: {}", i, e);
                         None
