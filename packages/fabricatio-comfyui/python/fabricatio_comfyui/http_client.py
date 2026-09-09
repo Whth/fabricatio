@@ -39,7 +39,7 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
     ViewImageParams,
 )
-from fabricatio_comfyui.models.graph import Graph, LoraSpec
+from fabricatio_comfyui.models.graph import BaseTxt2ImgGraph, Graph, GraphSimple, LoraSpec
 from fabricatio_comfyui.models.kwargs_types import (
     PollKwargs,
     TemplateKwargs,
@@ -179,14 +179,14 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         *,
         checkpoint: str | None,
         loras: list[LoraSpec] | None = None,
-    ) -> Graph | AnimaGraph:
+    ) -> BaseTxt2ImgGraph | AnimaGraph:
         """Assemble the active workflow template from config.
 
-        The default workflow uses the bundled two-pass graph, applying
-        *checkpoint* when given.  The anima workflow resolves its three
-        model filenames from :data:`comfyui_config` and fails loudly
-        while any is unset.  *loras* chain into the model/CLIP path of
-        either template.
+        The default workflow uses the bundled two-pass graph, ``simple``
+        the single-pass low-res graph, applying *checkpoint* when given.
+        The anima workflow resolves its three model filenames from
+        :data:`comfyui_config` and fails loudly while any is unset.
+        *loras* chain into the model/CLIP path of any template.
         """
         if comfyui_config.workflow == "anima":
             checkpoint_name = checkpoint or comfyui_config.checkpoint or comfyui_config.anima_checkpoint
@@ -202,7 +202,7 @@ class ComfyUIHttpClient(ComfyUIClientBase):
                 raise ValueError("anima workflow needs a VAE: set [ext.comfyui] anima_vae")
             template = AnimaGraph.default().with_checkpoint(checkpoint_name).with_clip(clip_name).with_vae(vae_name)
         else:
-            template = Graph.default()
+            template = GraphSimple.default() if comfyui_config.workflow == "simple" else Graph.default()
             checkpoint_name = checkpoint or comfyui_config.checkpoint
             if checkpoint_name is not None:
                 template.with_checkpoint(checkpoint_name)
@@ -214,9 +214,9 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         self,
         prompt: str,
         *,
-        template: Graph | AnimaGraph,
+        template: BaseTxt2ImgGraph | AnimaGraph,
         **kwargs: Unpack[TemplateKwargs],
-    ) -> Graph | AnimaGraph:
+    ) -> BaseTxt2ImgGraph | AnimaGraph:
         """Copy *template* and apply the overrides for one prompt.
 
         Only provided (non-``None``) knobs change the graph; canvas and
@@ -231,16 +231,14 @@ class ComfyUIHttpClient(ComfyUIClientBase):
         size_mp = first_available((kwargs.get("mp"), comfyui_config.mp), raise_exception=False)
         size_prop = first_available((kwargs.get("prop"), comfyui_config.prop), raise_exception=False)
         if size_mp is not None or size_prop is not None:
-            # mp budgets the FINAL image; the two-pass template upscales its base
-            # canvas (ImageScaleBy) before the refine pass, so the base canvas
-            # carries mp / scale**2 and the finished output lands at the budget.
-            # The anima template has no upscale step (scale 1.0): latent = output.
-            upscale = getattr(graph, "upscale", None)
+            # mp budgets the FINAL image; a template that upscales after the base
+            # pass (ImageScaleBy) therefore carries mp / scale**2 on its latent,
+            # and templates without an upscale step report scale 1.0 (latent = output).
             width, height = resolve_canvas(
                 mp=size_mp,
                 prop=size_prop,
                 base=(graph.latent.inputs.width, graph.latent.inputs.height),
-                scale=upscale.inputs.scale_by if upscale is not None else 1.0,
+                scale=template.output_scale(),
             )
             graph.with_resolution(width=width, height=height)
         seed = kwargs.get("seed")

@@ -20,10 +20,13 @@ class ComfyUIConfig(BaseModel):
     timeout: float = 300.0
     """Default timeout in seconds for API requests (default 5 min)."""
 
-    workflow: Literal["default", "anima"] = "default"
-    """Bundled workflow template to run: the two-pass txt2img graph or the anima preset.
+    workflow: Literal["default", "simple", "anima"] = "default"
+    """Bundled workflow template to run: the two-pass txt2img graph, the
+    single-pass low-res graph, or the anima preset.
 
-    The anima template loads checkpoint / CLIP / VAE from separate nodes
+    ``simple`` skips the upscale/refine branch, so the finished image is
+    exactly the latent canvas and ``mp`` sizes it directly.  The anima
+    template loads checkpoint / CLIP / VAE from separate nodes
     (see ``anima_checkpoint``, ``anima_clip``, ``anima_vae``) and samples
     once at a fixed 4:3 canvas (overridable via ``mp`` / ``prop``).
     """

@@ -19,12 +19,14 @@ from typing import ClassVar, Literal, Self
 from pydantic import ConfigDict, Field
 
 from fabricatio_comfyui.models.graph import (
-    BaseGraph,
+    BaseTxt2ImgGraph,
     CLIPEncodeInputs,
+    KSamplerAdvancedNode,
     NodeInputs,
     NodeMeta,
     NodeRef,
     RewireField,
+    SamplerInputs,
     WireNode,
 )
 
@@ -169,37 +171,20 @@ class AnimaNegativePromptNode(WireNode):
         return cls(meta=NodeMeta(title="CLIP Text Encode (Prompt)"))
 
 
-class AnimaSamplerInputs(NodeInputs):
+class AnimaSamplerInputs(SamplerInputs):
     """Inputs of ``KSamplerAdvanced`` in the anima template."""
 
-    add_noise: Literal["enable"] = "enable"
-    noise_seed: int = 1072236688235494
     steps: int = 32
     cfg: float = 7.0
     sampler_name: str = "er_sde"
-    scheduler: str = "simple"
-    start_at_step: int = 0
+    scheduler: str = "karras"
     end_at_step: int = 999
-    return_with_leftover_noise: Literal["disable"] = "disable"
-    model: NodeRef = Field(default_factory=lambda: NodeRef.first("loader"))
-    positive: NodeRef = Field(default_factory=lambda: NodeRef.first("positive"))
-    negative: NodeRef = Field(default_factory=lambda: NodeRef.first("negative"))
-    latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("latent"))
 
 
-class AnimaSamplerNode(WireNode):
+class AnimaSamplerNode(KSamplerAdvancedNode):
     """``KSamplerAdvanced`` node of the anima template."""
 
-    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
-
-    class_type: Literal["KSamplerAdvanced"] = "KSamplerAdvanced"
     inputs: AnimaSamplerInputs = Field(default_factory=AnimaSamplerInputs)
-    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
-
-    @classmethod
-    def default(cls) -> Self:
-        """Anima sampler node."""
-        return cls(meta=NodeMeta(title="KSampler (Advanced)"))
 
 
 class AnimaVAEDecodeInputs(NodeInputs):
@@ -245,7 +230,7 @@ class AnimaPreviewNode(WireNode):
         return cls(meta=NodeMeta(title="Preview Image"))
 
 
-class AnimaGraph(BaseGraph):
+class AnimaGraph(BaseTxt2ImgGraph):
     """The bundled anima txt2img graph, initialised in Python.
 
     Single sampler pass (no refine); model pieces load from separate
@@ -306,9 +291,9 @@ class AnimaGraph(BaseGraph):
             preview=AnimaPreviewNode.default(),
         )
 
-    # ------------------------------------------------------------------
-    # Chainable parameterisation — direct typed mutation, no lookups
-    # ------------------------------------------------------------------
+    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+        """Return the single sampler pass of the anima template."""
+        return (self.sampler,)
 
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""
@@ -323,44 +308,4 @@ class AnimaGraph(BaseGraph):
     def with_vae(self, vae_name: str) -> Self:
         """Set the VAE on the vae loader node; return *self* for chaining."""
         self.vae.inputs.vae_name = vae_name
-        return self
-
-    def with_positive_prompt(self, text: str) -> Self:
-        """Set the positive prompt text; return *self* for chaining."""
-        self.positive.inputs.text = text
-        return self
-
-    def with_negative_prompt(self, text: str) -> Self:
-        """Set the negative prompt text; return *self* for chaining."""
-        self.negative.inputs.text = text
-        return self
-
-    def with_resolution(self, *, width: int | None = None, height: int | None = None) -> Self:
-        """Set the latent canvas width/height; return *self* for chaining."""
-        if width is not None:
-            self.latent.inputs.width = width
-        if height is not None:
-            self.latent.inputs.height = height
-        return self
-
-    def with_sampler(
-        self,
-        *,
-        seed: int | None = None,
-        steps: int | None = None,
-        cfg: float | None = None,
-        sampler_name: str | None = None,
-        scheduler: str | None = None,
-    ) -> Self:
-        """Update sampler parameters on the single sampler node; return *self* for chaining."""
-        if seed is not None:
-            self.sampler.inputs.noise_seed = seed
-        if steps is not None:
-            self.sampler.inputs.steps = steps
-        if cfg is not None:
-            self.sampler.inputs.cfg = cfg
-        if sampler_name is not None:
-            self.sampler.inputs.sampler_name = sampler_name
-        if scheduler is not None:
-            self.sampler.inputs.scheduler = scheduler
         return self

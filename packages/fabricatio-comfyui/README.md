@@ -27,7 +27,7 @@ bare-noun response models (`ExecutionResult`, `QueueInfo`, …).
 ## Architecture
 
 | Layer      | Module / Class                              | Purpose                                              |
-| Graph      | `Graph` (`models/graph.py`)                 | Typed graph initialised in Python, serialized to the ComfyUI wire format; internal only |
+| Graph      | `Graph` / `GraphSimple` / `AnimaGraph` (`models/graph.py`, `models/anima.py`) | Typed templates initialised in Python — two-pass, single-pass, and anima — serialized to the ComfyUI wire format; internal only |
 | Transport  | `ComfyUIHttpClient` / `ComfyUIClientBase`   | Async REST client; shared per-URL via `get_comfyui_client` |
 | Capability | `UseComfyUI` (`capabilities/comfyui.py`)    | Mixin: high-level generate (queue → poll → download)  |
 | API        | `api.py`                                    | One-shot functions that run on the shared pooled client |
@@ -61,13 +61,28 @@ download_dir = "./outputs"
 | `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
-| `workflow` | `"default" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph or the anima preset. |
-| `mp` | `float \| None` | `None` | Default megapixel budget of the finished image (`1.0` = 1,000,000 px); the two-pass template sizes its base canvas so the upscaled output lands at the budget; a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
+| `workflow` | `"default" \| "simple" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph, the single-pass low-res graph, or the anima preset. |
+| `mp` | `float \| None` | `None` | Default megapixel budget of the finished image (`1.0` = 1,000,000 px); a template that upscales before its final pass sizes its base canvas so the upscaled output lands at the budget, while single-pass templates size the latent directly; a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
 | `prop` | `Prop \| None` | `None` | Default aspect-ratio preset — enum member names (`prop_1_1`, `prop_4_3`, `prop_3_4`, `prop_3_2`, `prop_2_3`, `prop_16_9`, `prop_9_16`, `prop_5_4`, `prop_4_5`, `prop_21_9`, `prop_9_21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
 | `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
 | `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
 | `anima_vae` | `str \| None` | `None` | VAE filename for the anima workflow. |
 | `download_dir` | `str \| None` | `None` | Default directory for generated images; a per-call `download_dir=` takes precedence. |
+
+#### The simple workflow
+
+`workflow = "simple"` runs a single sampler pass with no upscale and no
+refine — the decode feeds the preview directly, so the submitted graph is
+7 nodes instead of 11:
+
+```mermaid
+graph LR
+  loader --> sampler_base --> decode --> preview
+```
+
+Use it when a hi-res pass is not worth the time (fast iteration) or when
+you want the literal latent canvas.  Because nothing upscales, `mp` sizes
+the latent directly rather than dividing by the upscale factor.
 
 #### The anima workflow
 
@@ -120,12 +135,12 @@ then both dimensions snap to the nearest multiple of 64 (half-up, floor
 64 px).  Either knob may be omitted — per-call knobs win over
 `[ext.comfyui]` defaults, which win over the template canvas (768x512
 for the default workflow, 1344x1024 for the anima preset).
-
 The default two-pass template upscales its base canvas by 2.3x (area
 5.29x) before the refine pass, so its base canvas is sized to
-`mp / 2.3**2` and the finished image lands at the budget.  The
-single-pass anima template has no upscale step: its latent canvas *is*
-the finished image, so the budget applies directly.
+`mp / 2.3**2` and the finished image lands at the budget.  Templates with
+no upscale step (the `simple` workflow and the anima preset) have a
+latent canvas that *is* the finished image, so the budget applies
+directly.
 
 Presets: `prop_1_1` (1:1), `prop_16_9` / `prop_9_16` (16:9 / 9:16),
 `prop_3_2` / `prop_2_3` (3:2 / 2:3), `prop_4_3` / `prop_3_4` (4:3 /

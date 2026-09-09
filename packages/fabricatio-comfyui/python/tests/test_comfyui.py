@@ -29,7 +29,7 @@ def replace(obj: object, **updates: object) -> object:
     return obj.model_copy(update=updates)  # ty: ignore[unresolved-attribute]
 
 
-from fabricatio_comfyui.models.graph import Graph, LoraSpec, NodeRef
+from fabricatio_comfyui.models.graph import Graph, GraphSimple, LoraSpec, NodeRef
 from fabricatio_comfyui.models.resolution import Prop, resolve_canvas
 from fabricatio_comfyui.models.specs import SketchSpec
 from pydantic import ValidationError
@@ -94,31 +94,27 @@ class TestFactories:
 class TestGraph:
     """Graph is initialised in Python and serializes to exact wire format."""
 
-    def test_typed_node_access(self) -> None:
-        """Nodes are reachable through typed fields, not lookups."""
-        graph = Graph.default()
-        assert graph.loader.class_type == "CheckpointLoaderSimple"
-        assert graph.loader.inputs.ckpt_name == "catTowerNoobaiXL_v15Vpred.safetensors"
-        assert graph.latent.inputs.width == 768
-        assert graph.latent.inputs.height == 512
-        assert graph.latent.inputs.batch_size == 1
-        assert graph.positive.class_type == "CLIPTextEncode"
-        assert graph.negative.class_type == "CLIPTextEncode"
-        assert graph.preview.inputs.images.node_id == "refine_decode"
-        assert graph.sampler_base.class_type == "KSamplerAdvanced"
-        assert graph.sampler_refine.class_type == "KSamplerAdvanced"
+    def test_simple_graph_has_no_highres_branch(self) -> None:
+        """The low-res template samples and decodes once — no upscale, no refine."""
+        api = GraphSimple.default().to_api()
+        assert "upscale" not in api
+        assert "encode" not in api
+        assert "refine_decode" not in api
+        assert "sampler_refine" not in api
+        preview = cast("dict[str, object]", api["preview"])
+        assert cast("dict[str, object]", preview["inputs"])["images"] == ("decode", 0)
 
-    def test_default_sampler_settings(self) -> None:
-        """The two passes share a 60-step budget but sample and schedule differently."""
-        graph = Graph.default()
-        assert graph.sampler_base.inputs.sampler_name == "euler"
-        assert graph.sampler_base.inputs.scheduler == "simple"
-        assert graph.sampler_base.inputs.steps == 60
-        assert graph.sampler_base.inputs.start_at_step == 0
-        assert graph.sampler_refine.inputs.sampler_name == "ddim"
-        assert graph.sampler_refine.inputs.scheduler == "simple"
-        assert graph.sampler_refine.inputs.steps == 60
-        assert graph.sampler_refine.inputs.start_at_step == 18
+    def test_simple_graph_output_is_the_latent_canvas(self) -> None:
+        """With no upscale step the template reports scale 1.0, so mp sizes the output directly."""
+        assert GraphSimple.default().output_scale() == 1.0
+        assert Graph.default().output_scale() == 2.3
+
+    def test_simple_graph_samples_once(self) -> None:
+        """with_sampler lands on the sole sampler of the low-res template."""
+        graph = GraphSimple.default().with_sampler(seed=7, steps=25, cfg=6.0)
+        assert graph.sampler_base.inputs.noise_seed == 7
+        assert graph.sampler_base.inputs.steps == 25
+        assert graph.sampler_base.inputs.cfg == 6.0
 
     def test_node_ref_serializes_to_api_tuple(self) -> None:
         """NodeRef serializes to the API pair form."""
@@ -866,6 +862,34 @@ async def test_generate_per_call_size_beats_config_defaults() -> None:
     prompt = cast("dict[str, object]", captured["prompt"])
     assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 448
     assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 448
+
+
+@pytest.mark.asyncio
+async def test_generate_simple_workflow_omits_highres_branch() -> None:
+    """The simple workflow submits one sampler and decodes straight to the preview."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    simple_config = replace(comfyui_config, workflow="simple")
+    with (
+        patch("fabricatio_comfyui.http_client.comfyui_config", simple_config),
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        await client.generate("a cat")
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert "upscale" not in prompt
+    assert "sampler_refine" not in prompt
+    preview_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["preview"])["inputs"])
+    assert preview_inputs["images"] == ("decode", 0)
 
 
 @pytest.mark.asyncio

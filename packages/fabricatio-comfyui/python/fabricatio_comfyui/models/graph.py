@@ -464,12 +464,12 @@ class SamplerInputs(NodeInputs):
 
     add_noise: Literal["enable"] = "enable"
     noise_seed: int = 1072236688235494
-    steps: int = 60
-    cfg: float = 7.9
-    sampler_name: str = "euler"
-    scheduler: str = "simple"
+    steps: int = 21
+    cfg: float = 7.0
+    sampler_name: str = "er_sde"
+    scheduler: str = "beta"
     start_at_step: int = 0
-    end_at_step: int = 990
+    end_at_step: int = 999
     return_with_leftover_noise: Literal["disable"] = "disable"
     model: NodeRef = Field(default_factory=lambda: NodeRef.first("loader"))
     positive: NodeRef = Field(default_factory=lambda: NodeRef.first("positive"))
@@ -480,10 +480,9 @@ class SamplerInputs(NodeInputs):
 class RefineSamplerInputs(SamplerInputs):
     """Refine-pass schedule of the bundled template."""
 
-    cfg: float = 8.5
-    sampler_name: str = "ddim"
-    start_at_step: int = 18
-    end_at_step: int = 999
+    cfg: float = 4.5
+    sampler_name: str = "er_sde"
+    scheduler: str = "karras"
     latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("encode"))
 
 
@@ -508,19 +507,51 @@ class RefineSamplerNode(KSamplerAdvancedNode):
     inputs: RefineSamplerInputs = Field(default_factory=RefineSamplerInputs)
 
 
-class Graph(BaseGraph):
-    """The bundled txt2img → upscale → refine graph, initialised in Python.
+class SimpleDecodeInputs(VAEDecodeInputs):
+    """Decode source of the single-pass template."""
 
-    ComfyUI node IDs are arbitrary unique strings, so the Python field
-    names double as the wire node IDs — no numeric aliases anywhere.
-    :meth:`to_api` produces the exact ComfyUI API-format payload for
-    ``POST /prompt``.
+    samples: NodeRef = Field(default_factory=lambda: NodeRef.first("sampler_base"))
+
+
+class SimpleDecodeNode(VAEDecodeNode):
+    """``decode`` node of the single-pass template."""
+
+    inputs: SimpleDecodeInputs = Field(default_factory=SimpleDecodeInputs)
+
+
+class SimplePreviewInputs(PreviewImageInputs):
+    """Preview source of the single-pass template."""
+
+    images: NodeRef = Field(default_factory=lambda: NodeRef.first("decode"))
+
+
+class SimplePreviewNode(PreviewImageNode):
+    """``preview`` node of the single-pass template."""
+
+    inputs: SimplePreviewInputs = Field(default_factory=SimplePreviewInputs)
+
+
+class SimpleSamplerInputs(SamplerInputs):
+    """Sole sampler schedule of the single-pass template."""
+
+    end_at_step: int = 999
+
+
+class SimpleSamplerNode(KSamplerAdvancedNode):
+    """``sampler_base`` node of the single-pass template."""
+
+    inputs: SimpleSamplerInputs = Field(default_factory=SimpleSamplerInputs)
+
+
+class BaseTxt2ImgGraph(BaseGraph):
+    """Shared node set and generation knobs of every bundled txt2img template.
+
+    Node fields are typed here so a subclass can only narrow them, and
+    every ``with_*`` knob lives here too, so a knob can never be applied to
+    one template and silently missing from another.  A template states only
+    what actually differs: :meth:`samplers`, :meth:`output_scale`, and the
+    upscale/refine/loader nodes its shape adds.
     """
-
-    model_source: ClassVar[NodeRef] = NodeRef.first("loader")
-    clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
-    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler_base, RewireField.sampler_refine)
-    clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
 
     loader: CheckpointLoaderNode
     """Checkpoint loader node."""
@@ -534,47 +565,23 @@ class Graph(BaseGraph):
     negative: NegativePromptNode
     """Negative prompt encode node."""
 
-    decode: VAEDecodeNode
-    """Base-pass decode feeding the upscaler."""
+    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+        """Return this template's sampler nodes in pass order.
 
-    encode: VAEEncodeNode
-    """Re-encode of the upscaled image for the refine pass."""
-
-    refine_decode: RefineDecodeNode
-    """Refine-pass decode node."""
-
-    preview: PreviewImageNode
-    """Preview image node."""
-
-    upscale: ImageScaleByNode
-    """Upscale step node."""
-
-    sampler_base: KSamplerAdvancedNode
-    """Base-pass sampler node."""
-
-    sampler_refine: RefineSamplerNode
-    """Refine-pass sampler node."""
-
-    @classmethod
-    def default(cls) -> Self:
-        """Assemble the bundled template from each node class's own default.
-
-        Generation knobs (prompt, size, sampler, checkpoint) are
-        overridden per request by the client via the ``with_*`` builders.
+        Abstract by convention: every concrete template declares its own
+        sampler set, which is what makes :meth:`with_sampler` apply the
+        same knobs to every pass of either shape.
         """
-        return cls(
-            loader=CheckpointLoaderNode.default(),
-            latent=EmptyLatentNode.default(),
-            positive=PositivePromptNode.default(),
-            negative=NegativePromptNode.default(),
-            decode=VAEDecodeNode.default(),
-            encode=VAEEncodeNode.default(),
-            refine_decode=RefineDecodeNode.default(),
-            preview=PreviewImageNode.default(),
-            upscale=ImageScaleByNode.default(),
-            sampler_base=KSamplerAdvancedNode.default(),
-            sampler_refine=RefineSamplerNode.default(),
-        )
+        raise NotImplementedError
+
+    def output_scale(self) -> float:
+        """Linear factor between this template's latent canvas and its finished image.
+
+        ``1.0`` means the latent *is* the output; a template that upscales
+        before its final pass overrides this so :func:`resolve_canvas` can
+        size the base canvas for a megapixel budget of the *finished* image.
+        """
+        return 1.0
 
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""
@@ -608,13 +615,12 @@ class Graph(BaseGraph):
         sampler_name: str | None = None,
         scheduler: str | None = None,
     ) -> Self:
-        """Update sampler parameters on **both** KSamplerAdvanced nodes (base + refine).
+        """Update sampler parameters on every sampler of this template.
 
-        The bundled template runs a base pass and a refine pass; keeping
-        their seeds/steps/cfg aligned is the sane semantic for a single
-        generation.  Return *self* for chaining.
+        Keeping the seeds/steps/cfg of a multi-pass template aligned is the
+        sane semantic for a single generation.  Return *self* for chaining.
         """
-        for sampler in (self.sampler_base, self.sampler_refine):
+        for sampler in self.samplers():
             if seed is not None:
                 sampler.inputs.noise_seed = seed
             if steps is not None:
@@ -626,3 +632,112 @@ class Graph(BaseGraph):
             if scheduler is not None:
                 sampler.inputs.scheduler = scheduler
         return self
+
+
+class GraphSimple(BaseTxt2ImgGraph):
+    """The single-pass txt2img graph — no upscale, no refine.
+
+    One sampler pass decodes straight to the preview, so the finished
+    image is exactly the latent canvas: ``mp`` / ``prop`` size it without
+    the ``scale**2`` division the high-res template needs.
+    """
+
+    model_source: ClassVar[NodeRef] = NodeRef.first("loader")
+    clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
+    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler_base,)
+    clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
+
+    decode: SimpleDecodeNode
+    """Decode node feeding the preview directly."""
+
+    preview: SimplePreviewNode
+    """Preview image node."""
+
+    sampler_base: SimpleSamplerNode
+    """The sole sampler pass."""
+
+    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+        """Return the single sampler pass of the low-res template."""
+        return (self.sampler_base,)
+
+    @classmethod
+    def default(cls) -> Self:
+        """Assemble the single-pass template from each node class's own default.
+
+        Generation knobs (prompt, size, sampler, checkpoint) are
+        overridden per request by the client via the ``with_*`` builders.
+        """
+        return cls(
+            loader=CheckpointLoaderNode.default(),
+            latent=EmptyLatentNode.default(),
+            positive=PositivePromptNode.default(),
+            negative=NegativePromptNode.default(),
+            decode=SimpleDecodeNode.default(),
+            preview=SimplePreviewNode.default(),
+            sampler_base=SimpleSamplerNode.default(),
+        )
+
+
+class Graph(BaseTxt2ImgGraph):
+    """The bundled txt2img → upscale → refine graph, initialised in Python.
+
+    ComfyUI node IDs are arbitrary unique strings, so the Python field
+    names double as the wire node IDs — no numeric aliases anywhere.
+    :meth:`to_api` produces the exact ComfyUI API-format payload for
+    ``POST /prompt``.
+    """
+
+    model_source: ClassVar[NodeRef] = NodeRef.first("loader")
+    clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
+    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler_base, RewireField.sampler_refine)
+    clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
+
+    decode: VAEDecodeNode
+    """Base-pass decode feeding the upscaler."""
+
+    encode: VAEEncodeNode
+    """Re-encode of the upscaled image for the refine pass."""
+
+    refine_decode: RefineDecodeNode
+    """Refine-pass decode node."""
+
+    preview: PreviewImageNode
+    """Preview image node."""
+
+    upscale: ImageScaleByNode
+    """Upscale step node."""
+
+    sampler_base: KSamplerAdvancedNode
+    """Base-pass sampler node."""
+
+    sampler_refine: RefineSamplerNode
+    """Refine-pass sampler node."""
+
+    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+        """Return both sampler passes of the high-res template."""
+        return (self.sampler_base, self.sampler_refine)
+
+    def output_scale(self) -> float:
+        """Return the upscale factor this template applies before its refine pass."""
+        return self.upscale.inputs.scale_by
+
+    @classmethod
+    def default(cls) -> Self:
+        """Assemble the bundled template from each node class's own default.
+
+        Generation knobs (prompt, size, sampler, checkpoint) are
+        overridden per request by the client via the ``with_*`` builders.
+        """
+        return cls(
+            loader=CheckpointLoaderNode.default(),
+            latent=EmptyLatentNode.default(),
+            positive=PositivePromptNode.default(),
+            negative=NegativePromptNode.default(),
+            decode=VAEDecodeNode.default(),
+            encode=VAEEncodeNode.default(),
+            refine_decode=RefineDecodeNode.default(),
+            preview=PreviewImageNode.default(),
+            upscale=ImageScaleByNode.default(),
+            sampler_base=KSamplerAdvancedNode.default(),
+            sampler_refine=RefineSamplerNode.default(),
+        )
