@@ -109,11 +109,16 @@ class TestGraph:
         assert graph.sampler_refine.class_type == "KSamplerAdvanced"
 
     def test_default_sampler_settings(self) -> None:
-        """The bundled template samples with euler on the simple schedule."""
+        """The two passes share a 60-step budget but sample and schedule differently."""
         graph = Graph.default()
-        for sampler in (graph.sampler_base, graph.sampler_refine):
-            assert sampler.inputs.sampler_name == "euler"
-            assert sampler.inputs.scheduler == "simple"
+        assert graph.sampler_base.inputs.sampler_name == "euler"
+        assert graph.sampler_base.inputs.scheduler == "simple"
+        assert graph.sampler_base.inputs.steps == 60
+        assert graph.sampler_base.inputs.start_at_step == 0
+        assert graph.sampler_refine.inputs.sampler_name == "ddim"
+        assert graph.sampler_refine.inputs.scheduler == "simple"
+        assert graph.sampler_refine.inputs.steps == 60
+        assert graph.sampler_refine.inputs.start_at_step == 18
 
     def test_node_ref_serializes_to_api_tuple(self) -> None:
         """NodeRef serializes to the API pair form."""
