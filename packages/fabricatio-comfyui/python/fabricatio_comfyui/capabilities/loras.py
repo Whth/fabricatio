@@ -9,6 +9,7 @@ exists*; the LLM only chooses among declared entries (or none).
 
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.capabilities.propose import Propose
+from fabricatio_core.journal import logger
 
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.config import comfyui_config
@@ -26,6 +27,7 @@ class ChooseLoras(Propose, UseComfyUI):
         description: str,
         *,
         catalog: LoraCatalog | None = None,
+        send_to: str | None = None,
     ) -> list[LoraSpec]:
         """Let the LLM pick catalog LoRAs suited to *description*.
 
@@ -33,6 +35,7 @@ class ChooseLoras(Propose, UseComfyUI):
             description: The image subject/scene the LoRAs should serve.
             catalog: Explicit catalog; ``None`` builds one from
                 :data:`fabricatio_comfyui.config.comfyui_config.loras`.
+            send_to: Routing group for the selection proposal; ``None`` keeps the global default group.
 
         Returns:
             Wired :class:`LoraSpec` list in chain order; empty when the
@@ -47,7 +50,11 @@ class ChooseLoras(Propose, UseComfyUI):
                 comfyui_config.choose_loras_template,
                 {"lora_catalog": cat.brief(), "image_description": description},
             ),
+            send_to=send_to,
         )
         if not isinstance(selection, LoraSelection):
+            logger.debug(f"LoRA selection for {description!r} produced no valid proposal")
             return []
-        return cat.resolve(selection.picks)
+        loras = cat.resolve(selection.picks)
+        logger.debug(f"Chosen LoRAs for {description!r}: {[(spec.lora_name, spec.strength) for spec in loras]}")
+        return loras

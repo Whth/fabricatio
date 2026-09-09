@@ -1483,3 +1483,18 @@ class TestChooseLoras:
         """Role under test against an empty catalog."""
         role = ChooseLoras()
         assert await role.choose_loras("anything", catalog=LoraCatalog()) == []
+
+    @pytest.mark.asyncio
+    async def test_choose_loras_forwards_send_to(self) -> None:
+        """The send_to routing group reaches the selection proposal."""
+        role = ChooseLoras()
+        seen: dict[str, object] = {}
+
+        async def fake_propose(_self: object, *_args: object, **kwargs: object) -> LoraSelection:
+            seen.update(kwargs)
+            return LoraSelection(picks=[])
+
+        with patch.object(ChooseLoras, "propose", new=fake_propose):
+            specs = await role.choose_loras("a knight", catalog=_catalog(), send_to="custom")
+        assert seen.get("send_to") == "custom"
+        assert specs == []
