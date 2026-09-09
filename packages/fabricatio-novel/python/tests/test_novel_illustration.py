@@ -429,6 +429,47 @@ class TestIllustrateNovelPhase:
         assert set(illustrations) == {(1, 1), (1, 2)}
         assert seen == [0.5, 0.4]
 
+    async def test_illustrate_novel_phase_skips_lora_selection_by_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the gate keeps catalog selection (and its LLM call) fully off unless opted in."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(illustration_choose_loras=False),
+        )
+        catalog = LoraCatalog(
+            entries=[
+                LoraEntry(
+                    lora_name="pose.safetensors", strength=0.65, effect="poses the subject", trigger_words="xpose"
+                )
+            ]
+        )
+        monkeypatch.setattr(LoraCatalog, "from_config", classmethod(lambda cls: catalog))
+
+        def _forbidden(*_args: object, **_kwargs: object) -> list[LoraSpec]:
+            raise AssertionError("choose_loras must not run when the gate is off")
+
+        monkeypatch.setattr(IllustrateScenes, "choose_loras", staticmethod(_forbidden))
+        seen: list[object] = []
+        prompts: list[str] = []
+
+        async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+            seen.append(kwargs["loras"])
+            prompts.append(prompt)
+            assert download_dir is not None
+            target = Path(download_dir)
+            target.mkdir(parents=True, exist_ok=True)
+            path = target / "img.png"
+            path.write_bytes(_PNG_1X1)
+            return path
+
+        monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(*return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"))):
+            await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        assert seen == [[]]
+        assert prompts == ["dawn"]
+
     async def test_illustrate_novel_phase_chains_always_loras(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -497,7 +538,9 @@ class TestIllustrateNovelPhase:
                 Value(LoraSelection(picks=[LoraPick(lora_name="pose.safetensors")]), "model"),
             )
         ):
-            await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+            await role.illustrate_novel_phase(
+                build_novel_ctx("S1"), persist_dir=tmp_path, illustration_choose_loras=True
+            )
         assert seen == [[LoraSpec(lora_name="pose.safetensors", strength=0.65)]]
         assert prompts == ["dawn, xpose"]
 
@@ -537,7 +580,7 @@ class TestIllustrateNovelPhase:
             return path
 
         monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
-        role = IllustrationRole(name="illustrator")
+        role = IllustrationRole(name="illustrator", illustration_choose_loras=True)
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(SketchSpec(prompt="dawn"), "model"),

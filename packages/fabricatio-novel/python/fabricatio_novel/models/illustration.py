@@ -39,6 +39,10 @@ class IllustrationScopedConfig(ScopedConfig):
     ``[ext.novel] illustration_constraint``.
     """
 
+    illustration_choose_loras: bool | None = None
+    """Per-instance opt-in for catalog LoRA selection; ``None`` falls back to the global
+    ``[ext.novel] illustration_choose_loras``."""
+
 
 class IllustratedScene(Scene):
     """A composed scene carrying its rendered illustration."""

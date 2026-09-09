@@ -265,7 +265,11 @@ class DumpNovelStage(Action, NovelCompose):
         persist_dir = Path(ok(cxt.get("persist_dir"), "`persist_dir` is required in the task init context"))
         persist_dir.mkdir(parents=True, exist_ok=True)
         novel = await self.post_process_novel(
-            novel_ctx, novel, persist_dir=persist_dir, send_to=cxt.get("send_to", TASK)
+            novel_ctx,
+            novel,
+            persist_dir=persist_dir,
+            send_to=cxt.get("send_to", TASK),
+            illustration_choose_loras=cxt.get("illustration_choose_loras"),
         )
         fmt = str(cxt.get("format") or "epub")
         ok(fmt in ("epub", "txt", "both"), f"`format` must be 'epub', 'txt', or 'both', got '{fmt}'")

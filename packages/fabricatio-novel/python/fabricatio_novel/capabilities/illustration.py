@@ -61,6 +61,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
         persist_dir: str | Path,
         send_to: str | None = TASK,
         illustration_constraint: str | None = None,
+        illustration_choose_loras: bool | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> dict[tuple[int, int], tuple[str, str]]:
         """Illustrate every scene of the finished context and return the rendered results.
@@ -78,6 +79,8 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
                 proposal requirement; wins over the scoped
                 :attr:`~fabricatio_novel.models.illustration.IllustrationScopedConfig.illustration_constraint`
                 and the global ``[ext.novel] illustration_constraint``.
+            illustration_choose_loras: Opt-in per-scene LLM LoRA selection from the comfyui
+                catalog; wins over the scoped field and the global default (off).
             **kwargs: Extra LLM knobs forwarded to the proposal call.
 
         Returns:
@@ -96,7 +99,13 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
         )
         if not queue.entries:
             return {}
-        illustrations = await self._propose_and_render(queue.entries, send_to=send_to, **kwargs)
+        choose = (
+            first_available(
+                (illustration_choose_loras, self.illustration_choose_loras, novel_config.illustration_choose_loras)
+            )
+            or False
+        )
+        illustrations = await self._propose_and_render(queue.entries, send_to=send_to, choose_loras=choose, **kwargs)
         logger.info(f"Illustrated {len(illustrations)} new scene(s) for novel '{novel_ctx.title}'")
         return illustrations
 
@@ -105,6 +114,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
         pending: tuple[PendingIllustration, ...],
         *,
         send_to: str | None,
+        choose_loras: bool,
         **kwargs: Unpack[LLMKwargs],
     ) -> dict[tuple[int, int], tuple[str, str]]:
         """Propose every pending prompt concurrently, then render all prompts concurrently.
@@ -133,14 +143,15 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
 
         # LoRA chain per job: ``illustration_always_loras`` entries ride
         # every render and their trigger words activate them; the comfyui
-        # catalog stays the selectable pool — the LLM picks per scene on
-        # top, with picked words resolved from the catalog entries.
+        # catalog stays the selectable pool — when opted in, the LLM picks
+        # per scene on top, with picked words resolved from the catalog
+        # entries.
         always_entries = novel_config.illustration_always_loras
         always_specs = [LoraSpec(lora_name=e.lora_name, strength=e.strength) for e in always_entries]
         catalog = LoraCatalog.from_config()
         render_jobs: list[tuple[tuple[int, int], str, SketchSpec, Path, str, list[LoraSpec]]] = []
         for key, title, si, target in jobs:
-            picked = await self.choose_loras(si.prompt, catalog=catalog)
+            picked = await self.choose_loras(si.prompt, catalog=catalog, send_to=send_to) if choose_loras else []
             prompt = si.prompt
             for entry in always_entries:
                 prompt = entry.augmented_prompt(prompt)
@@ -246,6 +257,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
         persist_dir: str | Path | None = None,
         send_to: str | None = None,
         illustration_constraint: str | None = None,
+        illustration_choose_loras: bool | None = None,
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel:
         """Illustrate every scene and attach the results, returning the transformed novel.
@@ -261,6 +273,8 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
             send_to: Routing group for the illustration-prompt proposals.
             illustration_constraint: Global constraint (style etc.) forwarded to the
                 phase; ``None`` falls back to the scoped config and the global default.
+            illustration_choose_loras: Opt-in per-scene catalog LoRA selection forwarded to the
+                phase; ``None`` falls back to the scoped config and the global default (off).
         """
         if persist_dir is None:
             return novel
@@ -269,6 +283,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Prop
             persist_dir=persist_dir,
             send_to=send_to or TASK,
             illustration_constraint=illustration_constraint,
+            illustration_choose_loras=illustration_choose_loras,
             **kwargs,
         )
         return self.attach_illustrations(ctx, novel, illustrations)

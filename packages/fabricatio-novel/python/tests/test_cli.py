@@ -4,7 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
-from fabricatio_novel.commands.writing import _stamped_run_dir
+from fabricatio_novel.commands.writing import _stamped_run_dir, app
+from typer.testing import CliRunner
 
 
 def test_stamped_run_dir_returns_timestamped_subdir(tmp_path: Path) -> None:
@@ -24,3 +25,10 @@ def test_stamped_run_dir_uniquifies_same_second_runs(tmp_path: Path) -> None:
         mock_datetime.now.return_value = datetime(2026, 8, 18, 15, 30, 45).astimezone()
         run_dir = _stamped_run_dir(target)
     assert run_dir == target / "20260818-153045-2"
+
+
+def test_wri_help_advertises_choose_loras() -> None:
+    """`fanvl wri --help` advertises the opt-in --choose-loras flag."""
+    result = CliRunner().invoke(app, ["wri", "--help"])
+    assert result.exit_code == 0
+    assert "--choose-loras" in result.output

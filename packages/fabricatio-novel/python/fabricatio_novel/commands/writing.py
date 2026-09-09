@@ -298,6 +298,11 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         "-c",
         help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
     ),
+    choose_loras: bool = typer.Option(
+        False,
+        "--choose-loras",
+        help="Let the LLM pick LoRAs from the \\[ext.comfyui] loras catalog for each scene illustration (config default: off).",
+    ),
 ) -> None:
     """Generate a novel with writing style RAG and per-scene ComfyUI illustrations from an outline."""
     if bible is not None and not bible.is_file():
@@ -317,6 +322,7 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         font=font,
         cover=cover,
         send_to=send_to,
+        illustration_choose_loras=True if choose_loras else None,
     )
     artifact = _run_workflow(task, RagIllustrationDebugNovelWorkflow, "write_rag_illustration")
     if artifact is None:

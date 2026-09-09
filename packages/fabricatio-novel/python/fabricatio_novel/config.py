@@ -109,6 +109,10 @@ class NovelConfig(BaseModel):
     catalog or empty pick chains just this list.
     """
 
+    illustration_choose_loras: bool = False
+    """Opt-in per-scene LLM LoRA selection from the ``[ext.comfyui] loras`` catalog during
+    illustration; off by default. ``illustration_always_loras`` chains regardless of this flag."""
+
     illustration_seed: int | None = None
     """scene illustration sampler seed; ``None`` keeps the bundled ComfyUI template's seed."""
 
