@@ -1,7 +1,32 @@
-"""Module containing the JudgeMent classes for holding judgment results."""
+"""Judgment models: the ``JudgeMent`` evidence record and the ``Verdict`` contract refine loops consume."""
+
+from abc import ABC, abstractmethod
 
 from fabricatio_core.models.generic import SketchedAble
 from pydantic import Field
+
+
+class Verdict(ABC):
+    """Nominal contract of any verdict a refine loop can consume.
+
+    A verdict is accepted through two properties: whether the artifact
+    :attr:`passed` inspection as-is, and the actionable ``feedback`` to
+    feed a re-generation when it did not. Verdict models mix this in
+    (:class:`ImageVerdict` does) so the loop types against a nominal
+    base instead of a structural stand-in.
+    """
+
+    @property
+    @abstractmethod
+    def passed(self) -> bool:
+        """Whether the inspected artifact is accepted."""
+        ...
+
+    @property
+    @abstractmethod
+    def feedback(self) -> str:
+        """Re-generation instruction built from the recorded defects; empty when passed."""
+        ...
 
 
 class JudgeMent(SketchedAble):
@@ -31,12 +56,13 @@ class JudgeMent(SketchedAble):
         return self.final_judgement
 
 
-class ImageVerdict(JudgeMent):
+class ImageVerdict(JudgeMent, Verdict):
     """Judgment over a rendered image: glitch-freeness, coherence with the request, and actionable feedback.
 
-    Extends :class:`JudgeMent` with structured reason lists so a failed verdict
-    converts directly into a re-generation instruction — the feedback loop needs
-    no extra LLM call to know what to fix.
+    Extends :class:`JudgeMent` with structured reason lists and mixes in the
+    :class:`Verdict` contract, so a failed verdict converts directly into a
+    re-generation instruction — the feedback loop needs no extra LLM call to
+    know what to fix.
     """
 
     glitch_reasons: list[str] = Field(default_factory=list)
@@ -44,6 +70,11 @@ class ImageVerdict(JudgeMent):
 
     coherence_reasons: list[str] = Field(default_factory=list)
     """Ways the image drifts from the requested subject or composition; empty when on-brief."""
+
+    @property
+    def passed(self) -> bool:
+        """Whether the verdict accepts the artifact as-is."""
+        return self.final_judgement
 
     @property
     def feedback(self) -> str:
