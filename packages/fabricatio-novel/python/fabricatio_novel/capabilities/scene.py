@@ -82,6 +82,10 @@ class SceneCompose(CharacterCompose, ABC):
 
         Renders the scene requirement, asks the LLM for the scene text, and
         stores the content on the context. Returns the composed context.
+
+        Raises:
+            ValueError: the model returned no prose; an empty scene would be
+                serialized into the chapter, the export and the EPUB unnoticed.
         """
         logger.debug(f"Generating scene '{ctx.title}'")
         requirement = await self.prepare_scene_requirement(ctx, **kwargs)
@@ -94,6 +98,8 @@ class SceneCompose(CharacterCompose, ABC):
             min_chars=novel_config.scene_overlap_min_chars,
             max_ratio=novel_config.scene_overlap_max_ratio,
         )
+        if not content.strip():
+            raise ValueError(f"Scene '{ctx.title}' produced no prose; empty scenes are never serialized")
         ctx.set_content(content)
         return ctx
 
