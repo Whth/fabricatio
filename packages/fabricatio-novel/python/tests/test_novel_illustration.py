@@ -9,6 +9,7 @@ from _support import IllustrationRole
 from fabricatio_comfyui.models import LoraCatalog, LoraEntry, LoraPick, LoraSelection, LoraSpec
 from fabricatio_comfyui.models.resolution import Prop
 from fabricatio_comfyui.models.specs import SketchSpec
+from fabricatio_judge.models.judgement import ImageVerdict
 from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
 from fabricatio_mock.utils import install_router_usage
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
@@ -62,11 +63,17 @@ def build_two_story_novel_ctx() -> NovelContext:
 def novel_config_with(**overrides: object) -> NovelConfig:
     """Return a NovelConfig clone carrying the given field overrides.
 
-    The TOML-declared always-on lora chain is stripped unless the caller
-    overrides ``illustration_always_loras`` explicitly, keeping prompt
-    assertions independent of local config drift.
+    The TOML-declared always-on lora chain and the default quality-tag
+    render suffix are stripped unless the caller overrides
+    ``illustration_always_loras`` / ``illustration_prompt_suffix``
+    explicitly, keeping prompt assertions independent of local config
+    drift.
     """
-    base = {**novel_config.model_dump(), "illustration_always_loras": []}
+    base = {
+        **novel_config.model_dump(),
+        "illustration_always_loras": [],
+        "illustration_prompt_suffix": "",
+    }
     return NovelConfig.model_validate({**base, **overrides})
 
 
@@ -96,6 +103,30 @@ def install_fake_renderer(monkeypatch: pytest.MonkeyPatch, outcomes: list[Path |
     return prompts
 
 
+def install_distinct_renderer(monkeypatch: pytest.MonkeyPatch) -> tuple[list[str], list[bytes]]:
+    """Patch generate_image with a fake renderer writing a distinct 1x1 PNG per call.
+
+    Returns the received prompts and the distinct PNG bytes in call order, so
+    judge-loop tests can pin which attempt's bytes ended up where.
+    """
+    prompts: list[str] = []
+    pngs: list[bytes] = []
+
+    async def fake_generate_image(prompt: str, download_dir: str | Path | None = None, **kwargs: object) -> Path:
+        prompts.append(prompt)
+        assert download_dir is not None
+        target = Path(download_dir)
+        target.mkdir(parents=True, exist_ok=True)
+        path = target / f"img_{len(prompts)}.png"
+        data = _PNG_1X1 + str(len(prompts)).encode()
+        path.write_bytes(data)
+        pngs.append(data)
+        return path
+
+    monkeypatch.setattr(IllustrateScenes, "generate_image", staticmethod(fake_generate_image))
+    return prompts, pngs
+
+
 class TestIllustrateNovelPhase:
     """Test suite for the post-process illustration phase."""
 
@@ -103,6 +134,10 @@ class TestIllustrateNovelPhase:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert every scene gets its proposed prompt recorded and its PNG copied to the canonical name."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         ctx = build_novel_ctx("S1", "S2")
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")
@@ -128,6 +163,10 @@ class TestIllustrateNovelPhase:
         ctx = build_novel_ctx("S1", "S2")
         images_dir = tmp_path / "images"
         images_dir.mkdir()
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
         role = IllustrationRole(name="illustrator")
@@ -150,6 +189,10 @@ class TestIllustrateNovelPhase:
         ctx = build_novel_ctx("S1", "S2")
         images_dir = tmp_path / "images"
         images_dir.mkdir()
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         (images_dir / "scene_01_01.png").write_bytes(_PNG_1X1)
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")
@@ -183,6 +226,10 @@ class TestIllustrateNovelPhase:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert a failed proposal skips only that scene and the next scene still illustrates."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         ctx = build_novel_ctx("S1", "S2")
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
         role = IllustrationRole(name="illustrator")
@@ -509,6 +556,10 @@ class TestIllustrateNovelPhase:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert selectable catalog loras resolve per scene and their trigger words augment."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         catalog = LoraCatalog(
             entries=[
                 LoraEntry(
@@ -596,6 +647,165 @@ class TestIllustrateNovelPhase:
         ]
         assert prompts == ["dawn, xstyle, xpose"]
 
+    async def test_illustrate_novel_phase_appends_configured_prompt_suffix(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the configured suffix closes every render prompt after the lora chain."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(illustration_prompt_suffix="very detailed"),
+        )
+        prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(*return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"))):
+            illustrations = await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        assert prompts == ["dawn,very detailed"]
+        target = tmp_path / "images" / "scene_01_01.png"
+        assert illustrations[(1, 1)] == ("dawn,very detailed", str(target.resolve()))
+
+    def test_illustration_prompt_suffix_defaults_to_quality_tags(self) -> None:
+        """Assert the stock suffix is the classic SD quality-tag string."""
+        assert NovelConfig.model_validate({}).illustration_prompt_suffix == "best quality,masterpiece,4k,highres"
+
+    async def test_illustrate_novel_phase_skips_judge_by_default(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the gate keeps visual judgement (and its vision call) fully off unless opted in."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(illustration_judge=False),
+        )
+
+        def _forbidden(*_args: object, **_kwargs: object) -> ImageVerdict:
+            raise AssertionError("visually_judge must not run when the judge gate is off")
+
+        monkeypatch.setattr(IllustrateScenes, "visually_judge", staticmethod(_forbidden))
+        prompts, _pngs = install_distinct_renderer(monkeypatch)
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(*return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"))):
+            illustrations = await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        target = tmp_path / "images" / "scene_01_01.png"
+        assert prompts == ["dawn"]
+        assert illustrations[(1, 1)] == ("dawn", str(target.resolve()))
+        assert target.is_file()
+        assert not list((tmp_path / "images").glob("*.attempt*"))
+
+    async def test_illustrate_novel_phase_judge_accepts_first_pass(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert a passing first verdict keeps the single render with no archived attempts."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
+        prompts, pngs = install_distinct_renderer(monkeypatch)
+        role = IllustrationRole(name="illustrator", illustration_judge=True)
+        verdict = ImageVerdict(issue_to_judge="x", deny_evidence=[], affirm_evidence=["clean"], final_judgement=True)
+        with install_router_usage(
+            *return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"), Value(verdict, "model"))
+        ):
+            illustrations = await role.illustrate_novel_phase(build_novel_ctx("S1"), persist_dir=tmp_path)
+        target = tmp_path / "images" / "scene_01_01.png"
+        assert prompts == ["dawn"]
+        assert illustrations[(1, 1)] == ("dawn", str(target.resolve()))
+        assert target.read_bytes() == pngs[0]
+        assert not list((tmp_path / "images").glob("*.attempt*"))
+
+    async def test_illustrate_novel_phase_judge_retries_with_feedback(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert a failed verdict archives the attempt, re-proposes with feedback, and re-renders."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
+        prompts, pngs = install_distinct_renderer(monkeypatch)
+        role = IllustrationRole(name="illustrator")
+        fail = ImageVerdict(
+            issue_to_judge="x",
+            deny_evidence=["mangled hands"],
+            affirm_evidence=[],
+            final_judgement=False,
+            glitch_reasons=["broken hands"],
+        )
+        revised = ImageVerdict(issue_to_judge="x", deny_evidence=[], affirm_evidence=["fixed"], final_judgement=True)
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(SketchSpec(prompt="dawn"), "model"),
+                Value(fail, "model"),
+                Value(SketchSpec(prompt="dawn, fixed hands"), "model"),
+                Value(revised, "model"),
+            )
+        ):
+            illustrations = await role.illustrate_novel_phase(
+                build_novel_ctx("S1"), persist_dir=tmp_path, illustration_judge=True, illustration_judge_max_tries=3
+            )
+        target = tmp_path / "images" / "scene_01_01.png"
+        attempt = tmp_path / "images" / "scene_01_01.attempt1.png"
+        assert prompts == ["dawn", "dawn, fixed hands"]
+        assert attempt.is_file()
+        assert attempt.read_bytes() == pngs[0]
+        assert target.read_bytes() == pngs[1]
+        assert illustrations[(1, 1)] == ("dawn, fixed hands", str(target.resolve()))
+
+    async def test_illustrate_novel_phase_judge_keeps_last_after_exhaustion(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the try budget's final render is kept unjudged when every verdict fails."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
+        prompts, pngs = install_distinct_renderer(monkeypatch)
+        role = IllustrationRole(name="illustrator")
+        fail = ImageVerdict(
+            issue_to_judge="x",
+            deny_evidence=[],
+            affirm_evidence=[],
+            final_judgement=False,
+            coherence_reasons=["wrong hair color"],
+        )
+        with install_router_usage(
+            *return_mixed_router_usage(
+                Value(SketchSpec(prompt="v1"), "model"),
+                Value(fail, "model"),
+                Value(SketchSpec(prompt="v2"), "model"),
+            )
+        ):
+            illustrations = await role.illustrate_novel_phase(
+                build_novel_ctx("S1"), persist_dir=tmp_path, illustration_judge=True, illustration_judge_max_tries=2
+            )
+        target = tmp_path / "images" / "scene_01_01.png"
+        assert prompts == ["v1", "v2"]
+        assert (tmp_path / "images" / "scene_01_01.attempt1.png").read_bytes() == pngs[0]
+        assert target.read_bytes() == pngs[1]
+        assert illustrations[(1, 1)][0] == "v2"
+
+    async def test_illustrate_novel_phase_judge_accepts_when_verdict_none(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert an unavailable judge (``None`` verdict) degrades open: image kept, no retry."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
+
+        async def _none_verdict(*_args: object, **_kwargs: object) -> None:
+            return None
+
+        monkeypatch.setattr(IllustrateScenes, "visually_judge", staticmethod(_none_verdict))
+        prompts, pngs = install_distinct_renderer(monkeypatch)
+        role = IllustrationRole(name="illustrator")
+        with install_router_usage(*return_mixed_router_usage(Value(SketchSpec(prompt="dawn"), "model"))):
+            illustrations = await role.illustrate_novel_phase(
+                build_novel_ctx("S1"), persist_dir=tmp_path, illustration_judge=True
+            )
+        target = tmp_path / "images" / "scene_01_01.png"
+        assert prompts == ["dawn"]
+        assert illustrations[(1, 1)] == ("dawn", str(target.resolve()))
+        assert target.read_bytes() == pngs[0]
+        assert not list((tmp_path / "images").glob("*.attempt*"))
+
 
 class TestAttachIllustrations:
     """Test suite for attaching rendered illustrations onto the assembled novel."""
@@ -635,6 +845,10 @@ class TestPostProcessNovelHook:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert the hook runs the phase and attaches every rendered scene to the novel."""
+        monkeypatch.setattr(
+            "fabricatio_novel.capabilities.illustration.novel_config",
+            novel_config_with(),
+        )
         ctx = build_novel_ctx("S1", "S2")
         prompts = install_fake_renderer(monkeypatch, [tmp_path / "unused.png"] * 2)
         role = IllustrationRole(name="illustrator")

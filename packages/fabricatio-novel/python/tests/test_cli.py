@@ -32,3 +32,11 @@ def test_wri_help_advertises_choose_loras() -> None:
     result = CliRunner().invoke(app, ["wri", "--help"])
     assert result.exit_code == 0
     assert "--choose-loras" in result.output
+
+
+def test_wri_help_advertises_judge_flags() -> None:
+    """`fanvl wri --help` advertises the opt-in --judge and --judge-tries flags."""
+    result = CliRunner().invoke(app, ["wri", "--help"])
+    assert result.exit_code == 0
+    assert "--judge" in result.output
+    assert "--judge-tries" in result.output
