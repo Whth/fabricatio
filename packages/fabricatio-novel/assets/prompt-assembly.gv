@@ -22,8 +22,8 @@ digraph assembly {
         style="rounded";
 
         src_prefix [label="prefix_log.render()\lrunning manuscript prefix:\lheadings, prior chapters,\lstories, scenes, seeded bible\l"];
-        src_styles [label="writing_styles (list, {{ls}})\lstyle directives inherited by\lthe story; RAG reference excerpts\lmerged in at story planning\l"];
-        src_constr [label="writing_constraints (list, {{ls}})\laccumulated POV / prohibitions;\lthe scene's own allocation\lcomes from its plan\l"];
+        src_styles [label="writing_styles (list, {{ls}})\lstyle directives stacked down\lthe chain; RAG reference excerpts\lmerged in at story planning\l"];
+        src_constr [label="writing_constraints (list, {{ls}})\lthis scene's own entries only;\lancestors are never merged in\l"];
         src_scene  [label="plan fields — the only tail\ltitle · description · count\l"];
         src_chars  [label="dump_characters() (list, {{ls}})\lstart/end state cards\lper character\l"];
         src_misc   [label="cast (list, {{ls}})\l"];

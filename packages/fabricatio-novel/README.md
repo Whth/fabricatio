@@ -83,11 +83,11 @@ allocation, character-arc stitching, prefix propagation, assembly — is determi
 |---|---|---|
 | Metadata | `novel_metadata_requirement` ← `outline`, `language`, `constraint` | `NovelPlan` (adopted onto the root) |
 | Roster spans | `novel_character_span` ← bible prompt block, title, description | `CharacterSpan[]` — skipped without a roster |
-| Chapter plans | `chapter_plan` ← outline, novel fields, word count, styles, constraint, characters | `ChapterPlan[]` |
-| Chapter boundaries | `chapter_character_span` ← roster spans, chapter titles/descriptions | N−1 boundary cards per character |
-| Story plans | `story_plan` ← chapter fields, styles, constraint, characters, cast | `StoryPlan[]` |
-| Story boundaries | `story_character_span` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
-| Scene plans | `scene_plan` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
+| Chapter plans | `plan_requirement` ← outline, novel fields, word count, styles, constraint, characters | `ChapterPlan[]` |
+| Chapter boundaries | `boundary_requirement` ← roster spans, chapter titles/descriptions | N−1 boundary cards per character |
+| Story plans | `plan_requirement` ← chapter fields, styles, constraint, characters, cast | `StoryPlan[]` |
+| Story boundaries | `boundary_requirement` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
+| Scene plans | `plan_requirement` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
 | Scene prose | `scene_requirement` ← 11 variables, see below | plain prose → `Scene.content` |
 | Scene illustration | `scene_illustration_prompt` ← novel/chapter/story/scene titles, description, content, cast, `illustration_constraint` | `SketchSpec` (prompt, negative prompt, LLM-chosen `mp`/`prop`) → PNGs rendered concurrently per scene (post-process) |
 
@@ -98,14 +98,24 @@ Templates live in `templates/built-in/` and are selectable through the
 
 Each level materializes its plan via `create(outline).update_from(plan).set_plan(plan)`,
 with word counts assigned out-of-band via `expect_` (the root takes the novel plan's
-count, children take their allocated share); each level then passes state down:
+count, children take their allocated share). `update_from` adopts only the plan's scalar
+fields (title, description, cast); the style channel is stacked explicitly by the composing
+capability through `set_writing_styles` (the root from the novel plan, every child from its
+parent's chain), and the constraint channel through `set_writing_constraints` (each level
+from its own plan alone). Each level then passes state down:
 
 - **Running manuscript** — an append-only `ContextLog`; every walk seeds each child with
   exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)
 - **Setting bible** — rendered once at the root into a `setting_bible` prefix entry;
   every descendant inherits it through its own log
 - **Word budget** — each level splits its `expected_word_count` among children by plan weight
-- **Writing constraint** — accumulated verbatim down the chain
+- **Writing style** — accumulated verbatim down the chain (style stacking)
+- **Writing constraint** — scoped, never merged: each level carries its own entries, its planner
+  sees the level above as the rules in force, and a scene's prose prompt renders only the
+  scene's own list
+- **Unit partition** — a level's children are proposed as one batch per parent, so the batch
+  itself is the partition: the `## Requirements` block in the plan prompt keeps every unit
+  inside the parent's description and makes the units cover it exactly once
 - **Character arcs** — the roster fixes both endpoints; intermediate boundary cards are
   proposed per level and stitched in code; scenes receive the finished span list read-only
 

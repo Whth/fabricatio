@@ -13,7 +13,7 @@ digraph dataflow {
     edge [color="black", arrowsize=0.75, fontname="serif", fontsize=11];
 
     novel   [label="NovelContext\loutline · language · NovelPlan\lroster spans · seeded series bible\l"];
-    chapter [label="ChapterContext[]\ltitle · description · weight\lword budget · constraint so far\l"];
+    chapter [label="ChapterContext[]\ltitle · description · weight\lword budget · own constraints\l"];
     story   [label="StoryContext[] · RagStoryContext\lwriting styles — RAG refs merged in;\lrag sealed on the story (query, limit)\l"];
     scene   [label="SceneContext[]\lcast · span list (prompt-only)\lcontent — the composed prose\l"];
 
@@ -26,7 +26,7 @@ digraph dataflow {
     edge [style=dotted, arrowsize=0.55];
 
     bible  [label="SeriesBible renders once at the root;\ldescendants inherit it through\ltheir own prefix logs\l"];
-    constr [label="writing_constraints accumulate as a list:\lparent chain kept verbatim,\lown allocation appended\l"];
+    constr [label="writing_constraints stay scoped:\leach level holds only its own entries;\lthe level above is shown to its planner\l"];
     spans  [label="arcs: roster fixes endpoints;\lN−1 / S−1 boundary cards per\lcharacter stitched in code\l"];
 
     bible  -> novel;
