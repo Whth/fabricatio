@@ -70,12 +70,14 @@ class ContextBase[P: WeightedPlan](
 
     writing_styles: list[str] = Field(default_factory=list)
     """Writing style directives accumulated down the tree: inherited guidance first, this
-    element's own plan entry last; RAG reference texts join the same list when enabled."""
+    element's own plan entry last; RAG reference texts join the same list when enabled.
+    Never filled by ``update_from`` — the composing capability seeds it explicitly."""
 
     writing_constraints: list[str] = Field(default_factory=list)
-    """Hard writing constraint allocated down from the novel (point of view, tense,
-    prohibitions); the accumulated chain of the parent's constraint plus this element's own
-    allocation. Empty when no constraint applies."""
+    """The hard writing constraints binding this element alone. The parent's entries are never
+    merged in — they are shown to this element's planner as the rules in force, and the prose
+    prompt of a scene renders only the scene's own list. Empty when no constraint applies.
+    Never filled by ``update_from`` — the composing capability seeds it explicitly."""
 
     cast: list[str] = Field(default_factory=list)
     """Names of the characters on stage in this element, proposed with its plan."""
@@ -103,7 +105,13 @@ class ContextBase[P: WeightedPlan](
         return self
 
     def update_from_inner(self, other: P) -> Self:
-        """Adopt the plan's fields onto the context; empty plan style lists keep any preset."""
+        """Adopt the plan's scalar fields onto this context: title, description and cast.
+
+        The style and constraint channels are deliberately left alone — they are
+        seeded explicitly by the composing capability through
+        ``set_writing_styles`` / ``set_writing_constraints``, which know whether
+        the plan's entries augment or replace what the context already carries.
+        """
         self.title = other.title
         self.description = other.description
         self.set_cast(other.cast)
@@ -130,7 +138,7 @@ class ContextBase[P: WeightedPlan](
         return self
 
     def set_writing_constraints(self, writing_constraints: list[str]) -> Self:
-        """Set the accumulated writing constraint carried down to the written scenes."""
+        """Replace this element's own writing constraints, the ones binding it alone, and return self."""
         self.writing_constraints = writing_constraints
         return self
 

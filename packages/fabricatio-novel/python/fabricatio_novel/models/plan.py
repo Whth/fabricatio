@@ -16,9 +16,11 @@ class WeightedPlan(SketchedAble, Titled, Described):
     rhythm, and recurring techniques; empty list when no specific style is required."""
 
     writing_constraints: list[str]
-    """Additional hard writing constraints for this element on top of the parent's: point
-    of view, tense, perspective, prohibitions. The parent's constraints stay in force and
-    accumulate down the tree; empty list when no extra constraint applies."""
+    """Hard writing constraints binding this element: point of view, tense, perspective,
+    prohibitions. The constraints in force at the level above are shown when planning this
+    element's children; this list is never merged with the parent's, so each element carries
+    its own rules alone and a scene's prose prompt shows the scene's own entries only. Empty
+    list when no constraint applies."""
 
     cast: list[str] = Field(default_factory=list)
     """Names of the characters on stage in this element; the planner proposes the cast.
@@ -41,12 +43,12 @@ class ScenePlan(WeightedPlan):
     applicable techniques — not a genre label or a theme."""
 
     writing_constraints: list[str]
-    """1-2 entries stating the hard writing constraints binding this scene alone, on top of
-    the story's: whose head the prose stays in (no head-hopping), where this beat may start
-    or end, and scene-specific dialogue or sensory restrictions. The parent's constraints
-    stay in force verbatim and accumulate down the tree automatically — extract only what
-    this scene itself adds, never restate the parent's; empty list when the scene adds no
-    rule of its own."""
+    """1-2 entries stating the hard writing constraints that bind this scene's prose: whose
+    head it stays in (no head-hopping), where this beat may start or end, and scene-specific
+    dialogue or sensory restrictions. Keep this scene inside its own Description: never order
+    events that belong to another scene. The story's constraints are shown above as the rules
+    in force — carry forward the ones that must still bind this scene, since this list alone
+    reaches the prose prompt."""
 
 
 class StoryPlan(WeightedPlan):
@@ -63,12 +65,11 @@ class StoryPlan(WeightedPlan):
     style already suffices."""
 
     writing_constraints: list[str]
-    """1-2 entries stating the hard writing constraints binding this story as a whole, on
-    top of the chapter's: the story's own point of view or tense, how its scenes progress,
-    and prohibitions spanning its scenes — not the chapter-wide sequencing, which the
-    chapter plan owns. The parent's constraints stay in force verbatim and accumulate
-    automatically — extract only what this story itself adds, never restate the parent's;
-    empty list when the story adds no rule of its own."""
+    """1-2 entries stating the hard writing constraints binding this story as a whole: its own
+    point of view or tense, how its scenes progress, and prohibitions spanning its scenes.
+    Never an event order spanning other stories — the ordered story list already fixes the
+    chapter's sequencing. The chapter's constraints are shown above as the rules in force;
+    carry forward the ones that must still bind this story."""
 
 
 class ChapterPlan(WeightedPlan):
@@ -85,12 +86,12 @@ class ChapterPlan(WeightedPlan):
     already suffices."""
 
     writing_constraints: list[str]
-    """2-3 entries stating the hard writing constraints binding this chapter as a whole,
-    on top of the novel's global ones: the chapter-wide sequencing its stories must
-    follow (e.g. the act order), any chapter-wide point of view or tense, and prohibitions
-    spanning stories. The parent's constraints stay in force verbatim and accumulate
-    automatically — extract only what this chapter itself adds, never restate the
-    parent's; empty list when the chapter adds no rule of its own."""
+    """2-3 entries stating the hard writing constraints binding this chapter: its own point of
+    view or tense and prohibitions spanning its stories. Never an event order spanning the
+    whole chapter — the ordered story list you propose is what sequences it, so an order
+    written here would be re-planned inside whichever story reads it. The novel's constraints
+    are shown above as the rules in force; carry forward the ones that must still bind this
+    chapter."""
 
 
 class NovelPlan(WeightedPlan, WordCount):
@@ -107,7 +108,9 @@ class NovelPlan(WeightedPlan, WordCount):
     story, and scene."""
 
     writing_constraints: list[str]
-    """3-6 entries. Represent hard quality check standards, shall be extracted carefully from the outline."""
+    """3-6 entries stating the novel's standing rules: point of view, tense, quality standards
+    extracted carefully from the outline. They are shown to every chapter planner as the rules
+    in force and are never merged into the chapters' own lists."""
 
 
 class ScenePlans(JSONList[ScenePlan]):
