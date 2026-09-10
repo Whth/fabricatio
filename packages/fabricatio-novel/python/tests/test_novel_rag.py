@@ -35,9 +35,9 @@ class TestRAGCompose:
 
         requirement = await role.prepare_scene_requirement(ctx)
 
-        assert "## Writing Styles" in requirement
+        assert "### Writing styles" in requirement
         assert "Dark gothic prose with terse action lines." in requirement
-        assert requirement.index("--- End of Novel so far ---") < requirement.index("## Writing Styles")
+        assert requirement.index("--- End of Novel so far ---") < requirement.index("### Writing styles")
         assert "## Writing Style Guideline" not in requirement
 
     async def test_compose_story_keeps_stable_prefix_byte_identical(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -167,7 +167,7 @@ class TestRAGCompose:
         await role.plan_scenes(story)
 
         assert captured
-        assert "- Writing styles:" in captured[0]
+        assert "### Writing styles" in captured[0]
         assert "Dark gothic prose with terse action lines." in captured[0]
 
     async def test_fetch_style_docs_combines_query_and_applies_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:

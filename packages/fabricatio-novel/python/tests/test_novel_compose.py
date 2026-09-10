@@ -299,7 +299,7 @@ class TestNovelCompose:
         assert requirement.index("Write approximately 50 words.") > requirement.index("Respond entirely in")
 
     async def test_prepare_scene_requirement_renders_writing_styles(self) -> None:
-        """Assert the accumulated style entries render together inside ## Writing Styles."""
+        """Assert the accumulated style entries render together inside the styles section."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
@@ -312,16 +312,16 @@ class TestNovelCompose:
             ),
         )
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Styles" in requirement
+        assert "### Writing styles" in requirement
         assert "Terse action lines, present tense, close third person." in requirement
-        assert requirement.index("## Writing Styles") < requirement.index("## Scene")
+        assert requirement.index("## Scene") < requirement.index("### Writing styles")
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Styles" not in requirement
+        assert "### Writing styles" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""
@@ -329,16 +329,16 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.writing_constraints = ["First person view throughout."]
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Constraint" in requirement
+        assert "### Writing Constrains:" in requirement
         assert "First person view throughout." in requirement
-        assert requirement.index("## Writing Constraint") > requirement.index("## Scene")
+        assert requirement.index("### Writing Constrains:") > requirement.index("## Scene")
 
     async def test_prepare_scene_requirement_skips_writing_constraint_when_empty(self) -> None:
         """Assert an unset writing constraint renders no constraint section."""
         role = NovelRole(name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Writing Constraint" not in requirement
+        assert "### Writing Constrains:" not in requirement
 
     async def test_scene_requirement_renders_cast(self) -> None:
         """Assert the scene's cast renders as an on-stage roster in the prose requirement."""
@@ -389,6 +389,30 @@ class TestNovelCompose:
         assert captured
         assert "## Chapter Cast" in captured[0]
         assert "Hero" in captured[0]
+
+    async def test_plan_scenes_pins_the_units_to_the_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert scene planning scopes the batch to the story and states the scope requirements."""
+        role = NovelRole(name="novel_role")
+        story = StoryContext(title="St1", description="The road.", expected_word_count=100)
+        captured: list[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
+            captured.append(requirement)
+
+        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        await role.plan_scenes(story)
+
+        assert captured
+        assert "## Requirements" in captured[0]
+        assert "Title: St1" in captured[0]
+        assert "Description: The road." in captured[0]
+
+    async def test_compose_scene_raises_when_the_generation_is_empty(self) -> None:
+        """Assert a blank generation fails loudly instead of composing an empty scene."""
+        role = NovelRole(name="novel_role")
+        ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        with install_router_usage(""), pytest.raises(ValueError, match="produced no prose"):
+            await role.compose_scene(ctx)
 
 
 class TestPrefixAccumulation:
