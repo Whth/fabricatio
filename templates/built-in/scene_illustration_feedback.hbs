@@ -1,0 +1,10 @@
+{{#if history}}
+## Previous Attempt Feedback
+
+The earlier render attempt(s) below failed visual inspection. Propose a revised prompt that fixes every cited defect while staying faithful to the scene.
+{{#each history}}
+### Attempt {{@index}} (rejected)
+- Prompt: {{this.prompt}}
+- Defects: {{this.feedback}}
+{{/each}}
+{{/if}}

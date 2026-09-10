@@ -270,6 +270,8 @@ class DumpNovelStage(Action, NovelCompose):
             persist_dir=persist_dir,
             send_to=cxt.get("send_to", TASK),
             illustration_choose_loras=cxt.get("illustration_choose_loras"),
+            illustration_judge=cxt.get("illustration_judge"),
+            illustration_judge_max_tries=cxt.get("illustration_judge_max_tries"),
         )
         fmt = str(cxt.get("format") or "epub")
         ok(fmt in ("epub", "txt", "both"), f"`format` must be 'epub', 'txt', or 'both', got '{fmt}'")

@@ -72,6 +72,10 @@ class NovelConfig(BaseModel):
     )
     """negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own."""
 
+    illustration_prompt_suffix: str = "best quality,masterpiece,4k,highres"
+    """quality tags appended to every scene illustration render prompt after the LoRA trigger
+    augmentation; set empty to append nothing."""
+
     illustration_mp: float | None = None
     """megapixel budget of each scene illustration's finished image (``1.0`` = 1,000,000 pixels).
 
@@ -112,6 +116,18 @@ class NovelConfig(BaseModel):
     illustration_choose_loras: bool = False
     """Opt-in per-scene LLM LoRA selection from the ``[ext.comfyui] loras`` catalog during
     illustration; off by default. ``illustration_always_loras`` chains regardless of this flag."""
+
+    illustration_judge: bool = False
+    """Opt-in per-scene visual judgement of rendered illustrations via a vision LLM; off by
+    default. Failed verdicts re-propose the illustration prompt and re-render."""
+
+    illustration_judge_max_tries: int = 3
+    """Total generation attempts per scene when ``illustration_judge`` is on; the last
+    attempt's image is always kept, judged or not."""
+
+    scene_illustration_feedback_template: str = "built-in/scene_illustration_feedback"
+    """Template rendering the rejected-attempt feedback tail appended to the requirement when
+    a judged render is retried."""
 
     illustration_seed: int | None = None
     """scene illustration sampler seed; ``None`` keeps the bundled ComfyUI template's seed."""

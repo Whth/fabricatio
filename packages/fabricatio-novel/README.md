@@ -241,8 +241,12 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `scene_illustration_prompt_template` | `str` | `"built-in/scene_illustration_prompt"` | template used to propose one image-generation prompt for a composed scene. |
 | `illustration_constraint` | `str` | `""` | global style/content constraint merged into every scene illustration prompt proposal; empty when unset. |
 | `illustration_negative_prompt` | `str` | quality/anatomy exclusion list | negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own. |
+| `illustration_prompt_suffix` | `str` | `"best quality,masterpiece,4k,highres"` | quality tags appended to every scene illustration render prompt after the LoRA trigger augmentation; set empty to append nothing. |
 | `illustration_always_loras` | `list[LoraEntry]` | `[]` | LoRA entries chained into every scene illustration render before any selection — the slot for always-on style/character loras; each entry's `trigger_words` activate it in the prompt. Selectable loras live in the `[ext.comfyui] loras` catalog, where the LLM picks per scene on top of this chain. |
 | `illustration_choose_loras` | `bool` | `False` | opt-in per-scene LLM LoRA selection from the `[ext.comfyui] loras` catalog during illustration; off by default. `illustration_always_loras` chains regardless of this flag. |
+| `illustration_judge` | `bool` | `False` | opt-in per-scene visual judgement of each rendered illustration via a vision LLM; off by default. A failed verdict re-proposes the illustration prompt with the accumulated defect feedback and re-renders; an unavailable judge (`None` verdict) accepts the image. |
+| `illustration_judge_max_tries` | `int` | `3` | total generation attempts per scene when `illustration_judge` is on; the last attempt's image is always kept, judged or not. Rejected attempts are archived beside the canonical PNG as `scene_XX_YY.attempt<N>.png`. |
+| `scene_illustration_feedback_template` | `str` | `"built-in/scene_illustration_feedback"` | template rendering the rejected-attempt feedback tail appended to the requirement when a judged render is retried. |
 | `illustration_mp` | `float \| None` | `None` | megapixel budget of each scene illustration's finished image (1.0 = 1,000,000 px); a per-scene proposal's `mp` wins, otherwise `None` falls back to `[ext.comfyui] mp`, then the active ComfyUI template's canvas. |
 | `illustration_mp_max` | `float` | `1.2` | hard ceiling on every scene illustration's megapixel budget, enforced at render time even when the LLM proposes a larger `mp`; the renderable quality brink (512x512x2.2x2.2) is ~1.27 MP, so 1.2 keeps a margin under it. |
 | `illustration_prop` | `Prop \| None` | `None` | aspect-ratio preset of each scene illustration — enum member names like `prop_2_3` (portrait), coerced to the `Prop` enum at load; a per-scene proposal's `prop` wins, otherwise `None` falls back to `[ext.comfyui] prop`, then the active ComfyUI template's ratio. |
@@ -266,6 +270,7 @@ fanvl wr -o "In a world where dreams are currency..." -rq "Hemingway terse prose
 # Generate with RAG + ComfyUI scene illustrations embedded in the EPUB
 fanvl wri -o "In a world where dreams are currency..." -rq "Hemingway terse prose style"
 fanvl wri -o "..." --choose-loras  # per-scene LLM-chosen LoRAs from the [ext.comfyui] catalog
+fanvl wri -o "..." --judge --judge-tries 5  # vision-judge each illustration; retry with a revised prompt up to N total attempts
 
 # Constrain generation with a setting bible + global writing constraint
 fanvl w -o "..." -b settings/bible.json -c "first person view throughout"

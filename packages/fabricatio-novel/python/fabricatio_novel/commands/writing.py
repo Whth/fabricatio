@@ -303,6 +303,16 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         "--choose-loras",
         help="Let the LLM pick LoRAs from the \\[ext.comfyui] loras catalog for each scene illustration (config default: off).",
     ),
+    judge: bool = typer.Option(
+        False,
+        "--judge",
+        help="Visually judge each scene illustration with a vision LLM and re-render with a revised prompt until it passes (config default: off).",
+    ),
+    judge_tries: int = typer.Option(
+        0,
+        "--judge-tries",
+        help="Total generation attempts per scene when --judge is on (0 = config default 3).",
+    ),
 ) -> None:
     """Generate a novel with writing style RAG and per-scene ComfyUI illustrations from an outline."""
     if bible is not None and not bible.is_file():
@@ -323,6 +333,8 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         cover=cover,
         send_to=send_to,
         illustration_choose_loras=True if choose_loras else None,
+        illustration_judge=True if judge else None,
+        illustration_judge_max_tries=judge_tries or None,
     )
     artifact = _run_workflow(task, RagIllustrationDebugNovelWorkflow, "write_rag_illustration")
     if artifact is None:
