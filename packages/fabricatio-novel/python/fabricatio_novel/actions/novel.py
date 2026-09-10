@@ -155,7 +155,7 @@ class PlanStoriesStage(StageAction, ChapterCompose):
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
-        for chapter in novel_ctx.child_contexts:
+        for chapter in novel_ctx.iter_prefixed_contexts():
             chapter_ctx = await self.before_compose_chapter_context(chapter)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
                 await self.snapshot(novel_ctx, cxt)
