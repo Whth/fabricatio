@@ -38,14 +38,14 @@ class TestNovelContext:
         assert "rag" not in ChapterContext.model_fields
         assert "rag" not in StoryContext.model_fields
 
-    def test_update_from_adopts_plan_fields(self) -> None:
-        """Assert update_from copies the plan fields into the context and returns self."""
+    def test_update_from_adopts_scalar_fields(self) -> None:
+        """Assert update_from copies the plan's scalar fields only, leaving the channels alone."""
         ctx = NovelContext.create("The hero.", language="English")
         plan = NovelPlan(
             title="The Search",
             description="A hero searching.",
             expected_word_count=100,
-            writing_styles=[],
+            writing_styles=["Close first person."],
             writing_constraints=["First person view throughout."],
         )
         result = ctx.update_from(plan)
@@ -53,24 +53,11 @@ class TestNovelContext:
         assert ctx.title == "The Search"
         assert ctx.description == "A hero searching."
         assert ctx.expected_word_count == 0  # word counts never come from a plan adoption
-        assert ctx.writing_constraints == ["First person view throughout."]
+        assert ctx.writing_styles == []  # channels are seeded by the capability, not adopted here
+        assert ctx.writing_constraints == []
         assert ctx.series_bible is None
         ctx.expect_(plan.expected_word_count)
         assert ctx.expected_word_count == 100
-
-    def test_update_from_keeps_intent_when_plan_constraint_empty(self) -> None:
-        """Assert the author's stated constraint survives an empty plan constraint."""
-        ctx = NovelContext.create("The hero.", language="English")
-        ctx.set_writing_constraints(["I hope the novel is first person view."])
-        plan = NovelPlan(
-            title="The Search",
-            description="A hero searching.",
-            expected_word_count=100,
-            writing_styles=[],
-            writing_constraints=[],
-        )
-        ctx.update_from(plan)
-        assert ctx.writing_constraints == ["I hope the novel is first person view."]
 
     def test_update_from_keeps_preset_bible(self) -> None:
         """Assert a preset series bible survives update_from; plans never carry one."""
@@ -166,7 +153,6 @@ class TestFromContext:
         assert ctx.title == "S1"
         assert ctx.description == "The descent."
         assert ctx.expected_word_count == 300
-        assert ctx.writing_styles == ["Gothic, lyrical prose."]
         assert ctx.plan is plan
 
     def test_plans_default_to_empty_cast(self) -> None:
