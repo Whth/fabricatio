@@ -84,6 +84,11 @@ class NovelCompose(ChapterCompose, ABC):
     ) -> bool:
         """Propose the novel metadata from the outline and adopt it onto the context.
 
+        The plan's scalar fields are adopted through ``update_from``; the style and
+        constraint channels are seeded here explicitly, replacing any preset only when
+        the plan proposes entries of its own, so an empty plan leaves the caller's
+        intent intact.
+
         Returns:
             bool: True when the plan was proposed and adopted; False on failure.
         """
@@ -97,6 +102,10 @@ class NovelCompose(ChapterCompose, ABC):
             logger.error("Novel metadata proposal failed; aborting novel generation")
             return False
         ctx.set_plan(plan).update_from(plan).expect_(plan.expected_word_count)
+        if plan.writing_styles:
+            ctx.set_writing_styles(plan.writing_styles)
+        if plan.writing_constraints:
+            ctx.set_writing_constraints(plan.writing_constraints)
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         return True
 
@@ -212,7 +221,7 @@ class NovelCompose(ChapterCompose, ABC):
                     .set_plan(chapter_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *chapter_plan.writing_styles])
-                    .set_writing_constraints([*ctx.writing_constraints, *chapter_plan.writing_constraints]),
+                    .set_writing_constraints(chapter_plan.writing_constraints),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} chapter(s)")
         await self.draft_chapter_spans(ctx, send_to, **kwargs)

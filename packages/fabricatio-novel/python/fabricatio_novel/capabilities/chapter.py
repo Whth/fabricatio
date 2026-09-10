@@ -160,7 +160,7 @@ class ChapterCompose(StoryCompose, ABC):
                     .set_plan(story_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *story_plan.writing_styles])
-                    .set_writing_constraints([*ctx.writing_constraints, *story_plan.writing_constraints]),
+                    .set_writing_constraints(story_plan.writing_constraints),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} story(s) for chapter '{ctx.title}'")
         await self.draft_story_spans(ctx, send_to, **kwargs)
