@@ -180,7 +180,9 @@ class ContextBase[P: WeightedPlan](
     def prefixed_header_entry(self) -> ContextEntry | None:
         """This element's heading block as an entry seeded into every child's prefix.
 
-        Only the chapter renders its own title and description here; the novel's,
+        Only the chapter renders a heading, and only its title: the chapter
+        description is a whole-chapter synopsis, so seeding it would leak the
+        beats of later scenes into every descendant prompt. The novel's,
         story's and scene's own titles are not part of the running text.
         """
         return None

@@ -32,8 +32,13 @@ class ChapterContext(ParentContextBase[StoryContext, ChapterPlan]):
 
     @final
     def render_prefixed_header(self) -> str:
-        """Render the chapter's heading block, seeded into each story's prefix."""
-        return f"{self.heading_level} {self.title}\n\n> {self.description}"
+        """Render the chapter's heading block, seeded into each story's prefix.
+
+        Only the title is emitted: the chapter description is a whole-chapter
+        synopsis, and seeding it into every descendant prefix hands each scene
+        writer the beats of the scenes that follow it.
+        """
+        return f"{self.heading_level} {self.title}"
 
     @final
     def prefixed_header_entry(self) -> ContextEntry:
