@@ -70,7 +70,7 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
         await super().prepare_story(ctx, send_to, **kwargs)
         if not isinstance(ctx, RagStoryContext):
             return
-        docs = await self._fetch_style_docs(ctx, **kwargs)
+        docs = await self._fetch_style_docs(ctx, send_to=send_to, **kwargs)
         if not docs:
             return
         ctx.add_writing_styles([doc.as_prompt() for doc in docs])
@@ -79,19 +79,32 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
     async def _fetch_style_docs(
         self,
         ctx: RagStoryContext,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[WritingStyleDocument]:
-        """Fetch the story's top style references by vector similarity.
+        """Fetch the story's style references through decomposed multi-head queries.
 
-        The story description (plus the optional query guideline) is used
-        directly as the query; no refine or rerank LLM calls are made.
+        The story description (plus the optional query guideline) is decomposed
+        into as many sub-queries as the model proposes; every head is searched
+        independently and the store fuses the per-head rankings with a round-robin
+        fair share, so no single phrasing can dominate the candidate set. Heads
+        beyond :attr:`rag_limit` are dropped — the budget caps documents, so no
+        head past it can earn a slot. Nothing reranks the fused set: fusion already
+        balances the heads, and reranking a set that has already been truncated to
+        the limit could only permute it.
         """
         question = "\n".join(part for part in (ctx.description, ctx.rag.query) if part)
         if not question:
             return []
+        queries = await self.arefined_query(question, send_to=send_to, **kwargs)
+        if not queries:
+            logger.warn(f"Query decomposition returned no sub-query for story '{ctx.title}'; searching the raw query")
+            queries = [question]
         config = WritingStyleFetchConfig(limit=ctx.rag.limit)
-        docs = await self.afetch_document([question], config)
+        docs = await self.afetch_document(queries[: config.limit], config)
         docs = [doc for doc in docs if doc.as_prompt().strip()]
         docs = docs[: config.limit]
-        logger.info(f"Retrieved {len(docs)} writing style reference(s) for story '{ctx.title}'")
+        logger.info(
+            f"Retrieved {len(docs)} writing style reference(s) for story '{ctx.title}' via {len(queries)} head(s)"
+        )
         return docs

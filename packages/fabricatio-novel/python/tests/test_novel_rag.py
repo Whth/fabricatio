@@ -3,7 +3,8 @@
 from itertools import pairwise
 
 import pytest
-from _support import RAGRole, prefix_log
+from _support import RAGRole, card, prefix_log
+from fabricatio_character.models.character import CharacterSpan
 from fabricatio_mock.models.mock_router import (
     Value,
     return_generic_router_usage,
@@ -16,7 +17,7 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
-from fabricatio_novel.models.plan import ScenePlan, ScenePlans
+from fabricatio_novel.models.plan import ScenePlan, ScenePlans, StoryPlan
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.series_book import SeriesBible
 
@@ -68,7 +69,11 @@ class TestRAGCompose:
         async def fake_fetch(query: object, config: object | None = None) -> list[WritingStyleDocument]:
             return []
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return ["the departure"]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
         with install_router_usage(*return_generic_router_usage("One.", "Two.", "Three.")):
             result = await role.compose_story(story)
 
@@ -90,13 +95,19 @@ class TestRAGCompose:
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.child_contexts.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
         fetched: list[object] = []
+        refined: list[object] = []
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
 
         async def fake_fetch(query: object, config: object | None = None) -> list[WritingStyleDocument]:
             fetched.append(query)
             return [doc]
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            refined.append(question)
+            return ["leaving home", "the departure"]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
 
         async def fake_propose(model: object, requirement: object, **kwargs: object) -> object:
             return []
@@ -105,7 +116,8 @@ class TestRAGCompose:
 
         await role.plan_scenes_phase(story)
 
-        assert fetched == [["The departure."]]
+        assert refined == ["The departure."]
+        assert fetched == [["leaving home", "the departure"]]
 
     async def test_prepare_story_without_docs_keeps_requirement_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert a story without retrieved style docs renders no references section."""
@@ -132,7 +144,7 @@ class TestRAGCompose:
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
 
-        async def fake_fetch_docs(ctx: RagStoryContext) -> list[WritingStyleDocument]:
+        async def fake_fetch_docs(ctx: RagStoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> ScenePlans:
@@ -179,6 +191,7 @@ class TestRAGCompose:
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: list[object] = []
         captured_configs: list[WritingStyleFetchConfig] = []
+        captured_refine: list[tuple[object, dict[str, object]]] = []
 
         async def fake_fetch(
             query: object,
@@ -189,20 +202,28 @@ class TestRAGCompose:
                 captured_configs.append(config)
             return [doc] * 8
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            captured_refine.append((question, dict(kwargs)))
+            return [f"head {i}" for i in range(1, 10)]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
 
         docs = await role._fetch_style_docs(ctx)
 
         assert docs == [doc] * 7
-        assert captured_queries == [["The hero fights.\n中文查询指南"]]
+        assert captured_refine[0][0] == "The hero fights.\n中文查询指南"
+        assert "k" not in captured_refine[0][1]  # the model decides how many heads to decompose into
+        assert captured_queries == [[f"head {i}" for i in range(1, 8)]]  # heads beyond the limit are dropped
         assert captured_configs
         assert captured_configs[0].limit == 7
 
     async def test_fetch_style_docs_defaults_to_story_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert _fetch_style_docs uses the story description when no rag_query is set."""
+        """Assert _fetch_style_docs decomposes the story description when no rag_query is set."""
         role = RAGRole(name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
+        captured_refine: list[object] = []
 
         async def fake_fetch(
             query: object,
@@ -211,11 +232,17 @@ class TestRAGCompose:
             captured_queries.append(query)
             return []
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            captured_refine.append(question)
+            return ["a duel at dusk"]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
 
         await role._fetch_style_docs(ctx)
 
-        assert captured_queries == [["The hero fights."]]
+        assert captured_refine == ["The hero fights."]
+        assert captured_queries == [["a duel at dusk"]]
 
     async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert docs whose prompt renders blank are filtered out."""
@@ -230,11 +257,38 @@ class TestRAGCompose:
         ) -> list[WritingStyleDocument]:
             return [blank, doc, blank]
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return ["a duel at dusk"]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
 
         docs = await role._fetch_style_docs(ctx)
 
         assert docs == [doc]
+
+    async def test_fetch_style_docs_falls_back_to_raw_query(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert an empty decomposition still searches the raw story query instead of starving the prompt."""
+        role = RAGRole(name="rag_role")
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
+        captured_queries: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            captured_queries.append(query)
+            return []
+
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return []
+
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+
+        await role._fetch_style_docs(ctx)
+
+        assert captured_queries == [["The hero fights."]]
 
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
@@ -247,7 +301,11 @@ class TestRAGCompose:
         ) -> list[WritingStyleDocument]:
             return []
 
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return ["the departure"]
+
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
         with install_router_usage(
             *return_mixed_router_usage(
                 Value(
@@ -316,3 +374,38 @@ class TestRAGCompose:
         sealed = chapter.child_contexts[0]
         assert isinstance(sealed, RagStoryContext)
         assert sealed.rag == RagRetrieval(query="guide", limit=3)
+
+    async def test_seal_carries_character_spans_into_scene_planning(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert sealing keeps the roster's state cards on the story and in its scene-planning prompt."""
+        role = RAGRole(name="rag_role")
+        plan = StoryPlan(
+            title="St1",
+            description="The departure.",
+            weight=1.0,
+            writing_styles=[],
+            writing_constraints=[],
+            cast=["Hero"],
+        )
+        story = StoryContext(title="St1", description="The departure.", expected_word_count=100)
+        story.update_from(plan).set_plan(plan)
+        story.set_charactor_spans([CharacterSpan(start=card("Hero"), end=card("Hero", look="wounded"))])
+        story.set_language("English")
+        story.set_outline("The hero seeks his father.")
+        captured: list[str] = []
+
+        async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
+            captured.append(requirement)
+
+        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
+
+        sealed = RagStoryContext.seal(story, RagRetrieval(query="guide", limit=3))
+
+        assert sealed.charactor_span == story.charactor_span
+        assert sealed.language == "English"
+        assert sealed.outline == "The hero seeks his father."
+
+        await role.plan_scenes(sealed)
+
+        assert captured
+        assert "Initial State:" in captured[0]
+        assert "wounded" in captured[0]

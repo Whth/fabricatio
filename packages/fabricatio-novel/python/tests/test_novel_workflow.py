@@ -275,7 +275,11 @@ class TestNovelWorkflow:
         async def fake_afetch_document(query: object, config: object | None = None) -> list[object]:
             return []
 
+        async def fake_arefined_query(question: object, **kwargs: object) -> list[str]:
+            return ["the floating atlas"]
+
         monkeypatch.setattr(RAGCompose, "afetch_document", staticmethod(fake_afetch_document))
+        monkeypatch.setattr(RAGCompose, "arefined_query", staticmethod(fake_arefined_query))
 
         monkeypatch.setattr(IllustrateNovelStage, "generate_image", staticmethod(fake_generate_image))
 

@@ -44,7 +44,7 @@ digraph context_flow {
     edge [style=dotted, arrowsize=0.55, fontname="serif", fontsize=9];
 
     seal [label="RagStoryContext.seal(story, rag)\l idempotent model_dump rebind\l"];
-    fetch [label="_fetch_style_docs\l vector top-limit, no rerank\l"];
+    fetch [label="_fetch_style_docs\l refine → multi-head search\l fused fair share, no rerank\l"];
     st05 -> seal;
     seal -> s11;
     st06 -> fetch;
