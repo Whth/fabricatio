@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-question"
 version = "0.1.8"
-description = "An extension of fabricatio, which provide the capability to question user to make better planning and etc."
+description = "Interactive questioning for Fabricatio agents: LLM-driven selection prompts presented via terminal UI."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

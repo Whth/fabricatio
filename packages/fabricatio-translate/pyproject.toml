@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-translate"
 version = "0.1.9"
-description = "An extension of fabricatio, which provide capabilities to translate text."
+description = "LLM-powered text translation for Fabricatio agents, with single and chunked batch translation."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

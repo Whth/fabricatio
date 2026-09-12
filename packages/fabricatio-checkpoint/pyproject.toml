@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-checkpoint"
 version = "0.3.6"
-description = "An extension of fabricatio"
+description = "Worktree checkpointing via shadow Git repositories for Fabricatio: save, diff, and roll back files."
 readme = "README.md"
 license = "MIT"
 authors = [

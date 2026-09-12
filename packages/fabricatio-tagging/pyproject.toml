@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-tagging"
 version = "0.1.7"
-description = "An extension of fabricatio, provide capalability to tag on data."
+description = "LLM-powered tag generation for text content, part of the Fabricatio agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

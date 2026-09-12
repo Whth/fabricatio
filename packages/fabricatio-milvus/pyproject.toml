@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-milvus"
 version = "0.4.0"
-description = "An extension of fabricatio"
+description = "Milvus vector store integration for Fabricatio RAG: store, search, and retrieve document embeddings."
 readme = "README.md"
 license = "MIT"
 authors = [

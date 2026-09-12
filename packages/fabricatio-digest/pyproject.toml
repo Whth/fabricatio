@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-digest"
 version = "0.3.3"
-description = "A extension for fabricatio, providing capabilities to handle raw requirment, digesting it into a task list"
+description = "Turns a natural-language requirement into a validated, executable TaskList with role awareness and dependency sequencing."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

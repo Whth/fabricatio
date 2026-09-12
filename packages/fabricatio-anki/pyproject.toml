@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-anki"
 version = "0.2.17"
-description = "An extension of fabricatio, which brings up the capability of creating fully explainned anki deck package"
+description = "LLM-powered Anki flashcard deck generation and compilation for Fabricatio."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }

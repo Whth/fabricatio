@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-tei"
 version = "0.1.1"
-description = "An extension of fabricatio"
+description = "HuggingFace Text Embeddings Inference (TEI) integration for Fabricatio's embedding pipeline."
 readme = "README.md"
 license = "MIT"
 authors = [

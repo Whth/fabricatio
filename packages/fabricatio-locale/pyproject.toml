@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-locale"
 version = "0.1.9"
-description = "An extension of fabricatio, which brings up the capability to generate locolization based on po file."
+description = "Gettext .po localization for Fabricatio: read, translate, and write po files with LLM translation."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }

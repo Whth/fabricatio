@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-team"
 version = "0.3.2"
-description = "An extension of fabricatio"
+description = "Team coordination for Fabricatio agents: agent rosters with join, resign, inform, and task dispatch."
 readme = "README.md"
 license = "MIT"
 authors = [

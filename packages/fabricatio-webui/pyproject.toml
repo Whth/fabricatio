@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-webui"
 version = "0.10.0"
-description = "An extension of fabricatio"
+description = "Web UI for Fabricatio: Vue single-page workflow board served over an axum HTTP service."
 readme = "README.md"
 license = "MIT"
 authors = [

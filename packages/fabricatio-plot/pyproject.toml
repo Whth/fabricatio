@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-plot"
 version = "0.1.15"
-description = "An extension of fabricatio, which brings up the capability to plot dataframe with matplotlib"
+description = "Data visualization, synthetic data generation, and dataframe manipulation for the Fabricatio LLM agent framework."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

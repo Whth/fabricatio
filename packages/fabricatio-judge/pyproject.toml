@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-judge"
 version = "0.2.3"
-description = "fabricatio-judge extends the Fabricatio ecosystem to provide advanced judgment capabilities for LLM-driven applications."
+description = "Structured, evidence-based binary judgment for LLM applications."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

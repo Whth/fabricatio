@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-tool"
 version = "0.9.0"
-description = "An extension of fabricatio, which brings up the capability to use tool with native python."
+description = "Tool execution layer for Fabricatio: wraps Python callables as discoverable, LLM-invocable tools."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }

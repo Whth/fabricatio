@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-capable"
 version = "0.1.6"
-description = "An extension of fabricatio"
+description = "Capability-assessment mixin for Fabricatio agents: decides whether a request is fulfillable with available tools and context."
 readme = "README.md"
 license = "MIT"
 authors = [

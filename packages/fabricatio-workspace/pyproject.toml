@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-workspace"
 version = "0.1.5"
-description = "An extension of fabricatio"
+description = "Git worktree management for Fabricatio, backed by Rust via PyO3."
 readme = "README.md"
 license = "MIT"
 authors = [

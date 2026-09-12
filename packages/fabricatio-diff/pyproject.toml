@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-diff"
 version = "0.4.0"
-description = "An extension of fabricatio, which brings up the diff edit capabilities"
+description = "Diff-based editing for LLM-driven text transformations: fuzzy line matching, hashline anchors, and LLM-generated diffs."
 readme = "README.md"
 license = "MIT"
 authors = [

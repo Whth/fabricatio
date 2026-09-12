@@ -1,7 +1,7 @@
 [project]
 name = "fabricatio-memory"
 version = "0.3.7"
-description = "An Extension of fabricatio aiming to extend the context llm could handle."
+description = "Persistent, searchable long-term memory for Fabricatio agents, backed by a Rust Tantivy full-text index."
 readme = "README.md"
 authors = [
     { name = "Whth", email = "zettainspector@foxmail.com" }
