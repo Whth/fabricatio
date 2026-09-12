@@ -346,7 +346,7 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_cast(["Hero", "Villain"])
         requirement = await role.prepare_scene_requirement(ctx)
-        assert "## Cast" in requirement
+        assert "## Scene Cast" in requirement
         assert "- Hero\n- Villain" in requirement
 
     async def test_scene_requirement_omits_cast_when_empty(self) -> None:
