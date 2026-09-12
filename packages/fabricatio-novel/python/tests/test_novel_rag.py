@@ -70,7 +70,7 @@ class TestRAGCompose:
             return []
 
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
-            return ["the departure"]
+            return ["the departure", "a cold platform"]
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
@@ -186,7 +186,7 @@ class TestRAGCompose:
         """Assert _fetch_style_docs joins description and rag_query and applies the limit."""
         role = RAGRole(name="rag_role")
         ctx = RagStoryContext(
-            title="Battle", description="The hero fights.", rag=RagRetrieval(query="中文查询指南", limit=7)
+            title="Battle", description="The hero fights.", rag=RagRetrieval(query="query guide", limit=7)
         )
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         captured_queries: list[object] = []
@@ -212,7 +212,7 @@ class TestRAGCompose:
         docs = await role._fetch_style_docs(ctx)
 
         assert docs == [doc] * 7
-        assert captured_refine[0][0] == "The hero fights.\n中文查询指南"
+        assert captured_refine[0][0] == "The hero fights.\nquery guide"
         assert "k" not in captured_refine[0][1]  # the model decides how many heads to decompose into
         assert captured_queries == [[f"head {i}" for i in range(1, 8)]]  # heads beyond the limit are dropped
         assert captured_configs
@@ -234,7 +234,7 @@ class TestRAGCompose:
 
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             captured_refine.append(question)
-            return ["a duel at dusk"]
+            return ["a duel at dusk", "a quiet standoff"]
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
@@ -242,7 +242,7 @@ class TestRAGCompose:
         await role._fetch_style_docs(ctx)
 
         assert captured_refine == ["The hero fights."]
-        assert captured_queries == [["a duel at dusk"]]
+        assert captured_queries == [["a duel at dusk", "a quiet standoff"]]
 
     async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert docs whose prompt renders blank are filtered out."""
@@ -258,7 +258,7 @@ class TestRAGCompose:
             return [blank, doc, blank]
 
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
-            return ["a duel at dusk"]
+            return ["a duel at dusk", "a quiet standoff"]
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
@@ -290,6 +290,29 @@ class TestRAGCompose:
 
         assert captured_queries == [["The hero fights."]]
 
+    async def test_fetch_style_docs_discards_a_lone_head(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert a one-head answer — here a refusal — is discarded for the raw question, not searched."""
+        role = RAGRole(name="rag_role")
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
+        captured_queries: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            captured_queries.append(query)
+            return []
+
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return ["Sorry, I cannot help generate or optimize queries of this nature."]
+
+        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+
+        await role._fetch_style_docs(ctx)
+
+        assert captured_queries == [["The hero fights."]]
+
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
         role = RAGRole(name="rag_role")
@@ -302,7 +325,7 @@ class TestRAGCompose:
             return []
 
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
-            return ["the departure"]
+            return ["the departure", "a cold platform"]
 
         monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))

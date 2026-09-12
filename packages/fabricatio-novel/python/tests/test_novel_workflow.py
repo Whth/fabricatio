@@ -276,7 +276,7 @@ class TestNovelWorkflow:
             return []
 
         async def fake_arefined_query(question: object, **kwargs: object) -> list[str]:
-            return ["the floating atlas"]
+            return ["the floating atlas", "a drifting city"]
 
         monkeypatch.setattr(RAGCompose, "afetch_document", staticmethod(fake_afetch_document))
         monkeypatch.setattr(RAGCompose, "arefined_query", staticmethod(fake_arefined_query))

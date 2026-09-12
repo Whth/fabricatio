@@ -92,13 +92,21 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
         head past it can earn a slot. Nothing reranks the fused set: fusion already
         balances the heads, and reranking a set that has already been truncated to
         the limit could only permute it.
+
+        An answer with fewer than two heads is not a decomposition, so it is
+        discarded for the raw question: the model either restated the input or
+        declined the request, and searching such a lone head would hand the whole
+        document budget to one phrasing. A refusal needs no detection of its own —
+        it arrives as exactly that one-head answer.
         """
         question = "\n".join(part for part in (ctx.description, ctx.rag.query) if part)
         if not question:
             return []
-        queries = await self.arefined_query(question, send_to=send_to, **kwargs)
-        if not queries:
-            logger.warn(f"Query decomposition returned no sub-query for story '{ctx.title}'; searching the raw query")
+        queries = await self.arefined_query(question, send_to=send_to, **kwargs) or []
+        if len(queries) <= 1:
+            logger.warn(
+                f"Query decomposition of story '{ctx.title}' gave {len(queries)} head(s); searching the raw query"
+            )
             queries = [question]
         config = WritingStyleFetchConfig(limit=ctx.rag.limit)
         docs = await self.afetch_document(queries[: config.limit], config)
