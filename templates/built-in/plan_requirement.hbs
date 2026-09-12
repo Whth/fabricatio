@@ -1,5 +1,12 @@
 {{#if outline}}
 {{block outline "Novel Outline"}}
+
+> The Novel Outline above is the user's own text and is always correct: its events, their order,
+> and who does what to whom are the source of truth. The {{ parent_title }} plan below was
+> drafted by another agent of this pipeline (a colleague of yours), not by the user. Where the
+> two conflict, the user's outline is correct — but that never means discarding the plan: most
+> of the time only some part of it is wrong, so keep the plan as your frame and fix just the
+> conflicting part.
 {{/if}}
 # {{ planning_title }}
 
@@ -30,6 +37,9 @@ Expected word count: {{ expected_word_count }}
 
 ## Requirements
 
+{{#if outline}}
+- The user's Novel Outline outranks the {{ parent_title }} plan, but only where the two actually disagree: correct the conflicting part — an event dropped, an actor swapped, a beat reordered — so your units carry the outline's version, and keep the plan's remaining content and scope as it stands rather than re-planning it.
+{{/if}}
 - Plan only the unit(s) the Goal asks for: every unit you propose must stay inside the {{ parent_title }}'s Title and Description above and must not stage events that belong to another unit.
 - A unit carries only its own share of the {{ parent_title }}: never re-plan or summarise the whole arc inside one unit, and let the units you propose together cover the Description exactly once.
 - The writing constraints you attach to a unit bind that unit alone. Never write an event order spanning other units, and never repeat a rule already in force above.

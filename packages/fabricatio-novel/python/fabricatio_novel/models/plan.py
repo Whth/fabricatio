@@ -31,10 +31,12 @@ class ScenePlan(WeightedPlan):
     """Plan of a single scene; its weight allocates the story's expected word count."""
 
     description: str
-    """1-2 sentences stating exactly what happens in this scene: where and when it takes place,
-    who is present, what they do or say, the conflict or turn, and how the situation changes by
-    its end. The model writes the scene's prose directly from this description, so give concrete,
-    stageable details — not a theme or a summary."""
+    """1 sentence per event this scene stages, in order — as many sentences as its events
+    require: for each event name who is present, who does what to whom, where and when it
+    happens, and how the situation changes by it. Preserve agency exactly — never swap who acts
+    and who is acted upon, never merge two events into one sentence, and never stage an event
+    the Story Description above does not contain. The model writes the scene's prose directly
+    from this description, so give concrete, stageable details — not a theme or a summary."""
 
     writing_styles: list[str]
     """1-2 directive entries stating the writing technique for this scene's prose: narrative
@@ -55,9 +57,12 @@ class StoryPlan(WeightedPlan):
     """Plan of a single story; its weight allocates the chapter's expected word count."""
 
     description: str
-    """1-2 sentences stating this story's narrative beat: the situation its scenes will dramatize,
-    the characters involved, and what changes by the end. It is shown when planning the story's
-    scenes, so name the concrete events to stage rather than restating the chapter."""
+    """1 sentence per event this story will stage, in order — as many sentences as its events
+    require: name who does what to whom and what changes by the end, and close with the state
+    the story ends in. Preserve agency exactly — never swap who acts and who is acted upon,
+    never merge two events into one sentence, and never add an event the Chapter Description
+    above does not contain. It is shown when planning the story's scenes, so the events
+    written here are exactly what the scenes must stage."""
 
     writing_styles: list[str]
     """1-2 directive entries stating the writing style its scenes should share: a consistent
@@ -76,9 +81,12 @@ class ChapterPlan(WeightedPlan):
     """Plan of a single chapter; its weight allocates the novel's expected word count."""
 
     description: str
-    """1-2 sentences stating what concretely happens in this chapter: which storyline advances,
-    the key event or reversal, and where it leaves the characters. Focus on the chapter's own
-    arc — it is shown when planning the chapter's stories, so name the events that stage it."""
+    """1 sentence per event of this chapter's share of the Novel Outline, in order — as many
+    sentences as its events require: name who does what to whom and how each event lands, and
+    close with the state the chapter ends in. Preserve agency exactly — never swap who acts and
+    who is acted upon, never merge two events into one sentence, never omit an event of its
+    share, and never add one the outline does not contain. It is shown when planning the
+    chapter's stories, so the events written here are exactly what the stories must stage."""
 
     writing_styles: list[str]
     """1-2 directive entries stating the writing style its stories should follow: the
@@ -98,28 +106,53 @@ class NovelPlan(WeightedPlan, WordCount):
     """Plan of the novel itself: metadata only, chapters are planned separately."""
 
     description: str
-    """6-10 sentences stating the novel's premise: who the protagonist is, what they want, the
-    central conflict blocking them, and the stakes. Convey genre and tone. This description
-    seeds every chapter's planning prompt, so be specific and evocative, never a tagline."""
+    """12-20 sentences condensing the Novel Outline into the novel's complete event chain: walk
+    the outline in order and restate every event it contains — who does what to whom and how
+    each one lands — ending with the state the story ends in. Preserve agency exactly: never
+    swap who acts and who is acted upon, never merge two outline events into one sentence,
+    never omit an event, and never add one the outline does not contain. Convey genre and tone
+    through these facts, never as a tagline. This description seeds every chapter's planning
+    prompt, so its event chain is the fidelity contract every later layer must keep."""
 
     writing_styles: list[str]
-    """2-4 directive entries stating the novel's overall writing style: narrative voice,
+    """6-12 directive entries stating the novel's overall writing style: narrative voice,
     tone, rhythm, and recurring techniques. They seed the style guidance of every chapter,
     story, and scene."""
 
     writing_constraints: list[str]
-    """3-6 entries stating the novel's standing rules: point of view, tense, quality standards
+    """4-8 entries stating the novel's standing rules: point of view, tense, quality standards
     extracted carefully from the outline. They are shown to every chapter planner as the rules
     in force and are never merged into the chapters' own lists."""
 
 
 class ScenePlans(JSONList[ScenePlan]):
-    """A bare JSON array of scene plans as the LLM returns it."""
+    """The complete, ordered breakdown of the one Story into its scenes — nothing omitted, nothing extra.
+
+    Each element plans exactly one scene of that story, in narrative order: the first scene
+    begins exactly where the Story's Description begins, the last ends where it ends, and
+    together they dramatise the whole Description exactly once. Each scene carries only its
+    own share of the story — a beat owned by another scene of this list, or by a sibling
+    story of the same chapter, is never staged again here.
+    """
 
 
 class StoryPlans(JSONList[StoryPlan]):
-    """A bare JSON array of story plans as the LLM returns it."""
+    """The complete, ordered breakdown of the one Chapter into its stories — nothing omitted, nothing extra.
+
+    Each element plans exactly one story of that chapter, in narrative order: the first story
+    begins exactly where the Chapter's Description begins, the last ends where it ends, and
+    together they dramatise the whole Description exactly once. Each story carries only its
+    own share of the chapter — a beat owned by another story of this list, or by a story of
+    another chapter, is never staged again here.
+    """
 
 
 class ChapterPlans(JSONList[ChapterPlan]):
-    """A bare JSON array of chapter plans as the LLM returns it."""
+    """The complete, ordered breakdown of the one Novel into its chapters — nothing omitted, nothing extra.
+
+    Each element plans exactly one chapter of the novel, in reading order: the first chapter
+    begins exactly where the Novel's Description begins, the last ends where it ends, and
+    together they dramatise the whole Description exactly once. Each chapter carries only its
+    own share of the novel — a beat owned by another chapter of this list is never staged
+    again here.
+    """
