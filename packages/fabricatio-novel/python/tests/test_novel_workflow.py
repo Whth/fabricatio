@@ -30,13 +30,16 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel").update_init_context(
-            novel_outline="The hero seeks his father across the winter mountains, wf v3 salt.",
+            # Unique per run: every planning prompt embeds the outline and the span
+            # prompt embeds the meta description, so a stale persistent-cache entry
+            # can never serve a call and the dummy stack pops in seeded order.
+            novel_outline=f"The hero seeks his father across the winter mountains, wf v3 salt. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
         )
         meta = NovelPlan(
             title="The Search",
-            description="A hero searching for his father.",
+            description=f"A hero searching for his father. [run:{uuid4().hex[:8]}]",
             expected_word_count=100,
             writing_styles=[],
             writing_constraints=[],
@@ -109,14 +112,17 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         Role.with_bio(name="writer_txt").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel texts").update_init_context(
-            novel_outline="The lighthouse keeper's daughter charts the reef at low tide, wf v3 salt.",
+            # Unique per run: every planning prompt embeds the outline and the span
+            # prompt embeds the meta description, so a stale persistent-cache entry
+            # can never serve a call and the dummy stack pops in seeded order.
+            novel_outline=f"The lighthouse keeper's daughter charts the reef at low tide, wf v3 salt. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
             format="txt",
         )
         meta = NovelPlan(
             title="The Search",
-            description="A hero searching for his father.",
+            description=f"A hero searching for his father. [run:{uuid4().hex[:8]}]",
             expected_word_count=100,
             writing_styles=[],
             writing_constraints=[],

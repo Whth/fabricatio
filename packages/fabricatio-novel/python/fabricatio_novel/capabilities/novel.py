@@ -128,7 +128,13 @@ class NovelCompose(ChapterCompose, ABC):
                 CharacterSpans,
                 TEMPLATE_MANAGER.render_template(
                     novel_config.novel_character_span_template,
-                    {"bible": bible.as_prompt(), "desc": ctx.description, "title": ctx.title},
+                    {
+                        "outline": ctx.outline,
+                        "bible": bible.as_prompt(),
+                        "desc": ctx.description,
+                        "title": ctx.title,
+                        "language": ctx.language,
+                    },
                 ),
                 send_to=send_to,
                 **kwargs,
