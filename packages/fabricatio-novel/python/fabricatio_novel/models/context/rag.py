@@ -42,20 +42,14 @@ class RagStoryContext(StoryContext):
     def seal(cls, story: StoryContext, rag: RagRetrieval) -> "RagStoryContext":
         """Rebind a plain story context as RAG-bound, carrying the given settings.
 
+        The rebind reads every field off the plain context directly, so the roster's
+        character state cards travel without being listed here — and so does any
+        field added to a context base later. Only ``rag``, absent from the plain
+        class, is applied on top.
+
         Sealing an already sealed story returns it unchanged.
         """
         if isinstance(story, RagStoryContext):
             return story
 
-        return (
-            RagStoryContext.create(
-                outline=story.outline,
-                language=story.language,
-            )
-            .update_from(story.plan)
-            .set_plan(story.plan)
-            .set_writing_styles(story.writing_styles)
-            .set_writing_constraints(story.writing_constraints)
-            .set_rag(rag)
-            .expect_(story.expected_word_count)
-        )
+        return RagStoryContext.model_validate(story, from_attributes=True).set_rag(rag)
