@@ -2,6 +2,7 @@
 
 import uuid
 from pathlib import Path
+from typing import cast
 
 import pytest
 from fabricatio_core.models.generic import SketchedAble
@@ -9,9 +10,7 @@ from fabricatio_core.utils import ok
 from fabricatio_memory.capabilities.remember import Remember
 from fabricatio_memory.config import memory_config
 from fabricatio_memory.models.note import Note
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
 
 
 def note(content: str = "test content", importance: int = 5, tags: list[str] | None = None) -> Note:
@@ -28,23 +27,6 @@ def note(content: str = "test content", importance: int = 5, tags: list[str] | N
     return Note(content=content, importance=importance, tags=tags or ["test"])
 
 
-class RememberRole(LLMTestRole, Remember):
-    """A class that tests the Remember capability."""
-
-
-@pytest.fixture
-def responses(ret_value: SketchedAble) -> list[str]:
-    """Create mock router responses that return a specific value.
-
-    Args:
-        ret_value (SketchedAble): Value to be returned by the router
-
-    Returns:
-        list[str]: List of response strings
-    """
-    return return_model_json_router_usage(ret_value)
-
-
 @pytest.fixture(scope="session")
 def shared_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Create a shared temporary directory for testing."""
@@ -55,13 +37,18 @@ def shared_temp_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 
 @pytest.fixture
-def role(shared_temp_dir: Path) -> RememberRole:
-    """Create a RememberRole instance for testing.
+def role(shared_temp_dir: Path) -> Remember:
+    """Create a test role for the Remember capability.
+
+    Args:
+        shared_temp_dir (Path): Shared temporary directory fixture
 
     Returns:
-        RememberRole: RememberRole instance
+        Remember: Test role with a mounted memory store
     """
-    return RememberRole(name="remember", memory_store_name=uuid.uuid4().hex).mount_memory_store()
+    test_role = cast("Remember", make_test_role(Remember, name="remember"))
+    test_role.memory_store_name = uuid.uuid4().hex
+    return test_role.mount_memory_store()
 
 
 @pytest.mark.parametrize(
@@ -78,16 +65,15 @@ def role(shared_temp_dir: Path) -> RememberRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_record(responses: list[str], role: RememberRole, ret_value: SketchedAble, raw_input: str) -> None:
+async def test_record(role: Remember, ret_value: SketchedAble, raw_input: str) -> None:
     """Test the record method with different inputs.
 
     Args:
-        responses (list[str]): Mocked router responses fixture
-        role (RememberRole): RememberRole fixture
+        role (Remember): Remember test role fixture
         ret_value (SketchedAble): Expected return value
         raw_input (str): Raw input to be recorded
     """
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_model(ret_value, name="recorded note")):
         recorded_note = ok(await role.record(raw_input))
         assert recorded_note.model_dump_json() == ret_value.model_dump_json()
 
@@ -98,45 +84,41 @@ async def test_record(responses: list[str], role: RememberRole, ret_value: Sketc
 
 
 @pytest.mark.asyncio
-async def test_recall(role: RememberRole) -> None:
+async def test_recall(role: Remember) -> None:
     """Test the recall method.
 
     Args:
-        role (RememberRole): RememberRole fixture
+        role (Remember): Remember test role fixture
     """
     query = "project deadlines"
     expected_response = "Based on your memories, the project deadline is next Friday."
 
-    responses = return_router_usage(expected_response)
-
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_text(expected_response, name="recall summary")):
         recalled_info = await role.recall(query, top_k=5)
         assert recalled_info == expected_response
 
 
 @pytest.mark.asyncio
-async def test_recall_with_defaults(role: RememberRole) -> None:
+async def test_recall_with_defaults(role: Remember) -> None:
     """Test the recall method with default parameters.
 
     Args:
-        role (RememberRole): RememberRole fixture
+        role (Remember): Remember test role fixture
     """
     query = "shopping list"
     expected_response = "You need to buy milk and bread."
 
-    responses = return_router_usage(expected_response)
-
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_text(expected_response, name="recall summary")):
         recalled_info = await role.recall(query)
         assert recalled_info == expected_response
 
 
 @pytest.mark.asyncio
-async def test_record_multiple_notes(role: RememberRole) -> None:
+async def test_record_multiple_notes(role: Remember) -> None:
     """Test recording multiple notes in sequence.
 
     Args:
-        role (RememberRole): RememberRole fixture
+        role (Remember): Remember test role fixture
     """
     notes = [
         note("First note", 70, ["tag1"]),
@@ -144,27 +126,26 @@ async def test_record_multiple_notes(role: RememberRole) -> None:
         note("Third note", 90, ["tag3"]),
     ]
 
-    responses = return_model_json_router_usage(*notes)
-
-    with install_router_usage(*responses):
+    with MockScript.from_values(
+        *[Value.from_model(expected_note, name=f"note {i}") for i, expected_note in enumerate(notes, start=1)]
+    ):
         for i, expected_note in enumerate(notes):
             recorded_note = ok(await role.record(f"Raw input {i + 1}"))
             assert recorded_note.model_dump_json() == expected_note.model_dump_json()
 
 
 @pytest.mark.asyncio
-async def test_recall_different_parameters(role: RememberRole) -> None:
+async def test_recall_different_parameters(role: Remember) -> None:
     """Test the recall method with different parameter combinations.
 
     Args:
-        role (RememberRole): RememberRole fixture
+        role (Remember): Remember test role fixture
     """
     query = "work tasks"
     expected_response = "Your work tasks include reviewing code and attending meetings."
 
-    responses = return_router_usage(expected_response)
     role.access_memory_store().add_memory("You have a meeting at 3 PM today.", 80, ["work"])
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_text(expected_response, name="recall summary")):
         # Test with custom top_k and boost_recent=False
         recalled_info = await role.recall(query, top_k=10, boost_recent=False)
         assert recalled_info == expected_response
