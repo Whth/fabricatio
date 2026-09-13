@@ -7,7 +7,7 @@ from fabricatio_character.capabilities.character import CharacterCompose
 from fabricatio_character.config import CharacterConfig, character_config
 from fabricatio_character.models.character import CharacterCard, CharacterCardDiff, CharacterSpan
 from fabricatio_character.utils import dump_card
-from fabricatio_mock.models.mock_role import ProposeTestRole
+from fabricatio_mock import make_test_role
 
 # ---------------------------------------------------------------------------
 # Config tests
@@ -257,20 +257,16 @@ class TestDumpCard:
 # ---------------------------------------------------------------------------
 
 
-class CharacterRole(ProposeTestRole, CharacterCompose):
-    """Test role that combines ProposeTestRole with CharacterCompose for testing."""
-
-
 class TestCharacterCompose:
     """Tests for CharacterCompose capability."""
 
     @pytest.fixture
-    def role(self) -> CharacterRole:
-        """Create a CharacterRole instance."""
-        return CharacterRole(name="character")
+    def role(self) -> CharacterCompose:
+        """Create a test role composed with the CharacterCompose capability."""
+        return make_test_role(CharacterCompose, name="character")
 
     @pytest.mark.asyncio
-    async def test_compose_characters_single_string(self, role: CharacterRole) -> None:
+    async def test_compose_characters_single_string(self, role: CharacterCompose) -> None:
         """Test compose_characters with a single requirement string."""
         mock_card = CharacterCard(
             name="Hero",
@@ -290,7 +286,7 @@ class TestCharacterCompose:
         assert isinstance(result, CharacterCard)
 
     @pytest.mark.asyncio
-    async def test_compose_characters_list(self, role: CharacterRole) -> None:
+    async def test_compose_characters_list(self, role: CharacterCompose) -> None:
         """Test compose_characters with a list of requirements."""
         mock_cards = [
             CharacterCard(

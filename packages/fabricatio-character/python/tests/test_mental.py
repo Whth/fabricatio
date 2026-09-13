@@ -26,9 +26,7 @@ from fabricatio_character.models.mental import (
     SomaticState,
     VoiceQuality,
 )
-from fabricatio_mock import DUMMY_LLM_GROUP
-from fabricatio_mock.models.mock_router import pad_responses
-from fabricatio_mock.utils import setup_dummy_responses
+from fabricatio_mock import MockScript, Value, make_test_role
 from pydantic import ValidationError
 
 
@@ -356,31 +354,13 @@ def _codeblock(content: str) -> str:
     return f"```json\n{content}\n```"
 
 
-class _MockMind(UseMind):
-    """UseMind with mock LLM for testing seed_from()."""
-
-    llm_send_to: str = DUMMY_LLM_GROUP
-    llm_no_cache: bool = True
-
-    def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
-        """Pin LLM routing to the dummy group, ignoring explicit ``send_to``."""
-        return self.llm_send_to or DUMMY_LLM_GROUP
-
-
 class TestSeedFrom:
     """Tests for UseMind.seed_from initialization."""
 
     def test_seed_from_need_and_distortion(self) -> None:
         """seed_from() uses aenum_choose for need and ajudge for distortions."""
-        mind = _MockMind()
-        setup_dummy_responses(
-            *pad_responses(
-                _codeblock('["ESTEEM"]'),
-                _codeblock("true"),
-                default=_codeblock("false"),
-                padding=20,
-            ),
-        )
+        mind = make_test_role(UseMind, name="hamlet-mind")
+
         import asyncio
 
         card = CharacterCard(
@@ -396,7 +376,15 @@ class TestSeedFrom:
             mood="melancholic",
             metric={},
         )
-        state = asyncio.run(mind.seed_from(card))
+        with MockScript.from_values(
+            Value.from_text(_codeblock('["ESTEEM"]'), name="initial need level"),
+            Value.from_text(_codeblock("true"), name="catastrophizing judge"),
+            *(
+                Value.from_text(_codeblock("false"), name=f"{distortion.value} judge")
+                for distortion in list(Distortion)[1:]
+            ),
+        ):
+            state = asyncio.run(mind.seed_from(card))
         assert state.mind.character_name == "Hamlet"
         assert state.needs.current_level == MaslowLevel.ESTEEM
         assert state.mind.cognitive_tendencies.catastrophizing == 70.0
@@ -538,99 +526,76 @@ class TestSufferingAccumulation:
         assert len(state.sufferings) == 2
 
 
-class _MockMindForDiamonds(UseMind):
-    """UseMind with mock LLM for testing DIAMONDS event processing."""
-
-    llm_send_to: str = DUMMY_LLM_GROUP
-    llm_no_cache: bool = True
-
-    def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
-        """Pin LLM routing to the dummy group, ignoring explicit ``send_to``."""
-        return self.llm_send_to or DUMMY_LLM_GROUP
-
-
 class TestObserveDiamonds:
     """Tests for UseMind.observe DIAMONDS pipeline."""
 
     def test_high_confidence_rule_result(self) -> None:
         """High adversity boosts catastrophizing -> high confidence -> rule result, no bias LLM."""
-        mind = _MockMindForDiamonds()
+        mind = make_test_role(UseMind, name="diamonds-mind")
         state = _make_state(
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=60),
             ),
         )
-        setup_dummy_responses(
-            *pad_responses(
-                _codeblock("true"),  # threat ajudge
-                _codeblock("true"),  # fulfill ajudge
-                _codeblock(json_diamonds()),
-                _codeblock(json_event_impact(intensity=50)),
-                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
-                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
-                default=_codeblock("false"),
-                padding=30,
-            ),
-        )
         import asyncio
 
-        impact = asyncio.run(mind.observe("Betrayed by friend.", state))
+        with MockScript.from_values(
+            Value.from_text(_codeblock("true"), name="threat judge"),
+            Value.from_text(_codeblock("true"), name="fulfill judge"),
+            Value.from_text(_codeblock(json_diamonds()), name="diamonds profile"),
+            Value.from_text(_codeblock(json_event_impact(intensity=50)), name="event impact"),
+            Value.from_text(_codeblock('["BELONGING"]'), name="threat need level"),
+            Value.from_text(_codeblock('["ESTEEM"]'), name="fulfill need level"),
+        ):
+            impact = asyncio.run(mind.observe("Betrayed by friend.", state))
         assert impact.triggers_distortion is not None
         assert impact.created_suffering is None
 
     def test_suffering_on_high_intensity(self) -> None:
         """Intensity 95 > 80 -> suffering generated. 5 calls total."""
-        mind = _MockMindForDiamonds()
+        mind = make_test_role(UseMind, name="diamonds-mind")
         state = _make_state(
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=60),
             ),
         )
-        setup_dummy_responses(
-            *pad_responses(
-                _codeblock("true"),  # threat ajudge
-                _codeblock("true"),  # fulfill ajudge
-                _codeblock(json_diamonds()),
-                _codeblock(json_event_impact(emotion="grief", intensity=95)),
-                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
-                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
-                _codeblock(json_suffering()),
-                default=_codeblock("false"),
-                padding=30,
-            ),
-        )
         import asyncio
 
-        impact = asyncio.run(mind.observe("Family killed.", state))
+        with MockScript.from_values(
+            Value.from_text(_codeblock("true"), name="threat judge"),
+            Value.from_text(_codeblock("true"), name="fulfill judge"),
+            Value.from_text(_codeblock(json_diamonds()), name="diamonds profile"),
+            Value.from_text(_codeblock(json_event_impact(emotion="grief", intensity=95)), name="event impact"),
+            Value.from_text(_codeblock('["BELONGING"]'), name="threat need level"),
+            Value.from_text(_codeblock('["ESTEEM"]'), name="fulfill need level"),
+            Value.from_text(_codeblock(json_suffering()), name="suffering"),
+        ):
+            impact = asyncio.run(mind.observe("Family killed.", state))
         assert impact.created_suffering is not None
 
     def test_low_confidence_uses_llm(self) -> None:
         """Low base tendency + low adversity -> low confidence -> ajudge called. 5 calls."""
-        mind = _MockMindForDiamonds()
+        mind = make_test_role(UseMind, name="diamonds-mind")
         state = _make_state(
             mind=CharacterMind(
                 character_name="Test",
                 cognitive_tendencies=CognitiveDistortion(catastrophizing=10),
             ),
         )
-        setup_dummy_responses(
-            *pad_responses(
-                _codeblock("true"),  # threat ajudge
-                _codeblock("true"),  # fulfill ajudge
-                _codeblock(json_diamonds(adversity=0.1)),
-                _codeblock(json_event_impact(emotion="sadness", intensity=30)),
-                _codeblock('["BELONGING"]'),  # threat aenum_choose (conditional)
-                _codeblock('["ESTEEM"]'),  # fulfill aenum_choose (conditional)
-                _codeblock("true"),  # bias ajudge
-                default=_codeblock("false"),
-                padding=30,
-            ),
-        )
         import asyncio
 
-        impact = asyncio.run(mind.observe("Minor setback.", state))
+        with MockScript.from_values(
+            Value.from_text(_codeblock("true"), name="threat judge"),
+            Value.from_text(_codeblock("true"), name="fulfill judge"),
+            Value.from_text(_codeblock(json_diamonds(adversity=0.1)), name="diamonds profile"),
+            Value.from_text(_codeblock(json_event_impact(emotion="sadness", intensity=30)), name="event impact"),
+            Value.from_text(_codeblock('["BELONGING"]'), name="threat need level"),
+            Value.from_text(_codeblock('["ESTEEM"]'), name="fulfill need level"),
+            Value.from_text(_codeblock("true"), name="bias judge"),
+        ):
+            impact = asyncio.run(mind.observe("Minor setback.", state))
         assert impact.emotion == Emotion.SADNESS
 
 
@@ -639,16 +604,12 @@ class TestExtractStyle:
 
     def test_extract(self) -> None:
         """extract_style returns a LinguisticStyle with expected fields."""
-        mind = _MockMindForDiamonds()
-        setup_dummy_responses(
-            *pad_responses(
-                _codeblock(json_linguistic_style()),
-                default=_codeblock("{}"),
-                padding=20,
-            ),
-        )
+        mind = make_test_role(UseMind, name="diamonds-mind")
         import asyncio
 
-        style = asyncio.run(mind.extract_style("Hamlet", ["To be..."]))
+        with MockScript.from_values(
+            Value.from_text(_codeblock(json_linguistic_style()), name="linguistic style"),
+        ):
+            style = asyncio.run(mind.extract_style("Hamlet", ["To be..."]))
         assert isinstance(style, LinguisticStyle)
         assert style.common_adjectives == ["melancholy"]
