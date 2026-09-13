@@ -1,39 +1,33 @@
 """Unit tests for genre selection functionality."""
 
 import pytest
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_json_obj_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_yue.capabilities.genre import SelectGenre
 from fabricatio_yue.config import yue_config
 from pydantic import JsonValue
 
 
-class SelectGenreRole(LLMTestRole, SelectGenre):
-    """Role class combining LLMTestRole and SelectGenre capabilities."""
-
-
 @pytest.fixture
-def mock_router(ret_value: list[JsonValue]) -> list[str]:
+def mock_router(ret_value: list[JsonValue]) -> MockScript:
     """Fixture to create a mocked router with predefined responses.
 
     Args:
         ret_value: The list of JSON values to be returned by the mocked router.
 
     Returns:
-        A list of mock response strings.
+        A script serving the genre array, padded for repeated calls.
     """
-    return return_json_obj_router_usage(ret_value, padding=50)
+    return MockScript.from_values(Value.from_json(ret_value, name="genres")).with_padding(50)
 
 
 @pytest.fixture(autouse=True)
-def role() -> SelectGenreRole:
-    """Fixture to instantiate a SelectGenreRole object.
+def role() -> SelectGenre:
+    """Fixture to instantiate a genre-selecting test role.
 
     Returns:
-        An instance of SelectGenreRole for testing purposes.
+        A test role with the genre selection capability.
     """
-    return SelectGenreRole(name="select-genre")
+    return make_test_role(SelectGenre, name="select-genre")
 
 
 @pytest.mark.parametrize(
@@ -45,18 +39,18 @@ def role() -> SelectGenreRole:
 )
 @pytest.mark.asyncio
 async def test_select_genre(
-    mock_router: list[str],
+    mock_router: MockScript,
     requirement: str,
     genre_classifier: str,
     available_genres: list[str],
     ret_value: list[str],
-    role: SelectGenreRole,
+    role: SelectGenre,
 ) -> None:
     """Test genre selection based on a single requirement.
 
     Verifies that the selected genres are valid and respect the constraints.
     """
-    with install_router_usage(*mock_router):
+    with mock_router:
         result = await role.select_genre(requirement, genre_classifier, available_genres)
         assert isinstance(result, list), "Result should be a list."
         assert all(genre in available_genres for genre in result), "Selected genres must belong to available genres."
@@ -80,17 +74,17 @@ genres = ["house", "techno", "disco", "pop", "ambient"]
 )
 @pytest.mark.asyncio
 async def test_select_genre_with_multiple_requirements(
-    mock_router: list[str],
+    mock_router: MockScript,
     requirements_list: list[str],
     genre_classifier: str,
-    role: SelectGenreRole,
+    role: SelectGenre,
     available_genres: list[str],
 ) -> None:
     """Test genre selection with multiple requirements.
 
     Ensures that each requirement returns a valid list of genres.
     """
-    with install_router_usage(*mock_router):
+    with mock_router:
         result = await role.select_genre(requirements_list, genre_classifier, available_genres)
         assert isinstance(result, list), "Result should be a list."
         assert len(result) == len(requirements_list), "Should return one genre list per requirement."
@@ -113,8 +107,8 @@ async def test_select_genre_with_multiple_requirements(
 )
 @pytest.mark.asyncio
 async def test_gather_genres_single_requirement(
-    mock_router: list[str],
-    role: SelectGenreRole,
+    mock_router: MockScript,
+    role: SelectGenre,
     requirement: str,
     ret_value: list[str],
     k: int,
@@ -123,7 +117,7 @@ async def test_gather_genres_single_requirement(
 
     Validates the structure and length of the result.
     """
-    with install_router_usage(*mock_router):
+    with mock_router:
         result = await role.gather_genres(requirement, k=k)
         assert isinstance(result, list if ret_value is not None else type(None)), (
             f"Expected type {list if ret_value else type(None)} but got {type(result)}."
@@ -140,8 +134,8 @@ async def test_gather_genres_single_requirement(
 )
 @pytest.mark.asyncio
 async def test_gather_genres_multiple_requirements(
-    mock_router: list[str],
-    role: SelectGenreRole,
+    mock_router: MockScript,
+    role: SelectGenre,
     requirements_list: list[str],
     ret_value: list[str],
     k: int,
@@ -150,7 +144,7 @@ async def test_gather_genres_multiple_requirements(
 
     Ensures that each requirement returns a valid list of genres or None.
     """
-    with install_router_usage(*mock_router):
+    with mock_router:
         result = await role.gather_genres(requirements_list, k=k)
         assert isinstance(result, list), "Result should be a list."
         assert len(result) == len(requirements_list), "Should return one genre list per requirement."
