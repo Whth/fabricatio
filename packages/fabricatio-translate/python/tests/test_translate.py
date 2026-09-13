@@ -1,20 +1,15 @@
 """Tests for the translate."""
 
 import pytest
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_generic_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_core import Role
+from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_translate.capabilities.translate import Translate
 
 
-class TranslateRole(LLMTestRole, Translate):
-    """Test role that combines LLMTestRole with Translate for testing."""
-
-
 @pytest.fixture
-def role() -> TranslateRole:
-    """Create a TranslateRole instance for testing."""
-    return TranslateRole(name="translate")
+def role() -> Role:
+    """Create a translate test role instance."""
+    return make_test_role(Translate, name="translate")
 
 
 @pytest.mark.parametrize(
@@ -27,20 +22,23 @@ def role() -> TranslateRole:
 )
 @pytest.mark.asyncio
 async def test_translate_parametrized(
-    role: TranslateRole,
+    role: Role,
     text: str | list[str],
     target_language: str,
     mock_response: str | list[str],
     expected: str | list[str],
 ) -> None:
     """Test Translate.translate with various scenarios using mock router."""
-    # Prepare mock router for single or list
+    # Prepare mock script for single or list
     responses = (
-        return_generic_router_usage(*mock_response)
+        [
+            Value.from_generic(item, name=f"translation {position}")
+            for position, item in enumerate(mock_response, start=1)
+        ]
         if isinstance(text, list)
-        else return_generic_router_usage(mock_response)
+        else [Value.from_generic(mock_response, name="translation")]
     )
-    with install_router_usage(*responses):
+    with MockScript.from_values(*responses):
         result = await role.translate(text, target_language)
         assert result == expected
 
@@ -64,20 +62,22 @@ async def test_translate_parametrized(
 )
 @pytest.mark.asyncio
 async def test_translate_chunked_parametrized(
-    role: TranslateRole,
+    role: Role,
     text: str | list[str],
     target_language: str,
     mock_response: str | list[str] | list[list[str]],
     expected: str | list[str],
 ) -> None:
     """Test Translate.translate_chunked with various scenarios using mock router."""
-    # Prepare mock router for chunked responses
+    # Prepare mock script for chunked responses
     if isinstance(text, list):
         # Flatten the list of lists for router
         flat = [item for sublist in mock_response for item in (sublist if isinstance(sublist, list) else [sublist])]
-        responses = return_generic_router_usage(*flat)
+        responses = [Value.from_generic(item, name=f"chunk {position}") for position, item in enumerate(flat, start=1)]
     else:
-        responses = return_generic_router_usage(*mock_response)
-    with install_router_usage(*responses):
+        responses = [
+            Value.from_generic(item, name=f"chunk {position}") for position, item in enumerate(mock_response, start=1)
+        ]
+    with MockScript.from_values(*responses):
         result = await role.translate_chunked(text, target_language, chunk_size=1)
         assert result == expected
