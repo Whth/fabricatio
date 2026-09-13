@@ -2,16 +2,11 @@
 
 import pytest
 from fabricatio_capable.capabilities.capable import Capable
+from fabricatio_core import Role
 from fabricatio_core.utils import ok
 from fabricatio_judge.models.judgement import JudgeMent
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_router_usage, return_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_tool.models.tool import ToolBox
-
-
-class CapableRole(LLMTestRole, Capable):
-    """Test role that combines LLMTestRole with Capable for testing."""
 
 
 @pytest.fixture
@@ -25,24 +20,24 @@ def toolbox_set() -> set[ToolBox]:
 
 
 @pytest.fixture
-def capable_role() -> CapableRole:
-    """Create a CapableRole instance for testing.
+def capable_role() -> Role:
+    """Create a test role that composes Capable with the mock LLM test role.
 
     Returns:
-        CapableRole: An instance of CapableRole with name "tester" and description "test role".
+        Role: A role named "tester" with description "test role".
     """
-    return CapableRole(name="tester", description="test role")
+    return make_test_role(Capable, name="tester", description="test role")
 
 
 @pytest.mark.asyncio
-async def test_capable_single_string(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
+async def test_capable_single_string(capable_role: Role, toolbox_set: set[ToolBox]) -> None:
     """Test capable method with a single string request.
 
     This test verifies that the capable method correctly processes a single string
     request and returns the expected JudgeMent object.
 
     Args:
-        capable_role: A CapableRole instance provided by the fixture.
+        capable_role: A test role instance provided by the fixture.
         toolbox_set: A set of toolboxes provided by the fixture.
     """
     desired = JudgeMent(
@@ -51,8 +46,7 @@ async def test_capable_single_string(capable_role: CapableRole, toolbox_set: set
         deny_evidence=["e2"],
         final_judgement=True,
     )
-    responses = return_model_json_router_usage(desired)
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_model(desired, name="judgement")):
         result = ok(
             await capable_role.capable(
                 request="test input",
@@ -64,14 +58,14 @@ async def test_capable_single_string(capable_role: CapableRole, toolbox_set: set
 
 
 @pytest.mark.asyncio
-async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
+async def test_capable_list_of_strings(capable_role: Role, toolbox_set: set[ToolBox]) -> None:
     """Test capable method with a list of string requests.
 
     This test verifies that the capable method correctly processes a list of string
     requests and returns a list of corresponding JudgeMent objects.
 
     Args:
-        capable_role: A CapableRole instance provided by the fixture.
+        capable_role: A test role instance provided by the fixture.
         toolbox_set: A set of toolboxes provided by the fixture.
     """
     desires = [
@@ -83,8 +77,9 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: s
         )
         for i in range(3)
     ]
-    responses = return_model_json_router_usage(*desires)
-    with install_router_usage(*responses):
+    with MockScript.from_values(
+        *[Value.from_model(judgement, name=f"judgement {i}") for i, judgement in enumerate(desires, start=1)]
+    ):
         results = ok(
             await capable_role.capable(
                 request=[f"req {i}" for i in range(3)],
@@ -105,19 +100,18 @@ async def test_capable_list_of_strings(capable_role: CapableRole, toolbox_set: s
 
 
 @pytest.mark.asyncio
-async def test_capable_none_response(capable_role: CapableRole, toolbox_set: set[ToolBox]) -> None:
+async def test_capable_none_response(capable_role: Role, toolbox_set: set[ToolBox]) -> None:
     """Test capable method when LLM returns None.
 
     This test verifies that the capable method raises a ValueError when the LLM
     returns None (empty string in this simulation).
 
     Args:
-        capable_role: A CapableRole instance provided by the fixture.
+        capable_role: A test role instance provided by the fixture.
         toolbox_set: A set of toolboxes provided by the fixture.
     """
     # Simulate None returned by LLM
-    responses = return_router_usage("")
-    with install_router_usage(*responses):
+    with MockScript.from_values(Value.from_text("", name="empty response")):
         assert (
             await capable_role.capable(
                 request="should be none",
