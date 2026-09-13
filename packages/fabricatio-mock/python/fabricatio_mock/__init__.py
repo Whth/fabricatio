@@ -1,10 +1,98 @@
-"""An extension of fabricatio, which provides mocks and other test utils.."""
+"""An extension of fabricatio, which provides mocks and other test utils.
 
-DUMMY_LLM_GROUP: str = "llm"
-"""Default router group name used by mock LLM roles and test utilities."""
+The submodule layout stays importable as before (``fabricatio_mock.utils``,
+``fabricatio_mock.models.mock_router``, ...); the names below are re-exported so
+a test can pull everything from one place.
+"""
 
-DUMMY_EMBEDDING_GROUP: str = "embedding"
-"""Default router group name used by mock embedding models and test utilities."""
+from fabricatio_mock.constants import (
+    DUMMY_EMBEDDING_GROUP,
+    DUMMY_EMBEDDING_MODEL_ID,
+    DUMMY_LLM_GROUP,
+    DUMMY_LLM_MODEL_ID,
+    DUMMY_RERANKER_GROUP,
+    DUMMY_RERANKER_MODEL_ID,
+)
+from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
+from fabricatio_mock.models.mock_router import (
+    Value,
+    pad_embeddings,
+    pad_rankings,
+    pad_responses,
+    return_code_router_usage,
+    return_generic_router_usage,
+    return_json_obj_router_usage,
+    return_json_router_usage,
+    return_mixed_router_usage,
+    return_model_json_router_usage,
+    return_obj_router_usage,
+    return_python_router_usage,
+    return_router_usage,
+)
+from fabricatio_mock.models.mock_script import MockScript, ScriptExhaustedError
+from fabricatio_mock.utils import (
+    clear_dummy_responses,
+    code_block,
+    generic_block,
+    hash_embedding,
+    install_dummy_embeddings,
+    install_dummy_reranks,
+    install_fake_embeddings,
+    install_fake_reranks,
+    install_router_usage,
+    make_n_roles,
+    make_roles,
+    make_test_role,
+    rank_by_overlap,
+    setup_dummy_embeddings,
+    setup_dummy_reranks,
+    setup_dummy_responses,
+    setup_fake_embeddings,
+    setup_fake_reranks,
+    stub_template,
+)
 
-DUMMY_RERANKER_GROUP: str = "reranker"
-"""Default router group name used by mock reranker models and test utilities."""
+__all__ = [
+    "DUMMY_EMBEDDING_GROUP",
+    "DUMMY_EMBEDDING_MODEL_ID",
+    "DUMMY_LLM_GROUP",
+    "DUMMY_LLM_MODEL_ID",
+    "DUMMY_RERANKER_GROUP",
+    "DUMMY_RERANKER_MODEL_ID",
+    "LLMTestRole",
+    "MockScript",
+    "ProposeTestRole",
+    "ScriptExhaustedError",
+    "Value",
+    "clear_dummy_responses",
+    "code_block",
+    "generic_block",
+    "hash_embedding",
+    "install_dummy_embeddings",
+    "install_dummy_reranks",
+    "install_fake_embeddings",
+    "install_fake_reranks",
+    "install_router_usage",
+    "make_n_roles",
+    "make_roles",
+    "make_test_role",
+    "pad_embeddings",
+    "pad_rankings",
+    "pad_responses",
+    "rank_by_overlap",
+    "return_code_router_usage",
+    "return_generic_router_usage",
+    "return_json_obj_router_usage",
+    "return_json_router_usage",
+    "return_mixed_router_usage",
+    "return_model_json_router_usage",
+    "return_obj_router_usage",
+    "return_python_router_usage",
+    "return_router_usage",
+    "setup_dummy_embeddings",
+    "setup_dummy_reranks",
+    "setup_dummy_responses",
+    "setup_fake_embeddings",
+    "setup_fake_reranks",
+    "stub_template",
+]

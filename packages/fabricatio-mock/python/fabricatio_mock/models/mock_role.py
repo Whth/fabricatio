@@ -8,7 +8,7 @@ from fabricatio_core import Role
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 
-from fabricatio_mock import DUMMY_LLM_GROUP
+from fabricatio_mock.constants import DUMMY_LLM_GROUP
 from fabricatio_mock.utils import setup_dummy_responses
 
 

@@ -17,15 +17,113 @@ from fabricatio_mock.utils import code_block, generic_block
 
 
 @dataclass
-class Value[M: BaseModel | str]:
+class Value[M: BaseModel | JsonValue]:
     """Value class for mocking responses."""
 
     source: M
-    """The source data to be used for mocking. Can be a BaseModel instance"""
+    """The source data to be used for mocking. Can be a BaseModel instance or any JSON-compatible value."""
     type: Literal["model", "json", "python", "raw", "generic"]
     """Specifies the type of the source data, which determines how the data will be processed when converted to a string representation."""
 
     convertor: Callable[[M], str] | None = None
+    """Optional callable turning the source into its response string; takes precedence over ``type``."""
+
+    name: str = ""
+    """Optional label identifying this response in :class:`~fabricatio_mock.models.mock_script.MockScript` failure reports."""
+
+    @staticmethod
+    def identity(value: str) -> str:
+        """Return ``value`` unchanged, for use as a ``convertor``.
+
+        Args:
+            value: Text to return as-is.
+
+        Returns:
+            str: The input text.
+        """
+        return value
+
+    @classmethod
+    def from_model(cls, model: BaseModel, *, name: str = "") -> "Value[BaseModel]":
+        """Build a value that serializes a Pydantic model as pretty-printed JSON.
+
+        Args:
+            model: Model to serialize.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[BaseModel]: A value of type ``"model"``.
+        """
+        return Value(source=model, type="model", name=name)
+
+    @classmethod
+    def from_json(cls, obj: JsonValue, *, name: str = "") -> "Value[JsonValue]":
+        """Build a value that serializes a JSON-compatible object.
+
+        Args:
+            obj: Object to serialize.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[JsonValue]: A value of type ``"json"``.
+        """
+        return Value(source=obj, type="json", name=name)
+
+    @classmethod
+    def from_python(cls, code: str, *, name: str = "") -> "Value[str]":
+        """Build a value that wraps Python source in a fenced code block.
+
+        Args:
+            code: Python source text.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[str]: A value of type ``"python"``.
+        """
+        return Value(source=code, type="python", name=name)
+
+    @classmethod
+    def from_generic(cls, content: str, *, name: str = "") -> "Value[str]":
+        """Build a value that wraps content in a generic ``--- Start of ... ---`` block.
+
+        Args:
+            content: Block content.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[str]: A value of type ``"generic"``.
+        """
+        return Value(source=content, type="generic", name=name)
+
+    @classmethod
+    def from_text(cls, content: str, *, name: str = "") -> "Value[str]":
+        """Build a plain-text value: no fence, no markers, no conversion.
+
+        ``Value(source=content, type="raw")`` raises at rendering time unless a
+        ``convertor`` is supplied; this factory always renders.
+
+        Args:
+            content: Response text.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[str]: A value of type ``"raw"`` with identity conversion.
+        """
+        return Value(source=content, type="raw", convertor=Value.identity, name=name)
+
+    @classmethod
+    def from_raw(cls, content: str, *, convertor: Callable[[str], str], name: str = "") -> "Value[str]":
+        """Build a value rendered through ``convertor``.
+
+        Args:
+            content: Raw response text.
+            convertor: Callable turning the raw text into the final response string.
+            name: Optional label for failure reports.
+
+        Returns:
+            Value[str]: A value of type ``"raw"``.
+        """
+        return Value(source=content, type="raw", convertor=convertor, name=name)
 
     def to_string(self) -> str:
         """Converts the source data to a string representation based on its type.
@@ -171,6 +269,26 @@ def return_json_obj_router_usage(*objs: JsonValue, default: str | None = None, p
         raise ValueError("At least one array must be provided.")
     processed = [orjson.dumps(obj, option=orjson.OPT_INDENT_2).decode() for obj in objs]
     return return_json_router_usage(*processed, default=default, padding=padding)
+
+
+def return_obj_router_usage(*objs: JsonValue, default: str | None = None, padding: int = 10) -> list[str]:
+    """Build unfenced serialized-JSON responses for install_router_usage.
+
+    Use this when the consumer parses raw JSON text; return_json_obj_router_usage
+    wraps the same payload in a ```json fence instead.
+
+    Args:
+        *objs (JsonValue): Objects to serialize as JSON.
+        default (Optional[str]): Default value when exhausted.
+        padding (int): Number of extra copies appended. Defaults to 10.
+
+    Returns:
+        list[str]: Serialized and padded response strings.
+    """
+    if not objs:
+        raise ValueError("At least one object must be provided.")
+    processed = [orjson.dumps(obj, option=orjson.OPT_INDENT_2).decode() for obj in objs]
+    return pad_responses(*processed, default=default, padding=padding)
 
 
 def return_model_json_router_usage(*models: BaseModel, default: str | None = None, padding: int = 10) -> list[str]:
