@@ -133,6 +133,61 @@ of a story, and divergence starts exactly at the per-scene tail.
 <p align="center"><img src="./assets/prompt-assembly.svg" alt="Scene prompt assembly: sources, template sections, response" width="760"></p>
 
 
+## Benchmark
+
+Every finished run is measured against its own artifacts — no LLM calls, no re-execution.
+`w`/`wr`/`wri` print the scorecard right after the run, next to the delta against the newest
+comparable earlier run:
+
+- **Hard gates** — terms the corpus marks as gated, a chapter export that disagrees with the scenes, an
+  empty scene, prose in the wrong script.
+- **Compared metrics** — length against target, both sides in the framework's own words (the core's
+  `word_count`, the same counter the scene planner's satisfaction ratio uses), seam echo (the same
+  moment written at the end of one scene and again at the top of the next), verbatim sentence repeats,
+  cross-scene 12-gram overlap, sentence lengths (mean, median, max, spread and the share of run-on
+  sentences, on the core's Unicode sentence segmentation), vocabulary repeats (how many n-grams repeat
+  inside a fixed-size window, plus the most repeated n-grams), watch-term rate, run duration.
+  Sentences and vocabulary are counted in characters, so every metric reads the same for a Chinese and
+  an English run without a per-language rule.
+- **Provenance** — a `plan_fingerprint` over the planning snapshots: two runs sharing it replayed
+  planning from the cache, so they compare per scene, with an exact sign test over the scenes that
+  changed.
+
+A metric that moves off zero is never called noise — one gated term is a regression regardless of
+sample size. A metric with no better side (how long the sentences are, how much their lengths vary)
+reports an out-of-band move as drift instead of inventing a verdict. Semantic over-run (a scene staging
+the next scene's beats in its own words) is deliberately **not** gated: calibration showed term
+statistics cannot decide it, which is why `benchmark/scorecard.py` records what is measurable and what
+is not.
+
+The three reports are handlebars templates (`bench_scorecard`, `bench_comparison`, `bench_board`),
+so their wording and layout change without touching the scorer. The scorer only measures: every
+number a report prints is carried by the models themselves as a `*_display` field (handlebars has no
+arithmetic helpers, so rounding, percentages and units are precomputed next to the measurement), and
+`--json` leaves those report-only fields out of the machine-readable form.
+
+Each model also owns how it is read and measured, as classmethod factories — `StageArtifact.collect`/
+`load`, `SceneRef.collect`, `SceneScore.of`, `RepetitionScore.of`, `ProbeScore.of` and their siblings —
+so `benchmark/scorecard.py` only sequences those factories and no measurement lives outside the model
+that carries it.
+
+### Content probes
+
+Term lists belong to a corpus, not to this package, so they are supplied per corpus as a JSON file:
+`gated` terms fail the run when they appear in the prose, `watch` terms are reported per 1000
+characters (raw and unlicensed — vocabulary the outline or the bible uses itself is licensed), and
+each `aliases` group warns when one novel mixes two names for the same object. Point `benchmark_probes`
+(see [Configuration](#configuration)) at a file and the post-run report measures every run against it,
+or pass `--probes` per invocation. Without a probe file the corpus-independent metrics still run, and
+the probe row reads `not configured`.
+
+```bash
+fanvl bench score novels/20260101-101010     # one run's scorecard (--json for the raw form)
+fanvl bench compare novels/20260101-101010   # against the newest comparable run (--against to pin one)
+fanvl bench board novels -n 12               # the newest runs side by side
+fanvl bench score novels/20260101-101010 --probes corpus/probes.json
+```
+
 ## Key Classes
 
 ### Context channels
@@ -230,6 +285,10 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
 | `scene_overlap_min_chars` | `int` | `40` | minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept. |
 | `scene_overlap_max_ratio` | `float` | `0.6` | maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped. |
+| `benchmark_probes` | `str` | `""` | path to a JSON file of benchmark content probes (`gated`/`watch`/`aliases` term lists); empty keeps the corpus-independent metrics only. |
+| `bench_scorecard_template` | `str` | `"built-in/bench_scorecard"` | template used to render one run's benchmark scorecard. |
+| `bench_comparison_template` | `str` | `"built-in/bench_comparison"` | template used to render two runs' benchmark comparison. |
+| `bench_board_template` | `str` | `"built-in/bench_board"` | template used to render the benchmark board of the newest runs. |
 | `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a list of plain strings, one character per item. |
 | `setting_bible_background_template` | `str` | `"built-in/setting_bible_background"` | template used to propose the bible's background settings as a list of strings. |
 | `setting_bible_context_template` | `str` | `"built-in/setting_bible_context"` | template that renders the bible into the block seeded into the running manuscript prefix. |

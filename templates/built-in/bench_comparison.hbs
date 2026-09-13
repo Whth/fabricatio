@@ -1,0 +1,16 @@
+{{!--
+  Benchmark comparison: a candidate run measured against a baseline run.
+
+  The scorer measures — the table, its columns and the gate movement wording
+  live here, and the numbers arrive pre-formatted in the comparison's own
+  `*_display` fields, because handlebars has no arithmetic helpers.
+
+  The file ends without a newline so the render does not either.
+--}}
+baseline {{baseline_run}} -> candidate {{candidate_run}}   {{#if paired}}paired ({{scene_pairs}} scenes, shorter {{scenes_shorter}} / longer {{scenes_longer}}, sign test p={{p_value_display}}){{else}}unpaired (different plan tree or scene count, {{scene_pairs}} pairs){{/if}}
+
+| metric | baseline | candidate | change | verdict |
+| --- | --- | --- | --- | --- |{{#each deltas}}
+| {{metric}} | {{baseline_display}} | {{candidate_display}} | {{change_display}} | {{verdict}} |{{/each}}
+gates   {{#if new_gate_failures}}new failures: {{#each new_gate_failures}}{{gate}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}no new failures{{/if}}{{#if fixed_gate_failures}}; fixed: {{#each fixed_gate_failures}}{{gate}}{{#unless @last}}, {{/unless}}{{/each}}{{/if}}
+verdict {{verdict}}

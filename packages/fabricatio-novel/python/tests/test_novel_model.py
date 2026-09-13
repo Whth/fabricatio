@@ -18,10 +18,15 @@ class TestNovelContext:
     """Test suite for NovelContext."""
 
     def test_create_detects_language(self) -> None:
-        """Assert create detects the outline language and initializes empty context fields."""
-        ctx = NovelContext.create("少年踏上旅途。")
-        assert ctx.language == "简体中文"
-        assert ctx.outline == "少年踏上旅途。"
+        """Assert create detects the outline language and initializes empty context fields.
+
+        The outline is written as code point escapes: the detected language name is a value the
+        pipeline produces, and the test files carry no Chinese text of their own.
+        """
+        outline = "\u5c11\u5e74\u8e0f\u4e0a\u65c5\u9014\u3002"
+        ctx = NovelContext.create(outline)
+        assert ctx.language == "\u7b80\u4f53\u4e2d\u6587"
+        assert ctx.outline == outline
         assert ctx.title == ""
         assert ctx.description == ""
         assert ctx.series_bible is None

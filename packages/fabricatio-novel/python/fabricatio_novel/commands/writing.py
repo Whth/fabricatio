@@ -10,8 +10,17 @@ from fabricatio_core import Event, Role, Task
 from fabricatio_core.models.action import WorkFlow
 from fabricatio_core.rust import TASK
 
+from fabricatio_novel.benchmark import (
+    TermProbes,
+    compare,
+    find_baseline,
+    render_comparison,
+    render_scorecard,
+    score_run,
+)
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline
+from fabricatio_novel.config import novel_config
 from fabricatio_novel.workflows.novel import (
     DebugNovelWorkflow,
     RagDebugNovelWorkflow,
@@ -38,7 +47,7 @@ class ExportFormat(StrEnum):
 
 
 def _report_generation(run_dir: Path, artifact: Path, fmt: ExportFormat) -> None:
-    """Echo the run summary with the exported artifact locations."""
+    """Echo the run summary with the exported artifact locations, then report the run's benchmark score."""
     parts = ["✅ Novel generated", f"   JSON:  {run_dir}"]
     if fmt is ExportFormat.TXT:
         parts.append(f"   TXT:   {artifact}")
@@ -47,6 +56,36 @@ def _report_generation(run_dir: Path, artifact: Path, fmt: ExportFormat) -> None
         if fmt is ExportFormat.BOTH:
             parts.append(f"   TXT:   {run_dir / 'chapters'}")
     typer.secho("\n   ".join(parts), fg=typer.colors.GREEN, bold=True)
+    _report_benchmark(run_dir)
+
+
+def _configured_probes() -> TermProbes | None:
+    """Return the probes the post-run report measures against, or ``None`` when none are configured."""
+    return TermProbes.load(Path(novel_config.benchmark_probes)) if novel_config.benchmark_probes else None
+
+
+def _report_benchmark(run_dir: Path) -> None:
+    """Print the finished run's quality scorecard and its delta against the newest comparable run.
+
+    Scoring reads the artifacts the run just persisted, so it costs no LLM calls.
+    A scoring failure is reported as a warning instead of an error: by this point the
+    novel is written, assembled and exported, and a broken scorecard must not turn a
+    successful run into a failed one.
+    """
+    try:
+        probes = _configured_probes()
+    except (OSError, ValueError) as exc:
+        typer.secho(f"benchmark probes ignored: {exc}", fg=typer.colors.YELLOW)
+        probes = None
+    try:
+        card = score_run(run_dir, probes=probes)
+        baseline = find_baseline(card, probes=probes)
+    except (OSError, ValueError) as exc:
+        typer.secho(f"benchmark skipped: {exc}", fg=typer.colors.YELLOW, bold=True)
+        return
+    typer.echo(render_scorecard(card))
+    if baseline is not None:
+        typer.echo(render_comparison(compare(baseline, card)))
 
 
 def _stamped_run_dir(persist_dir: Path) -> Path:

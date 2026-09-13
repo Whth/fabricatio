@@ -1176,6 +1176,19 @@ PNG already exists so re-runs fill only the gaps. Pending scenes are proposed an
 rendered concurrently (two batched phases), with per-scene failures degrading to a
 warning.
 
+Run benchmark: ``benchmark_probes`` (string, empty by default) is the path to a
+JSON file of corpus probes the post-run report measures every run against —
+``gated`` terms fail a run when they reach the prose, ``watch`` terms are reported
+per 1000 characters, and ``aliases`` groups warn when a novel mixes two names for
+one object. With no file the corpus-independent metrics still run: export
+integrity, script fidelity, repetition between scenes, sentence lengths and
+vocabulary repeats (both counted in characters, so they need no per-language
+rules), and length against target.
+``bench_scorecard_template``, ``bench_comparison_template`` and
+``bench_board_template`` (strings, defaulting to ``built-in/bench_scorecard``,
+``built-in/bench_comparison`` and ``built-in/bench_board``) render the scorecard,
+the comparison and the board.
+
 fabricatio-plot
 ^^^^^^^^^^^^^^^
 
