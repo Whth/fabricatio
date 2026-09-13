@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-comfyui"
-version = "0.8.1"
+version = "0.8.2"
 description = "Async ComfyUI API integration for Fabricatio: generate images from typed knobs and download the results."
 readme = "README.md"
 license = "MIT"
