@@ -167,7 +167,7 @@ class UseLLM(LLMScopedConfig, ABC):
                     ) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
-                except ValidationError as e:
+                except (ValidationError, RuntimeError) as e:
                     logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
                 logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")

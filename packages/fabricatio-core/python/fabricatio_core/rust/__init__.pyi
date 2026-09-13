@@ -784,7 +784,7 @@ class Router:
         r"""Sends a completion request to the specified group and returns the full response.
 
         When `images` is non-empty, raw bytes are auto-detected for MIME type and
-        base64-encoded into data URIs for multimodal requests. With `[llm.image_compression]`
+        base64-encoded into data URIs for multimodal requests. With `[routing.image_compression]`
         enabled the payload is a lossy re-encode at the configured quality and format instead;
         the completion cache keys on the digest of the original bytes either way, so cache
         hits do not depend on the compression settings.
@@ -823,7 +823,7 @@ class Router:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
         When `images` is non-empty, all images are broadcast to every message. Each is
-        prepared exactly as in `completion`: lossily re-encoded when `[llm.image_compression]`
+        prepared exactly as in `completion`: lossily re-encoded when `[routing.image_compression]`
         is enabled, cached under the digest of the original bytes.
 
         Args:

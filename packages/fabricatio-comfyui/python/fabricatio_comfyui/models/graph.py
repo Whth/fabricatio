@@ -504,10 +504,10 @@ class SamplerInputs(NodeInputs):
 
     add_noise: Literal["enable"] = "enable"
     noise_seed: int = 1072236688235494
-    steps: int = 21
-    cfg: float = 7.0
-    sampler_name: str = "er_sde"
-    scheduler: str = "beta"
+    steps: int = 40
+    cfg: float = 8.0
+    sampler_name: str = "euler"
+    scheduler: str = "kl_optimal"
     start_at_step: int = 0
     end_at_step: int = 999
     return_with_leftover_noise: Literal["disable"] = "disable"
@@ -520,10 +520,10 @@ class SamplerInputs(NodeInputs):
 class RefineSamplerInputs(SamplerInputs):
     """Refine-pass schedule of the bundled template."""
 
-    cfg: float = 4.5
+    cfg: float = 7.0
     sampler_name: str = "er_sde"
     scheduler: str = "karras"
-    start_at_step: int = 8
+    start_at_step: int = 17
     latent_image: NodeRef = Field(default_factory=lambda: NodeRef.first("encode"))
 
 
