@@ -16,6 +16,7 @@ object lifetime.
 
 from collections.abc import Sequence
 from enum import StrEnum, auto
+from math import sqrt
 from typing import ClassVar, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_serializer
@@ -582,21 +583,98 @@ class SimpleSamplerNode(KSamplerAdvancedNode):
     inputs: SimpleSamplerInputs = Field(default_factory=SimpleSamplerInputs)
 
 
-class BaseTxt2ImgGraph(BaseGraph):
-    """Shared node set and generation knobs of every bundled txt2img template.
+class LoadImageInputs(NodeInputs):
+    """Inputs of ``LoadImage``."""
 
-    Node fields are typed here so a subclass can only narrow them, and
-    every ``with_*`` knob lives here too, so a knob can never be applied to
-    one template and silently missing from another.  A template states only
-    what actually differs: :meth:`samplers`, :meth:`output_scale`, and the
-    upscale/refine/loader nodes its shape adds.
+    image: str = "example.png"
+    """Server-side input filename, as offered by the node's image dropdown."""
+
+
+class LoadImageNode(WireNode):
+    """``LoadImage`` node — an image already present in the server's input directory."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="forbid", validate_assignment=True)
+
+    class_type: Literal["LoadImage"] = "LoadImage"
+    inputs: LoadImageInputs = Field(default_factory=LoadImageInputs)
+    meta: NodeMeta = Field(validation_alias="_meta", serialization_alias="_meta")
+
+    @classmethod
+    def default(cls) -> Self:
+        """Template input-image node."""
+        return cls(meta=NodeMeta(title="Load Image"))
+
+
+class Img2ImgUpscaleInputs(ImageScaleByInputs):
+    """Upscale of the input image toward the megapixel budget."""
+
+    image: NodeRef = Field(default_factory=lambda: NodeRef.first("load_image"))
+
+
+class Img2ImgUpscaleNode(ImageScaleByNode):
+    """``upscale`` node of the img2img template."""
+
+    inputs: Img2ImgUpscaleInputs = Field(default_factory=Img2ImgUpscaleInputs)
+
+
+class Img2ImgSamplerInputs(RefineSamplerInputs):
+    """Sole sampler schedule of the img2img template — the highres tail at partial denoise.
+
+    The schedule is the bundled template's refine pass (``er_sde`` over
+    ``karras``, guidance 4.5); ``start_at_step`` skips the first steps so
+    the input image survives the resample: at the default 21 steps a start
+    of 12 behaves like ``denoise`` ≈ 0.43.  :meth:`GraphImg2Img.with_denoise`
+    computes it from whatever step count is current.
+    """
+
+    start_at_step: int = 12
+
+
+class Img2ImgSamplerNode(KSamplerAdvancedNode):
+    """``sampler`` node of the img2img template."""
+
+    inputs: Img2ImgSamplerInputs = Field(default_factory=Img2ImgSamplerInputs)
+
+
+class Img2ImgDecodeInputs(VAEDecodeInputs):
+    """Decode source of the img2img template."""
+
+    samples: NodeRef = Field(default_factory=lambda: NodeRef.first("sampler"))
+
+
+class Img2ImgDecodeNode(VAEDecodeNode):
+    """``decode`` node of the img2img template."""
+
+    inputs: Img2ImgDecodeInputs = Field(default_factory=Img2ImgDecodeInputs)
+
+
+class Img2ImgPreviewInputs(PreviewImageInputs):
+    """Preview source of the img2img template."""
+
+    images: NodeRef = Field(default_factory=lambda: NodeRef.first("decode"))
+
+
+class Img2ImgPreviewNode(PreviewImageNode):
+    """``preview`` node of the img2img template."""
+
+    inputs: Img2ImgPreviewInputs = Field(default_factory=Img2ImgPreviewInputs)
+
+
+class BasePromptedGraph(BaseGraph):
+    """Shared node set and generation knobs of every prompt-driven template.
+
+    Every bundled template loads a checkpoint, encodes a positive and a
+    negative prompt, and samples through the nodes named by
+    :meth:`sampler_fields` — txt2img and img2img alike.  The node fields
+    are typed here so a subclass can only narrow them, and every sampler
+    knob lives here too, so a knob can never be applied to one template
+    and silently missing from another.  A template states only what
+    actually differs: its sampler set, its output scale, and the
+    canvas-or-image source its shape adds.
     """
 
     loader: CheckpointLoaderNode
     """Checkpoint loader node."""
-
-    latent: EmptyLatentNode
-    """Empty latent canvas node."""
 
     positive: PositivePromptNode
     """Positive prompt encode node."""
@@ -624,15 +702,6 @@ class BaseTxt2ImgGraph(BaseGraph):
         fields: dict[str, KSamplerAdvancedNode] = dict(self)
         return tuple(fields[name] for name in self.sampler_fields())
 
-    def output_scale(self) -> float:
-        """Linear factor between this template's latent canvas and its finished image.
-
-        ``1.0`` means the latent *is* the output; a template that upscales
-        before its final pass overrides this so :func:`resolve_canvas` can
-        size the base canvas for a megapixel budget of the *finished* image.
-        """
-        return 1.0
-
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""
         self.loader.inputs.ckpt_name = ckpt_name
@@ -646,14 +715,6 @@ class BaseTxt2ImgGraph(BaseGraph):
     def with_negative_prompt(self, text: str) -> Self:
         """Set the negative prompt text; return *self* for chaining."""
         self.negative.inputs.text = text
-        return self
-
-    def with_resolution(self, *, width: int | None = None, height: int | None = None) -> Self:
-        """Set the latent canvas width/height; return *self* for chaining."""
-        if width is not None:
-            self.latent.inputs.width = width
-        if height is not None:
-            self.latent.inputs.height = height
         return self
 
     def with_sampler(
@@ -681,6 +742,37 @@ class BaseTxt2ImgGraph(BaseGraph):
                 sampler.inputs.steps = steps
             if cfg is not None:
                 sampler.inputs.cfg = cfg
+        return self
+
+
+class BaseTxt2ImgGraph(BasePromptedGraph):
+    """Shared node set and generation knobs of every bundled txt2img template.
+
+    A txt2img template samples from an :class:`EmptyLatentImage` canvas:
+    the field is typed (and sized) here so a subclass can only narrow it,
+    and the canvas knob lives beside it.  Everything the img2img template
+    shares — loader, prompts, sampler knobs — lives on
+    :class:`BasePromptedGraph`.
+    """
+
+    latent: EmptyLatentNode
+    """Empty latent canvas node."""
+
+    def output_scale(self) -> float:
+        """Linear factor between this template's latent canvas and its finished image.
+
+        ``1.0`` means the latent *is* the output; a template that upscales
+        before its final pass overrides this so :func:`resolve_canvas` can
+        size the base canvas for a megapixel budget of the *finished* image.
+        """
+        return 1.0
+
+    def with_resolution(self, *, width: int | None = None, height: int | None = None) -> Self:
+        """Set the latent canvas width/height; return *self* for chaining."""
+        if width is not None:
+            self.latent.inputs.width = width
+        if height is not None:
+            self.latent.inputs.height = height
         return self
 
 
@@ -788,4 +880,107 @@ class Graph(BaseTxt2ImgGraph):
             upscale=ImageScaleByNode.default(),
             sampler_base=KSamplerAdvancedNode.default(),
             sampler_refine=RefineSamplerNode.default(),
+        )
+
+
+class GraphImg2Img(BasePromptedGraph):
+    """The bundled img2img graph — upscale an input image, then refine it.
+
+    The img2img counterpart of :class:`Graph`: instead of sampling an
+    empty latent, a server-side image is scaled toward the megapixel
+    budget, encoded, and resampled at partial denoise on the highres
+    template's refine schedule (``er_sde`` over ``karras``).  There is no
+    latent canvas — the input image *is* the canvas — so a prompt-shaped
+    aspect preset has no meaning here and the megapixel budget is applied
+    as an :class:`ImageScaleBy` factor via :meth:`with_target_mp`.
+
+    ComfyUI node IDs are arbitrary unique strings, so the Python field
+    names double as the wire node IDs — no numeric aliases anywhere.
+    :meth:`to_api` produces the exact ComfyUI API-format payload for
+    ``POST /prompt``.
+    """
+
+    model_source: ClassVar[NodeRef] = NodeRef.first("loader")
+    clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
+    clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
+
+    load_image: LoadImageNode
+    """Input image node (server-side input directory)."""
+
+    upscale: Img2ImgUpscaleNode
+    """Scale of the input image toward the megapixel budget."""
+
+    encode: VAEEncodeNode
+    """Encode of the upscaled image for the sampling pass."""
+
+    sampler: Img2ImgSamplerNode
+    """The sole sampler pass."""
+
+    decode: Img2ImgDecodeNode
+    """Decode node feeding the preview."""
+
+    preview: Img2ImgPreviewNode
+    """Preview image node."""
+
+    def sampler_fields(self) -> tuple[RewireField, ...]:
+        """Return the single sampler pass of the img2img template."""
+        return (RewireField.sampler,)
+
+    def output_scale(self) -> float:
+        """Return the upscale factor this template applies to the input image."""
+        return self.upscale.inputs.scale_by
+
+    def with_image(self, image: str) -> Self:
+        """Set the server-side input filename; return *self* for chaining."""
+        self.load_image.inputs.image = image
+        return self
+
+    def with_target_mp(self, mp: float, *, image_size: tuple[int, int]) -> Self:
+        """Scale the input image so the finished image lands at the *mp* budget.
+
+        The factor depends on the input's own pixel count, which only the
+        caller knows (the file may not even exist on this machine), so
+        *image_size* is required.  :class:`ImageScaleBy` scales freely —
+        the result is not snapped to the latent grid.
+        """
+        width, height = image_size
+        if mp <= 0:
+            raise ValueError(f"mp must be positive, got {mp}")
+        if width <= 0 or height <= 0:
+            raise ValueError(f"image_size must be positive, got {(width, height)}")
+        self.upscale.inputs.scale_by = sqrt(mp * 1_000_000 / (width * height))
+        return self
+
+    def with_denoise(self, denoise: float) -> Self:
+        """Express the pass as a KSampler-style *denoise*; return *self* for chaining.
+
+        ``KSamplerAdvanced`` has no ``denoise`` input: the community
+        convention maps ``denoise`` *d* over *N* steps to a start at step
+        ``round(N * (1 - d))``.  Apply this AFTER :meth:`with_sampler` —
+        the mapping uses the current step count.  ``1.0`` resamples the
+        image from pure noise (the bundled refine pass's behaviour);
+        smaller values preserve more of the input.
+        """
+        if not 0.0 < denoise <= 1.0:
+            raise ValueError(f"denoise must be within (0.0, 1.0], got {denoise}")
+        self.sampler.inputs.start_at_step = round(self.sampler.inputs.steps * (1.0 - denoise))
+        return self
+
+    @classmethod
+    def default(cls) -> Self:
+        """Assemble the img2img template from each node class's own default.
+
+        The image filename is a placeholder that MUST be overridden — the
+        client does so from the uploaded file on every call.
+        """
+        return cls(
+            loader=CheckpointLoaderNode.default(),
+            positive=PositivePromptNode.default(),
+            negative=NegativePromptNode.default(),
+            load_image=LoadImageNode.default(),
+            upscale=Img2ImgUpscaleNode.default(),
+            encode=VAEEncodeNode.default(),
+            sampler=Img2ImgSamplerNode.default(),
+            decode=Img2ImgDecodeNode.default(),
+            preview=Img2ImgPreviewNode.default(),
         )

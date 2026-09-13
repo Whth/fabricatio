@@ -25,6 +25,7 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
 )
 from fabricatio_comfyui.models.kwargs_types import (
+    Img2ImgKwargs,
     PollKwargs,
     TemplateKwargs,
     UploadKwargs,
@@ -79,11 +80,11 @@ class ComfyUIClientBase(ABC):
     ) -> list[ExecutionResult]:
         """Queue one or more prompts and poll each to completion.
 
-        The workflow graph is built internally from the bundled template —
-        callers never see or construct one.  Keyword knobs
+        The workflow graph is built internally from the bundled two-pass
+        template — callers never see or construct one.  Keyword knobs
         (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
-        override the active template only where provided: *mp* and *prop*
-        size the image canvas (a per-call value wins over
+        override the template only where provided: *mp* and *prop* size
+        the image canvas (a per-call value wins over
         :data:`comfyui_config`, and unset knobs keep the template's own
         canvas), with *mp* budgeting the **finished** image — the
         two-pass template derives its base-pass canvas so the upscaled
@@ -95,6 +96,66 @@ class ComfyUIClientBase(ABC):
         reach the template.  Prompts run sequentially; the return holds one
         execution result per input prompt, in input order, without
         downloading images.
+        """
+
+    @abstractmethod
+    async def generate_simple(
+        self,
+        prompt: str | list[str],
+        *,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts on the bundled single-pass template.
+
+        Same contract as :meth:`generate`, but the template skips the
+        upscale/refine branch — the finished image is exactly the latent
+        canvas, so *mp* / *prop* size it directly.
+        """
+
+    @abstractmethod
+    async def generate_anima(
+        self,
+        prompt: str | list[str],
+        *,
+        clip: str | None = None,
+        vae: str | None = None,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts on the bundled anima template.
+
+        Same contract as :meth:`generate`, but the template loads
+        checkpoint / CLIP / VAE from separate nodes and samples once at a
+        fixed 4:3 canvas (*mp* / *prop* overridable).  *clip* / *vae*
+        fall back to ``anima_clip`` / ``anima_vae`` config keys and
+        *checkpoint* to ``checkpoint`` / ``anima_checkpoint`` — unset
+        filenames fail loudly.
+        """
+
+    @abstractmethod
+    async def generate_img2img(
+        self,
+        prompt: str | list[str],
+        image: str | Path,
+        *,
+        denoise: float | None = None,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[Img2ImgKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts refining *image* and poll each to completion.
+
+        *image* is either a local file — passed as a :class:`pathlib.Path`
+        and uploaded via ``POST /upload/image`` first — or the exact name
+        of an image already in the server's input directory; a ``str``
+        naming an existing local file is rejected as ambiguous.  The
+        bundled template scales the image toward the *mp* budget, encodes
+        it, and resamples it at partial denoise (*denoise* maps to the
+        sampler's start step; there is no *prop* — the aspect ratio
+        belongs to the input image).
         """
 
     @abstractmethod

@@ -17,6 +17,8 @@ tests and alternate backends that want a private pool::
 """
 
 import asyncio
+import io
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -25,6 +27,7 @@ from typing import IO, Self, Unpack, final
 import httpx
 from fabricatio_core.journal import logger
 from fabricatio_core.utils import first_available
+from PIL import Image
 
 from fabricatio_comfyui.client_base import ComfyUIClientBase
 from fabricatio_comfyui.config import comfyui_config
@@ -39,8 +42,17 @@ from fabricatio_comfyui.models.comfyui import (
     UploadResponse,
     ViewImageParams,
 )
-from fabricatio_comfyui.models.graph import BaseTxt2ImgGraph, Graph, GraphSimple, LoraSpec
+from fabricatio_comfyui.models.graph import (
+    BaseGraph,
+    BasePromptedGraph,
+    BaseTxt2ImgGraph,
+    Graph,
+    GraphImg2Img,
+    GraphSimple,
+    LoraSpec,
+)
 from fabricatio_comfyui.models.kwargs_types import (
+    Img2ImgKwargs,
     PollKwargs,
     TemplateKwargs,
     UploadKwargs,
@@ -174,41 +186,69 @@ class ComfyUIHttpClient(ComfyUIClientBase):
     # REST endpoints (ComfyUIClientBase implementation)
     # ------------------------------------------------------------------
 
-    def _build_template(
+    def _apply_common[T: BasePromptedGraph](
         self,
+        template: T,
         *,
         checkpoint: str | None,
-        loras: list[LoraSpec] | None = None,
-    ) -> BaseTxt2ImgGraph | AnimaGraph:
-        """Assemble the active workflow template from config.
+        loras: list[LoraSpec] | None,
+    ) -> T:
+        """Apply the checkpoint and the LoRA chain shared by every entry point.
 
-        The default workflow uses the bundled two-pass graph, ``simple``
-        the single-pass low-res graph, applying *checkpoint* when given.
-        The anima workflow resolves its three model filenames from
-        :data:`comfyui_config` and fails loudly while any is unset.
-        *loras* chain into the model/CLIP path of any template.
+        *checkpoint* is the caller-resolved name (each template builder
+        resolves it against :data:`comfyui_config` with its own rung
+        order) and is applied when given; ``None`` keeps the template's
+        own checkpoint.
         """
-        if comfyui_config.workflow == "anima":
-            checkpoint_name = checkpoint or comfyui_config.checkpoint or comfyui_config.anima_checkpoint
-            if checkpoint_name is None:
-                raise ValueError(
-                    "anima workflow needs a checkpoint: pass checkpoint= or set [ext.comfyui] anima_checkpoint"
-                )
-            clip_name = comfyui_config.anima_clip
-            if clip_name is None:
-                raise ValueError("anima workflow needs a CLIP: set [ext.comfyui] anima_clip")
-            vae_name = comfyui_config.anima_vae
-            if vae_name is None:
-                raise ValueError("anima workflow needs a VAE: set [ext.comfyui] anima_vae")
-            template = AnimaGraph.default().with_checkpoint(checkpoint_name).with_clip(clip_name).with_vae(vae_name)
-        else:
-            template = GraphSimple.default() if comfyui_config.workflow == "simple" else Graph.default()
-            checkpoint_name = checkpoint or comfyui_config.checkpoint
-            if checkpoint_name is not None:
-                template.with_checkpoint(checkpoint_name)
+        if checkpoint is not None:
+            template.with_checkpoint(checkpoint)
         for spec in loras or ():
             template.with_lora(spec.lora_name, strength=spec.strength)
         return template
+
+    def _default_template(self, *, checkpoint: str | None, loras: list[LoraSpec] | None = None) -> Graph:
+        """Build the bundled two-pass template with the shared checkpoint/LoRA chain."""
+        return self._apply_common(
+            Graph.default(),
+            checkpoint=checkpoint or comfyui_config.checkpoint,
+            loras=loras,
+        )
+
+    def _simple_template(self, *, checkpoint: str | None, loras: list[LoraSpec] | None = None) -> GraphSimple:
+        """Build the bundled single-pass template with the shared checkpoint/LoRA chain."""
+        return self._apply_common(
+            GraphSimple.default(),
+            checkpoint=checkpoint or comfyui_config.checkpoint,
+            loras=loras,
+        )
+
+    def _anima_template(
+        self,
+        *,
+        checkpoint: str | None = None,
+        clip: str | None = None,
+        vae: str | None = None,
+        loras: list[LoraSpec] | None = None,
+    ) -> AnimaGraph:
+        """Build the bundled anima template, resolving its model filenames.
+
+        Each filename falls back to :data:`comfyui_config` (``checkpoint``
+        additionally to the generic :attr:`checkpoint` rung); unset names
+        fail loudly.
+        """
+        checkpoint_name = checkpoint or comfyui_config.checkpoint or comfyui_config.anima_checkpoint
+        if checkpoint_name is None:
+            raise ValueError(
+                "generate_anima needs a checkpoint: pass checkpoint= or set [ext.comfyui] checkpoint or anima_checkpoint"
+            )
+        clip_name = clip or comfyui_config.anima_clip
+        if clip_name is None:
+            raise ValueError("generate_anima needs a CLIP: pass clip= or set [ext.comfyui] anima_clip")
+        vae_name = vae or comfyui_config.anima_vae
+        if vae_name is None:
+            raise ValueError("generate_anima needs a VAE: pass vae= or set [ext.comfyui] anima_vae")
+        template = AnimaGraph.default().with_checkpoint(checkpoint_name).with_clip(clip_name).with_vae(vae_name)
+        return self._apply_common(template, checkpoint=checkpoint_name, loras=loras)
 
     def _render_graph(
         self,
@@ -248,44 +288,22 @@ class ComfyUIHttpClient(ComfyUIClientBase):
             graph.with_sampler(seed=seed, steps=steps, cfg=cfg)
         return graph
 
-    async def generate(
+    async def _queue_and_wait(
         self,
-        prompt: str | list[str],
+        graphs: Iterable[BaseGraph],
         *,
         front: bool = False,
         timeout: float | None = None,
-        **kwargs: Unpack[TemplateKwargs],
     ) -> list[ExecutionResult]:
-        """Queue one or more prompts and poll each to completion.
+        """Queue each graph and poll it to completion, in order.
 
-        The workflow graph is built internally from the bundled template —
-        callers never see or construct one.  Only the provided (non-``None``)
-        template knobs
-        (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
-        override the active template; unset knobs keep the template's value,
-        with canvas and checkpoint falling back to :data:`comfyui_config`
-        first.  *front* enqueues at the head of the queue and *timeout*
-        bounds each poll — both are queueing knobs consumed here and never
-        reach the template.  Prompts run sequentially; the return holds one
-        execution result per input prompt, in input order, without
-        downloading images.
-
-        The active template comes from :data:`comfyui_config.workflow`: the
-        default two-pass graph, or the anima preset whose model filenames
-        resolve from ``anima_checkpoint`` / ``anima_clip`` / ``anima_vae``
-        and fail loudly while unset.
-
-        When the awaiting task is cancelled (e.g. Ctrl+C), the running job
-        is interrupted server-side before the cancellation propagates.
+        Prompts run sequentially; the return holds one execution result per
+        graph, in input order, without downloading images.  When the
+        awaiting task is cancelled (e.g. Ctrl+C), the running job is
+        interrupted server-side before the cancellation propagates.
         """
-        prompts = [prompt] if isinstance(prompt, str) else list(prompt)
-        template = self._build_template(
-            checkpoint=kwargs.get("checkpoint"),
-            loras=kwargs.get("loras"),
-        )
         results: list[ExecutionResult] = []
-        for one in prompts:
-            graph = self._render_graph(one, template=template, **kwargs)
+        for graph in graphs:
             req = PromptRequest(prompt=graph.to_api(), client_id=self.client_id(), front=front)
             data = await self._post("/prompt", json_data=req.model_dump(exclude_unset=True))
             resp = PromptResponse.from_raw(data)
@@ -299,6 +317,179 @@ class ComfyUIHttpClient(ComfyUIClientBase):
                     logger.warn("Failed to interrupt ComfyUI after cancellation")
                 raise
         return results
+
+    async def _submit_txt2img(
+        self,
+        prompt: str | list[str],
+        template: BaseTxt2ImgGraph | AnimaGraph,
+        *,
+        front: bool,
+        timeout: float | None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Render *template* once per prompt and queue the renders in order.
+
+        Only the provided (non-``None``) template knobs
+        (:class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
+        override the template; unset knobs keep the template's value, with
+        canvas and checkpoint falling back to :data:`comfyui_config` first.
+        """
+        prompts = [prompt] if isinstance(prompt, str) else list(prompt)
+        graphs = (self._render_graph(one, template=template, **kwargs) for one in prompts)
+        return await self._queue_and_wait(graphs, front=front, timeout=timeout)
+
+    async def generate(
+        self,
+        prompt: str | list[str],
+        *,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts on the bundled two-pass template and poll each to completion.
+
+        The workflow graph is built internally — callers never see or
+        construct one.  The two-pass template samples a base canvas,
+        upscales it, and refines it on a second pass, so *mp* sizes the
+        base canvas such that the upscaled output lands at the budget.
+        *front* enqueues at the head of the queue and *timeout* bounds
+        each poll — both are queueing knobs consumed here and never reach
+        the template.
+        """
+        return await self._submit_txt2img(
+            prompt,
+            self._default_template(checkpoint=kwargs.get("checkpoint"), loras=kwargs.get("loras")),
+            front=front,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    async def generate_simple(
+        self,
+        prompt: str | list[str],
+        *,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts on the bundled single-pass template and poll each to completion.
+
+        The single-pass template skips the upscale/refine branch — the
+        finished image is exactly the latent canvas, so *mp* / *prop*
+        size it directly.
+        """
+        return await self._submit_txt2img(
+            prompt,
+            self._simple_template(checkpoint=kwargs.get("checkpoint"), loras=kwargs.get("loras")),
+            front=front,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    async def generate_anima(
+        self,
+        prompt: str | list[str],
+        *,
+        clip: str | None = None,
+        vae: str | None = None,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[TemplateKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more prompts on the bundled anima template and poll each to completion.
+
+        The anima template loads checkpoint / CLIP / VAE from separate
+        nodes and samples once at a fixed 4:3 canvas (*mp* / *prop*
+        overridable).  *clip* / *vae* fall back to ``[ext.comfyui]
+        anima_clip`` / ``anima_vae`` and *checkpoint* (via
+        :class:`~fabricatio_comfyui.models.kwargs_types.TemplateKwargs`)
+        to ``checkpoint`` / ``anima_checkpoint`` — unset filenames fail
+        loudly.
+        """
+        return await self._submit_txt2img(
+            prompt,
+            self._anima_template(checkpoint=kwargs.get("checkpoint"), clip=clip, vae=vae, loras=kwargs.get("loras")),
+            front=front,
+            timeout=timeout,
+            **kwargs,
+        )
+
+    @staticmethod
+    def _input_image_name(uploaded: UploadResponse) -> str:
+        """Return the ``LoadImage`` value for an uploaded file (``subfolder/name``)."""
+        return f"{uploaded.subfolder}/{uploaded.name}" if uploaded.subfolder else uploaded.name
+
+    async def _image_dimensions(self, image: str | Path) -> tuple[int, int]:
+        """Return the ``(width, height)`` of a local image file or a server-side input image."""
+        if isinstance(image, Path):
+            with Image.open(image) as img:
+                return img.size
+        subfolder, _, filename = image.rpartition("/")
+        raw = await self.get_image(filename=filename, subfolder=subfolder, image_type="input")
+        with Image.open(io.BytesIO(raw)) as img:
+            return img.size
+
+    async def generate_img2img(
+        self,
+        prompt: str | list[str],
+        image: str | Path,
+        *,
+        denoise: float | None = None,
+        front: bool = False,
+        timeout: float | None = None,
+        **kwargs: Unpack[Img2ImgKwargs],
+    ) -> list[ExecutionResult]:
+        """Queue one or more img2img prompts against *image* and poll each to completion.
+
+        The bundled img2img template scales the image toward the megapixel
+        budget, encodes it, and resamples it at partial denoise on the
+        highres template's refine schedule.  *image* is either a local
+        file — passed as a :class:`pathlib.Path` and uploaded via
+        ``POST /upload/image`` first — or the exact name of an image
+        already in the server's input directory.  A ``str`` that names an
+        existing local file is rejected as ambiguous rather than silently
+        resolved one way.  The remaining knobs mirror :meth:`generate`: a
+        *mp* budget is applied as the upscale factor derived from the
+        image's own dimensions, and *denoise* maps to the sampler's start
+        step.  There is no *prop*: the aspect ratio belongs to the input
+        image.
+        """
+        prompts = [prompt] if isinstance(prompt, str) else list(prompt)
+        if isinstance(image, str) and Path(image).is_file():
+            raise ValueError(
+                f"{image!r} names an existing local file — pass it as Path(...) to upload it, "
+                "or pass the exact name of an image already in the server's input directory"
+            )
+        template = self._apply_common(
+            GraphImg2Img.default(),
+            checkpoint=kwargs.get("checkpoint") or comfyui_config.checkpoint,
+            loras=kwargs.get("loras"),
+        )
+        size_mp = first_available((kwargs.get("mp"), comfyui_config.mp), raise_exception=False)
+        if size_mp is not None:
+            template.with_target_mp(size_mp, image_size=await self._image_dimensions(image))
+        if isinstance(image, Path):
+            uploaded = await self.upload_image(image)
+            template.with_image(self._input_image_name(uploaded))
+        else:
+            template.with_image(image)
+        if (negative_prompt := kwargs.get("negative_prompt")) is not None:
+            template.with_negative_prompt(negative_prompt)
+        seed = kwargs.get("seed")
+        steps = kwargs.get("steps")
+        cfg = kwargs.get("cfg")
+        template.with_sampler(seed=seed, steps=steps, cfg=cfg)
+        if denoise is not None:
+            template.with_denoise(denoise)
+
+        def _graphs() -> Iterable[BaseGraph]:
+            for one in prompts:
+                graph = template.model_copy(deep=True)
+                if one:
+                    graph.with_positive_prompt(one)
+                yield graph
+
+        return await self._queue_and_wait(_graphs(), front=front, timeout=timeout)
 
     async def get_queue_info(self) -> QueueInfo:
         """Get current queue status via ``GET /queue``."""

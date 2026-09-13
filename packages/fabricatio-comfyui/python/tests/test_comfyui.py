@@ -1,6 +1,7 @@
 """Tests for the fabricatio-comfyui subpackage."""
 
 import asyncio
+import io
 import threading
 from pathlib import Path
 from typing import cast
@@ -10,7 +11,7 @@ import httpx
 import pytest
 from fabricatio_comfyui.capabilities.comfyui import UseComfyUI
 from fabricatio_comfyui.capabilities.loras import ChooseLoras
-from fabricatio_comfyui.config import comfyui_config
+from fabricatio_comfyui.config import ComfyUIConfig, comfyui_config
 from fabricatio_comfyui.http_client import ComfyUIHttpClient, get_comfyui_client
 from fabricatio_comfyui.models.anima import AnimaGraph
 from fabricatio_comfyui.models.catalog import LoraCatalog, LoraEntry, LoraPick, LoraSelection
@@ -24,15 +25,21 @@ from fabricatio_comfyui.models.comfyui import (
 )
 
 
-def replace(obj: object, **updates: object) -> object:
-    """Pydantic stand-in for ``dataclasses.replace`` — frozen copy with field overrides."""
-    return obj.model_copy(update=updates)  # ty: ignore[unresolved-attribute]
+def replace[T: BaseModel](obj: T, **updates: object) -> T:
+    """Pydantic stand-in for ``dataclasses.replace`` — re-validated copy with field overrides.
+
+    Goes through :meth:`model_validate` so overrides are coerced (e.g.
+    ``prop="prop_16_9"`` becomes the :class:`Prop` member) instead
+    of bypassing validation the way ``model_copy(update=...)`` does.
+    """
+    return type(obj).model_validate({**obj.model_dump(), **updates})
 
 
-from fabricatio_comfyui.models.graph import Graph, GraphSimple, LoraSpec, NodeRef
+from fabricatio_comfyui.models.graph import Graph, GraphImg2Img, GraphSimple, LoraSpec, NodeRef
 from fabricatio_comfyui.models.resolution import Prop, resolve_canvas
 from fabricatio_comfyui.models.specs import SketchSpec
-from pydantic import ValidationError
+from PIL import Image
+from pydantic import BaseModel, ValidationError
 
 
 def _node_payload(raw: dict[str, object], node_id: str) -> dict[str, object]:
@@ -218,7 +225,7 @@ class TestGraph:
     def test_every_template_chains_loras_into_every_sampler(self) -> None:
         """No bundled template can leave a sampler on the base model."""
         sampler_types = ("KSamplerAdvanced",)
-        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default()):
+        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default(), GraphImg2Img.default()):
             graph.with_lora("a.safetensors")
             api = graph.to_api()
             samplers = [
@@ -235,7 +242,7 @@ class TestGraph:
 
     def test_lora_origins_matches_serialized_wiring(self) -> None:
         """lora_origins reports exactly what to_api emits, with and without a LoRA."""
-        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default()):
+        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default(), GraphImg2Img.default()):
             for chained in (False, True):
                 if chained:
                     graph.with_lora("a.safetensors")
@@ -371,6 +378,76 @@ class TestAnimaGraph:
             graph.with_checkpoint(cast("str", 123))
         with pytest.raises(ValidationError):
             graph.sampler.inputs.steps = cast("int", "twenty")
+
+
+class TestGraphImg2Img:
+    """The img2img template upscales a server-side image and refines it at partial denoise."""
+
+    def test_payload_wiring(self) -> None:
+        """The graph chains image -> upscale -> encode -> sampler -> decode -> preview, with no latent."""
+        graph = GraphImg2Img.default().with_image("input.png")
+        api = graph.to_api()
+        assert set(api) == {
+            "loader",
+            "positive",
+            "negative",
+            "load_image",
+            "upscale",
+            "encode",
+            "sampler",
+            "decode",
+            "preview",
+        }
+        assert api["load_image"]["class_type"] == "LoadImage"
+        upscale = cast("dict[str, object]", api["upscale"])["inputs"]
+        assert upscale["image"] == ("load_image", 0)
+        encode = cast("dict[str, object]", api["encode"])["inputs"]
+        assert encode["pixels"] == ("upscale", 0)
+        assert encode["vae"] == ("loader", 2)
+        sampler = cast("dict[str, object]", api["sampler"])["inputs"]
+        assert sampler["latent_image"] == ("encode", 0)
+        assert sampler["model"] == ("loader", 0)
+        assert sampler["start_at_step"] == 12
+        assert sampler["scheduler"] == "karras"
+        decode = cast("dict[str, object]", api["decode"])["inputs"]
+        assert decode["samples"] == ("sampler", 0)
+        assert decode["vae"] == ("loader", 2)
+        preview = cast("dict[str, object]", api["preview"])["inputs"]
+        assert preview["images"] == ("decode", 0)
+        positive = cast("dict[str, object]", api["positive"])["inputs"]
+        assert positive["clip"] == ("loader", 1)
+
+    def test_with_target_mp_scales_to_budget(self) -> None:
+        """The upscale factor lands the finished image at the megapixel budget."""
+        graph = GraphImg2Img.default().with_target_mp(1.0, image_size=(512, 768))
+        scale = graph.upscale.inputs.scale_by
+        assert 512 * 768 / 1_000_000 * scale**2 == pytest.approx(1.0)
+        assert graph.output_scale() == scale
+
+    def test_with_target_mp_rejects_junk(self) -> None:
+        """Non-positive budgets and image sizes fail loudly."""
+        graph = GraphImg2Img.default()
+        with pytest.raises(ValueError, match="mp"):
+            graph.with_target_mp(0.0, image_size=(512, 768))
+        with pytest.raises(ValueError, match="image_size"):
+            graph.with_target_mp(1.0, image_size=(0, 768))
+
+    def test_with_denoise_starts_the_pass_late(self) -> None:
+        """Denoise maps to the start step over the CURRENT step count."""
+        graph = GraphImg2Img.default().with_denoise(0.45)
+        assert graph.sampler.inputs.start_at_step == round(21 * 0.55)
+        graph.with_sampler(steps=30).with_denoise(0.5)
+        assert graph.sampler.inputs.start_at_step == 15
+        graph.with_denoise(1.0)
+        assert graph.sampler.inputs.start_at_step == 0
+
+    def test_with_denoise_rejects_junk(self) -> None:
+        """Denoise outside (0.0, 1.0] fails loudly."""
+        graph = GraphImg2Img.default()
+        with pytest.raises(ValueError, match="denoise"):
+            graph.with_denoise(0.0)
+        with pytest.raises(ValueError, match="denoise"):
+            graph.with_denoise(1.5)
 
 
 # ======================================================================
@@ -917,8 +994,8 @@ async def test_generate_per_call_size_beats_config_defaults() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_simple_workflow_omits_highres_branch() -> None:
-    """The simple workflow submits one sampler and decodes straight to the preview."""
+async def test_generate_simple_omits_highres_branch() -> None:
+    """The single-pass template submits one sampler and decodes straight to the preview."""
     client = ComfyUIHttpClient.create(None)
     captured: dict[str, object] = {}
 
@@ -929,13 +1006,11 @@ async def test_generate_simple_workflow_omits_highres_branch() -> None:
     completed: dict[str, object] = {
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    simple_config = replace(comfyui_config, workflow="simple")
     with (
-        patch("fabricatio_comfyui.http_client.comfyui_config", simple_config),
         patch.object(client, "_post", side_effect=post_side_effect),
         patch.object(client, "_get", return_value=completed),
     ):
-        await client.generate("a cat")
+        await client.generate_simple("a cat")
 
     prompt = cast("dict[str, object]", captured["prompt"])
     assert "upscale" not in prompt
@@ -945,7 +1020,7 @@ async def test_generate_simple_workflow_omits_highres_branch() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_anima_workflow_keeps_full_budget() -> None:
+async def test_generate_anima_keeps_full_budget() -> None:
     """The single-pass anima template has no upscale, so mp sizes the latent directly."""
     client = ComfyUIHttpClient.create(None)
     captured: dict[str, object] = {}
@@ -957,20 +1032,13 @@ async def test_generate_anima_workflow_keeps_full_budget() -> None:
     completed: dict[str, object] = {
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    sized_config = replace(
-        comfyui_config,
-        workflow="anima",
-        anima_checkpoint="ckpt.safetensors",
-        anima_clip="clip.safetensors",
-        anima_vae="vae.safetensors",
-        mp=1.0,
-    )
     with (
-        patch("fabricatio_comfyui.http_client.comfyui_config", sized_config),
         patch.object(client, "_post", side_effect=post_side_effect),
         patch.object(client, "_get", return_value=completed),
     ):
-        await client.generate("a cat")
+        await client.generate_anima(
+            "a cat", checkpoint="ckpt.safetensors", clip="clip.safetensors", vae="vae.safetensors", mp=1.0
+        )
 
     prompt = cast("dict[str, object]", captured["prompt"])
     assert cast("dict[str, object]", prompt["latent"])["inputs"]["width"] == 1152
@@ -1001,16 +1069,10 @@ async def test_generate_mp_only_keeps_template_ratio() -> None:
     assert cast("dict[str, object]", prompt["latent"])["inputs"]["height"] == 192
 
 
-@pytest.mark.asyncio
-async def test_generate_rejects_unknown_config_prop() -> None:
-    """An unparseable [ext.comfyui] prop fails loudly at canvas resolution."""
-    client = ComfyUIHttpClient.create(None)
-    bad_config = replace(comfyui_config, mp=1.0, prop="7:4")
-    with (
-        patch("fabricatio_comfyui.http_client.comfyui_config", bad_config),
-        pytest.raises(ValueError, match="not a valid Prop"),
-    ):
-        await client.generate("a cat")
+def test_config_rejects_unknown_prop() -> None:
+    """An unparseable [ext.comfyui] prop fails loudly at config validation."""
+    with pytest.raises(ValidationError, match="enum"):
+        ComfyUIConfig.model_validate({"mp": 1.0, "prop": "7:4"})
 
 
 @pytest.mark.asyncio
@@ -1065,8 +1127,8 @@ async def test_generate_batch_prompts() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_anima_workflow_resolves_models() -> None:
-    """The anima workflow submits the configured checkpoint/CLIP/VAE names."""
+async def test_generate_anima_resolves_models_from_config() -> None:
+    """The anima method submits the configured checkpoint/CLIP/VAE names."""
     client = ComfyUIHttpClient.create(None)
     captured: dict[str, object] = {}
 
@@ -1079,7 +1141,7 @@ async def test_generate_anima_workflow_resolves_models() -> None:
     }
     anima_config = replace(
         comfyui_config,
-        workflow="anima",
+        checkpoint=None,
         anima_checkpoint="anima-ckpt.safetensors",
         anima_clip="anima-clip.safetensors",
         anima_vae="anima-vae.safetensors",
@@ -1089,7 +1151,7 @@ async def test_generate_anima_workflow_resolves_models() -> None:
         patch.object(client, "_post", side_effect=post_side_effect),
         patch.object(client, "_get", return_value=completed),
     ):
-        await client.generate("a cat")
+        await client.generate_anima("a cat")
 
     prompt = cast("dict[str, object]", captured["prompt"])
     assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "anima-ckpt.safetensors"
@@ -1099,7 +1161,7 @@ async def test_generate_anima_workflow_resolves_models() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_anima_workflow_checkpoint_override() -> None:
+async def test_generate_anima_checkpoint_override() -> None:
     """A per-call checkpoint wins over the anima config key."""
     client = ComfyUIHttpClient.create(None)
     captured: dict[str, object] = {}
@@ -1113,7 +1175,6 @@ async def test_generate_anima_workflow_checkpoint_override() -> None:
     }
     anima_config = replace(
         comfyui_config,
-        workflow="anima",
         anima_checkpoint="anima-ckpt.safetensors",
         anima_clip="anima-clip.safetensors",
         anima_vae="anima-vae.safetensors",
@@ -1123,32 +1184,28 @@ async def test_generate_anima_workflow_checkpoint_override() -> None:
         patch.object(client, "_post", side_effect=post_side_effect),
         patch.object(client, "_get", return_value=completed),
     ):
-        await client.generate("a cat", checkpoint="override.safetensors")
+        await client.generate_anima("a cat", checkpoint="override.safetensors")
 
     prompt = cast("dict[str, object]", captured["prompt"])
     assert cast("dict[str, object]", prompt["loader"])["inputs"]["ckpt_name"] == "override.safetensors"
 
 
 @pytest.mark.asyncio
-async def test_generate_anima_workflow_requires_models() -> None:
+async def test_generate_anima_requires_models() -> None:
     """Anima generation fails loudly while any model filename is unset."""
     client = ComfyUIHttpClient.create(None)
-    missing_ckpt = replace(comfyui_config, workflow="anima")
-    missing_clip = replace(
-        comfyui_config,
-        workflow="anima",
-        anima_checkpoint="anima-ckpt.safetensors",
-    )
+    missing_ckpt = replace(comfyui_config, checkpoint=None, anima_checkpoint=None, anima_clip=None, anima_vae=None)
+    missing_clip = replace(comfyui_config, anima_checkpoint="anima-ckpt.safetensors", anima_clip=None, anima_vae=None)
     with (
         patch("fabricatio_comfyui.http_client.comfyui_config", missing_ckpt),
         pytest.raises(ValueError, match="anima_checkpoint"),
     ):
-        await client.generate("a cat")
+        await client.generate_anima("a cat")
     with (
         patch("fabricatio_comfyui.http_client.comfyui_config", missing_clip),
         pytest.raises(ValueError, match="anima_clip"),
     ):
-        await client.generate("a cat")
+        await client.generate_anima("a cat")
 
 
 @pytest.mark.asyncio
@@ -1185,7 +1242,7 @@ async def test_generate_applies_loras() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_anima_workflow_applies_loras() -> None:
+async def test_generate_anima_applies_loras() -> None:
     """Anima generation chains loras after resolving its model filenames."""
     client = ComfyUIHttpClient.create(None)
     captured: dict[str, object] = {}
@@ -1197,19 +1254,17 @@ async def test_generate_anima_workflow_applies_loras() -> None:
     completed: dict[str, object] = {
         "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
     }
-    anima_config = replace(
-        comfyui_config,
-        workflow="anima",
-        anima_checkpoint="anima-ckpt.safetensors",
-        anima_clip="anima-clip.safetensors",
-        anima_vae="anima-vae.safetensors",
-    )
     with (
-        patch("fabricatio_comfyui.http_client.comfyui_config", anima_config),
         patch.object(client, "_post", side_effect=post_side_effect),
         patch.object(client, "_get", return_value=completed),
     ):
-        await client.generate("a cat", loras=[LoraSpec(lora_name="anima-lora.safetensors", strength=0.8)])
+        await client.generate_anima(
+            "a cat",
+            checkpoint="anima-ckpt.safetensors",
+            clip="anima-clip.safetensors",
+            vae="anima-vae.safetensors",
+            loras=[LoraSpec(lora_name="anima-lora.safetensors", strength=0.8)],
+        )
 
     prompt = cast("dict[str, object]", captured["prompt"])
     lora_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["lora_0"])["inputs"])
@@ -1219,6 +1274,115 @@ async def test_generate_anima_workflow_applies_loras() -> None:
     assert sampler_inputs["model"] == ("lora_0", 0)
     positive_inputs = cast("dict[str, object]", cast("dict[str, object]", prompt["positive"])["inputs"])
     assert positive_inputs["clip"] == ("lora_0", 1)
+
+
+@pytest.mark.asyncio
+async def test_generate_img2img_uploads_and_targets_mp(tmp_path: Path) -> None:
+    """A local image is uploaded, named in LoadImage, and scaled to the mp budget."""
+    client = ComfyUIHttpClient.create(None)
+    captured: dict[str, object] = {}
+
+    async def post_side_effect(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    source = tmp_path / "input.png"
+    with Image.new("RGB", (512, 768)) as img:
+        img.save(source)
+    with (
+        patch.object(client, "_post", side_effect=post_side_effect),
+        patch.object(client, "_get", return_value=completed),
+        patch.object(client, "_upload", return_value={"name": "input.png", "subfolder": "", "type": "input"}),
+    ):
+        await client.generate_img2img("a cat", source, mp=1.0, denoise=0.45, seed=7, steps=21)
+
+    prompt = cast("dict[str, object]", captured["prompt"])
+    assert "latent" not in prompt
+    load_image = cast("dict[str, object]", cast("dict[str, object]", prompt["load_image"])["inputs"])
+    assert load_image["image"] == "input.png"
+    upscale = cast("dict[str, object]", cast("dict[str, object]", prompt["upscale"])["inputs"])
+    assert 512 * 768 / 1_000_000 * cast("float", upscale["scale_by"]) ** 2 == pytest.approx(1.0)
+    sampler = cast("dict[str, object]", cast("dict[str, object]", prompt["sampler"])["inputs"])
+    assert sampler["start_at_step"] == 12
+    assert sampler["noise_seed"] == 7
+    assert sampler["steps"] == 21
+
+
+@pytest.mark.asyncio
+async def test_image_dimensions_from_server_side_name() -> None:
+    """A server-side image name is fetched from the input dir to read its size."""
+    client = ComfyUIHttpClient.create(None)
+    buf = io.BytesIO()
+    with Image.new("RGB", (64, 32)) as img:
+        img.save(buf, "PNG")
+    with patch.object(client, "get_image", return_value=buf.getvalue()) as mock_get:
+        size = await client._image_dimensions("sub/dir.png")
+    assert size == (64, 32)
+    mock_get.assert_called_once_with(filename="dir.png", subfolder="sub", image_type="input")
+
+
+@pytest.mark.asyncio
+async def test_generate_img2img_image_argument_contract(tmp_path: Path) -> None:
+    """A str naming an existing local file is rejected; a server-side name flows through."""
+    client = ComfyUIHttpClient.create(None)
+    local = tmp_path / "in.png"
+    local.write_bytes(b"png")
+    with pytest.raises(ValueError, match="Path"):
+        await client.generate_img2img("a cat", str(local))
+
+    completed: dict[str, object] = {
+        "pid-1": {"status": {"status_str": "completed", "completed": True}, "outputs": {}},
+    }
+    captured: dict[str, object] = {}
+
+    async def capture(path: str, **kwargs: object) -> dict[str, object]:
+        captured.update(cast("dict[str, object]", kwargs.get("json_data") or {}))
+        return {"prompt_id": "pid-1", "number": 1}
+
+    with (
+        patch.object(client, "_post", side_effect=capture),
+        patch.object(client, "_get", return_value=completed),
+    ):
+        results = await client.generate_img2img("a cat", "server-side-name.png")
+    assert results[0].succeeded()
+    load_image = cast("dict[str, object]", cast("dict[str, object]", captured["prompt"])["load_image"])
+    assert load_image["inputs"]["image"] == "server-side-name.png"
+
+
+@pytest.mark.asyncio
+async def test_generate_img2img_capability_flow(tmp_path: Path) -> None:
+    """End-to-end refine via the capability: upload -> generate -> poll -> download."""
+    client = get_comfyui_client(comfyui_config.base_url)
+    mock_history: dict[str, object] = {
+        "mock-uuid-123": {
+            "status": {"status_str": "completed", "completed": True},
+            "outputs": {"9": {"images": [{"filename": "ComfyUI_00001_.png", "subfolder": "", "type": "output"}]}},
+        },
+    }
+    source = tmp_path / "src.png"
+    with Image.new("RGB", (64, 32)) as img:
+        img.save(source)
+
+    with (
+        patch.object(client, "_upload", return_value={"name": "src.png", "subfolder": "", "type": "input"}),
+        patch.object(client, "_post", return_value={"prompt_id": "mock-uuid-123", "number": 1}),
+        patch.object(client, "_get", return_value=mock_history),
+        patch.object(client, "get_image", return_value=b"fake-image-bytes"),
+    ):
+        path = await UseComfyUI().generate_img2img(
+            "a mountain landscape",
+            source,
+            download_dir=tmp_path,
+            denoise=0.45,
+            seed=42,
+        )
+
+    assert path is not None
+    assert path == tmp_path / "ComfyUI_00001_.png"
+    assert path.read_bytes() == b"fake-image-bytes"
 
 
 @pytest.mark.asyncio

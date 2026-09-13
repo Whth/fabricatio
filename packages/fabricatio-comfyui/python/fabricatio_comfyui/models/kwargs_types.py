@@ -44,6 +44,50 @@ class TemplateKwargs(TypedDict, total=False):
     """LoRAs chained into the generation; each names a server-side file and a strength."""
 
 
+class Img2ImgKwargs(TypedDict, total=False):
+    """Workflow-template knobs accepted by :meth:`ComfyUIClientBase.generate_img2img`.
+
+    Only the provided keys override the bundled img2img template; absent
+    keys keep the template's values, falling back to :data:`comfyui_config`
+    where the config defines a default.  There is no *prop*: the aspect
+    ratio belongs to the input image.
+    """
+
+    negative_prompt: str | None
+    """Optional negative prompt text."""
+
+    mp: float | None
+    """Megapixel budget of the finished image (``1.0`` = 1,000,000 pixels); ``None`` keeps the template's upscale factor."""
+
+    denoise: float | None
+    """KSampler-style denoise of the sampling pass (``1.0`` resamples from pure noise); ``None`` keeps the template's start step."""
+
+    seed: int | None
+    """Sampler seed; ``None`` keeps the bundled template's seed."""
+
+    steps: int | None
+    """Sampler step count."""
+
+    cfg: float | None
+    """Classifier-free guidance scale."""
+
+    checkpoint: str | None
+    """Checkpoint filename on the server; falls back to config, then the bundled template."""
+
+    loras: list[LoraSpec] | None
+    """LoRAs chained into the generation; each names a server-side file and a strength."""
+
+
+class Img2ImgGenerateKwargs(Img2ImgKwargs, total=False):
+    """High-level refinement knobs for :func:`fabricatio_comfyui.api.generate_img2img`.
+
+    Inherits every :class:`Img2ImgKwargs` key and adds *timeout*.
+    """
+
+    timeout: float | None
+    """Maximum seconds to wait for completion; ``None`` falls back to :data:`comfyui_config.timeout`."""
+
+
 class GenerateKwargs(TemplateKwargs, total=False):
     """High-level generation knobs for :func:`fabricatio_comfyui.api.generate_image`.
 

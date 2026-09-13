@@ -1,7 +1,5 @@
 """Configuration for fabricatio-comfyui."""
 
-from typing import Literal
-
 from fabricatio_core import CONFIG
 from pydantic import BaseModel
 
@@ -20,26 +18,14 @@ class ComfyUIConfig(BaseModel):
     timeout: float = 300.0
     """Default timeout in seconds for API requests (default 5 min)."""
 
-    workflow: Literal["default", "simple", "anima"] = "default"
-    """Bundled workflow template to run: the two-pass txt2img graph, the
-    single-pass low-res graph, or the anima preset.
-
-    ``simple`` skips the upscale/refine branch, so the finished image is
-    exactly the latent canvas and ``mp`` sizes it directly.  The anima
-    template loads checkpoint / CLIP / VAE from separate nodes
-    (see ``anima_checkpoint``, ``anima_clip``, ``anima_vae``) and samples
-    once at a fixed 4:3 canvas (overridable via ``mp`` / ``prop``).
-    """
-
     mp: float | None = None
     """Default megapixel budget of the finished image (``1.0`` = 1,000,000 pixels).
 
     Resolves every generation's canvas from this budget and :attr:`prop`;
     the two-pass template sizes its base canvas so the upscaled output
     lands at the budget.  A per-call ``mp=`` / ``prop=`` knob takes
-    precedence.  ``None`` keeps
-    the active template's built-in canvas (768x512 for the default
-    workflow, 1344x1024 for the anima preset).
+    precedence.  ``None`` keeps the active template's built-in canvas
+    (768x512 for the two-pass template, 1344x1024 for the anima preset).
     """
 
     prop: Prop | None = None
@@ -59,7 +45,7 @@ class ComfyUIConfig(BaseModel):
     """
 
     anima_checkpoint: str | None = None
-    """Checkpoint filename for the anima workflow.
+    """Default checkpoint filename for :meth:`ComfyUIClientBase.generate_anima`.
 
     The anima template's model filenames are placeholders in source;
     this key (and ``anima_clip`` / ``anima_vae``) supplies the real
@@ -67,10 +53,10 @@ class ComfyUIConfig(BaseModel):
     """
 
     anima_clip: str | None = None
-    """CLIP filename for the anima workflow (see ``anima_checkpoint``)."""
+    """Default CLIP filename for :meth:`ComfyUIClientBase.generate_anima` (see ``anima_checkpoint``)."""
 
     anima_vae: str | None = None
-    """VAE filename for the anima workflow (see ``anima_checkpoint``)."""
+    """Default VAE filename for :meth:`ComfyUIClientBase.generate_anima` (see ``anima_checkpoint``)."""
 
     download_dir: str | None = None
     """Default directory for generated images.

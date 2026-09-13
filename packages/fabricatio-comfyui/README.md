@@ -61,19 +61,25 @@ download_dir = "./outputs"
 | `base_url` | `str` | `"http://127.0.0.1:8188"` | Base URL of the ComfyUI server (default localhost:8188). |
 | `timeout` | `float` | `300.0` | Default timeout in seconds for API requests (default 5 min). |
 | `checkpoint` | `str \| None` | `None` | Checkpoint applied to every generation; a per-call `checkpoint=` knob takes precedence. |
-| `workflow` | `"default" \| "simple" \| "anima"` | `"default"` | Bundled template to run: the two-pass txt2img graph, the single-pass low-res graph, or the anima preset. |
 | `mp` | `float \| None` | `None` | Default megapixel budget of the finished image (`1.0` = 1,000,000 px); a template that upscales before its final pass sizes its base canvas so the upscaled output lands at the budget, while single-pass templates size the latent directly; a per-call `mp=` wins; `None` keeps the active template's canvas (768x512 default, 1344x1024 anima). |
 | `prop` | `Prop \| None` | `None` | Default aspect-ratio preset — enum member names (`prop_1_1`, `prop_4_3`, `prop_3_4`, `prop_3_2`, `prop_2_3`, `prop_16_9`, `prop_9_16`, `prop_5_4`, `prop_4_5`, `prop_21_9`, `prop_9_21`); a per-call `prop=` wins; `None` keeps the active template's ratio. |
-| `anima_checkpoint` | `str \| None` | `None` | Checkpoint filename for the anima workflow (the template holds a placeholder in source). |
-| `anima_clip` | `str \| None` | `None` | CLIP filename for the anima workflow. |
-| `anima_vae` | `str \| None` | `None` | VAE filename for the anima workflow. |
+| `anima_checkpoint` | `str \| None` | `None` | Default checkpoint filename for `generate_anima_image` (the template holds a placeholder in source). |
+| `anima_clip` | `str \| None` | `None` | Default CLIP filename for `generate_anima_image`. |
+| `anima_vae` | `str \| None` | `None` | Default VAE filename for `generate_anima_image`. |
 | `download_dir` | `str \| None` | `None` | Default directory for generated images; a per-call `download_dir=` takes precedence. |
+
+
+The workflow kind is **not** configurable — it is the method you call:
+`generate_image` / `generate_simple_image` / `generate_anima_image`
+(client methods `generate` / `generate_simple` / `generate_anima`), plus
+the img2img refiner `generate_img2img` (same name on client, api, and
+capability).
 
 #### The simple workflow
 
-`workflow = "simple"` runs a single sampler pass with no upscale and no
-refine — the decode feeds the preview directly, so the submitted graph is
-7 nodes instead of 11:
+`generate_simple_image(...)` (client: `generate_simple`) runs a single
+sampler pass with no upscale and no refine — the decode feeds the
+preview directly, so the submitted graph is 7 nodes instead of 11:
 
 ```mermaid
 graph LR
@@ -81,25 +87,56 @@ graph LR
 ```
 
 Use it when a hi-res pass is not worth the time (fast iteration) or when
-you want the literal latent canvas.  Because nothing upscales, `mp` sizes
-the latent directly rather than dividing by the upscale factor.
+you want the literal latent canvas.  Because nothing upscales, `mp`
+sizes the latent directly rather than dividing by the upscale factor.
+
+#### The img2img refiner
+
+`generate_img2img(prompt, image, ...)` (same signature on the client,
+the api function, and the capability) refines an existing image instead
+of sampling from a latent canvas: the image is scaled toward the `mp`
+budget, encoded, and resampled on the two-pass template's refine
+schedule.
+
+Pass a local file as a `pathlib.Path` — it is uploaded via
+`POST /upload/image` first — or the exact name of an image already in
+the server's input directory as a `str` (a `str` naming an existing
+local file is rejected as ambiguous rather than guessed).  `denoise`
+controls how much of the source survives (`0.45` keeps the composition,
+`1.0` regenerates from noise); there is no `prop` — the aspect ratio
+belongs to the input image.
+
+```python
+from pathlib import Path
+
+from fabricatio_comfyui import generate_img2img
+
+path = await generate_img2img(
+    "a cat, best quality",
+    Path("./inputs/photo.png"),
+    mp=1.0,
+    denoise=0.45,
+)
+```
 
 #### The anima workflow
 
 The package ships a second bundled template — the *anima* preset — for
-models that load checkpoint, CLIP, and VAE as separate files.  Select it
-with `workflow = "anima"` and supply the real server-side filenames:
+models that load checkpoint, CLIP, and VAE as separate files.  Call
+`generate_anima_image(...)` (client: `generate_anima`) and supply the
+real server-side filenames per call (`clip=` / `vae=` / `checkpoint=`)
+or as defaults:
 
 ```toml
 [ext.comfyui]
-workflow = "anima"
 anima_checkpoint = "your-anima-checkpoint.safetensors"
 anima_clip = "your-anima-clip.safetensors"
 anima_vae = "your-anima-vae.safetensors"
 ```
 
 The template's model fields are placeholders in source; generation
-resolves them from these keys and fails loudly while any is unset.  The
+resolves them from these keys (a per-call argument wins) and fails
+loudly while any is unset.  The
 anima template samples once (`er_sde`, 32 steps) on a default 4:3
 1344x1024 canvas (overridable per call or config via `mp` / `prop`).  LoRAs apply per call via the `loras` knob — each
 entry names a server-side file and a strength, chained as stock
@@ -134,11 +171,11 @@ The canvas derives from the active template's built-in canvas: a given
 then both dimensions snap to the nearest multiple of 64 (half-up, floor
 64 px).  Either knob may be omitted — per-call knobs win over
 `[ext.comfyui]` defaults, which win over the template canvas (768x512
-for the default workflow, 1344x1024 for the anima preset).
+for the two-pass template, 1344x1024 for the anima preset).
 The default two-pass template upscales its base canvas by 2.3x (area
 5.29x) before the refine pass, so its base canvas is sized to
 `mp / 2.3**2` and the finished image lands at the budget.  Templates with
-no upscale step (the `simple` workflow and the anima preset) have a
+no upscale step (`generate_simple_image` and the anima preset) have a
 latent canvas that *is* the finished image, so the budget applies
 directly.
 

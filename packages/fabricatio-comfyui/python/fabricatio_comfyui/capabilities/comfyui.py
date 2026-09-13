@@ -5,11 +5,16 @@ surface is intentionally **narrow**: callers supply high-level knobs
 (``prompt``, ``prop``, ``mp``, ``seed``, ``steps``, ``cfg``,
 ``checkpoint``) and the package parameterises a bundled workflow template
 internally.  Workflow graphs are an implementation detail — external
-callers never see or operate on one.
+callers never see or operate on one.  Each bundled workflow kind gets
+its own method — :meth:`generate_image` (two-pass),
+:meth:`generate_simple_image` (single-pass), and
+:meth:`generate_anima_image` (anima preset); the kind is chosen at the
+call site, not via configuration.
 
 Method naming follows the ``Use*`` capability pattern of
-:mod:`fabricatio_skill` (``UseSkill``): plain verbs (``generate_image``
-...), no ``a``-prefix.
+:mod:`fabricatio_skill` (``UseSkill``): plain verbs with the kind as a
+suffix (``generate_image``, ``generate_anima_image`` ...), no
+``a``-prefix.
 
 Client lifecycle follows the ``fabricatio-milvus`` pattern: the mixin
 holds no client at all.  A module-level ``@cache`` factory keeps one
@@ -23,10 +28,15 @@ from typing import Unpack, overload
 
 from fabricatio_core.utils import first_available
 
-from fabricatio_comfyui.api import generate_image
+from fabricatio_comfyui.api import (
+    generate_anima_image,
+    generate_image,
+    generate_img2img,
+    generate_simple_image,
+)
 from fabricatio_comfyui.config import comfyui_config
 from fabricatio_comfyui.models.comfyui import ComfyUIScopedConfig
-from fabricatio_comfyui.models.kwargs_types import GenerateKwargs
+from fabricatio_comfyui.models.kwargs_types import GenerateKwargs, Img2ImgGenerateKwargs
 
 __all__ = ["UseComfyUI"]
 
@@ -108,3 +118,136 @@ class UseComfyUI(ComfyUIScopedConfig):
             "or set a download_dir on the Role",
         )
         return await generate_image(prompt, download_dir=target, **kwargs)
+
+    @overload
+    async def generate_simple_image(
+        self,
+        prompt: str,
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "Path | None": ...
+
+    @overload
+    async def generate_simple_image(
+        self,
+        prompt: list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "list[Path | None]": ...
+
+    async def generate_simple_image(
+        self,
+        prompt: str | list[str],
+        download_dir: str | Path | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "Path | list[Path | None] | None":
+        """Generate image(s) with the bundled single-pass workflow.
+
+        Same contract as :meth:`generate_image`, but the single-pass
+        template skips the upscale/refine branch — the finished image is
+        exactly the latent canvas, so *mp* / *prop* size it directly.
+        Delegates to
+        :func:`fabricatio_comfyui.api.generate_simple_image`.
+        """
+        target = first_available(
+            (download_dir, self.download_dir, comfyui_config.download_dir),
+            "generate_simple_image needs a download directory: pass download_dir=, set [ext.comfyui] download_dir, "
+            "or set a download_dir on the Role",
+        )
+        return await generate_simple_image(prompt, download_dir=target, **kwargs)
+
+    @overload
+    async def generate_anima_image(
+        self,
+        prompt: str,
+        download_dir: str | Path | None = None,
+        *,
+        clip: str | None = None,
+        vae: str | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "Path | None": ...
+
+    @overload
+    async def generate_anima_image(
+        self,
+        prompt: list[str],
+        download_dir: str | Path | None = None,
+        *,
+        clip: str | None = None,
+        vae: str | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "list[Path | None]": ...
+
+    async def generate_anima_image(
+        self,
+        prompt: str | list[str],
+        download_dir: str | Path | None = None,
+        *,
+        clip: str | None = None,
+        vae: str | None = None,
+        **kwargs: Unpack[GenerateKwargs],
+    ) -> "Path | list[Path | None] | None":
+        """Generate image(s) with the bundled anima workflow.
+
+        Same contract as :meth:`generate_image`, but the anima template
+        loads checkpoint / CLIP / VAE from separate nodes and samples
+        once at a fixed 4:3 canvas (*mp* / *prop* overridable).  *clip* /
+        *vae* fall back to ``[ext.comfyui] anima_clip`` / ``anima_vae``
+        and *checkpoint* to ``checkpoint`` / ``anima_checkpoint`` — unset
+        filenames fail loudly.  Delegates to
+        :func:`fabricatio_comfyui.api.generate_anima_image`.
+        """
+        target = first_available(
+            (download_dir, self.download_dir, comfyui_config.download_dir),
+            "generate_anima_image needs a download directory: pass download_dir=, set [ext.comfyui] download_dir, "
+            "or set a download_dir on the Role",
+        )
+        return await generate_anima_image(prompt, download_dir=target, clip=clip, vae=vae, **kwargs)
+
+    @overload
+    async def generate_img2img(
+        self,
+        prompt: str,
+        image: str | Path,
+        download_dir: str | Path | None = None,
+        *,
+        denoise: float | None = None,
+        **kwargs: Unpack[Img2ImgGenerateKwargs],
+    ) -> "Path | None": ...
+
+    @overload
+    async def generate_img2img(
+        self,
+        prompt: list[str],
+        image: str | Path,
+        download_dir: str | Path | None = None,
+        *,
+        denoise: float | None = None,
+        **kwargs: Unpack[Img2ImgGenerateKwargs],
+    ) -> "list[Path | None]": ...
+
+    async def generate_img2img(
+        self,
+        prompt: str | list[str],
+        image: str | Path,
+        download_dir: str | Path | None = None,
+        *,
+        denoise: float | None = None,
+        **kwargs: Unpack[Img2ImgGenerateKwargs],
+    ) -> "Path | list[Path | None] | None":
+        """Refine *image* into image(s) and return their downloaded paths.
+
+        Same contract as :meth:`generate_image`, but the bundled img2img
+        template takes an input image: a local file (passed as a
+        :class:`pathlib.Path`) is uploaded first, while a ``str`` names an
+        image already in the server's input directory.  *mp* scales the
+        image toward the budget and *denoise* maps to the sampler's start
+        step — lower values keep more of the source composition.
+        Delegates to :func:`fabricatio_comfyui.api.generate_img2img`.
+        """
+        target = first_available(
+            (download_dir, self.download_dir, comfyui_config.download_dir),
+            "generate_img2img needs a download directory: pass download_dir=, set [ext.comfyui] download_dir, "
+            "or set a download_dir on the Role",
+        )
+        return await generate_img2img(prompt, image, download_dir=target, denoise=denoise, **kwargs)
