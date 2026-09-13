@@ -373,12 +373,14 @@ impl ModelTypeTag for CompletionTag {
     }
 
     fn cache_key(request: &Self::Request) -> CacheKey {
+        // Keyed on each image's digest — taken over the original bytes, before any
+        // compression — so re-encoding settings never fork the cache.
         let key = if request.images.is_empty() {
             blake3::hash(request.message.as_bytes()).to_string()
         } else {
             let mut s = request.message.clone();
             for img in &request.images {
-                s.push_str(img);
+                s.push_str(&img.digest);
             }
             blake3::hash(s.as_bytes()).to_string()
         };
@@ -453,5 +455,40 @@ impl ModelTypeTag for EmbeddingTag {
         request: Self::Request,
     ) -> Result<Self::Response> {
         deployment.embedding(request).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{CompletionRequest, ImageAttachment};
+
+    /// Two compression settings for the same original image must key the same: the
+    /// key follows the digest taken before compression, not the sent payload.
+    #[test]
+    fn completion_cache_key_follows_the_original_digest() {
+        let key_of = |request: &CompletionRequest| match CompletionTag::cache_key(request) {
+            CacheKey::Single(k) => k,
+            CacheKey::Batch(_) => unreachable!("completion keys are single"),
+        };
+        let request_with = |uri: &str, digest: &str| CompletionRequest {
+            message: "look at this".to_string(),
+            images: vec![ImageAttachment {
+                uri: uri.to_string(),
+                digest: digest.to_string(),
+            }],
+            ..Default::default()
+        };
+
+        let digest = blake3::hash(b"original bytes").to_string();
+        let compressed = key_of(&request_with("data:image/jpeg;base64,AAAA", &digest));
+        let untouched = key_of(&request_with("data:image/png;base64,BBBBBBBB", &digest));
+        assert_eq!(compressed, untouched);
+
+        let other = key_of(&request_with(
+            "data:image/jpeg;base64,AAAA",
+            &blake3::hash(b"another image").to_string(),
+        ));
+        assert_ne!(other, compressed);
     }
 }

@@ -18,6 +18,62 @@ use thryd::tracker::Quota;
 use thryd::{DeploymentIdentifier, ProviderName, ProviderType, RouteGroupName};
 use validator::Validate;
 
+/// Container the compressed payload is encoded into.
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[cfg_attr(feature = "stubgen", pyo3_stub_gen::derive::gen_stub_pyclass_enum)]
+#[pyclass(from_py_object)]
+pub enum ImageCompressionFormat {
+    /// JPEG: parsed by every multimodal endpoint, quality-controlled lossy encode.
+    #[default]
+    Jpeg,
+    /// WebP: roughly half the bytes of JPEG at the same quality where the endpoint
+    /// decodes it (verified against an OpenAI-compatible vision model).
+    Webp,
+}
+
+/// Policy for shrinking images attached to completion requests.
+///
+/// Disabled by default. When enabled, every attached image in a decodeable format is
+/// re-encoded lossily at [`Self::quality`] — the size knob, not a pixel rule — and the
+/// re-encode is discarded whenever it would grow the payload, so compression never
+/// enlarges a request. [`Self::max_megapixels`] is an optional fee cap: vision
+/// providers bill by pixel count, so images above the budget are scaled down to fit
+/// it; `None` keeps the original resolution. The completion cache keys on the digest
+/// of the original bytes, so toggling any of this never changes cache hits.
+#[derive(Debug, Clone, Deserialize, Serialize, Validate)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass(from_py_object, get_all)]
+pub struct ImageCompressionConfig {
+    /// Whether to re-encode attached images before sending.
+    pub enabled: bool,
+
+    /// Container of the re-encode.
+    #[serde(default)]
+    pub format: ImageCompressionFormat,
+
+    /// Quality of the lossy re-encode. Range: [1, 100].
+    #[validate(range(min = 1, max = 100, message = "quality must be between 1 and 100"))]
+    pub quality: u8,
+
+    /// Optional pixel budget in megapixels; larger images are scaled down to fit.
+    /// Vision fees scale with pixel count, so this is the fee knob. `None` keeps the
+    /// original resolution.
+    #[validate(range(min = 0.01, max = 64.0, message = "max_megapixels must be between 0.01 and 64.0"))]
+    pub max_megapixels: Option<f32>,
+}
+
+impl Default for ImageCompressionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            format: ImageCompressionFormat::Jpeg,
+            quality: 85,
+            max_megapixels: None,
+        }
+    }
+}
+
 /// Configuration for Language Learning Models (LLMs) like OpenAI's GPT.
 ///
 /// This structure contains all parameters needed to configure and interact with LLM services.
@@ -55,6 +111,7 @@ pub struct LLMConfig {
 
     /// Reasoning effort for models that support it.
     pub effort: Option<String>,
+
 }
 
 /// Embedding configuration structure.
@@ -254,6 +311,10 @@ pub struct RoutingConfig {
 
     /// Exponential backoff multiplier. Default: 2.0.
     pub retry_backoff_multiplier: Option<f64>,
+
+    /// Compression applied to images attached to completion requests.
+    #[serde(default)]
+    pub image_compression: ImageCompressionConfig,
 }
 
 /// General configuration structure for application-wide settings.

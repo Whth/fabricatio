@@ -99,6 +99,20 @@ pub struct EmbeddingRequest {
     pub max_batch_emb_size: Option<usize>,
 }
 
+/// One image attached to a completion request.
+///
+/// The data URI is what the provider receives — possibly a compressed re-encode —
+/// while the digest identifies the ORIGINAL bytes and is what the completion cache
+/// keys on, so changing compression settings never changes cache hits.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ImageAttachment {
+    /// Payload sent to the provider, as a base64 data URI (`data:<mime>;base64,...`).
+    pub uri: String,
+
+    /// Hex blake3 of the original bytes, taken before any compression.
+    pub digest: String,
+}
+
 /// Request payload for generating text completions.
 ///
 /// Controls generation parameters like temperature, top_p, and token limits.
@@ -145,11 +159,12 @@ pub struct CompletionRequest {
     /// Positive values reduce word repetition.
     pub frequency_penalty: Option<f32>,
 
-    /// Base64 data-URI images for multimodal requests (e.g. `"data:image/png;base64,..."`).
+    /// Images attached to the request, each carrying the data URI sent to the
+    /// provider plus the digest of the original bytes the cache keys on.
     /// When non-empty, the OpenAI model builds multipart content internally.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
-    pub images: Vec<String>,
+    pub images: Vec<ImageAttachment>,
 
     /// Reasoning effort for models that support it (e.g. o1, o3).
     /// Must be one of `"low"`, `"medium"`, `"high"`, `"xhigh"`, `"minimal"`, or `None`.

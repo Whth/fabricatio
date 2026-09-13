@@ -7,7 +7,7 @@ use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
-use fabricatio_router::{CompletionRequest, RouteGroupName, Router, bytes_to_data_uri};
+use fabricatio_router::{CompletionRequest, RouteGroupName, Router, attach};
 use futures::StreamExt;
 use futures::future::join_all;
 use pyo3::BoundObject;
@@ -106,8 +106,8 @@ impl CompletionParams {
                 .images
                 .clone()
                 .unwrap_or_default()
-                .iter()
-                .map(|b| bytes_to_data_uri(b))
+                .into_iter()
+                .map(|b| attach(&b))
                 .collect(),
         }
     }

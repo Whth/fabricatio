@@ -33,6 +33,8 @@ __all__ = [
     "Event",
     "GeneralConfig",
     "GenericBlockParser",
+    "ImageCompressionConfig",
+    "ImageCompressionFormat",
     "JsonParser",
     "LLMConfig",
     "Logger",
@@ -546,6 +548,35 @@ class GenericBlockParser:
         """
 
 @typing.final
+class ImageCompressionConfig:
+    r"""Policy for shrinking images attached to completion requests.
+
+    Disabled by default. When enabled, every attached image in a decodeable format is
+    re-encoded lossily at [`Self::quality`] — the size knob, not a pixel rule — and the
+    re-encode is discarded whenever it would grow the payload, so compression never
+    enlarges a request. [`Self::max_megapixels`] is an optional fee cap: vision
+    providers bill by pixel count, so images above the budget are scaled down to fit
+    it; `None` keeps the original resolution. The completion cache keys on the digest
+    of the original bytes, so toggling any of this never changes cache hits.
+    """
+
+    @property
+    def enabled(self) -> builtins.bool:
+        r"""Whether to re-encode attached images before sending."""
+
+    @property
+    def format(self) -> ImageCompressionFormat:
+        r"""Container of the re-encode."""
+
+    @property
+    def quality(self) -> builtins.int:
+        r"""Quality of the lossy re-encode. Range: [1, 100]."""
+
+    @property
+    def max_megapixels(self) -> builtins.float | None:
+        r"""Optional pixel budget in megapixels; larger images are scaled down to fit."""
+
+@typing.final
 class JsonParser:
     @staticmethod
     def with_pattern(pattern: builtins.str) -> JsonParser:
@@ -753,7 +784,10 @@ class Router:
         r"""Sends a completion request to the specified group and returns the full response.
 
         When `images` is non-empty, raw bytes are auto-detected for MIME type and
-        base64-encoded into data URIs for multimodal requests.
+        base64-encoded into data URIs for multimodal requests. With `[llm.image_compression]`
+        enabled the payload is a lossy re-encode at the configured quality and format instead;
+        the completion cache keys on the digest of the original bytes either way, so cache
+        hits do not depend on the compression settings.
 
         Args:
             send_to (str): The router group name.
@@ -788,7 +822,9 @@ class Router:
     ) -> typing.Any:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
 
-        When `images` is non-empty, all images are broadcast to every message.
+        When `images` is non-empty, all images are broadcast to every message. Each is
+        prepared exactly as in `completion`: lossily re-encoded when `[llm.image_compression]`
+        is enabled, cached under the digest of the original bytes.
 
         Args:
             send_to (str): The router group name.
@@ -1447,6 +1483,9 @@ class RoutingConfig:
     @property
     def retry_backoff_multiplier(self) -> builtins.float | None:
         r"""Exponential backoff multiplier. Default: 2.0."""
+    @property
+    def image_compression(self) -> ImageCompressionConfig:
+        r"""Compression applied to images attached to completion requests."""
 
 @typing.final
 class SecretStr:
@@ -1695,6 +1734,20 @@ class TextCapturer:
         Note:
             - If `right_delimiter` is not provided, it defaults to `left_delimiter`.
         """
+
+@typing.final
+class ImageCompressionFormat(enum.Enum):
+    r"""Container the compressed payload is encoded into."""
+
+    Jpeg = ...
+    r"""
+    JPEG: parsed by every multimodal endpoint, quality-controlled lossy encode.
+    """
+    Webp = ...
+    r"""
+    WebP: roughly half the bytes of JPEG at the same quality where the endpoint
+    decodes it (verified against an OpenAI-compatible vision model).
+    """
 
 @typing.final
 class ProviderType(enum.Enum):

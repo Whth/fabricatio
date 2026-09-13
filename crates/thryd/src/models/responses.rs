@@ -115,9 +115,9 @@ fn build_input(request: &CompletionRequest) -> InputParam {
     let mut parts: Vec<InputContent> = request
         .images
         .iter()
-        .map(|url| {
+        .map(|img| {
             InputContent::InputImage(InputImageContent {
-                image_url: Some(url.clone()),
+                image_url: Some(img.uri.clone()),
                 ..Default::default()
             })
         })
@@ -369,6 +369,7 @@ impl CompletionModel for OpenaiResponsesModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::ImageAttachment;
 
     #[test]
     fn responses_route_serializes() {
@@ -403,7 +404,10 @@ mod tests {
             top_p: Some(0.9),
             temperature: Some(0.7),
             max_completion_tokens: Some(100),
-            images: vec!["data:image/png;base64,QUJD".to_string()],
+            images: vec![ImageAttachment {
+                uri: "data:image/png;base64,QUJD".to_string(),
+                digest: "0".repeat(64),
+            }],
             effort: Some("high".to_string()),
             ..Default::default()
         };

@@ -10,14 +10,17 @@ use std::fs;
 use std::sync::Arc;
 use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
-pub use thryd::utils::{analyze_identifier, bytes_to_data_uri};
+pub use image::attach;
+pub use thryd::utils::analyze_identifier;
 use thryd::{
     CompletionModel, CompletionTag, CompletionText, DeploymentIdentifier, DummyModel, Embedding,
     EmbeddingModel, EmbeddingRequest, EmbeddingTag, ModelTypeTag, RankedDocuments, RerankerModel,
     RerankerRequest, RerankerTag, RetryConfig, Router as ThrydRouter, create_provider,
 };
 
-pub use thryd::{CompletionRequest, ProviderType, RouteGroupName};
+mod image;
+
+pub use thryd::{CompletionRequest, ImageAttachment, ProviderType, RouteGroupName};
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Default, Clone)]
@@ -139,7 +142,10 @@ impl Router {
     /// Sends a completion request to the specified group and returns the full response.
     ///
     /// When `images` is non-empty, raw bytes are auto-detected for MIME type and
-    /// base64-encoded into data URIs for multimodal requests.
+    /// base64-encoded into data URIs for multimodal requests. With `[routing.image_compression]`
+    /// enabled the payload is a lossy re-encode at the configured quality and format instead;
+    /// the completion cache keys on the digest of the original bytes either way, so cache
+    /// hits do not depend on the compression settings.
     ///
     /// Args:
     ///     send_to (str): The router group name.
@@ -182,8 +188,8 @@ impl Router {
             effort,
             images: images
                 .unwrap_or_default()
-                .iter()
-                .map(|b| bytes_to_data_uri(b))
+                .into_iter()
+                .map(|b| crate::image::attach(&b))
                 .collect(),
         };
 
@@ -197,7 +203,9 @@ impl Router {
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
-    /// When `images` is non-empty, all images are broadcast to every message.
+    /// When `images` is non-empty, all images are broadcast to every message. Each is
+    /// prepared exactly as in `completion`: lossily re-encoded when `[routing.image_compression]`
+    /// is enabled, cached under the digest of the original bytes.
     ///
     /// Args:
     ///     send_to (str): The router group name.
@@ -229,12 +237,12 @@ impl Router {
         no_cache: bool,
         #[gen_stub(override_type(type_repr = "list[bytes] | None"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let data_uris: Vec<String> = images
+        let attachments: Vec<ImageAttachment> = images
             .unwrap_or_default()
-            .iter()
-            .map(|b| bytes_to_data_uri(b))
+            .into_iter()
+            .map(|b| crate::image::attach(&b))
             .collect();
-        let reqs = if data_uris.is_empty() {
+        let reqs = if attachments.is_empty() {
             messages
                 .into_iter()
                 .map(|message| CompletionRequest {
@@ -262,7 +270,7 @@ impl Router {
                     presence_penalty,
                     frequency_penalty,
                     effort: effort.clone(),
-                    images: data_uris.clone(),
+                    images: attachments.clone(),
                 })
                 .collect::<Vec<_>>()
         };

@@ -383,10 +383,13 @@ impl CompletionModel for OpenaiModel {
                 .into()
         } else {
             let mut parts: Vec<ChatCompletionRequestUserMessageContentPart> = Vec::new();
-            for url in request.images {
+            for img in &request.images {
                 parts.push(
                     ChatCompletionRequestMessageContentPartImage {
-                        image_url: ImageUrl { url, detail: None },
+                        image_url: ImageUrl {
+                            url: img.uri.clone(),
+                            detail: None,
+                        },
                     }
                     .into(),
                 );
