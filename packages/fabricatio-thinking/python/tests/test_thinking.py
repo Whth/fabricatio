@@ -1,22 +1,17 @@
 """Tests for the thinking."""
 
 import pytest
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_core import Role
+from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_thinking.capabilities.thinking import Thinking
 from fabricatio_thinking.models.thinking import Thought
 from fabricatio_thinking.rust import ThoughtVCS
 
 
-class ThinkingRole(LLMTestRole, Thinking):
-    """Test role that combines LLMTestRole with Thinking for testing."""
-
-
 @pytest.fixture
-def role() -> ThinkingRole:
-    """Create a ThinkingRole instance for testing."""
-    return ThinkingRole(name="thinking")
+def role() -> Role:
+    """Create a thinking test role instance."""
+    return make_test_role(Thinking, name="thinking")
 
 
 @pytest.fixture
@@ -60,15 +55,17 @@ def vcs() -> ThoughtVCS:
 )
 @pytest.mark.asyncio
 async def test_thinking_parametrized_router(
-    role: ThinkingRole,
+    role: Role,
     vcs: ThoughtVCS,
     thoughts: list[Thought],
     expected_commits: int,
     expected_branches: int,
 ) -> None:
     """Test the thinking process with various scenarios using mock router."""
-    responses = return_model_json_router_usage(*thoughts)
-    with install_router_usage(*responses):
+    script = MockScript.from_values(
+        *[Value.from_model(thought, name=f"thought {i}") for i, thought in enumerate(thoughts, start=1)]
+    ).with_padding(10)  # the revision scenario keeps looping to max_steps
+    with script:
         result_vcs = await role.thinking("Test question", vcs=vcs, max_steps=10)
         # Check number of branches and commits
         if hasattr(result_vcs, "branches"):
@@ -90,10 +87,11 @@ async def test_thinking_parametrized_router(
     ],
 )
 @pytest.mark.asyncio
-async def test_thinking_calls_end_router(role: ThinkingRole, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
+async def test_thinking_calls_end_router(role: Role, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
     """Test that thinking stops when end is True using mock router."""
-    responses = return_model_json_router_usage(*thoughts)
-    with install_router_usage(*responses):
+    with MockScript.from_values(
+        *[Value.from_model(thought, name=f"thought {i}") for i, thought in enumerate(thoughts, start=1)]
+    ):
         result_vcs = await role.thinking("Test", vcs=vcs, max_steps=10)
         assert result_vcs is not None
 
@@ -108,9 +106,10 @@ async def test_thinking_calls_end_router(role: ThinkingRole, vcs: ThoughtVCS, th
     ],
 )
 @pytest.mark.asyncio
-async def test_thinking_with_router_param(role: ThinkingRole, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
+async def test_thinking_with_router_param(role: Role, vcs: ThoughtVCS, thoughts: list[Thought]) -> None:
     """Integration-like test with a mock router (parametrized)."""
-    responses = return_model_json_router_usage(*thoughts)
-    with install_router_usage(*responses):
+    with MockScript.from_values(
+        *[Value.from_model(thought, name=f"thought {i}") for i, thought in enumerate(thoughts, start=1)]
+    ):
         result_vcs = await role.thinking("Test", vcs=vcs, max_steps=10)
         assert result_vcs is not None
