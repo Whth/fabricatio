@@ -5,14 +5,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fabricatio_core import Role
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
 from fabricatio_core.utils import ok
 from fabricatio_judge.capabilities.advanced_judge import EvidentlyJudge, VisuallyJudge, VoteJudge
 from fabricatio_judge.models.judgement import ImageVerdict, JudgeMent
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import return_model_json_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
 from pydantic import Field
 
 
@@ -30,33 +29,32 @@ def jd(passed: bool | list[bool]) -> JudgeMent | list[JudgeMent]:
     return JudgeMent(issue_to_judge="test", affirm_evidence=["test"], deny_evidence=["test"], final_judgement=passed)
 
 
-class JudgeRole(LLMTestRole, EvidentlyJudge):
-    """A class that tests the judge method."""
-
-    pass
-
-
 @pytest.fixture
-def responses(ret_value: SketchedAble) -> list[str]:
+def responses(ret_value: SketchedAble) -> MockScript:
     """Create mock router responses that return a specific value.
 
     Args:
         ret_value (SketchedAble): Value to be returned by the router
 
     Returns:
-        list[str]: List of response strings
+        MockScript: Scripted responses, one per call the test makes
     """
-    return return_model_json_router_usage(ret_value)
+    return MockScript.from_values(
+        Value.from_model(ret_value, name="judgement"),
+        Value.from_model(ret_value, name="proposal 1"),
+        Value.from_model(ret_value, name="proposal 2"),
+        Value.from_model(ret_value, name="proposal 3"),
+    )
 
 
 @pytest.fixture
-def role() -> JudgeRole:
-    """Create a JudgeRole instance for testing.
+def role() -> Role:
+    """Create the judge role under test.
 
     Returns:
-        JudgeRole: JudgeRole instance
+        Role: Composed judge test role
     """
-    return JudgeRole(name="judge")
+    return make_test_role(EvidentlyJudge, name="judge")
 
 
 @pytest.mark.parametrize(
@@ -73,16 +71,16 @@ def role() -> JudgeRole:
     ],
 )
 @pytest.mark.asyncio
-async def test_judge(responses: list[str], role: JudgeRole, ret_value: SketchedAble, prompt: str) -> None:
+async def test_judge(responses: MockScript, role: Role, ret_value: SketchedAble, prompt: str) -> None:
     """Test the judge method with positive and negative cases.
 
     Args:
-        responses (list[str]): Mocked router responses fixture
-        role (JudgeRole): JudgeRole fixture
+        responses (MockScript): Mocked router responses fixture
+        role (Role): The judge role fixture
         ret_value (SketchedAble): Expected return value
         prompt (str): Input prompt for testing
     """
-    with install_router_usage(*responses):
+    with responses:
         jud = ok(await role.evidently_judge(prompt))
         assert jud.model_dump_json() == ret_value.model_dump_json()
         assert bool(jud) == bool(ret_value)
@@ -94,10 +92,11 @@ async def test_judge(responses: list[str], role: JudgeRole, ret_value: SketchedA
         assert len(jud_sq) == 3
 
 
-class VoteJudgeRole(LLMTestRole, VoteJudge):
-    """A class that tests the vote_judge method with different configurations.
+class ScriptedVote(VoteJudge):
+    """VoteJudge carrying the voting weights and pass threshold the vote tests script.
 
-    The class has predefined voting weights and thresholds for testing purposes.
+    ``VoteLLMConfig`` leaves ``vote_llm`` required, so the scripted preferences stay on a
+    capability of their own instead of on the composed test role.
     """
 
     vote_llm: dict[float, ValidateKwargs[JudgeMent]] = Field(
@@ -112,26 +111,28 @@ class VoteJudgeRole(LLMTestRole, VoteJudge):
 
 # Fixtures
 @pytest.fixture
-def vote_role() -> VoteJudgeRole:
-    """Create a VoteJudgeRole instance for testing.
+def vote_role() -> Role:
+    """Create the vote-judge role under test.
 
     Returns:
-        VoteJudgeRole: VoteJudgeRole instance
+        Role: Composed vote-judge test role
     """
-    return VoteJudgeRole(name="vote-judge")
+    return make_test_role(ScriptedVote, name="vote-judge")
 
 
-# Helper to generate a mock router returning specific judgments
-def make_vote_router(judgments: list[JudgeMent]) -> list[str]:
-    """Create mock router responses that return predefined judgments.
+# Helper to generate a script returning specific judgments
+def vote_script(*judgments: JudgeMent) -> MockScript:
+    """Create a script that returns predefined judgments in order.
 
     Args:
-        judgments (List[JudgeMent]): List of judgments to be returned
+        *judgments (JudgeMent): Judgments to be returned
 
     Returns:
-        list[str]: List of response strings
+        MockScript: Scripted responses, one per declared judgment
     """
-    return return_model_json_router_usage(*judgments)
+    return MockScript.from_values(
+        *(Value.from_model(judgment, name=f"vote {position}") for position, judgment in enumerate(judgments, start=1))
+    )
 
 
 # Test data
@@ -213,15 +214,14 @@ vote_test_cases = [
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("case", vote_test_cases)
-async def test_vote_judge(vote_role: VoteJudgeRole, case: Case) -> None:
+async def test_vote_judge(vote_role: Role, case: Case) -> None:
     """Test the vote_judge method with various judgment and threshold combinations.
 
     Args:
-        vote_role (VoteJudgeRole): VoteJudgeRole fixture
+        vote_role (Role): The vote-judge role fixture
         case (Case): Test case containing judgments, threshold and expected result
     """
-    responses = return_model_json_router_usage(*case.judgments)
-    with install_router_usage(*responses):
+    with vote_script(*case.judgments):
         result = await vote_role.vote_judge("test prompt", vote_pass_threshold=case.threshold)
         assert result == case.expected_result
 
@@ -250,11 +250,11 @@ def test_resolve_pass(weights: list[float], judgments: list[JudgeMent], threshol
 
 # Test empty prompt
 @pytest.mark.asyncio
-async def test_vote_judge_empty_prompt(vote_role: VoteJudgeRole) -> None:
+async def test_vote_judge_empty_prompt(vote_role: Role) -> None:
     """Test the vote_judge method with an empty prompt input.
 
     Args:
-        vote_role (VoteJudgeRole): VoteJudgeRole fixture
+        vote_role (Role): The vote-judge role fixture
     """
     result = await vote_role.vote_judge([])  # type: ignore[arg-type]
     assert result == []
@@ -262,18 +262,17 @@ async def test_vote_judge_empty_prompt(vote_role: VoteJudgeRole) -> None:
 
 # Test multiple prompts
 @pytest.mark.asyncio
-async def test_vote_judge_multiple_prompts(vote_role: VoteJudgeRole) -> None:
+async def test_vote_judge_multiple_prompts(vote_role: Role) -> None:
     """Test the vote_judge method with multiple prompts.
 
     Args:
-        vote_role (VoteJudgeRole): VoteJudgeRole fixture
+        vote_role (Role): The vote-judge role fixture
     """
     judgments = [
         jd(True),
         jd(False),
     ] * 3
-    responses = return_model_json_router_usage(*judgments)
-    with install_router_usage(*responses):
+    with vote_script(*judgments):
         result = await vote_role.vote_judge(["prompt1", "prompt2"])  # type: ignore[arg-type]
         assert result == [True, False]
 
@@ -297,37 +296,31 @@ def iv(passed: bool) -> ImageVerdict:
     )
 
 
-class VisualJudgeRole(LLMTestRole, VisuallyJudge):
-    """A class that tests the visually_judge method."""
-
-    pass
-
-
 @pytest.fixture
-def visual_role() -> VisualJudgeRole:
-    """Create a VisualJudgeRole instance.
+def visual_role() -> Role:
+    """Create the visual-judge role under test.
 
     Returns:
-        VisualJudgeRole: The role under test
+        Role: Composed visual-judge test role
     """
-    return VisualJudgeRole(name="visual-judge")
+    return make_test_role(VisuallyJudge, name="visual-judge")
 
 
 @pytest.mark.parametrize("passed", [True, False])
 @pytest.mark.asyncio
-async def test_visually_judge(passed: bool, visual_role: VisualJudgeRole) -> None:
+async def test_visually_judge(passed: bool, visual_role: Role) -> None:
     """Test visually_judge with a mocked router and a real PNG file.
 
     Args:
         passed (bool): Whether the mocked verdict passes
-        visual_role (VisualJudgeRole): The role under test
+        visual_role (Role): The role under test
     """
     expected = iv(passed)
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as handle:
         handle.write(b"\x89PNG\r\n\x1a\nfake-bytes")
         image_path = Path(handle.name)
     try:
-        with install_router_usage(*return_model_json_router_usage(expected)):
+        with MockScript.from_values(Value.from_model(expected, name="image verdict")):
             verdict = ok(await visual_role.visually_judge(image_path, issue_to_judge="test"))
             assert verdict.model_dump_json() == expected.model_dump_json()
             assert bool(verdict) == passed
@@ -336,11 +329,11 @@ async def test_visually_judge(passed: bool, visual_role: VisualJudgeRole) -> Non
 
 
 @pytest.mark.asyncio
-async def test_visually_judge_missing_image(visual_role: VisualJudgeRole) -> None:
+async def test_visually_judge_missing_image(visual_role: Role) -> None:
     """Test visually_judge fails loudly on a missing image path.
 
     Args:
-        visual_role (VisualJudgeRole): The role under test
+        visual_role (Role): The role under test
     """
     verdict = await visual_role.visually_judge(Path("Z:/definitely/missing.png"), issue_to_judge="test")
     assert verdict is None

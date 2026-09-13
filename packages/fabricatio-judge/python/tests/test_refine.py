@@ -3,11 +3,11 @@
 from dataclasses import dataclass, field
 
 import pytest
-from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_core.models.generic import SketchedAble
 from fabricatio_judge.capabilities.refine import RefineLoop
 from fabricatio_judge.models.judgement import ImageVerdict, Verdict
 from fabricatio_judge.models.refine import Attempt, AttemptHistory, RefinePlan
+from fabricatio_mock import stub_template
 
 FEEDBACK_TEMPLATE = "test_refine_feedback"
 """Name of the stub feedback template installed by :func:`feedback_template_store`."""
@@ -25,11 +25,9 @@ _STUB_FEEDBACK_TEMPLATE = """\
 
 
 @pytest.fixture(scope="module", autouse=True)
-def feedback_template_store(tmp_path_factory: pytest.TempPathFactory) -> None:
+def feedback_template_store() -> None:
     """Install the stub feedback template so the loop can render its rejected-attempt tail."""
-    test_dir = tmp_path_factory.mktemp("templates")
-    (test_dir / f"{FEEDBACK_TEMPLATE}.hbs").write_text(_STUB_FEEDBACK_TEMPLATE)
-    TEMPLATE_MANAGER.add_store(test_dir, rediscovery=True)
+    stub_template(FEEDBACK_TEMPLATE, _STUB_FEEDBACK_TEMPLATE)
 
 
 class FakeSpec(SketchedAble):
