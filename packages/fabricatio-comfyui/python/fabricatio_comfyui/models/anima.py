@@ -241,7 +241,6 @@ class AnimaGraph(BaseTxt2ImgGraph):
 
     model_source: ClassVar[NodeRef] = NodeRef.first("loader")
     clip_source: ClassVar[NodeRef] = NodeRef.first("clip")
-    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler,)
     clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
 
     loader: AnimaCheckpointLoaderNode
@@ -291,9 +290,9 @@ class AnimaGraph(BaseTxt2ImgGraph):
             preview=AnimaPreviewNode.default(),
         )
 
-    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+    def sampler_fields(self) -> tuple[RewireField, ...]:
         """Return the single sampler pass of the anima template."""
-        return (self.sampler,)
+        return (RewireField.sampler,)
 
     def with_checkpoint(self, ckpt_name: str) -> Self:
         """Set the checkpoint on the loader node; return *self* for chaining."""

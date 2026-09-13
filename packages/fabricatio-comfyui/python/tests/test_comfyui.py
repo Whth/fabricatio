@@ -206,12 +206,64 @@ class TestGraph:
         inputs1 = cast("dict[str, object]", lora1["inputs"])
         assert inputs1["model"] == ("lora_0", 0)
         assert inputs1["clip"] == ("lora_0", 1)
-        for name in ("sampler_base", "sampler_refine"):
-            inputs = cast("dict[str, object]", cast("dict[str, object]", api[name])["inputs"])
-            assert inputs["model"] == ("lora_1", 0)
-        for name in ("positive", "negative"):
-            inputs = cast("dict[str, object]", cast("dict[str, object]", api[name])["inputs"])
-            assert inputs["clip"] == ("lora_1", 1)
+        for name, node in api.items():
+            node_payload = cast("dict[str, object]", node)
+            if node_payload.get("class_type") == "KSamplerAdvanced":
+                inputs = cast("dict[str, object]", node_payload["inputs"])
+                assert inputs["model"] == ("lora_1", 0), f"{name} did not receive the LoRA model"
+        for field in graph.clip_inputs:
+            inputs = cast("dict[str, object]", cast("dict[str, object]", api[field.value])["inputs"])
+            assert inputs["clip"] == ("lora_1", 1), f"{field.value} did not receive the LoRA CLIP"
+
+    def test_every_template_chains_loras_into_every_sampler(self) -> None:
+        """No bundled template can leave a sampler on the base model."""
+        sampler_types = ("KSamplerAdvanced",)
+        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default()):
+            graph.with_lora("a.safetensors")
+            api = graph.to_api()
+            samplers = [
+                name for name, node in api.items() if cast("dict[str, object]", node).get("class_type") in sampler_types
+            ]
+            assert samplers, f"{type(graph).__name__} serialized no sampler"
+            for name in samplers:
+                node_payload = cast("dict[str, object]", api[name])
+                inputs = cast("dict[str, object]", node_payload["inputs"])
+                assert inputs["model"] == ("lora_0", 0), f"{type(graph).__name__}.{name} missed the LoRA"
+            for field in graph.clip_inputs:
+                inputs = cast("dict[str, object]", cast("dict[str, object]", api[field.value])["inputs"])
+                assert inputs["clip"] == ("lora_0", 1), f"{type(graph).__name__}.{field.value} missed the LoRA CLIP"
+
+    def test_lora_origins_matches_serialized_wiring(self) -> None:
+        """lora_origins reports exactly what to_api emits, with and without a LoRA."""
+        for graph in (Graph.default(), GraphSimple.default(), AnimaGraph.default()):
+            for chained in (False, True):
+                if chained:
+                    graph.with_lora("a.safetensors")
+                api = graph.to_api()
+                for key, ref in graph.lora_origins().items():
+                    field_name, input_name = key.split(".")
+                    node_payload = cast("dict[str, object]", api[field_name])
+                    inputs = cast("dict[str, object]", node_payload["inputs"])
+                    assert inputs[input_name] == ref.model_dump(), (
+                        f"{type(graph).__name__}.{key} disagreed with the payload"
+                    )
+
+    def test_with_sampler_preserves_per_pass_schedule(self) -> None:
+        """The base and refine passes keep their own sampler/scheduler under with_sampler."""
+        graph = Graph.default()
+        base_scheduler = graph.sampler_base.inputs.scheduler
+        refine_scheduler = graph.sampler_refine.inputs.scheduler
+        graph.with_sampler(seed=5, steps=20, cfg=6.0)
+        assert graph.sampler_base.inputs.scheduler == base_scheduler
+        assert graph.sampler_refine.inputs.scheduler == refine_scheduler
+
+    def test_with_sampler_rejects_schedule_knobs(self) -> None:
+        """with_sampler cannot take sampler_name/scheduler — they are per-pass, not uniform."""
+        graph = Graph.default()
+        with pytest.raises(TypeError):
+            graph.with_sampler(sampler_name="er_sde")
+        with pytest.raises(TypeError):
+            graph.with_sampler(scheduler="karras")
 
     def test_unknown_input_key_rejected(self) -> None:
         """A node input outside the known shape fails loudly at load."""
@@ -257,7 +309,7 @@ class TestAnimaGraph:
         assert graph.latent.inputs.width == 1344
         assert graph.latent.inputs.height == 1024
         assert graph.sampler.inputs.sampler_name == "er_sde"
-        assert graph.sampler.inputs.scheduler == "simple"
+        assert graph.sampler.inputs.scheduler == "karras"
         assert graph.sampler.inputs.steps == 32
         assert graph.sampler.inputs.cfg == 7.0
         assert graph.positive.inputs.clip.node_id == "clip"

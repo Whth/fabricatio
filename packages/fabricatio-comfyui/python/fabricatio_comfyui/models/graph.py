@@ -228,14 +228,21 @@ class BaseGraph(BaseModel):
     clip_source: ClassVar[NodeRef]
     """Wire ref to the node output carrying the unweighted CLIP."""
 
-    model_inputs: ClassVar[tuple[RewireField, ...]]
-    """Model-carrying inputs the LoRA chain output 0 feeds."""
-
     clip_inputs: ClassVar[tuple[RewireField, ...]]
     """CLIP-carrying inputs the LoRA chain output 1 feeds."""
 
     _loras: list[LoraSpec] = PrivateAttr(default_factory=list)
     """LoRAs chained into the model/CLIP path before submission."""
+
+    def sampler_fields(self) -> tuple[RewireField, ...]:
+        """Return the field names of this template's sampler nodes, in pass order.
+
+        Declared by the template (which alone knows its own topology) and the
+        *single* statement of which nodes consume the model: :meth:`to_api`
+        feeds every one of them the LoRA chain tail, so a newly added pass
+        cannot miss the LoRAs.
+        """
+        raise NotImplementedError
 
     def to_api(self) -> dict[str, object]:
         """Serialize to ComfyUI API format, chaining any :attr:`loras` into the model/CLIP paths.
@@ -244,12 +251,13 @@ class BaseGraph(BaseModel):
         plain per-field projection; ``NodeRef`` fields serialize to
         ``[node_id, output_index]`` lists.  When :attr:`loras` is given, a
         chain of ``LoraLoader`` nodes is inserted between :attr:`model_source`
-        and :attr:`clip_source` and the inputs named by :attr:`model_inputs`
-        / :attr:`clip_inputs` are rewired to the chain tail.
+        and :attr:`clip_source`; every field named by :meth:`sampler_fields`
+        takes its model from the chain tail (output 0) and the inputs named by
+        :attr:`clip_inputs` take their CLIP from it (output 1).
         """
         nodes: dict[str, WireNode] = dict(self)
         model_ref, clip_ref = LoraLoaderNode.chain(self._loras, nodes, self.model_source, self.clip_source)
-        for name in self.model_inputs:
+        for name in self.sampler_fields():
             nodes[name] = nodes[name].with_model(model_ref)
         for name in self.clip_inputs:
             nodes[name] = nodes[name].with_clip(clip_ref)
@@ -259,6 +267,37 @@ class BaseGraph(BaseModel):
         """Append a LoRA to the model/CLIP chain; return *self* for chaining."""
         self._loras.append(LoraSpec(lora_name=lora_name, strength=strength))
         return self
+
+    def lora_origins(self) -> dict[str, NodeRef]:
+        """Report, per node field, the wire ref its model/CLIP input resolves to.
+
+        A key is ``"<field>.<input>"`` (e.g. ``"sampler_base.model"``) and the
+        value is the ref the node *will* be wired to, LoRA chain included — or
+        the node's own current ref when no LoRA is chained.  This makes the
+        model/CLIP boundary of :meth:`to_api` inspectable without
+        re-deriving it, so an audit can see at a glance which nodes the LoRA
+        reached and which were left on the bare checkpoint.
+        """
+        model_ref, clip_ref = self._chain_tail()
+        origins: dict[str, NodeRef] = {}
+        for name in self.sampler_fields():
+            origins[f"{name}.{InputLink.model}"] = model_ref
+        for name in self.clip_inputs:
+            origins[f"{name}.{InputLink.clip}"] = clip_ref
+        return origins
+
+    def _chain_tail(self) -> tuple[NodeRef, NodeRef]:
+        """Return the model/CLIP refs the LoRA chain will hand to consumers.
+
+        With no LoRA chained this is the bare :attr:`model_source` /
+        :attr:`clip_source`, so callers need not special-case the empty chain.
+        """
+        if not self._loras:
+            return self.model_source, self.clip_source
+        model_ref, clip_ref = self.model_source, self.clip_source
+        for i in range(len(self._loras)):
+            model_ref, clip_ref = NodeRef.first(f"lora_{i}"), NodeRef.second(f"lora_{i}")
+        return model_ref, clip_ref
 
 
 class CheckpointLoaderInputs(NodeInputs):
@@ -565,14 +604,25 @@ class BaseTxt2ImgGraph(BaseGraph):
     negative: NegativePromptNode
     """Negative prompt encode node."""
 
-    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
-        """Return this template's sampler nodes in pass order.
+    def sampler_fields(self) -> tuple[RewireField, ...]:
+        """Return the field names (wire node IDs) of this template's samplers, in pass order.
 
         Abstract by convention: every concrete template declares its own
-        sampler set, which is what makes :meth:`with_sampler` apply the
-        same knobs to every pass of either shape.
+        sampler set.  This is the *single* statement of which nodes consume
+        the model, so :meth:`with_sampler` tunes all of them and
+        :meth:`BaseGraph.to_api` feeds all of them the LoRA chain tail — a
+        newly added pass cannot miss the LoRAs.
         """
         raise NotImplementedError
+
+    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+        """Return this template's sampler nodes, derived from :meth:`sampler_fields`.
+
+        The field name *is* the wire node ID, and the graph model is directly
+        iterable, so no per-template dispatch is needed.
+        """
+        fields: dict[str, KSamplerAdvancedNode] = dict(self)
+        return tuple(fields[name] for name in self.sampler_fields())
 
     def output_scale(self) -> float:
         """Linear factor between this template's latent canvas and its finished image.
@@ -612,13 +662,17 @@ class BaseTxt2ImgGraph(BaseGraph):
         seed: int | None = None,
         steps: int | None = None,
         cfg: float | None = None,
-        sampler_name: str | None = None,
-        scheduler: str | None = None,
     ) -> Self:
-        """Update sampler parameters on every sampler of this template.
+        """Apply *seed* / *steps* / *cfg* uniformly across every sampler of this template.
 
-        Keeping the seeds/steps/cfg of a multi-pass template aligned is the
-        sane semantic for a single generation.  Return *self* for chaining.
+        A single generation has one seed, one step count and one guidance
+        scale, so these three are aligned across passes by construction.
+        ``sampler_name`` and ``scheduler`` are deliberately *not* accepted:
+        a multi-pass template may legitimately run each pass on a different
+        schedule (the bundled high-res template samples the base pass with
+        ``beta`` and the refine pass with ``karras``), and a uniform
+        overwrite would erase that split without a word.  Return *self* for
+        chaining.
         """
         for sampler in self.samplers():
             if seed is not None:
@@ -627,10 +681,6 @@ class BaseTxt2ImgGraph(BaseGraph):
                 sampler.inputs.steps = steps
             if cfg is not None:
                 sampler.inputs.cfg = cfg
-            if sampler_name is not None:
-                sampler.inputs.sampler_name = sampler_name
-            if scheduler is not None:
-                sampler.inputs.scheduler = scheduler
         return self
 
 
@@ -644,7 +694,6 @@ class GraphSimple(BaseTxt2ImgGraph):
 
     model_source: ClassVar[NodeRef] = NodeRef.first("loader")
     clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
-    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler_base,)
     clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
 
     decode: SimpleDecodeNode
@@ -656,9 +705,9 @@ class GraphSimple(BaseTxt2ImgGraph):
     sampler_base: SimpleSamplerNode
     """The sole sampler pass."""
 
-    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+    def sampler_fields(self) -> tuple[RewireField, ...]:
         """Return the single sampler pass of the low-res template."""
-        return (self.sampler_base,)
+        return (RewireField.sampler_base,)
 
     @classmethod
     def default(cls) -> Self:
@@ -689,7 +738,6 @@ class Graph(BaseTxt2ImgGraph):
 
     model_source: ClassVar[NodeRef] = NodeRef.first("loader")
     clip_source: ClassVar[NodeRef] = NodeRef.second("loader")
-    model_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.sampler_base, RewireField.sampler_refine)
     clip_inputs: ClassVar[tuple[RewireField, ...]] = (RewireField.positive, RewireField.negative)
 
     decode: VAEDecodeNode
@@ -713,9 +761,9 @@ class Graph(BaseTxt2ImgGraph):
     sampler_refine: RefineSamplerNode
     """Refine-pass sampler node."""
 
-    def samplers(self) -> tuple[KSamplerAdvancedNode, ...]:
+    def sampler_fields(self) -> tuple[RewireField, ...]:
         """Return both sampler passes of the high-res template."""
-        return (self.sampler_base, self.sampler_refine)
+        return RewireField.sampler_base, RewireField.sampler_refine
 
     def output_scale(self) -> float:
         """Return the upscale factor this template applies before its refine pass."""
