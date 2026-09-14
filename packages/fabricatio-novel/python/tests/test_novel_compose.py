@@ -3,15 +3,11 @@
 from typing import Unpack
 
 import pytest
-from _support import NovelRole, card, prefix_log, raw_value
+from _support import card, prefix_log
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_mock.models.mock_router import (
-    Value,
-    return_generic_router_usage,
-    return_mixed_router_usage,
-)
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
+from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -25,7 +21,7 @@ class TestCharacterSpans:
 
     async def test_compose_novel_stitches_chapter_boundaries_to_roster_ends(self) -> None:
         """Assert N chapters need N-1 boundary cards; chapter 1 starts at the novel start and the last ends at the novel end."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
@@ -73,20 +69,18 @@ class TestCharacterSpans:
                 "writing_constraints": [],
             }
         ]
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                Value([CharacterSpan(start=novel_start, end=novel_end).model_dump()], "json"),
-                Value(chapter_plans_json, "json"),
-                # 2 chapters -> 1 boundary card per roster character
-                Value([[chapter_boundary.model_dump()]], "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He left."),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He walked."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json([CharacterSpan(start=novel_start, end=novel_end).model_dump()], name="novel spans"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            # 2 chapters -> 1 boundary card per roster character
+            Value.from_json([[chapter_boundary.model_dump()]], name="chapter boundary spans"),
+            Value.from_json(story_plans_json, name="chapter 1 story plans"),
+            Value.from_json(scene_plans_json, name="chapter 1 scene plans"),
+            Value.from_text("He left.", name="chapter 1 scene prose"),
+            Value.from_json(story_plans_json, name="chapter 2 story plans"),
+            Value.from_json(scene_plans_json, name="chapter 2 scene plans"),
+            Value.from_text("He walked.", name="chapter 2 scene prose"),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -117,7 +111,7 @@ class TestCharacterSpans:
 
     async def test_draft_chapter_spans_single_chapter_inherits_roster(self) -> None:
         """Assert a single chapter gets the roster spans directly without an LLM call."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero., compose v2 salt.", language="English")
         span = CharacterSpan(start=card(), end=card())
         ctx.set_charactor_spans([span])
@@ -127,7 +121,7 @@ class TestCharacterSpans:
 
     async def test_draft_story_spans_single_story_inherits_chapter_span(self) -> None:
         """Assert a single story gets the chapter's spans directly without an LLM call."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         span = CharacterSpan(start=card(), end=card())
         chapter.set_charactor_spans([span])
@@ -137,7 +131,7 @@ class TestCharacterSpans:
 
     async def test_scene_requirement_shows_character_span(self) -> None:
         """Assert the scene prompt renders the broadcast span's start and end."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         start = card()
         end = card().model_copy(update={"look": "scarred"})
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
@@ -168,9 +162,9 @@ class TestNovelCompose:
 
     async def test_compose_scene_writes_content_back_to_context(self) -> None:
         """Assert compose_scene writes the generated scene content back to the context."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="Departure", description="The hero leaves home.", expected_word_count=50)
-        with install_router_usage(*return_generic_router_usage("He walked out.")):
+        with MockScript.from_values(Value.from_text("He walked out.", name="scene prose")):
             scene = await role.compose_scene(ctx)
         assert scene is not None
         assert scene.content == "He walked out."
@@ -179,13 +173,13 @@ class TestNovelCompose:
 
     async def test_compose_novel_broadcasts_story_span_to_scenes(self) -> None:
         """Assert every scene inherits the story's spans when prepare_scene_write runs."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
         span = CharacterSpan(start=card(), end=card())
         story.set_charactor_spans([span])
         scene_ctx = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         story.child_contexts.append(scene_ctx)
-        with install_router_usage(*return_generic_router_usage("He fought.")):
+        with MockScript.from_values(Value.from_text("He fought.", name="scene prose")):
             await role.prepare_scene_write(story)
             scene = await role.compose_scene(scene_ctx)
         assert scene is not None
@@ -194,7 +188,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_end_to_end(self) -> None:
         """Assert a full composition fills content and prefixes across a prefilled tree."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
@@ -212,12 +206,10 @@ class TestNovelCompose:
             writing_constraints=[],
         )
 
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                raw_value("He left."),
-                raw_value("A stranger appeared."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_text("He left.", name="scene 1 prose"),
+            Value.from_text("A stranger appeared.", name="scene 2 prose"),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -236,7 +228,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
         """Assert composition emits per-level progress and completion log lines."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
@@ -253,12 +245,10 @@ class TestNovelCompose:
             writing_constraints=[],
         )
 
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                raw_value("He left."),
-                raw_value("A stranger appeared."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_text("He left.", name="scene 1 prose"),
+            Value.from_text("A stranger appeared.", name="scene 2 prose"),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -276,15 +266,19 @@ class TestNovelCompose:
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         """Assert compose_novel returns None when metadata generation fails."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero., compose v2 salt.", language="English")
-        with install_router_usage("not valid json", "", ""):
+        with MockScript.from_values(
+            Value.from_text("not valid json", name="invalid metadata response"),
+            Value.from_text("", name="empty response 2"),
+            Value.from_text("", name="empty response 3"),
+        ):
             novel = await role.compose_novel(ctx)
         assert novel is None
 
     async def test_prepare_scene_requirement_leads_with_novel_so_far(self) -> None:
         """Assert the novel-so-far block leads the prompt and the stage instructions follow it."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("He walked into the dark.", title="S2"))
 
@@ -300,7 +294,7 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_renders_writing_styles(self) -> None:
         """Assert the accumulated style entries render together inside the styles section."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
         ctx.set_plan(
@@ -318,14 +312,14 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "### Writing styles" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.writing_constraints = ["First person view throughout."]
         requirement = await role.prepare_scene_requirement(ctx)
@@ -335,14 +329,14 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_skips_writing_constraint_when_empty(self) -> None:
         """Assert an unset writing constraint renders no constraint section."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "### Writing Constrains:" not in requirement
 
     async def test_scene_requirement_renders_cast(self) -> None:
         """Assert the scene's cast renders as an on-stage roster in the prose requirement."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_cast(["Hero", "Villain"])
         requirement = await role.prepare_scene_requirement(ctx)
@@ -351,14 +345,14 @@ class TestNovelCompose:
 
     async def test_scene_requirement_omits_cast_when_empty(self) -> None:
         """Assert an empty cast renders no cast section."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Cast" not in requirement
 
     async def test_plan_scenes_renders_story_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scene planning sees the story's cast as context."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
         story.set_cast(["Hero", "Villain"])
         captured: list[str] = []
@@ -366,7 +360,7 @@ class TestNovelCompose:
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
 
-        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
         await role.plan_scenes(story)
 
         assert captured
@@ -375,7 +369,7 @@ class TestNovelCompose:
 
     async def test_plan_stories_renders_chapter_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert story planning sees the chapter's cast as context."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         chapter.set_cast(["Hero"])
         captured: list[str] = []
@@ -383,7 +377,7 @@ class TestNovelCompose:
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
 
-        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
         await role.plan_stories(chapter)
 
         assert captured
@@ -392,14 +386,14 @@ class TestNovelCompose:
 
     async def test_plan_scenes_pins_the_units_to_the_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scene planning scopes the batch to the story and states the scope requirements."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         story = StoryContext(title="St1", description="The road.", expected_word_count=100)
         captured: list[str] = []
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
 
-        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
         await role.plan_scenes(story)
 
         assert captured
@@ -409,9 +403,12 @@ class TestNovelCompose:
 
     async def test_compose_scene_raises_when_the_generation_is_empty(self) -> None:
         """Assert a blank generation fails loudly instead of composing an empty scene."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
-        with install_router_usage(""), pytest.raises(ValueError, match="produced no prose"):
+        with (
+            MockScript.from_values(Value.from_text("", name="empty scene")),
+            pytest.raises(ValueError, match="produced no prose"),
+        ):
             await role.compose_scene(ctx)
 
 
@@ -423,16 +420,14 @@ class TestPrefixAccumulation:
 
     async def test_compose_story_injects_prefix_across_scenes(self) -> None:
         """Assert later scenes accumulate earlier scene content into scenes_so_far."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         story = StoryContext(title="St1", description="The departure.")
         scene_1 = self._scene_ctx("S1", "Leaving home.")
         scene_2 = self._scene_ctx("S2", "A stranger appears.")
         story.add_context(scene_1).add_context(scene_2)
-        with install_router_usage(
-            *return_generic_router_usage(
-                "He left.",
-                "A stranger appeared.",
-            ),
+        with MockScript.from_values(
+            Value.from_text("He left.", name="scene 1 prose"),
+            Value.from_text("A stranger appeared.", name="scene 2 prose"),
         ):
             result = await role.compose_story(story)
         assert result is not None
@@ -441,18 +436,16 @@ class TestPrefixAccumulation:
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         """Assert stories inherit the chapter header plus prior story blocks as prefixed_content."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         chapter = ChapterContext(title="Ch1", description="The start.")
         story_a = StoryContext(title="StA", description="A.")
         story_a.add_context(self._scene_ctx("S1", "Leaving home."))
         story_b = StoryContext(title="StB", description="B.")
         story_b.add_context(self._scene_ctx("S2", "A stranger appears."))
         chapter.add_context(story_a).add_context(story_b)
-        with install_router_usage(
-            *return_generic_router_usage(
-                "Alpha.",
-                "Beta.",
-            ),
+        with MockScript.from_values(
+            Value.from_text("Alpha.", name="story A scene prose"),
+            Value.from_text("Beta.", name="story B scene prose"),
         ):
             result = await role.compose_chapter(chapter)
         assert result is not None
@@ -464,7 +457,7 @@ class TestPrefixAccumulation:
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         """Assert chapter and story prefixed_content chain across the whole composed novel."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
         ctx.title = "The Search"
         ctx.description = "A hero searching."
@@ -490,14 +483,12 @@ class TestPrefixAccumulation:
             writing_styles=[],
             writing_constraints=[],
         )
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                raw_value("A."),
-                raw_value("B."),
-                raw_value("C."),
-                raw_value("D."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_text("A.", name="story A scene prose"),
+            Value.from_text("B.", name="story B scene prose"),
+            Value.from_text("C.", name="story C scene prose"),
+            Value.from_text("D.", name="story D scene prose"),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -524,8 +515,8 @@ class TestPrefixAccumulation:
         )
 
 
-class _HookMutatingRole(NovelRole):
-    """Role whose after-compose hooks rename every level's context before assembly."""
+class _HookMutating(NovelCompose):
+    """Mixin whose after-compose hooks rename every level's context before assembly."""
 
     async def after_compose_novel_context(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> NovelContext:
         ctx.title = "Hooked Novel"
@@ -549,7 +540,7 @@ class TestComposeHookOrdering:
 
     async def test_after_compose_hooks_land_in_assembled_outputs(self) -> None:
         """Assert after-compose context mutations reach the assembled tree; assembly used to run first."""
-        role = _HookMutatingRole(name="hook_role")
+        role = make_test_role(_HookMutating, name="hook_role")
         ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
@@ -564,7 +555,10 @@ class TestComposeHookOrdering:
             writing_styles=[],
             writing_constraints=[],
         )
-        with install_router_usage(*return_mixed_router_usage(Value(meta, "model"), raw_value("He left."))):
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_text("He left.", name="scene prose"),
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None

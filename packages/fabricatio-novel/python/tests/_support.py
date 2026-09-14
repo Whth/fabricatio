@@ -1,4 +1,4 @@
-"""Shared builders and mock roles for the fabricatio-novel test modules."""
+"""Shared builders for the fabricatio-novel test modules."""
 
 import os
 from dataclasses import dataclass
@@ -6,11 +6,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fabricatio_character.models.character import CharacterCard
-from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_mock.models.mock_router import Value
-from fabricatio_novel.capabilities.illustration import IllustrateScenes
-from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
@@ -35,26 +30,9 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
     )
 
 
-def raw_value(text: str) -> Value[str]:
-    """Wrap a plain scene response as a generic block for mixed router usage."""
-    return Value(text, "generic")
-
-
 def prefix_log(body: str, *, title: str = "S1") -> ContextLog:
     """Build a one-entry scene-content prefix log for tests."""
     return ContextLog(entries=(ContextEntry(kind="scene_content", title=title, body=body),))
-
-
-class NovelRole(LLMTestRole, NovelCompose):
-    """Test role combining mock LLM with the novel composition chain."""
-
-
-class RAGRole(LLMTestRole, NovelCompose, RAGCompose):
-    """Test role combining mock LLM with RAG-extended novel composition."""
-
-
-class IllustrationRole(LLMTestRole, IllustrateScenes):
-    """Test role combining mock LLM with the per-scene illustration chain."""
 
 
 BENCH_OUTLINE = "A lighthouse keeper chases a storm that never lands."

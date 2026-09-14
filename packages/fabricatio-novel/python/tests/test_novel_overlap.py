@@ -2,8 +2,9 @@
 
 import asyncio
 
-import pytest
-from _support import NovelRole, prefix_log
+from _support import prefix_log
+from fabricatio_mock import MockScript, Value, make_test_role
+from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -64,26 +65,19 @@ def test_noop_without_previous_prose() -> None:
     assert strip_overlapping_prefix("", _TAIL, min_chars=40) == ""
 
 
-def test_compose_scenes_phase_strips_and_propagates_stripped_prose(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_compose_scenes_phase_strips_and_propagates_stripped_prose() -> None:
     """Assert the stripped content is what the log records for later scenes to see."""
-    captured: list[str] = []
-
-    async def fake_ageneric_string(self: object, question: str, **kwargs: object) -> str | None:
-        captured.append(str(question))
-        if len(captured) == 1:
-            return f"The ropes groaned. {_TAIL}"
-        return f"{_TAIL}\n{_REMAINDER}"
-
-    monkeypatch.setattr(NovelRole, "ageneric_string", fake_ageneric_string)
-    role = NovelRole(name="writer")
+    role = make_test_role(NovelCompose, name="writer")
     ctx = _two_scene_ctx()
     story_ctx = ctx.child_contexts[0].child_contexts[0]
     story_ctx.set_prefix_log(prefix_log("Chapter One.", title="Ch1"))
     story_ctx.set_charactor_spans([])
 
-    ok = asyncio.run(role.compose_scenes_phase(story_ctx))
+    with MockScript.from_values(
+        Value.from_text(f"The ropes groaned. {_TAIL}", name="scene 1 prose"),
+        Value.from_text(f"{_TAIL}\n{_REMAINDER}", name="scene 2 prose"),
+    ):
+        ok = asyncio.run(role.compose_scenes_phase(story_ctx))
 
     assert ok is True
     first, second = (scene.content for scene in story_ctx.child_contexts)

@@ -4,17 +4,15 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from _support import card, raw_value
+from _support import card
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.rust import CONFIG, TASK
-from fabricatio_mock import DUMMY_LLM_GROUP
-from fabricatio_mock.models.mock_router import Value, return_mixed_router_usage
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import DUMMY_LLM_GROUP, MockScript, Value
 from fabricatio_novel.models.plan import NovelPlan
 
 # Workflow tests subscribe a plain ``Role`` (no scoped ``llm_send_to``), so the real
 # resolver runs: route the ``task`` agent variant to the dummy router group so explicit
-# ``send_to=TASK`` in the staged actions resolves to what ``install_router_usage`` seeds.
+# ``send_to=TASK`` in the staged actions resolves to what the ``MockScript`` seeds.
 CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
 
 
@@ -71,17 +69,15 @@ class TestNovelWorkflow:
                 "writing_constraints": [],
             }
         ]
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                Value(["Hero — brave protagonist, seeking his father."], "json"),
-                Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
-                Value(chapter_plans_json, "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He left."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(["Hero — brave protagonist, seeking his father."], name="bible roster"),
+            Value.from_json(["A quiet riverside town in late summer."], name="bible background"),
+            Value.from_json([CharacterSpan(start=card(), end=card()).model_dump()], name="character spans"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_generic("He left.", name="scene prose"),
         ):
             epub = await task.delegate(namespace)
 
@@ -154,17 +150,15 @@ class TestNovelWorkflow:
                 "writing_constraints": [],
             }
         ]
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                Value(["Hero — brave protagonist, seeking his father."], "json"),
-                Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
-                Value(chapter_plans_json, "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He left."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(["Hero — brave protagonist, seeking his father."], name="bible roster"),
+            Value.from_json(["A quiet riverside town in late summer."], name="bible background"),
+            Value.from_json([CharacterSpan(start=card(), end=card()).model_dump()], name="character spans"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_generic("He left.", name="scene prose"),
         ):
             artifact = await task.delegate(namespace)
 
@@ -234,17 +228,15 @@ class TestNovelWorkflow:
                 "writing_constraints": [],
             }
         ]
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                Value(["Hero — brave protagonist, seeking his father."], "json"),
-                Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
-                Value(chapter_plans_json, "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He left."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(["Hero — brave protagonist, seeking his father."], name="bible roster"),
+            Value.from_json(["A quiet riverside town in late summer."], name="bible background"),
+            Value.from_json([CharacterSpan(start=card(), end=card()).model_dump()], name="character spans"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_generic("He left.", name="scene prose"),
         ):
             artifact = await task.delegate(namespace)
 
@@ -341,23 +333,21 @@ class TestNovelWorkflow:
             }
         ]
         illustration = SketchSpec(prompt="a lone rider at dawn")
-        with install_router_usage(
-            *return_mixed_router_usage(
-                # Stacks mirror the workflow's true LLM call order so the run is
-                # deterministic whether or not the persistent cache serves any
-                # key: metadata, bible roster and background, roster spans,
-                # chapter/story/scene plan lists, the scene write, and finally
-                # the outline-independent illustration proposal.
-                Value(meta, "model"),
-                Value(["Hero — brave protagonist, seeking his father."], "json"),
-                Value(["A quiet riverside town in late summer."], "json"),
-                Value([CharacterSpan(start=card(), end=card()).model_dump()], "json"),
-                Value(chapter_plans_json, "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("He left."),
-                Value(illustration, "model"),
-            ),
+        with MockScript.from_values(
+            # Stacks mirror the workflow's true LLM call order so the run is
+            # deterministic whether or not the persistent cache serves any
+            # key: metadata, bible roster and background, roster spans,
+            # chapter/story/scene plan lists, the scene write, and finally
+            # the outline-independent illustration proposal.
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(["Hero — brave protagonist, seeking his father."], name="bible roster"),
+            Value.from_json(["A quiet riverside town in late summer."], name="bible background"),
+            Value.from_json([CharacterSpan(start=card(), end=card()).model_dump()], name="character spans"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_generic("He left.", name="scene prose"),
+            Value.from_model(illustration, name="illustration proposal"),
         ):
             epub = await task.delegate(namespace)
 

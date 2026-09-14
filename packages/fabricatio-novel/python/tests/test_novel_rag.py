@@ -3,14 +3,11 @@
 from itertools import pairwise
 
 import pytest
-from _support import RAGRole, card, prefix_log
+from _support import card, prefix_log
 from fabricatio_character.models.character import CharacterSpan
-from fabricatio_mock.models.mock_router import (
-    Value,
-    return_generic_router_usage,
-    return_mixed_router_usage,
-)
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
+from fabricatio_novel.capabilities.novel import NovelCompose
+from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
@@ -27,7 +24,7 @@ class TestRAGCompose:
 
     async def test_prepare_scene_requirement_injects_style_docs_in_order(self) -> None:
         """Assert raw style docs render after the leading novel-so-far block."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = SceneContext(title="Battle", description="The hero fights the dragon.", expected_word_count=50)
         ctx.set_prefix_log(
             prefix_log("Chapter One\n\nThe hero leaves home.\n\nScene one: the hero rides north.", title="Battle")
@@ -48,7 +45,7 @@ class TestRAGCompose:
         the whole of scene k's composed content; only the newly written scene
         and the scene instruction may differ.
         """
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
         # the bible reaches stories as a seeded prefix entry, never as a held model
         seed = ContextEntry(
@@ -72,9 +69,13 @@ class TestRAGCompose:
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return ["the departure", "a cold platform"]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
-        with install_router_usage(*return_generic_router_usage("One.", "Two.", "Three.")):
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
+        with MockScript.from_values(
+            Value.from_generic("One.", name="scene 1 prose"),
+            Value.from_generic("Two.", name="scene 2 prose"),
+            Value.from_generic("Three.", name="scene 3 prose"),
+        ):
             result = await role.compose_story(story)
 
         assert result is not None
@@ -91,7 +92,7 @@ class TestRAGCompose:
 
     async def test_prepare_story_retrieves_docs_once(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert plan_scenes_phase retrieves style docs exactly once."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.child_contexts.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
         fetched: list[object] = []
@@ -106,13 +107,13 @@ class TestRAGCompose:
             refined.append(question)
             return ["leaving home", "the departure"]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         async def fake_propose(model: object, requirement: object, **kwargs: object) -> object:
             return []
 
-        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
         await role.plan_scenes_phase(story)
 
@@ -121,7 +122,7 @@ class TestRAGCompose:
 
     async def test_prepare_story_without_docs_keeps_requirement_base(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert a story without retrieved style docs renders no references section."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         scene = SceneContext(title="Battle", description="The hero fights.", expected_word_count=50)
         story.child_contexts.append(scene)
@@ -129,7 +130,7 @@ class TestRAGCompose:
         async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
             return []
 
-        monkeypatch.setattr(RAGRole, "_fetch_style_docs", staticmethod(fake_fetch_docs))
+        monkeypatch.setattr(type(role), "_fetch_style_docs", staticmethod(fake_fetch_docs))
 
         await role.prepare_story(story)
 
@@ -140,7 +141,7 @@ class TestRAGCompose:
 
     async def test_plan_scenes_propagates_style_docs_to_scenes(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scenes materialized after the story prep inherit the story's style references."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
 
@@ -156,8 +157,8 @@ class TestRAGCompose:
                 ]
             )
 
-        monkeypatch.setattr(RAGRole, "_fetch_style_docs", staticmethod(fake_fetch_docs))
-        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "_fetch_style_docs", staticmethod(fake_fetch_docs))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
         await role.plan_scenes_phase(story)
 
@@ -166,7 +167,7 @@ class TestRAGCompose:
 
     async def test_plan_scenes_injects_held_style_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the story's held style references render into the scene planning prompt."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = StoryContext(title="St1", description="The departure.")
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
         captured: list[str] = []
@@ -174,7 +175,7 @@ class TestRAGCompose:
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
 
-        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
         await role.plan_scenes(story)
 
@@ -184,7 +185,7 @@ class TestRAGCompose:
 
     async def test_fetch_style_docs_combines_query_and_applies_limit(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert _fetch_style_docs joins description and rag_query and applies the limit."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = RagStoryContext(
             title="Battle", description="The hero fights.", rag=RagRetrieval(query="query guide", limit=7)
         )
@@ -206,8 +207,8 @@ class TestRAGCompose:
             captured_refine.append((question, dict(kwargs)))
             return [f"head {i}" for i in range(1, 10)]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         docs = await role._fetch_style_docs(ctx)
 
@@ -220,7 +221,7 @@ class TestRAGCompose:
 
     async def test_fetch_style_docs_defaults_to_story_description(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert _fetch_style_docs decomposes the story description when no rag_query is set."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
         captured_refine: list[object] = []
@@ -236,8 +237,8 @@ class TestRAGCompose:
             captured_refine.append(question)
             return ["a duel at dusk", "a quiet standoff"]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         await role._fetch_style_docs(ctx)
 
@@ -246,7 +247,7 @@ class TestRAGCompose:
 
     async def test_fetch_style_docs_skips_blank_prompt_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert docs whose prompt renders blank are filtered out."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
         blank = WritingStyleDocument.with_text_chunk("   ")
@@ -260,8 +261,8 @@ class TestRAGCompose:
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return ["a duel at dusk", "a quiet standoff"]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         docs = await role._fetch_style_docs(ctx)
 
@@ -269,7 +270,7 @@ class TestRAGCompose:
 
     async def test_fetch_style_docs_falls_back_to_raw_query(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert an empty decomposition still searches the raw story query instead of starving the prompt."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
 
@@ -283,8 +284,8 @@ class TestRAGCompose:
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return []
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         await role._fetch_style_docs(ctx)
 
@@ -292,7 +293,7 @@ class TestRAGCompose:
 
     async def test_fetch_style_docs_discards_a_lone_head(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert a one-head answer — here a refusal — is discarded for the raw question, not searched."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
 
@@ -306,8 +307,8 @@ class TestRAGCompose:
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return ["Sorry, I cannot help generate or optimize queries of this nature."]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         await role._fetch_style_docs(ctx)
 
@@ -315,7 +316,7 @@ class TestRAGCompose:
 
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7))
 
         async def fake_fetch(
@@ -327,24 +328,22 @@ class TestRAGCompose:
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return ["the departure", "a cold platform"]
 
-        monkeypatch.setattr(RAGRole, "afetch_document", staticmethod(fake_fetch))
-        monkeypatch.setattr(RAGRole, "arefined_query", staticmethod(fake_refine))
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(
-                    [
-                        {
-                            "title": "S1",
-                            "description": "Leaving home.",
-                            "weight": 1.0,
-                            "writing_styles": [],
-                            "writing_constraints": [],
-                        }
-                    ],
-                    "json",
-                ),
-                Value("He left.", "generic"),
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
+        with MockScript.from_values(
+            Value.from_json(
+                [
+                    {
+                        "title": "S1",
+                        "description": "Leaving home.",
+                        "weight": 1.0,
+                        "writing_styles": [],
+                        "writing_constraints": [],
+                    }
+                ],
+                name="scene plans",
             ),
+            Value.from_generic("He left.", name="scene prose"),
         ):
             result = await role.compose_story(story)
 
@@ -400,7 +399,7 @@ class TestRAGCompose:
 
     async def test_seal_carries_character_spans_into_scene_planning(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert sealing keeps the roster's state cards on the story and in its scene-planning prompt."""
-        role = RAGRole(name="rag_role")
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         plan = StoryPlan(
             title="St1",
             description="The departure.",
@@ -419,7 +418,7 @@ class TestRAGCompose:
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> None:
             captured.append(requirement)
 
-        monkeypatch.setattr(RAGRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
         sealed = RagStoryContext.seal(story, RagRetrieval(query="guide", limit=3))
 

@@ -1,15 +1,10 @@
 """Progressive-planning tests for fabricatio-novel: plans, word counts, outline grounding."""
 
 import pytest
-from _support import NovelRole, raw_value
 from fabricatio_core.models.generic import ProposedAble
 from fabricatio_core.models.kwargs_types import ValidateKwargs
-from fabricatio_mock.models.mock_router import (
-    Value,
-    return_mixed_router_usage,
-    return_model_json_router_usage,
-)
-from fabricatio_mock.utils import install_router_usage
+from fabricatio_mock import MockScript, Value, make_test_role
+from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -21,7 +16,7 @@ class TestNovelPlan:
 
     async def test_compose_novel_plans_empty_tree(self) -> None:
         """Assert compose_novel plans an empty context tree down to scenes and writes content."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
         meta = NovelPlan(
             title="The Search",
@@ -57,14 +52,13 @@ class TestNovelPlan:
                 "writing_constraints": [],
             }
         ]
-        responses = return_mixed_router_usage(
-            Value(meta, "model"),
-            Value(chapter_plans_json, "json"),
-            Value(story_plans_json, "json"),
-            Value(scene_plans_json, "json"),
-            raw_value("He left."),
-        )
-        with install_router_usage(*responses):
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_text("He left.", name="scene prose"),
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -84,7 +78,7 @@ class TestNovelPlan:
 
     async def test_compose_novel_allocates_writing_constraint_down_tree(self) -> None:
         """Assert every level carries its own constraints and reaches the scene requirement that way."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
         ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
@@ -121,14 +115,13 @@ class TestNovelPlan:
                 "writing_constraints": ["Stay in the protagonist's head; no head-hopping."],
             },
         ]
-        responses = return_mixed_router_usage(
-            Value(meta, "model"),
-            Value(chapter_plans_json, "json"),
-            Value(story_plans_json, "json"),
-            Value(scene_plans_json, "json"),
-            raw_value("He left."),
-        )
-        with install_router_usage(*responses):
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_text("He left.", name="scene prose"),
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -152,7 +145,7 @@ class TestNovelPlan:
 
     async def test_propose_novel_metadata_keeps_intent_when_plan_constraint_empty(self) -> None:
         """Assert the author's stated constraint survives a plan that allocates none."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero., metadata intent salt.", language="English")
         ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
@@ -162,27 +155,27 @@ class TestNovelPlan:
             writing_styles=[],
             writing_constraints=[],
         )
-        with install_router_usage(*return_model_json_router_usage(meta)):
+        with MockScript.from_values(Value.from_model(meta, name="novel metadata")):
             assert await role.propose_novel_metadata(ctx) is True
         assert ctx.writing_constraints == ["I hope the novel is first person view."]
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
         """Assert compose_novel returns None when chapter plan generation fails."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero., planning v2 salt.", language="English")
         meta = NovelPlan(title="T", description="D", expected_word_count=10, writing_styles=[], writing_constraints=[])
-        with install_router_usage(
-            *return_model_json_router_usage(meta)[:1],
-            "not valid json",
-            "still not json",
-            "nope",
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_text("not valid json", name="malformed chapter plans"),
+            Value.from_text("still not json", name="retry chapter plans"),
+            Value.from_text("nope", name="final chapter plans"),
         ):
             novel = await role.compose_novel(ctx)
         assert novel is None
 
     async def test_compose_novel_expands_stories_for_prefilled_chapter(self) -> None:
         """Assert compose_novel plans stories and scenes under a prefilled chapter context."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
         ctx.add_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
 
@@ -212,13 +205,12 @@ class TestNovelPlan:
             }
         ]
 
-        responses = return_mixed_router_usage(
-            Value(meta, "model"),
-            Value(story_plans_json, "json"),
-            Value(scene_plans_json, "json"),
-            raw_value("He left."),
-        )
-        with install_router_usage(*responses):
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(story_plans_json, name="story plans"),
+            Value.from_json(scene_plans_json, name="scene plans"),
+            Value.from_text("He left.", name="scene prose"),
+        ):
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
@@ -237,7 +229,7 @@ class TestWordCountAllocation:
 
     async def test_allocates_word_counts_by_plan_weights(self) -> None:
         """Assert plan weights drive the allocated word counts down the whole tree."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
         meta = NovelPlan(
             title="The Search",
@@ -280,17 +272,15 @@ class TestWordCountAllocation:
                 "writing_constraints": [],
             }
         ]
-        with install_router_usage(
-            *return_mixed_router_usage(
-                Value(meta, "model"),
-                Value(chapter_plans_json, "json"),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("A."),
-                Value(story_plans_json, "json"),
-                Value(scene_plans_json, "json"),
-                raw_value("B."),
-            ),
+        with MockScript.from_values(
+            Value.from_model(meta, name="novel metadata"),
+            Value.from_json(chapter_plans_json, name="chapter plans"),
+            Value.from_json(story_plans_json, name="first chapter story plans"),
+            Value.from_json(scene_plans_json, name="first story scene plans"),
+            Value.from_text("A.", name="first scene prose"),
+            Value.from_json(story_plans_json, name="second chapter story plans"),
+            Value.from_json(scene_plans_json, name="second story scene plans"),
+            Value.from_text("B.", name="second scene prose"),
         ):
             novel = await role.compose_novel(ctx)
 
@@ -308,7 +298,7 @@ class TestPlanningOutlineGrounding:
 
     async def test_planning_requirements_embed_outline(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert chapter, story, and scene planning prompts all embed the raw outline text."""
-        role = NovelRole(name="novel_role")
+        role = make_test_role(NovelCompose, name="novel_role")
         captured: list[str] = []
 
         async def fake_propose(
@@ -319,7 +309,7 @@ class TestPlanningOutlineGrounding:
         ) -> None:
             captured.append(prompt)
 
-        monkeypatch.setattr(NovelRole, "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
         novel = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
         await role.plan_chapters_phase(novel)
