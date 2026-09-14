@@ -3,6 +3,7 @@ use fabricatio_config::{DeploymentConfig, ProviderConfig, SecretStr};
 use fabricatio_logger::{debug, error, trace};
 use futures::FutureExt;
 use futures::future::join_all;
+pub use image::attach;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_stub_gen::derive::*;
@@ -10,7 +11,6 @@ use std::fs;
 use std::sync::Arc;
 use thryd::deployment::Deployment;
 use thryd::tracker::Quota;
-pub use image::attach;
 pub use thryd::utils::analyze_identifier;
 use thryd::{
     CompletionModel, CompletionTag, CompletionText, DeploymentIdentifier, DummyModel, Embedding,

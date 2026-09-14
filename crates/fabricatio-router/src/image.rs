@@ -13,8 +13,8 @@ use fabricatio_logger::debug;
 use image::codecs::jpeg::JpegEncoder;
 use image::imageops::FilterType;
 use image::{ImageReader, RgbImage};
-use thryd::utils::bytes_to_data_uri;
 use thryd::ImageAttachment;
+use thryd::utils::bytes_to_data_uri;
 
 /// Build the wire attachment for one raw image blob.
 pub fn attach(bytes: &[u8]) -> ImageAttachment {
@@ -34,7 +34,10 @@ fn payload(bytes: &[u8]) -> Cow<'_, [u8]> {
     match compressed(bytes, cfg) {
         Some(smaller) => Cow::Owned(smaller),
         None => {
-            debug!("Image compression left the payload unchanged ({} bytes)", bytes.len());
+            debug!(
+                "Image compression left the payload unchanged ({} bytes)",
+                bytes.len()
+            );
             Cow::Borrowed(bytes)
         }
     }
@@ -43,9 +46,15 @@ fn payload(bytes: &[u8]) -> Cow<'_, [u8]> {
 /// Re-encode `bytes` at the configured quality, or `None` when the payload cannot be
 /// decoded or the re-encode would not shrink it.
 fn compressed(bytes: &[u8], cfg: &ImageCompressionConfig) -> Option<Vec<u8>> {
-    let decoded = ImageReader::new(Cursor::new(bytes)).with_guessed_format().ok()?.decode().ok()?;
+    let decoded = ImageReader::new(Cursor::new(bytes))
+        .with_guessed_format()
+        .ok()?
+        .decode()
+        .ok()?;
     let scaled = match cfg.max_megapixels {
-        Some(mp) if decoded.width() as f64 * decoded.height() as f64 > f64::from(mp) * 1_000_000.0 => {
+        Some(mp)
+            if decoded.width() as f64 * decoded.height() as f64 > f64::from(mp) * 1_000_000.0 =>
+        {
             let scale = (f64::from(mp) * 1_000_000.0
                 / (f64::from(decoded.width()) * f64::from(decoded.height())))
             .sqrt();
@@ -61,12 +70,15 @@ fn compressed(bytes: &[u8], cfg: &ImageCompressionConfig) -> Option<Vec<u8>> {
     let out = match cfg.format {
         ImageCompressionFormat::Jpeg => {
             let mut out = Vec::new();
-            rgb.write_with_encoder(JpegEncoder::new_with_quality(&mut out, cfg.quality)).ok()?;
+            rgb.write_with_encoder(JpegEncoder::new_with_quality(&mut out, cfg.quality))
+                .ok()?;
             out
         }
-        ImageCompressionFormat::Webp => webp::Encoder::from_rgb(rgb.as_raw(), rgb.width(), rgb.height())
-            .encode(f32::from(cfg.quality))
-            .to_vec(),
+        ImageCompressionFormat::Webp => {
+            webp::Encoder::from_rgb(rgb.as_raw(), rgb.width(), rgb.height())
+                .encode(f32::from(cfg.quality))
+                .to_vec()
+        }
     };
     (out.len() < bytes.len()).then_some(out)
 }
@@ -125,12 +137,14 @@ mod tests {
     #[test]
     fn max_megapixels_caps_the_pixel_count_only_when_larger() {
         let source = test_png(400, 200); // 80,000 px = 0.08 MP
-        let capped = compressed(&source, &cfg(ImageCompressionFormat::Jpeg, 85, Some(0.04))).unwrap();
+        let capped =
+            compressed(&source, &cfg(ImageCompressionFormat::Jpeg, 85, Some(0.04))).unwrap();
         let decoded = image::load_from_memory(&capped).unwrap();
         assert!(decoded.width() * decoded.height() <= 40_000);
         assert!((decoded.width() as f64 / f64::from(decoded.height()) - 2.0).abs() < 0.05);
 
-        let untouched = compressed(&source, &cfg(ImageCompressionFormat::Jpeg, 85, Some(1.0))).unwrap();
+        let untouched =
+            compressed(&source, &cfg(ImageCompressionFormat::Jpeg, 85, Some(1.0))).unwrap();
         assert_eq!(image::load_from_memory(&untouched).unwrap().width(), 400);
     }
 
@@ -143,12 +157,21 @@ mod tests {
 
     #[test]
     fn undecodable_payloads_are_left_alone() {
-        assert!(compressed(b"not an image", &cfg(ImageCompressionFormat::Jpeg, 85, None)).is_none());
+        assert!(
+            compressed(
+                b"not an image",
+                &cfg(ImageCompressionFormat::Jpeg, 85, None)
+            )
+            .is_none()
+        );
     }
 
     #[test]
     fn the_digest_follows_the_original_bytes() {
         let source = test_png(64, 64);
-        assert_eq!(attach(&source).digest, blake3::hash(&source).to_hex().to_string());
+        assert_eq!(
+            attach(&source).digest,
+            blake3::hash(&source).to_hex().to_string()
+        );
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "fabricatio-router"
-version = "0.1.5-dev0"
+version = "0.1.6-dev0"
 edition = "2024"
 
 [lib]
