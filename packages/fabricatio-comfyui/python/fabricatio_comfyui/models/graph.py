@@ -183,11 +183,11 @@ class LoraLoaderNode(WireNode):
 
     @classmethod
     def chain(
-            cls,
-            loras: Sequence[LoraSpec],
-            nodes: dict[str, WireNode],
-            model_source: NodeRef,
-            clip_source: NodeRef,
+        cls,
+        loras: Sequence[LoraSpec],
+        nodes: dict[str, WireNode],
+        model_source: NodeRef,
+        clip_source: NodeRef,
     ) -> tuple[NodeRef, NodeRef]:
         """Insert a ``LoraLoader`` chain for *loras* into *nodes*, fed from *model_source*/*clip_source*.
 
@@ -719,11 +719,11 @@ class BasePromptedGraph(BaseGraph):
         return self
 
     def with_sampler(
-            self,
-            *,
-            seed: int | None = None,
-            steps: int | None = None,
-            cfg: float | None = None,
+        self,
+        *,
+        seed: int | None = None,
+        steps: int | None = None,
+        cfg: float | None = None,
     ) -> Self:
         """Apply *seed* / *steps* / *cfg* uniformly across every sampler of this template.
 
