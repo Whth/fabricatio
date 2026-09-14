@@ -117,6 +117,17 @@ pub trait ModelTypeTag {
 
     fn cache_key(request: &Self::Request) -> CacheKey;
 
+    /// Whether a successful response is safe to persist in the cache.
+    ///
+    /// Default: cache everything. Override for response types where an
+    /// empty payload is a degenerate outcome (e.g. a completion that
+    /// returned no content — provider refusal, content filter, truncated
+    /// stream): caching it would serve that empty result forever.
+    fn cache_worthy(response: &Self::Response) -> bool {
+        let _ = response;
+        true
+    }
+
     #[inline]
     fn recover_batch_request(_cache_vals: Vec<Self::CacheVal>) -> Self::Response {
         unimplemented!()
@@ -159,7 +170,11 @@ pub trait ModelTypeTag {
         } else {
             let res = Self::execute_request(deployment, request.clone()).await;
             if let Ok(val) = res.as_ref() {
-                cache.set_ser(key, val)?;
+                if Self::cache_worthy(val) {
+                    cache.set_ser(key, val)?;
+                } else {
+                    tracing::warn!("Empty response content; not caching key: {key}");
+                }
             };
             res
         }
@@ -384,7 +399,14 @@ impl ModelTypeTag for CompletionTag {
             }
             blake3::hash(s.as_bytes()).to_string()
         };
+
         CacheKey::Single(key)
+    }
+
+    /// An empty completion (no content — refusal, content filter, truncated
+    /// stream) is a degenerate result: never persist it.
+    fn cache_worthy(response: &Self::Response) -> bool {
+        !response.content.trim().is_empty()
     }
 
     fn total_response_tokens(response: &Self::Response) -> u64 {

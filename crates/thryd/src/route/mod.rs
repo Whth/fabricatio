@@ -1061,6 +1061,75 @@ mod tests {
         assert_eq!(result.content, "ok");
     }
 
+    /// An empty completion is a degenerate result: it must be returned to the
+    /// caller but never cached. The dummy model carries exactly ONE response,
+    /// so a cache hit on the second call would prove the empty payload got
+    /// stored; the model exhausting proves the second call re-executed.
+    #[tokio::test]
+    async fn test_empty_completion_content_is_not_cached() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("empty-content-cache.db");
+        let router = Router::<CompletionTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        let model = DummyModel::new("empty-content-test".to_string(), provider)
+            .with_completion_responses(vec![String::new()]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
+        router.add_deployment("test".into(), deployment).unwrap();
+
+        let request = CompletionRequest {
+            message: "hello".into(),
+            ..Default::default()
+        };
+
+        let first = router
+            .invoke_cached("test".into(), request.clone())
+            .await
+            .unwrap();
+        assert!(first.content.is_empty());
+
+        let second = router.invoke_cached("test".into(), request).await;
+        assert!(
+            second.is_err(),
+            "empty content was cached; second call served {second:?}"
+        );
+    }
+
+    /// Control for the test above: non-empty content IS cached — the second
+    /// call succeeds from the cache even though the dummy queue is exhausted.
+    #[tokio::test]
+    async fn test_nonempty_completion_content_is_cached() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("nonempty-content-cache.db");
+        let router = Router::<CompletionTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        let model = DummyModel::new("nonempty-content-test".to_string(), provider)
+            .with_completion_responses(vec!["ok".to_string()]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn CompletionModel>);
+        router.add_deployment("test".into(), deployment).unwrap();
+
+        let request = CompletionRequest {
+            message: "hello".into(),
+            ..Default::default()
+        };
+
+        let first = router
+            .invoke_cached("test".into(), request.clone())
+            .await
+            .unwrap();
+        assert_eq!(first.content, "ok");
+
+        let second = router.invoke_cached("test".into(), request).await.unwrap();
+        assert_eq!(second.content, "ok");
+    }
+
     #[tokio::test]
     async fn test_retry_integration_disabled_by_default() {
         // Router without retry → transient errors propagate immediately
