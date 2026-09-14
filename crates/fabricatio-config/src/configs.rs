@@ -59,7 +59,11 @@ pub struct ImageCompressionConfig {
     /// Optional pixel budget in megapixels; larger images are scaled down to fit.
     /// Vision fees scale with pixel count, so this is the fee knob. `None` keeps the
     /// original resolution.
-    #[validate(range(min = 0.01, max = 64.0, message = "max_megapixels must be between 0.01 and 64.0"))]
+    #[validate(range(
+        min = 0.01,
+        max = 64.0,
+        message = "max_megapixels must be between 0.01 and 64.0"
+    ))]
     pub max_megapixels: Option<f32>,
 }
 
@@ -111,7 +115,6 @@ pub struct LLMConfig {
 
     /// Reasoning effort for models that support it.
     pub effort: Option<String>,
-
 }
 
 /// Embedding configuration structure.
