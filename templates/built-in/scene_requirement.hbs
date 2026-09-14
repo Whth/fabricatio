@@ -8,7 +8,6 @@
 
 Title: {{ title }}
 Description: {{ description }}
-Expected word count: {{ expected_word_count }}
 {{#if writing_styles}}
 ### Writing styles References&Instructions:
 
@@ -39,3 +38,7 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - Output ONLY the scene prose as plain paragraphs — no headings, no title, no explanations.
 
 Respond entirely in "{{ language }}".
+
+{{#if expected_word_count}}
+Write approximately {{ expected_word_count }} words.{{/if}}
+

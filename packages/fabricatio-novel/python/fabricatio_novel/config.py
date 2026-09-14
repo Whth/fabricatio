@@ -84,7 +84,7 @@ class NovelConfig(BaseModel):
     )
     """negative prompt forwarded to ComfyUI for every scene illustration unless the proposal supplies its own."""
 
-    illustration_prompt_suffix: str = "best quality,masterpiece,4k,highres,"
+    illustration_prompt_suffix: str = "best quality,masterpiece,4k,highres"
     """quality tags appended to every scene illustration render prompt after the LoRA trigger
     augmentation; set empty to append nothing."""
 

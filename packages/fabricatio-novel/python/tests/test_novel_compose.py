@@ -221,7 +221,7 @@ class TestNovelCompose:
         assert novel.chapter[0].story[0].scenes[1].content == "A stranger appeared."
         assert ctx.title == "The Search"
         assert ctx.child_contexts[0].child_contexts[0].child_contexts[1].content == "A stranger appeared."
-        chapter_header = "# Ch1\n\n> The hero sets out."
+        chapter_header = "# Ch1"
         scenes = ctx.child_contexts[0].child_contexts[0].child_contexts
         assert scenes[0].prefix_log.render() == chapter_header
         assert scenes[1].prefix_log.render() == f"{chapter_header}\n\nHe left."
@@ -450,7 +450,9 @@ class TestPrefixAccumulation:
             result = await role.compose_chapter(chapter)
         assert result is not None
         story_a_block = "Alpha."
-        chapter_header = "# Ch1\n\n> The start."
+        # b05391cb seeds only the chapter title into prefixes: the description is a
+        # whole-chapter synopsis and would leak later beats into every scene prompt.
+        chapter_header = "# Ch1"
         assert story_a.prefix_log.render() == chapter_header
         assert story_b.prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
         assert story_b.child_contexts[0].prefix_log.render() == f"{chapter_header}\n\n{story_a_block}"
@@ -493,9 +495,9 @@ class TestPrefixAccumulation:
             novel = await role.compose_novel(ctx)
 
         assert novel is not None
-        chapter_1_block = "# Ch1\n\n> The start.\n\nA.\n\nB."
-        chapter_1_header = "# Ch1\n\n> The start."
-        chapter_2_header = "# Ch2\n\n> The road."
+        chapter_1_block = "# Ch1\n\nA.\n\nB."
+        chapter_1_header = "# Ch1"
+        chapter_2_header = "# Ch2"
         story_c_block = "C."
         assert chapter_1.prefix_log.render() == ""
         assert chapter_2.prefix_log.render() == chapter_1_block
