@@ -10,7 +10,7 @@ from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[ChapterContext, NovelPlan]):
+class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[C, P]):
     """The novel root channel: outline, language, plan and the chapter contexts it writes."""
 
     title: str = ""
