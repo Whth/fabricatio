@@ -26,6 +26,7 @@ from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.models.chapter import Chapter
+from fabricatio_novel.models.context.chapter import RagChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.series_book import SeriesBible
@@ -169,10 +170,24 @@ class RagPlanStoriesStage(PlanStoriesStage, RAGCompose):
 
     :meth:`RAGCompose.plan_stories_phase` seals each chapter's stories with
     the context-overridden retrieval settings right after they are planned;
-    the later scene stages only consume the sealed story contexts.
+    each sealed chapter is then promoted to
+    :class:`~fabricatio_novel.models.context.chapter.RagChapterContext`, so the
+    snapshot tree type-states that its stories are sealed, and the later scene
+    stages only consume sealed story contexts.
     """
 
     ctx_override: ClassVar[bool] = True
+
+    async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
+        send_to = cxt.get("send_to", TASK)
+        for index, chapter in enumerate(novel_ctx.child_contexts):
+            chapter_ctx = await self.before_compose_chapter_context(chapter)
+            if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
+                await self.snapshot(novel_ctx, cxt)
+                return False
+            novel_ctx.child_contexts[index] = RagChapterContext.model_validate(vars(chapter_ctx))
+        await self.snapshot(novel_ctx, cxt)
+        return True
 
 
 class PlanScenesStage(StageAction, StoryCompose):

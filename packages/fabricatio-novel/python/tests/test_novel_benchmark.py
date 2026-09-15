@@ -24,7 +24,9 @@ from fabricatio_novel.benchmark import (
     score_run,
     sign_test_p,
 )
+from fabricatio_novel.benchmark.models import StageArtifact
 from fabricatio_novel.benchmark.text import cjk_ratio, sentences, significant_terms
+from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 
 KEEPER = "The keeper rows out to the rocks."
 """Scene plan used by most fixtures; it names nothing a later scene would invent."""
@@ -180,6 +182,15 @@ def test_reference_documents_are_counted(tmp_path: Path) -> None:
     assert card.channel.docs_per_story == [1]
     assert card.channel.doc_chars == len(document)
     assert card.passed
+
+
+def test_snapshot_reload_dispatches_by_data_shape(tmp_path: Path) -> None:
+    """Snapshots whose stories carry retrieval settings reload rag-typed; plain snapshots stay plain."""
+    run_dir = benchmark_run(tmp_path, _story())
+    stages = {stage.name: stage for stage in StageArtifact.collect(run_dir)}
+
+    assert type(stages["stage_06_story_plans"].load()) is NovelContext
+    assert type(stages["stage_08_scenes"].load()) is RagNovelContext
 
 
 def test_exported_text_mismatch_is_gated(tmp_path: Path) -> None:

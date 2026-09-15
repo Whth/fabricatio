@@ -30,13 +30,14 @@ from pathlib import Path
 from typing import Self
 
 from fabricatio_core.rust import word_count
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, computed_field
 
 from fabricatio_novel.benchmark.enums import Gate, Metric, Verdict
 from fabricatio_novel.benchmark.probes import TermProbes
 from fabricatio_novel.benchmark.text import char_gram_stream, cjk_ratio, ngram_overlap, sentences, significant_terms
 from fabricatio_novel.models.context.chapter import ChapterContext
-from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
+from fabricatio_novel.models.context.rag import RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 
@@ -93,8 +94,19 @@ class StageArtifact(BaseModel):
         return stages
 
     def load(self) -> NovelContext:
-        """Read this snapshot back into the pipeline's own context model."""
-        return NovelContext.model_validate(json.loads(Path(self.path).read_text(encoding="utf-8")))
+        """Read this snapshot back into the pipeline's own context model.
+
+        A snapshot whose stories carry their ``rag`` settings restores as
+        :class:`RagNovelContext`, which brings the sealed stories' retrieval
+        state back through the chapter's type-constrained children; plain
+        snapshots fail that stricter validation and load as :class:`NovelContext`.
+        The dispatch is decided by the data's shape, never by per-item repair.
+        """
+        data = json.loads(Path(self.path).read_text(encoding="utf-8"))
+        try:
+            return RagNovelContext.model_validate(data)
+        except ValidationError:
+            return NovelContext.model_validate(data)
 
     def load_optional(self) -> NovelContext | None:
         """Read this snapshot, returning ``None`` for a stage that does not validate as the pipeline's own tree."""
@@ -454,7 +466,7 @@ class ProseScore(BaseModel):
 
 
 class ChannelScore(BaseModel):
-    """The RAG reference channel of the run."""
+    """The RAG reference channel of the run: the documents each story retrieved, read from the stories' retrieved styles."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -462,40 +474,14 @@ class ChannelScore(BaseModel):
     doc_chars: int = 0
 
     @classmethod
-    def of(cls, novel: NovelContext, stages: Sequence[StageArtifact], prose_stage: StageArtifact) -> Self:
+    def of(cls, novel: NovelContext) -> Self:
         """Measure the reference channel: how many documents each story got, and their total size."""
-        planned = cls._planned_styles(stages, prose_stage)
         stories = [story for chapter in novel.child_contexts for story in chapter.child_contexts]
-        documents = [
-            [style for style in story.writing_styles if style not in planned.get(story.title, set())]
-            for story in stories
-        ]
+        documents = [list(story.retrieved_styles) if isinstance(story, RagStoryContext) else [] for story in stories]
         return cls(
             docs_per_story=[len(docs) for docs in documents],
             doc_chars=sum(len(doc) for docs in documents for doc in docs),
         )
-
-    @staticmethod
-    def _planned_styles(stages: Sequence[StageArtifact], prose_stage: StageArtifact) -> dict[str, set[str]]:
-        """Return the styles each story already carried in the first snapshot that held it.
-
-        Reference documents join a story's styles at planning time and stay there
-        through every later snapshot, so the comparison baseline has to be the first
-        snapshot that knows the story — comparing against the newest earlier snapshot
-        would subtract the documents from themselves.
-        """
-        seen: dict[str, set[str]] = {}
-        for stage in stages:
-            if stage.path == prose_stage.path:
-                break
-            previous = stage.load_optional()
-            if previous is None:
-                continue
-            for chapter in previous.child_contexts:
-                for story in chapter.child_contexts:
-                    if story.title not in seen:
-                        seen[story.title] = set(story.writing_styles)
-        return seen
 
 
 class LanguageScore(BaseModel):

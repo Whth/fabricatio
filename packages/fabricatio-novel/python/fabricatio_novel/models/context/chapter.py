@@ -6,12 +6,13 @@ from typing import ClassVar, final
 
 from fabricatio_novel.models.context.base import ParentContextBase
 from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.rag import RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan
 
 
-class ChapterContext(ParentContextBase[StoryContext, ChapterPlan]):
+class ChapterContext[S: StoryContext, P: ChapterPlan](ParentContextBase[S, P]):
     """A chapter's composition channel: its plan, story contexts and heading block."""
 
     heading_level: ClassVar[str] = "#"
@@ -52,3 +53,12 @@ class ChapterContext(ParentContextBase[StoryContext, ChapterPlan]):
         for child in self.iter_child_contexts():
             entries.extend(child.prefixed_entries())
         return tuple(entries)
+
+
+class RagChapterContext(ChapterContext[RagStoryContext, ChapterPlan]):
+    """A chapter whose stories are all RAG-sealed: children are type-constrained.
+
+    :class:`RagStoryContext` requires its ``rag`` settings, so reloading a
+    persisted chapter into this class restores every sealed story — retrieval
+    state included — by pydantic validation alone, with no per-item repair.
+    """

@@ -4,13 +4,13 @@ from collections.abc import Generator
 from typing import Self, final
 
 from fabricatio_novel.models.context.base import ParentContextBase
-from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class NovelContext(ParentContextBase[ChapterContext, NovelPlan]):
+class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[ChapterContext, NovelPlan]):
     """The novel root channel: outline, language, plan and the chapter contexts it writes."""
 
     title: str = ""
@@ -57,3 +57,13 @@ class NovelContext(ParentContextBase[ChapterContext, NovelPlan]):
             ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip()),
         )
         return self
+
+
+class RagNovelContext(NovelContext[RagChapterContext, NovelPlan]):
+    """The RAG run's root channel: every chapter houses sealed stories.
+
+    :class:`RagChapterContext` constrains each chapter's children, so reloading
+    a persisted RAG run into this class restores the chapters — and through them
+    the sealed stories' retrieval state — by pydantic validation alone. Plain
+    snapshots fail this stricter validation and load as :class:`NovelContext`.
+    """

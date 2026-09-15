@@ -8,7 +8,7 @@ from fabricatio_character.models.character import CharacterSpan
 from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGCompose
-from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
@@ -46,7 +46,7 @@ class TestRAGCompose:
         and the scene instruction may differ.
         """
         role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
-        story = StoryContext(title="St1", description="The departure.")
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         # the bible reaches stories as a seeded prefix entry, never as a held model
         seed = ContextEntry(
             kind="setting_bible",
@@ -63,8 +63,10 @@ class TestRAGCompose:
                 ),
             )
 
+        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
+
         async def fake_fetch(query: object, config: object | None = None) -> list[WritingStyleDocument]:
-            return []
+            return [doc]
 
         async def fake_refine(question: object, **kwargs: object) -> list[str]:
             return ["the departure", "a cold platform"]
@@ -84,6 +86,10 @@ class TestRAGCompose:
         assert reqs[0].startswith("--- Start of Novel so far ---")
         assert "Dark gothic prose with terse action lines." in reqs[0]
         assert "The world is cold." in reqs[0]
+
+        for req in reqs:
+            assert doc.as_prompt() in req
+            assert req.index(doc.as_prompt()) < req.rindex("--- End of Novel so far ---")
 
         # each later prompt shares every byte of the earlier prompt's novel-so-far bodies
         for prev, nxt in pairwise(reqs):
@@ -139,20 +145,93 @@ class TestRAGCompose:
         assert "## Writing Styles" not in requirement
         assert "The hero fights." in requirement
 
-    async def test_plan_scenes_propagates_style_docs_to_scenes(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert scenes materialized after the story prep inherit the story's style references."""
+    async def test_prepare_story_stores_docs_as_retrieved_styles(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert prepare_story holds retrieved docs on retrieved_styles, leaving planned styles untouched."""
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        docs = [
+            WritingStyleDocument.with_text_chunk("Dark gothic prose."),
+            WritingStyleDocument.with_text_chunk("Terse dialogue."),
+        ]
+
+        async def fake_fetch_docs(ctx: StoryContext, **kwargs: object) -> list[WritingStyleDocument]:
+            return docs
+
+        monkeypatch.setattr(type(role), "_fetch_style_docs", staticmethod(fake_fetch_docs))
+
+        await role.prepare_story(story)
+
+        assert story.retrieved_styles == [doc.as_prompt() for doc in docs]
+        assert story.writing_styles == []
+
+    async def test_retrieved_docs_seed_every_scene_prefix_once(self) -> None:
+        """Assert each scene's prefix holds exactly one shared style_references entry, idempotently."""
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        story.add_retrieved_styles(["Dark gothic prose with terse action lines."])
+        story.add_context(
+            SceneContext(title="S1", description="Leaving home.", expected_word_count=50).set_content("He left.")
+        )
+        story.add_context(SceneContext(title="S2", description="The road.", expected_word_count=50))
+
+        for _ in range(2):
+            scenes = list(story.iter_prefixed_contexts())
+
+        assert [entry.kind for entry in scenes[0].prefix_log.entries] == ["style_references"]
+        assert [entry.kind for entry in scenes[1].prefix_log.entries] == ["style_references", "scene_content"]
+        for scene in scenes:
+            assert "Dark gothic prose with terse action lines." in scene.prefix_log.render()
+
+    async def test_next_story_prefix_excludes_previous_story_docs(self) -> None:
+        """Assert a story's retrieved docs never reach the next story's or its scenes' prefixes."""
+        chapter = RagChapterContext(title="Ch1", description="A framing chapter.", expected_word_count=100)
+        story_a = RagStoryContext(title="StA", description="The departure.", rag=RagRetrieval())
+        story_a.add_retrieved_styles(["Style A."])
+        story_a.add_context(
+            SceneContext(title="SA1", description="Leaving.", expected_word_count=50).set_content("He left.")
+        )
+        story_b = RagStoryContext(title="StB", description="The return.", rag=RagRetrieval())
+        story_b.add_retrieved_styles(["Style B."])
+        story_b.add_context(
+            SceneContext(title="SB1", description="Arriving.", expected_word_count=50).set_content("He arrived.")
+        )
+        chapter.add_context(story_a)
+        chapter.add_context(story_b)
+
+        stories = list(chapter.iter_prefixed_contexts())
+        scenes = [list(story.iter_prefixed_contexts()) for story in stories]
+
+        assert [entry.kind for entry in stories[1].prefix_log.entries] == ["chapter_header", "scene_content"]
+        assert "He left." in stories[1].prefix_log.render()
+        assert "Style A." not in stories[1].prefix_log.render()
+        for scene in scenes[1]:
+            refs = [entry for entry in scene.prefix_log.entries if entry.kind == "style_references"]
+            assert len(refs) == 1
+            assert "Style B." in refs[0].body
+            assert "Style A." not in refs[0].body
+        refs_a = [entry for entry in scenes[0][0].prefix_log.entries if entry.kind == "style_references"]
+        assert len(refs_a) == 1
+        assert "Style A." in refs_a[0].body
+        assert "Style B." not in refs_a[0].body
+
+    async def test_plan_scenes_keeps_retrieved_docs_off_scenes(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert retrieved docs stay on the story; scenes inherit only planned styles."""
         role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         story.set_writing_styles(["Dark gothic prose with terse action lines."])
+        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
 
         async def fake_fetch_docs(ctx: RagStoryContext, **kwargs: object) -> list[WritingStyleDocument]:
-            return []
+            return [doc]
 
         async def fake_propose(model: object, requirement: str, **kwargs: object) -> ScenePlans:
             return ScenePlans(
                 root=[
                     ScenePlan(
-                        title="S1", description="Leaving home.", weight=1.0, writing_styles=[], writing_constraints=[]
+                        title="S1",
+                        description="Leaving home.",
+                        weight=1.0,
+                        writing_styles=["Close first person."],
+                        writing_constraints=[],
                     )
                 ]
             )
@@ -162,8 +241,12 @@ class TestRAGCompose:
 
         await role.plan_scenes_phase(story)
 
-        assert len(story.child_contexts) == 1
-        assert story.child_contexts[0].writing_styles == story.writing_styles
+        assert story.retrieved_styles == [doc.as_prompt()]
+        assert story.child_contexts[0].writing_styles == [
+            "Dark gothic prose with terse action lines.",
+            "Close first person.",
+        ]
+        assert doc.as_prompt() not in story.child_contexts[0].writing_styles
 
     async def test_plan_scenes_injects_held_style_docs(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the story's held style references render into the scene planning prompt."""
@@ -396,6 +479,8 @@ class TestRAGCompose:
         sealed = chapter.child_contexts[0]
         assert isinstance(sealed, RagStoryContext)
         assert sealed.rag == RagRetrieval(query="guide", limit=3)
+        assert isinstance(novel.child_contexts[0], RagChapterContext)
+        assert novel.child_contexts[0].child_contexts[0].rag == RagRetrieval(query="guide", limit=3)
 
     async def test_seal_carries_character_spans_into_scene_planning(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert sealing keeps the roster's state cards on the story and in its scene-planning prompt."""

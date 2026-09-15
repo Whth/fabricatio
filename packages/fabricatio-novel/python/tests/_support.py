@@ -9,6 +9,7 @@ from fabricatio_character.models.character import CharacterCard
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 
@@ -66,9 +67,20 @@ class StorySpec:
 
 def _story_context(spec: StorySpec, *, with_docs: bool, with_content: bool) -> StoryContext:
     """Build one story context, optionally carrying its retrieved documents and composed scenes."""
-    story = StoryContext.create(
-        BENCH_OUTLINE, language="English", title=spec.title, description=spec.description
-    ).set_writing_styles([*spec.styles, *spec.docs] if with_docs else list(spec.styles))
+    story: StoryContext
+    if not with_docs:
+        story = StoryContext.create(
+            BENCH_OUTLINE, language="English", title=spec.title, description=spec.description
+        ).set_writing_styles(list(spec.styles))
+    else:
+        story = (
+            RagStoryContext.seal(
+                StoryContext.create(BENCH_OUTLINE, language="English", title=spec.title, description=spec.description),
+                RagRetrieval(),
+            )
+            .set_writing_styles(list(spec.styles))
+            .add_retrieved_styles(list(spec.docs))
+        )
     for scene in spec.scenes:
         context = SceneContext.create(
             BENCH_OUTLINE, language="English", title=scene.title, description=scene.description
@@ -88,9 +100,10 @@ def benchmark_run(
 ) -> Path:
     """Persist a synthetic staged run for the benchmark tests and return its directory.
 
-    The plan stage carries the story styles without the retrieved documents and no
-    composed prose — like the real planning snapshot — so a scorecard can tell
-    reference documents apart from planned styles.
+    The plan stage carries planned styles only — no retrieved documents, no
+    composed prose — like the real planning snapshot. The prose stage carries
+    the documents on each story's ``retrieved_styles`` behind a RAG seal, and
+    the scorecard restores the seal by reloading the snapshot as ``RagNovelContext``.
     """
     run_dir = root / name
     plan_stage = run_dir / "stage_06_story_plans"

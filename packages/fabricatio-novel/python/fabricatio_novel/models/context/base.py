@@ -9,7 +9,7 @@ from fabricatio_character.models.character import CharacterCard, CharacterSpan
 from fabricatio_core import logger
 from fabricatio_core.models.generic import Described, JSONList, Titled
 from fabricatio_core.rust import detect_language
-from pydantic import Field
+from pydantic import Field, SerializeAsAny
 
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.plan import WeightedPlan
@@ -180,10 +180,11 @@ class ContextBase[P: WeightedPlan](
     def prefixed_header_entry(self) -> ContextEntry | None:
         """This element's heading block as an entry seeded into every child's prefix.
 
-        Only the chapter renders a heading, and only its title: the chapter
+        The chapter renders its heading, and only its title: the chapter
         description is a whole-chapter synopsis, so seeding it would leak the
-        beats of later scenes into every descendant prompt. The novel's,
-        story's and scene's own titles are not part of the running text.
+        beats of later scenes into every descendant prompt. A RAG-sealed story
+        renders its retrieved style references as one shared entry. The novel's,
+        plain story's and scene's own titles are not part of the running text.
         """
         return None
 
@@ -205,7 +206,7 @@ class ContextBase[P: WeightedPlan](
 class ParentContextBase[C: ContextBase, P: WeightedPlan](ContextBase[P], ABC):
     """Base for non-leaf contexts: a plan-typed channel that owns and iterates child contexts."""
 
-    child_contexts: list[C] = Field(default_factory=list)
+    child_contexts: list[SerializeAsAny[C]] = Field(default_factory=list)
 
     def add_context(self, child_ctx: C) -> Self:
         """Append one child context and return self."""

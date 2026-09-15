@@ -26,9 +26,10 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
     Retrieval settings are sealed onto a dedicated :class:`~fabricatio_novel.models.context.rag.RagStoryContext`
     subclass — the standard context tree carries no retrieval state.
     :meth:`plan_stories_phase` seals each chapter's stories right after they
-    are planned; retrieved documents merge into the story's writing styles,
-    are inherited by the scenes it materializes, and render inside every
-    scene write prompt's prefix-cacheable region.
+    are planned; retrieved documents are held as the story's retrieved styles
+    and render through ``prefixed_header_entry()`` into every scene write
+    prompt's prefix-cacheable region. The next story's prefix cannot contain
+    them: stories forward only their scenes' entries.
     """
 
     rag_query: str = ""
@@ -64,16 +65,15 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
         """Retrieve raw writing style references for a sealed story before its scenes are planned.
 
         Unsealed story contexts carry no retrieval settings and are skipped.
-        The documents render to plain texts held on the story context so the
-        scenes it materializes inherit them; no condensation is applied.
+        The documents are held as the story's retrieved styles and render as
+        one shared prefix entry into every scene write prompt; no condensation
+        is applied.
         """
         await super().prepare_story(ctx, send_to, **kwargs)
         if not isinstance(ctx, RagStoryContext):
             return
         docs = await self._fetch_style_docs(ctx, send_to=send_to, **kwargs)
-        if not docs:
-            return
-        ctx.add_writing_styles([doc.as_prompt() for doc in docs])
+        ctx.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")
 
     async def _fetch_style_docs(

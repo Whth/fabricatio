@@ -2,8 +2,10 @@
 
 from typing import Self
 
+from fabricatio_core.utils import wrap_in_block
 from pydantic import BaseModel, Field
 
+from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.story import StoryContext
 
 
@@ -24,32 +26,52 @@ class RagRetrieval(BaseModel):
 class RagStoryContext(StoryContext):
     """A story context sealed with writing style retrieval settings.
 
-    The RAG pipeline swaps plain story contexts for this subclass before their
-    scenes are planned; every retrieval consumer types against this class, and
-    the base :class:`~fabricatio_novel.models.context.story.StoryContext` stays
-    free of retrieval state.
+    The story-planning stage seals plain story contexts into this subclass and
+    houses them in a :class:`~fabricatio_novel.models.context.chapter.RagChapterContext`;
+    every retrieval consumer types against this class, and the base
+    :class:`~fabricatio_novel.models.context.story.StoryContext` stays free of
+    retrieval state. Retrieved reference documents are held on
+    ``retrieved_styles`` and render through :meth:`prefixed_header_entry` as one
+    story-scoped entry shared by every scene write prompt's prefix-cacheable
+    region; they never enter ``writing_styles``.
     """
 
-    rag: RagRetrieval = Field(default_factory=RagRetrieval)
-    """Retrieval settings for this story's writing style references."""
+    rag: RagRetrieval
+    """Retrieval settings for this story's writing style references; required, so a plain story's snapshot never validates as this class."""
 
-    def set_rag(self, rag: RagRetrieval) -> Self:
-        """Set the retrieval settings and return self."""
-        self.rag = rag
+    retrieved_styles: list[str] = Field(default_factory=list)
+    """Writing style reference texts retrieved for this story; rendered as one story-scoped prefix entry shared by every scene."""
+
+    def add_retrieved_styles(self, styles: list[str]) -> Self:
+        """Append non-empty retrieved style texts and return self."""
+        self.retrieved_styles.extend(style for style in styles if style)
         return self
+
+    def prefixed_header_entry(self) -> ContextEntry | None:
+        """The retrieved style references as one entry seeded into every scene's prefix."""
+        if not self.retrieved_styles:
+            return None
+        return ContextEntry(
+            kind="style_references",
+            title="Writing Style References",
+            body=wrap_in_block("\n".join(self.retrieved_styles), title="Retried Writing Style References"),
+        )
 
     @classmethod
     def seal(cls, story: StoryContext, rag: RagRetrieval) -> "RagStoryContext":
         """Rebind a plain story context as RAG-bound, carrying the given settings.
 
-        The rebind reads every field off the plain context directly, so the roster's
-        character state cards travel without being listed here — and so does any
-        field added to a context base later. Only ``rag``, absent from the plain
-        class, is applied on top.
+        The rebind copies every field off the plain context's instance state — the
+        dump-excluded run-wide constants (outline, language) included — so the
+        roster's character state cards travel without being listed here, and so
+        does any field added to a context base later. Only ``rag``, absent from
+        the plain class, is applied on top; the key is required on this class,
+        which is how snapshot loaders tell sealed trees from plain ones by
+        validation alone.
 
         Sealing an already sealed story returns it unchanged.
         """
         if isinstance(story, RagStoryContext):
             return story
 
-        return RagStoryContext.model_validate(story, from_attributes=True).set_rag(rag)
+        return cls.model_validate({**vars(story), "rag": rag})
