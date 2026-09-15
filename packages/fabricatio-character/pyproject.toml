@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-character"
-version = "0.5.0-dev0"
+version = "0.5.0"
 description = "Structured character persona cards with AI-driven composition for Fabricatio."
 readme = "README.md"
 license = "MIT"
