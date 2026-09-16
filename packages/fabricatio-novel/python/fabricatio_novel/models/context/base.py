@@ -4,24 +4,24 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator, Sequence
 from typing import Self, final
 
-from pydantic import Field, SerializeAsAny
-
 from fabricatio_capabilities.models.generic import PersistentAble, UpdateFrom, WordCount
 from fabricatio_character.models.character import CharacterCard, CharacterSpan
 from fabricatio_core import logger
 from fabricatio_core.models.generic import Described, JSONList, Titled
 from fabricatio_core.rust import detect_language
+from pydantic import Field, SerializeAsAny
+
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
 from fabricatio_novel.models.plan import WeightedPlan
 
 
 def stitch_boundaries[C](
-        parent_spans: list[CharacterSpan],
-        children: Sequence[C],
-        spans_accessor: Callable[[C], list[CharacterSpan]],
-        proposed: list[list[CharacterCard]],
-        expected_boundaries: int,
-        level: str,
+    parent_spans: list[CharacterSpan],
+    children: Sequence[C],
+    spans_accessor: Callable[[C], list[CharacterSpan]],
+    proposed: list[list[CharacterCard]],
+    expected_boundaries: int,
+    level: str,
 ) -> None:
     """Stitch one child span per element from the parent spans and proposed boundaries.
 
@@ -88,7 +88,7 @@ class ContextBase[P: WeightedPlan](
 
     @classmethod
     def create(
-            cls, outline: str, *, language: str | None = None, title: str | None = None, description: str | None = None
+        cls, outline: str, *, language: str | None = None, title: str | None = None, description: str | None = None
     ) -> Self:
         """Build a context from the run-wide outline, detecting the language when none is given."""
         return cls(

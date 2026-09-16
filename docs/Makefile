@@ -4,8 +4,11 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
-SPHINXINTL    ?= sphinx-intl
+# The docs toolchain lives in the uv-managed workspace venv (just py_sync installs the
+# `docs` dependency group), so the bare executables are not on PATH — they only exist
+# inside the venv. Every other Justfile recipe goes through uv for the same reason.
+SPHINXBUILD   ?= uv run --no-sync sphinx-build
+SPHINXINTL    ?= uv run --no-sync sphinx-intl
 LANG          ?= zh_CN
 SOURCEDIR     = source
 BUILDDIR      = build

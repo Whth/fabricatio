@@ -1,6 +1,7 @@
 """Mental model data models for dynamic character psychological state.
 
 Layered composite:
+
 - CharacterMind: stable identity (personality + cognition + language + age)
 - EmotionalState: volatile per-event state (emotion + body + active distortion)
 - NeedState: Maslow hierarchy tracking (Maslow, 1943)

@@ -1399,7 +1399,7 @@ fabricatio-tool
      - map of ServiceConfig_
      - *(empty)*
      - MCP servers allowed to be used.
-  * - ``logging_on_ops``
+   * - ``logging_on_ops``
      - bool
      - ``true``
      - Log operations before executing them.

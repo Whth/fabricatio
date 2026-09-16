@@ -108,7 +108,14 @@ intersphinx_mapping = {
 intersphinx_timeout = 5  # seconds; fail fast if remote inventory unreachable
 
 # Suppress intersphinx inventory fetch failures (network-dependent)
-suppress_warnings = ["intersphinx.inventory", "misc.highlighting_failure"]
+#
+# "ref.python" silences "more than one target found for cross-reference 'type'": a bare
+# builtin `type` in an annotation (e.g. `key_type: type[_K]`, `Sequence[type[Action]]`)
+# is resolved by suffix match and collides with the genuinely named `type` fields of the
+# comfyui node-schema models (AnimaCLIPLoaderInputs.type, ViewImageParams.type, ...).
+# Those field names mirror ComfyUI's own JSON schema, so the collision cannot be removed
+# from our side; the builtin is the only meaningful target of those annotations.
+suppress_warnings = ["intersphinx.inventory", "misc.highlighting_failure", "ref.python"]
 
 # Add favicon and logo
 html_favicon = "../../assets/logo/400.svg"

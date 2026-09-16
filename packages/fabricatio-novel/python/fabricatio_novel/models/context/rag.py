@@ -2,9 +2,9 @@
 
 from typing import Self
 
+from fabricatio_core.utils import wrap_in_block
 from pydantic import BaseModel, Field
 
-from fabricatio_core.utils import wrap_in_block
 from fabricatio_novel.models.context.log import ContextEntry
 from fabricatio_novel.models.context.story import StoryContext
 
@@ -55,8 +55,10 @@ class RagStoryContext(StoryContext):
             kind="style_references",
             title="Writing Style References",
             body=wrap_in_block(
-                "Before writing this segment(s), i have retrieved some docs below, which you can refer to make the novel better" + "\n".join(
-                    self.retrieved_styles), title="Retried Writing Style References"),
+                "Before writing this segment(s), i have retrieved some docs below, which you can refer to make the novel better"
+                + "\n".join(self.retrieved_styles),
+                title="Retried Writing Style References",
+            ),
         )
 
     @classmethod

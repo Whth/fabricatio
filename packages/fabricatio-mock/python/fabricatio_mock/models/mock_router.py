@@ -275,7 +275,7 @@ def return_obj_router_usage(*objs: JsonValue, default: str | None = None, paddin
     """Build unfenced serialized-JSON responses for install_router_usage.
 
     Use this when the consumer parses raw JSON text; return_json_obj_router_usage
-    wraps the same payload in a ```json fence instead.
+    wraps the same payload in a ``json`` code fence instead.
 
     Args:
         *objs (JsonValue): Objects to serialize as JSON.

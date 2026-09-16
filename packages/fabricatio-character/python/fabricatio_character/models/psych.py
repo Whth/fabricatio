@@ -8,6 +8,7 @@ runs one way. Methods that need config values import it inside the function
 body.
 
 Contents:
+
 - Emotion / Distortion / PersonalityFlag / MaslowLevel / BigFiveDimension /
   SituationDimension: domain enums
 - SituationProfile: DIAMONDS 8-dim situational classification (Rauthmann et al., 2014)

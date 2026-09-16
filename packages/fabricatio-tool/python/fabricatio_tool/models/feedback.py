@@ -5,6 +5,7 @@ feedback string so that failed (or partially successful) executions can be fed
 back into the next drafting round.
 
 Design constraints:
+
 - **Functional**: :func:`summarize_collector` and :func:`render_feedback` are pure
   functions over immutable snapshots; neither mutates the collector.
 - **Prefix-cache friendly**: output depends only on the collector content, never on

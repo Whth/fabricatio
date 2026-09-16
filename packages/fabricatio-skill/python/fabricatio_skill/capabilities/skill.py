@@ -241,6 +241,7 @@ class UseSkill(UseLLM, ABC):
         Callers feed the returned knowledge into their own LLM call.
 
         Pipeline stages:
+
         1. ENSURE (optional): auto-load skills from ``default_skill_dirs`` when
            this role has none (zero-config usage).
         2. SELECT: pick relevant skills (forced by names, or the framework

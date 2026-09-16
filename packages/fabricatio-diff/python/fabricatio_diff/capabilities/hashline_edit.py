@@ -44,11 +44,11 @@ class HashlineOp:
     """Op kind; selects which field is meaningful."""
 
     anchor: str | None = None
-    """`LINE:HASH` for `set_line` / `insert_after`."""
+    """``LINE:HASH`` for ``set_line`` / ``insert_after``."""
     start_anchor: str | None = None
-    """`LINE:HASH` for the range start (`replace_lines`)."""
+    """``LINE:HASH`` for the range start (``replace_lines``)."""
     end_anchor: str | None = None
-    """`LINE:HASH` for the range end (`replace_lines`)."""
+    """``LINE:HASH`` for the range end (``replace_lines``)."""
     new_text: str | None = None
     """Replacement content for `set_line` / `replace_lines` / `replace`."""
     text: str | None = None
@@ -78,10 +78,9 @@ class HashlineDiffResult:
 class HashlineEditExhaustedError(RuntimeError):
     """Raised when `hashline_diff` cannot reach a satisfied state in time.
 
-    Attributes:
-        iterations: Number of LLM calls made before giving up.
-        last_source: Content after the last successful apply.
-        last_error: Error from the last failed apply, if any.
+    The three fields are documented on ``__init__``; repeating them here as an
+    ``Attributes:`` section makes napoleon and autoapi describe the same objects
+    twice (autoapi already emits them from the ``self.*`` assignments).
     """
 
     def __init__(
@@ -199,7 +198,7 @@ class HashlineEdit(UseLLM, ABC):
 
         Each iteration:
           1. Render `hashline_diff_template` with `{source, requirement, last_error}`.
-          2. Parse the LLM response into a list of `HashlineOp`s.
+          2. Parse the LLM response into a list of ``HashlineOp`` objects.
           3. Apply via Rust. On `HashlineError` (Mismatch / LineOutOfBounds /
              InvalidAnchor), capture the error message and re-prompt.
           4. Call `ajudge` with `hashline_judge_template`. If YES, return.
