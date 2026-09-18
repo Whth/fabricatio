@@ -56,12 +56,14 @@ The CLI runs the pipeline as a **staged workflow** (`DebugNovelWorkflow`), persi
 whole-tree JSON snapshot after every stage so any wrong result is traceable:
 
 ```
-01_init → 02_metadata → 03_characters → 04_chapter_plans → 05_story_plans
-       → 06_scene_plans → 07_scenes → 08_novel → 09_export
+01_init → 02_metadata → 03_bible → 04_characters → 05_chapter_plans → 06_story_plans
+       → 07_scene_plans → 08_scenes → 09_novel → export
 ```
 
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
-entries from LanceDB once per story and renders them raw into the scene prompts.
+entries from LanceDB once per story, renders them raw into that story's scene
+prompts, and stops rendering them into later prefix walks once every scene of the
+story carries content (the raw texts stay on the context for scoring and audit).
 
 The `wri` variant (`RagIllustrationDebugNovelWorkflow`) appends one final post-process
 stage that illustrates every scene of the finished context before export; its stage
@@ -160,11 +162,14 @@ the next scene's beats in its own words) is deliberately **not** gated: calibrat
 statistics cannot decide it, which is why `benchmark/scorecard.py` records what is measurable and what
 is not.
 
-The three reports are handlebars templates (`bench_scorecard`, `bench_comparison`, `bench_board`),
-so their wording and layout change without touching the scorer. The scorer only measures: every
-number a report prints is carried by the models themselves as a `*_display` field (handlebars has no
-arithmetic helpers, so rounding, percentages and units are precomputed next to the measurement), and
-`--json` leaves those report-only fields out of the machine-readable form.
+The scorecard and the comparison are handlebars templates (`bench_scorecard`, `bench_comparison`), so
+their wording and layout change without touching the scorer; the board is one table and nothing else,
+so `Board` renders it directly. The scorer only measures: every number a report prints is carried by
+the models themselves as a `*_display` field (handlebars has no arithmetic helpers, so rounding,
+percentages and units are precomputed next to the measurement), and a table's column widths span
+several rows (`Comparison.table`, `Board`), so the models measure and pad it for the same reason and
+the template prints it as-is; `--json` leaves those report-only fields out of the machine-readable
+form.
 
 Each model also owns how it is read and measured, as classmethod factories — `StageArtifact.collect`/
 `load`, `SceneRef.collect`, `SceneScore.of`, `RepetitionScore.of`, `ProbeScore.of` and their siblings —
@@ -173,20 +178,33 @@ that carries it.
 
 ### Content probes
 
-Term lists belong to a corpus, not to this package, so they are supplied per corpus as a JSON file:
-`gated` terms fail the run when they appear in the prose, `watch` terms are reported per 1000
-characters (raw and unlicensed — vocabulary the outline or the bible uses itself is licensed), and
-each `aliases` group warns when one novel mixes two names for the same object. Point `benchmark_probes`
-(see [Configuration](#configuration)) at a file and the post-run report measures every run against it,
-or pass `--probes` per invocation. Without a probe file the corpus-independent metrics still run, and
-the probe row reads `not configured`.
+Term lists belong to a corpus, not to this package, so they live in one table beside it — `probes.toml`
+in the working directory, which every `fanvl bench` command reads without being handed a path. `gated`
+terms fail the run when they appear in the prose, `watch` terms are reported per 1000 characters (raw
+and unlicensed — vocabulary the outline or the bible uses itself is licensed), and each `aliases`
+group warns when one novel mixes two names for the same object.
+
+```toml
+gated   = ["hologram"]              # every occurrence fails the run
+watch   = ["sapphire"]              # counted per 1000 characters
+aliases = [["lamp", "lantern"]]     # names one object must not alternate between
+```
+
+JSON works as well. `--probes` measures a single invocation against another table, and `fanvl bench
+scan` applies the same table to prose that has no run directory behind it:
 
 ```bash
 fanvl bench score novels/20260101-101010     # one run's scorecard (--json for the raw form)
 fanvl bench compare novels/20260101-101010   # against the newest comparable run (--against to pin one)
 fanvl bench board novels -n 12               # the newest runs side by side
-fanvl bench score novels/20260101-101010 --probes corpus/probes.json
+fanvl bench scan novels/ draft.txt           # manuscripts, chapters, drafts (dirs read every *.txt)
+fanvl bench score novels/20260101-101010 --probes corpus/probes.toml
 ```
+
+`--probes` defaults to `probes.toml` in the working directory, so a project with one table never repeats
+a path, and a path that does not exist only skips the probe rows — the benchmark never fails a run over
+its probe file. Without a table the corpus-independent metrics still run, and the probe row reads
+`not configured`.
 
 ## Key Classes
 
@@ -197,7 +215,7 @@ fanvl bench score novels/20260101-101010 --probes corpus/probes.json
 | `NovelContext` | Root channel: outline, language, roster `charactor_span`, `chapter_context` |
 | `ChapterContext` | Chapter channel: `charactor_span`, `story_context`, heading block |
 | `StoryContext` | Story channel: `charactor_span`, `scene_context`, accumulated `writing_styles` |
-| `RagStoryContext` | `StoryContext` subclass sealed with `RagRetrieval` settings; the RAG pipeline swaps it in before scene planning |
+| `RagStoryContext` | `StoryContext` subclass sealed with `RagRetrieval` settings; the RAG pipeline swaps it in before scene planning and stops rendering its references once every scene of the story carries content |
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
 | `CharacterSpan` | Start + end `CharacterCard`; `derive_child_spans` stitches boundary cards |
 | `ContextLog` / `ContextEntry` | Append-only manuscript log per channel: `append`, `branch` (fork history), `clear` (fresh fork); renders the prefixed-content prompt streams |
@@ -228,7 +246,7 @@ history stays intact.
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
-| `RAGCompose` | Retrieves style docs once per story; extends scene prompts |
+| `RAGCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
 | `BibleCompose` | Composes the setting bible from the outline once; immutable for the run |
 | `IllustrateScenes` | Post-process illustration: batch-proposes one complete generation instruction (`SketchSpec`: prompt, negative prompt, LLM-chosen `mp`/`prop`) per pending scene (honoring `illustration_constraint`), renders them concurrently via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
 
@@ -238,12 +256,13 @@ history stays intact.
 |---|---|
 | `InitNovelContext` | `01_init` — build context from outline/language/constraint/bible, then fire `before_compose_novel_context` |
 | `ProposeNovelMetadataStage` | `02_metadata` — `propose_novel_metadata` |
-| `PrepareCharacterSpanStage` | `03_characters` — `prepare_character_span` (roster) |
-| `PlanChaptersStage` | `04_chapter_plans` — `plan_chapters_phase` + boundary drafting |
-| `PlanStoriesStage` / `RagPlanStoriesStage` | `05_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting (RAG seals each chapter's stories) |
-| `PlanScenesStage` / `RagPlanScenesStage` | `06_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
-| `ComposeScenesStage` / `RagComposeScenesStage` | `07_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
-| `AssembleNovelStage` | `08_novel` — fires `after_compose_novel_context`, then `assemble_novel` |
+| `ProposeSettingBibleStage` | `03_bible` — `compose_setting_bible`, then seed the bible prefix; skipped when a bible is already present |
+| `PrepareCharacterSpanStage` | `04_characters` — `prepare_character_span` (roster) |
+| `PlanChaptersStage` | `05_chapter_plans` — `plan_chapters_phase` + boundary drafting |
+| `PlanStoriesStage` / `RagPlanStoriesStage` | `06_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting (RAG seals each chapter's stories) |
+| `PlanScenesStage` / `RagPlanScenesStage` | `07_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
+| `ComposeScenesStage` / `RagComposeScenesStage` | `08_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
+| `AssembleNovelStage` | `09_novel` — fires `after_compose_novel_context`, then `assemble_novel` |
 | `IllustrateNovelStage` | `DumpNovelStage` whose `post_process_novel` resolves to per-scene illustration; adds no snapshot dir |
 | `DumpNovelStage` | fires `post_process_novel`, then export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
 
@@ -285,10 +304,8 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
 | `scene_overlap_min_chars` | `int` | `40` | minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept. |
 | `scene_overlap_max_ratio` | `float` | `0.6` | maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped. |
-| `benchmark_probes` | `str` | `""` | path to a JSON file of benchmark content probes (`gated`/`watch`/`aliases` term lists); empty keeps the corpus-independent metrics only. |
 | `bench_scorecard_template` | `str` | `"built-in/bench_scorecard"` | template used to render one run's benchmark scorecard. |
 | `bench_comparison_template` | `str` | `"built-in/bench_comparison"` | template used to render two runs' benchmark comparison. |
-| `bench_board_template` | `str` | `"built-in/bench_board"` | template used to render the benchmark board of the newest runs. |
 | `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a list of plain strings, one character per item. |
 | `setting_bible_background_template` | `str` | `"built-in/setting_bible_background"` | template used to propose the bible's background settings as a list of strings. |
 | `setting_bible_context_template` | `str` | `"built-in/setting_bible_context"` | template that renders the bible into the block seeded into the running manuscript prefix. |
