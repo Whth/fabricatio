@@ -407,7 +407,7 @@ class TestGraphImg2Img:
         sampler = cast("dict[str, object]", api["sampler"])["inputs"]
         assert sampler["latent_image"] == ("encode", 0)
         assert sampler["model"] == ("loader", 0)
-        assert sampler["start_at_step"] == 12
+        assert sampler["start_at_step"] == 23
         assert sampler["scheduler"] == "karras"
         decode = cast("dict[str, object]", api["decode"])["inputs"]
         assert decode["samples"] == ("sampler", 0)
@@ -435,7 +435,7 @@ class TestGraphImg2Img:
     def test_with_denoise_starts_the_pass_late(self) -> None:
         """Denoise maps to the start step over the CURRENT step count."""
         graph = GraphImg2Img.default().with_denoise(0.45)
-        assert graph.sampler.inputs.start_at_step == round(21 * 0.55)
+        assert graph.sampler.inputs.start_at_step == round(40 * 0.55)
         graph.with_sampler(steps=30).with_denoise(0.5)
         assert graph.sampler.inputs.start_at_step == 15
         graph.with_denoise(1.0)

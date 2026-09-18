@@ -622,13 +622,13 @@ class Img2ImgSamplerInputs(RefineSamplerInputs):
     """Sole sampler schedule of the img2img template — the highres tail at partial denoise.
 
     The schedule is the bundled template's refine pass (``er_sde`` over
-    ``karras``, guidance 4.5); ``start_at_step`` skips the first steps so
-    the input image survives the resample: at the default 21 steps a start
-    of 12 behaves like ``denoise`` ≈ 0.43.  :meth:`GraphImg2Img.with_denoise`
+    ``karras``, guidance 7.0); ``start_at_step`` skips the first steps so
+    the input image survives the resample: at the default 40 steps a start
+    of 23 behaves like ``denoise`` ≈ 0.43.  :meth:`GraphImg2Img.with_denoise`
     computes it from whatever step count is current.
     """
 
-    start_at_step: int = 12
+    start_at_step: int = 23
 
 
 class Img2ImgSamplerNode(KSamplerAdvancedNode):
