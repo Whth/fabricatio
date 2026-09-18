@@ -12,9 +12,9 @@ and read the board to spot the run that introduced a regression.
 
 from fabricatio_novel.benchmark.compare import compare, find_baseline, sign_test_p
 from fabricatio_novel.benchmark.enums import Gate, Metric, Verdict
-from fabricatio_novel.benchmark.models import Comparison, GateFailure, MetricDelta, RunScorecard
+from fabricatio_novel.benchmark.models import Comparison, GateFailure, MetricDelta, ProseScan, RunScorecard
 from fabricatio_novel.benchmark.probes import TermProbes
-from fabricatio_novel.benchmark.report import render_board, render_comparison, render_scorecard
+from fabricatio_novel.benchmark.report import render_board, render_comparison, render_scan, render_scorecard
 from fabricatio_novel.benchmark.scorecard import score_run
 
 __all__ = [
@@ -23,6 +23,7 @@ __all__ = [
     "GateFailure",
     "Metric",
     "MetricDelta",
+    "ProseScan",
     "RunScorecard",
     "TermProbes",
     "Verdict",
@@ -30,6 +31,7 @@ __all__ = [
     "find_baseline",
     "render_board",
     "render_comparison",
+    "render_scan",
     "render_scorecard",
     "score_run",
     "sign_test_p",

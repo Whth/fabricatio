@@ -18,7 +18,7 @@ vocab   {{prose.vocabulary.grams}} {{prose.vocabulary.gram_size}}-gram(s), recyc
 channel {{channel.docs_per_story}} docs/story, {{channel.doc_chars}} chars
 script  {{#if language.declared}}{{language.declared}}{{else}}undeclared{{/if}}: prose {{language.prose_cjk_display}} CJK, outline {{language.outline_cjk_display}} CJK
 export  {{integrity.chapter_files}} chapter file(s), concat {{#if integrity.concat_mismatches}}MISMATCH{{else}}ok{{/if}}, {{#if integrity.epub_bytes}}epub {{integrity.epub_mb_display}} MB{{else}}no epub{{/if}}, empty scenes {{len integrity.empty_scenes}}
-probes  {{#if probes.configured}}gated {{probes.gated_total}}, watch {{probes.watch_display}}/1k (unlicensed {{probes.unlicensed_total}}), aliases {{#if probes.aliases}}{{probes.aliases_display}}{{else}}none{{/if}}{{else}}not configured (pass --probes with the corpus term list){{/if}}{{#if gates_failed}}{{#each gates_failed}}
+probes  {{#if probes.configured}}gated {{probes.gated_total}}, watch {{probes.watch_display}}/1k (unlicensed {{probes.unlicensed_total}}), aliases {{#if probes.aliases}}{{probes.aliases_display}}{{else}}none{{/if}}{{else}}not configured (write probes.toml, or pass --probes){{/if}}{{#if gates_failed}}{{#each gates_failed}}
 gates   FAIL {{gate}}: {{detail}}{{/each}}{{else}}
 gates   PASS{{/if}}{{#each warnings}}
 warn    {{this}}{{/each}}

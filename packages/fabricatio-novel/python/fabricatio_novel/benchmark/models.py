@@ -17,6 +17,10 @@ Each model also carries the printed form of the numbers a report shows as
 ``*_display`` computed fields: the handlebars registry has no arithmetic
 helpers, so rounding, percentages and unit conversion happen here, next to the
 measurement they belong to, and the report templates read the dump as-is.
+
+A report table is measured and rendered here too (``Table``): handlebars can
+neither measure a column nor pad a cell, so the models hand the templates a
+finished table.
 """
 
 import hashlib
@@ -24,10 +28,11 @@ import json
 import statistics
 from collections import Counter
 from collections.abc import Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
 
 from fabricatio_core.rust import word_count
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, computed_field
@@ -583,17 +588,26 @@ class ProbeScore(BaseModel):
 
     @classmethod
     def of(cls, novel: NovelContext, prose: str, probes: TermProbes | None) -> Self:
-        """Measure the supplied term probes; without a probe file every field stays at its default."""
+        """Measure the supplied term probes; without a probe table every field stays at its default."""
         if probes is None:
             return cls()
-        root_terms = cls._root_terms(novel)
+        return cls.measured(prose, probes, licensed=cls._root_terms(novel))
+
+    @classmethod
+    def of_text(cls, prose: str, probes: TermProbes) -> Self:
+        """Measure prose that carries no plan tree, so every watch hit counts as unlicensed vocabulary."""
+        return cls.measured(prose, probes, licensed=frozenset())
+
+    @classmethod
+    def measured(cls, prose: str, probes: TermProbes, licensed: AbstractSet[str]) -> Self:
+        """Count every probe term in the prose; ``licensed`` names the watch hits a plan tree uses itself."""
         watch = {term: prose.count(term) for term in probes.watch if term in prose}
         return cls(
             configured=True,
             gated={term: prose.count(term) for term in probes.gated if term in prose},
             watch=watch,
             watch_per_1k=sum(watch.values()) / len(prose) * 1000 if prose else 0.0,
-            watch_unlicensed={term: count for term, count in watch.items() if term not in root_terms},
+            watch_unlicensed={term: count for term, count in watch.items() if term not in licensed},
             aliases={
                 "|".join(group): counts
                 for group in probes.aliases
@@ -741,6 +755,23 @@ class RunScorecard(BaseModel):
         """Whether every hard gate held."""
         return not self.gates_failed
 
+    @property
+    def board_row(self) -> tuple[str, ...]:
+        """This run's cells on the board table, in column order."""
+        return (
+            self.run,
+            self.minutes_display,
+            str(self.scene_count),
+            f"{self.ratio_display}x",
+            self.repetition.max_echo_display,
+            str(len(self.repetition.duplicate_sentences)),
+            self.prose.sentences.mean_display,
+            self.prose.vocabulary.recycled_display,
+            str(self.probes.gated_total),
+            self.probes.watch_display,
+            "PASS" if self.passed else "FAIL",
+        )
+
     @classmethod
     def warnings_of(cls, scenes: Sequence[SceneScore], repetition: RepetitionScore, probes: ProbeScore) -> list[str]:
         """Collect the soft signals that deserve a look but do not fail a run."""
@@ -802,6 +833,168 @@ class MetricDelta(BaseModel):
         """The relative change as the comparison table prints it; ``n/a`` when the baseline is zero."""
         return "n/a" if self.relative_change is None else f"{self.relative_change:+.1%}"
 
+    @property
+    def cells(self) -> tuple[str, ...]:
+        """This delta's cells on the metric table, in column order."""
+        return (
+            self.metric.value,
+            self.baseline_display,
+            self.candidate_display,
+            self.change_display,
+            self.verdict.value,
+        )
+
+
+class TableColumn(BaseModel):
+    """One column of a report table: the heading above it, its width and the side its cells sit on."""
+
+    model_config = ConfigDict(frozen=True)
+
+    label: str
+    """The heading printed above the column."""
+
+    width: int
+    """Character width the heading and every cell of the column are padded to."""
+
+    right_aligned: bool = False
+    """Whether the cells sit against the right edge, as numbers do, instead of the left, as text does."""
+
+    @classmethod
+    def measured(cls, label: str, cells: Sequence[str], *, right_aligned: bool = False) -> Self:
+        """Measure a column whose heading and cells are padded to their widest entry."""
+        return cls(
+            label=label,
+            width=max(len(label), max((len(cell) for cell in cells), default=0)),
+            right_aligned=right_aligned,
+        )
+
+    def padded(self, cell: str) -> str:
+        """The cell padded to this column's width."""
+        return cell.rjust(self.width) if self.right_aligned else cell.ljust(self.width)
+
+
+class Table(BaseModel):
+    """A pipe table as a report prints it: its measured columns and the cells of every row."""
+
+    model_config = ConfigDict(frozen=True)
+
+    columns: list[TableColumn]
+    """The columns in print order; every row carries one cell per column, in the same order."""
+
+    rows: list[list[str]]
+    """The body cells, one list per row."""
+
+    @classmethod
+    def measured(cls, columns: Sequence[tuple[str, bool]], rows: Sequence[tuple[str, ...]]) -> Self:
+        """Measure a table from its headings in print order and the cells of every row.
+
+        Each entry of ``columns`` is a heading and whether its cells sit against
+        the right edge; a column is as wide as its heading and its widest cell.
+        """
+        return cls(
+            columns=[
+                TableColumn.measured(label, [row[index] for row in rows], right_aligned=right_aligned)
+                for index, (label, right_aligned) in enumerate(columns)
+            ],
+            rows=[list(row) for row in rows],
+        )
+
+    @computed_field
+    @property
+    def display(self) -> str:
+        """The table as a report prints it: heading, rule row and every cell padded to its column."""
+        rule = "|" + "|".join("-" * (column.width + 2) for column in self.columns) + "|"
+
+        def line(cells: Sequence[str]) -> str:
+            padded = [column.padded(cell) for column, cell in zip(self.columns, cells, strict=True)]
+            return "| " + " | ".join(padded) + " |"
+
+        return "\n".join([line([column.label for column in self.columns]), rule, *(line(row) for row in self.rows)])
+
+
+class Board(Table):
+    """The newest runs side by side, measured into the table they print."""
+
+    COLUMNS: ClassVar[tuple[tuple[str, bool], ...]] = (
+        ("run", False),
+        ("min", True),
+        ("scenes", True),
+        ("ratio", True),
+        ("echo", True),
+        ("dup", True),
+        ("sent", True),
+        ("vocab", True),
+        ("gated", True),
+        ("watch/1k", True),
+        ("gates", False),
+    )
+    """The board's headings in print order, each with whether its cells sit against the right edge."""
+
+    @classmethod
+    def of(cls, cards: Sequence[RunScorecard]) -> Self:
+        """Measure the board's table over the given runs, in the order they are given in."""
+        return cls.measured(cls.COLUMNS, [card.board_row for card in cards])
+
+
+class ProseScan(BaseModel):
+    """One text file measured against the probe table, without a run directory behind it."""
+
+    model_config = ConfigDict(frozen=True)
+
+    path: str
+    """The file, as the command that measured it named it."""
+
+    chars: int
+    """How many characters of text were measured."""
+
+    probes: ProbeScore
+
+    @classmethod
+    def of(cls, path: Path, probes: TermProbes) -> Self:
+        """Read one text file and measure it against the table.
+
+        Raises ``OSError`` when the file is unreadable and ``UnicodeDecodeError``
+        when it is not UTF-8.
+        """
+        prose = path.read_text(encoding="utf-8")
+        return cls(path=str(path), chars=len(prose), probes=ProbeScore.of_text(prose, probes))
+
+    @property
+    def passed(self) -> bool:
+        """Whether no gated term was found; mixed alias groups are reported, never fatal."""
+        return not self.probes.gated
+
+    @property
+    def cells(self) -> tuple[str, ...]:
+        """This file's cells on the scan table, in column order."""
+        return (
+            self.path,
+            str(self.chars),
+            str(self.probes.gated_total),
+            self.probes.watch_display,
+            "|".join(self.probes.aliases) or "none",
+            "PASS" if self.passed else "FAIL",
+        )
+
+
+class Scan(Table):
+    """The scanned files side by side, measured into the table they print."""
+
+    COLUMNS: ClassVar[tuple[tuple[str, bool], ...]] = (
+        ("file", False),
+        ("chars", True),
+        ("gated", True),
+        ("watch/1k", True),
+        ("aliases", False),
+        ("verdict", False),
+    )
+    """The scan table's headings in print order, each with whether its cells sit against the right edge."""
+
+    @classmethod
+    def of(cls, scans: Sequence[ProseScan]) -> Self:
+        """Measure the scan table over the given files, in the order they are given in."""
+        return cls.measured(cls.COLUMNS, [scan.cells for scan in scans])
+
 
 class Comparison(BaseModel):
     """A candidate run measured against a baseline run."""
@@ -816,6 +1009,15 @@ class Comparison(BaseModel):
     scenes_shorter: int
     scenes_longer: int
     sign_test_p: float | None
+    COLUMNS: ClassVar[tuple[tuple[str, bool], ...]] = (
+        ("metric", False),
+        ("baseline", True),
+        ("candidate", True),
+        ("change", True),
+        ("verdict", False),
+    )
+    """The metric table's headings in print order, each with whether its cells sit against the right edge."""
+
     deltas: list[MetricDelta]
     new_gate_failures: list[GateFailure]
     fixed_gate_failures: list[GateFailure]
@@ -826,3 +1028,9 @@ class Comparison(BaseModel):
     def p_value_display(self) -> str:
         """The sign-test p-value as the comparison header prints it; empty for an unpaired comparison."""
         return "" if self.sign_test_p is None else f"{self.sign_test_p:.3f}"
+
+    @computed_field
+    @property
+    def table(self) -> Table:
+        """The metric table: one row per delta, its columns measured across them."""
+        return Table.measured(self.COLUMNS, [delta.cells for delta in self.deltas])

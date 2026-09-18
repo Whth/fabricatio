@@ -14,12 +14,14 @@ from fabricatio_core.rust import word_count
 from fabricatio_novel.benchmark import (
     Gate,
     Metric,
+    ProseScan,
     TermProbes,
     Verdict,
     compare,
     find_baseline,
     render_board,
     render_comparison,
+    render_scan,
     render_scorecard,
     score_run,
     sign_test_p,
@@ -250,6 +252,63 @@ def test_probes_are_optional(tmp_path: Path) -> None:
     assert "not configured" in render_scorecard(card)
 
 
+def test_probes_resolve_to_the_project_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The table a project keeps in its working directory is the default source for every command."""
+    (tmp_path / TermProbes.FILENAME).write_text(
+        'gated = ["silver locket"]\nwatch = ["silver"]\naliases = [["locket", "pendant"]]\n', encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    probes = TermProbes.resolve()
+
+    assert probes is not None
+    assert probes.gated == frozenset({"silver locket"})
+    assert probes.watch == frozenset({"silver"})
+    assert probes.aliases == (("locket", "pendant"),)
+
+
+def test_probes_resolve_to_nothing_without_a_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A project that keeps no table leaves the probe rows unconfigured instead of failing."""
+    monkeypatch.chdir(tmp_path)
+
+    assert TermProbes.resolve() is None
+
+
+def test_probes_skip_a_path_that_does_not_exist(tmp_path: Path) -> None:
+    """A path that does not exist skips the probe rows instead of failing a command."""
+    assert TermProbes.resolve(tmp_path / "absent.toml") is None
+
+
+def test_explicit_probe_path_wins_over_the_project_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--probes`` beats the project's own table, whatever the working directory holds."""
+    (tmp_path / TermProbes.FILENAME).write_text('gated = ["Gulls"]\n', encoding="utf-8")
+    explicit = _write_probes(tmp_path, {"gated": ["silver locket"]})
+    monkeypatch.chdir(tmp_path)
+
+    probes = TermProbes.resolve(explicit)
+
+    assert probes is not None
+    assert probes.gated == frozenset({"silver locket"})
+
+
+def test_scan_measures_prose_without_a_run(tmp_path: Path) -> None:
+    """A manuscript with no run directory behind it measures the same term lists as a scored run."""
+    draft = tmp_path / "draft.txt"
+    draft.write_text("A locket lay beside a pendant; the Gulls took the silver.", encoding="utf-8")
+    probes = TermProbes(gated=frozenset({"Gulls"}), watch=frozenset({"silver"}), aliases=(("locket", "pendant"),))
+
+    scan = ProseScan.of(draft, probes)
+    rendered = render_scan([scan])
+
+    assert scan.probes.gated == {"Gulls": 1}
+    assert scan.probes.watch == {"silver": 1}
+    assert scan.probes.aliases == {"locket|pendant": {"locket": 1, "pendant": 1}}
+    assert not scan.passed
+    assert "draft.txt" in rendered
+    assert "Gullsx1" in rendered
+    assert "locket|pendant" in rendered
+
+
 def test_compare_pairs_identical_plan_trees(tmp_path: Path) -> None:
     """Runs sharing a plan fingerprint compare per scene, and gates dominate the verdict."""
     probes = TermProbes.load(_write_probes(tmp_path, {"gated": ["Gulls"]}))
@@ -316,6 +375,42 @@ def test_board_lists_scored_runs(tmp_path: Path) -> None:
 
     assert "20260101-111111" in table
     assert "PASS" in table
+
+
+def _assert_table_aligned(table: str) -> None:
+    """Assert every pipe of a rendered table sits in the same column on every row."""
+    lines = table.splitlines()
+    rows = [line for line in lines if line.startswith("|")]
+    assert len(rows) >= 3, f"no table to check:\n{table}"
+    assert len(rows) == len([line for line in lines if "|" in line]), f"stray pipes beside the table:\n{table}"
+    columns = {tuple(index for index, char in enumerate(row) if char == "|") for row in rows}
+    assert len(columns) == 1, f"cells are not padded to a common width:\n{table}"
+    assert rows[1].strip("|-") == "", "the rule row only separates the columns"
+
+
+def test_compare_table_aligns_its_columns(tmp_path: Path) -> None:
+    """Mixed-width metric names and deltas still line up as columns in a terminal."""
+    baseline = score_run(benchmark_run(tmp_path, _story(), name="20260101-101010"))
+    candidate = score_run(
+        benchmark_run(tmp_path, _story(rowing_prose=f"{ROWING_PROSE} Gulls."), name="20260101-111111")
+    )
+
+    _assert_table_aligned(render_comparison(compare(baseline, candidate)))
+
+
+def test_board_table_aligns_its_columns(tmp_path: Path) -> None:
+    """Runs whose scores differ in width still line up as columns in a terminal."""
+    widest = benchmark_run(
+        tmp_path,
+        _story(rowing_prose=f"The keeper rows. {ECHO_TAIL} Gulls above the water."),
+        name="20260101-101010",
+    )
+    cards = [
+        score_run(widest),
+        score_run(benchmark_run(tmp_path, _story(), name="20260101-111111")),
+    ]
+
+    _assert_table_aligned(render_board(cards))
 
 
 def test_terms_cover_both_scripts() -> None:

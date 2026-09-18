@@ -4,9 +4,16 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from _support import SceneSpec, StorySpec, benchmark_run
 from fabricatio_novel.commands.writing import _stamped_run_dir, app
 from typer.testing import CliRunner
+
+
+@pytest.fixture(autouse=True)
+def _isolate_probe_table(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the default probe table at the test's tmp dir, so the suite never reads the project's probes.toml."""
+    monkeypatch.chdir(tmp_path)
 
 
 def _staged_run(tmp_path: Path, name: str = "20260101-101010") -> Path:
@@ -71,3 +78,35 @@ def test_bench_board_lists_runs(tmp_path: Path) -> None:
     result = CliRunner().invoke(app, ["bench", "board", str(tmp_path)])
     assert result.exit_code == 0
     assert "20260101-101010" in result.output
+
+
+def test_bench_score_help_shows_the_default_table() -> None:
+    """`fanvl bench score --help` shows the default probe table path."""
+    result = CliRunner().invoke(app, ["bench", "score", "--help"])
+    assert result.exit_code == 0
+    assert "probes.toml" in result.output
+
+
+def test_bench_score_skips_a_missing_probe_table(tmp_path: Path) -> None:
+    """`--probes` pointing at a file that does not exist measures without the probe rows."""
+    result = CliRunner().invoke(
+        app, ["bench", "score", str(_staged_run(tmp_path)), "--probes", str(tmp_path / "absent.toml")]
+    )
+
+    assert result.exit_code == 0
+    assert "not configured" in result.output
+
+
+def test_bench_scan_measures_a_plain_manuscript(tmp_path: Path) -> None:
+    """`fanvl bench scan <file>` measures prose that has no run directory behind it."""
+    table = tmp_path / "manual-probes.toml"
+    table.write_text('gated = ["Gulls"]\nwatch = ["silver"]\n', encoding="utf-8")
+    draft = tmp_path / "draft.txt"
+    draft.write_text("The keeper rows past the Gulls in a silver boat.", encoding="utf-8")
+
+    result = CliRunner().invoke(app, ["bench", "scan", str(draft), "--probes", str(table)])
+
+    assert result.exit_code == 0
+    assert "FAIL" in result.output
+    assert "gated" in result.output
+    assert "Gullsx1" in result.output

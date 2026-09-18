@@ -35,17 +35,11 @@ class NovelConfig(BaseModel):
     scene_overlap_max_ratio: float = 0.6
     """maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped."""
 
-    benchmark_probes: str = ""
-    """path to a JSON file of benchmark content probes (``gated``/``watch``/``aliases`` term lists); the post-run report measures the run against them, and an empty value leaves the corpus-independent metrics only."""
-
     bench_scorecard_template: str = "built-in/bench_scorecard"
     """template used to render one run's benchmark scorecard."""
 
     bench_comparison_template: str = "built-in/bench_comparison"
     """template used to render two runs' benchmark comparison."""
-
-    bench_board_template: str = "built-in/bench_board"
-    """template used to render the benchmark board of the newest runs."""
 
     setting_bible_characters_template: str = "built-in/setting_bible_characters"
     """template used to propose the bible's character roster as one string per character."""

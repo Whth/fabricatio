@@ -20,7 +20,6 @@ from fabricatio_novel.benchmark import (
 )
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline
-from fabricatio_novel.config import novel_config
 from fabricatio_novel.workflows.novel import (
     DebugNovelWorkflow,
     RagDebugNovelWorkflow,
@@ -59,11 +58,6 @@ def _report_generation(run_dir: Path, artifact: Path, fmt: ExportFormat) -> None
     _report_benchmark(run_dir)
 
 
-def _configured_probes() -> TermProbes | None:
-    """Return the probes the post-run report measures against, or ``None`` when none are configured."""
-    return TermProbes.load(Path(novel_config.benchmark_probes)) if novel_config.benchmark_probes else None
-
-
 def _report_benchmark(run_dir: Path) -> None:
     """Print the finished run's quality scorecard and its delta against the newest comparable run.
 
@@ -73,7 +67,7 @@ def _report_benchmark(run_dir: Path) -> None:
     successful run into a failed one.
     """
     try:
-        probes = _configured_probes()
+        probes = TermProbes.resolve()
     except (OSError, ValueError) as exc:
         typer.secho(f"benchmark probes ignored: {exc}", fg=typer.colors.YELLOW)
         probes = None

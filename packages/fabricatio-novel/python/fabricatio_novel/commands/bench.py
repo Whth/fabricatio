@@ -1,35 +1,63 @@
-"""Benchmark commands: score one run, diff it against a baseline, and print the run board.
+"""Benchmark commands: score one run, diff it against a baseline, read the board, and scan plain prose.
 
 ``--json`` prints the measurements only: the ``*_display`` fields exist for the
 report templates, so they are left out of the machine-readable form.
 """
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import typer
 
 from fabricatio_novel.benchmark import (
+    ProseScan,
     RunScorecard,
     TermProbes,
     compare,
     find_baseline,
     render_board,
     render_comparison,
+    render_scan,
     render_scorecard,
     score_run,
 )
 from fabricatio_novel.cli import bench_app
 
+MANUSCRIPT_SUFFIX = ".txt"
+"""What a directory scan reads: the chapter and manuscript files a corpus saves as text."""
 
-def _probes(path: Path | None) -> TermProbes | None:
-    """Load the probe file a command was given; without one only corpus-independent metrics run."""
-    if path is None:
-        return None
+PROBES_HELP = (
+    "TOML or JSON file of gated/watch/alias term lists the prose is measured against. "
+    "Defaults to probes.toml in the working directory; a path that does not exist only skips the probe rows."
+)
+
+
+def _probes(path: Path) -> TermProbes | None:
+    """The probe table a command measures against, ``probes.toml`` by default.
+
+    A path that does not exist — or a table that does not parse — only skips the
+    probe rows, because the benchmark must never fail a run over its probe file.
+    """
     try:
-        return TermProbes.load(path)
+        probes = TermProbes.resolve(path)
     except (OSError, ValueError) as exc:
-        typer.secho(f"Cannot read probes {path}: {exc}", fg=typer.colors.RED, bold=True, err=True)
-        raise typer.Exit(1) from exc
+        typer.secho(f"benchmark probes ignored: {exc}", fg=typer.colors.YELLOW)
+        return None
+    if probes is None and path != Path(TermProbes.FILENAME):
+        typer.secho(f"probes {path} not found: measuring without them", fg=typer.colors.YELLOW, err=True)
+    return probes
+
+
+def _manuscripts(paths: Sequence[Path]) -> list[Path]:
+    """Expand the given files and directories into the text files to scan, in order and without repeats."""
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        for file in sorted(path.rglob(f"*{MANUSCRIPT_SUFFIX}")) if path.is_dir() else [path]:
+            if file not in seen:
+                seen.add(file)
+                files.append(file)
+    return files
 
 
 def _score(run_dir: Path, probes: TermProbes | None) -> RunScorecard:
@@ -44,11 +72,7 @@ def _score(run_dir: Path, probes: TermProbes | None) -> RunScorecard:
 @bench_app.command(name="score")
 def score_command(
     run_dir: Path = typer.Argument(..., help="Run directory, e.g. novels/20260101-101010."),
-    probes_path: Path | None = typer.Option(
-        None,
-        "--probes",
-        help="JSON file of gated/watch/alias term lists the run is measured against.",
-    ),
+    probes_path: Path = typer.Option(Path(TermProbes.FILENAME), "--probes", help=PROBES_HELP),
     as_json: bool = typer.Option(False, "--json", help="Print the scorecard as JSON."),
 ) -> None:
     """Measure one run and print its scorecard; reads artifacts only and calls no LLM."""
@@ -62,11 +86,7 @@ def compare_command(
     against: Path | None = typer.Option(
         None, "--against", help="Baseline run directory; defaults to the newest comparable run beside the candidate."
     ),
-    probes_path: Path | None = typer.Option(
-        None,
-        "--probes",
-        help="JSON file of gated/watch/alias term lists both runs are measured against.",
-    ),
+    probes_path: Path = typer.Option(Path(TermProbes.FILENAME), "--probes", help=PROBES_HELP),
     as_json: bool = typer.Option(False, "--json", help="Print the comparison as JSON."),
 ) -> None:
     """Diff a run against a baseline run and name the regressions."""
@@ -86,11 +106,7 @@ def compare_command(
 def board_command(
     persist_dir: Path = typer.Argument(Path("novels"), help="Directory holding the run subdirectories."),
     limit: int = typer.Option(10, "--limit", "-n", help="How many of the newest runs to score."),
-    probes_path: Path | None = typer.Option(
-        None,
-        "--probes",
-        help="JSON file of gated/watch/alias term lists every run is measured against.",
-    ),
+    probes_path: Path = typer.Option(Path(TermProbes.FILENAME), "--probes", help=PROBES_HELP),
     as_json: bool = typer.Option(False, "--json", help="Print the scorecards as JSON."),
 ) -> None:
     """Score the newest runs under a persist directory and print them newest first."""
@@ -113,3 +129,35 @@ def board_command(
         )
     else:
         typer.echo(render_board(cards[::-1]))
+
+
+@bench_app.command(name="scan")
+def scan_command(
+    paths: list[Path] = typer.Argument(
+        ..., help="Text files or directories of manuscripts to measure, e.g. novels or my-novel.txt."
+    ),
+    probes_path: Path = typer.Option(Path(TermProbes.FILENAME), "--probes", help=PROBES_HELP),
+    as_json: bool = typer.Option(False, "--json", help="Print the scanned files as JSON."),
+) -> None:
+    """Measure prose that has no run directory behind it — manuscripts, chapters, drafts — against the probe table."""
+    probes = _probes(probes_path)
+    if probes is None:
+        typer.secho(
+            f"No probe table at {probes_path}: write {TermProbes.FILENAME} or pass --probes.",
+            fg=typer.colors.RED,
+            bold=True,
+            err=True,
+        )
+        raise typer.Exit(1)
+    scans: list[ProseScan] = []
+    for file in _manuscripts(paths):
+        try:
+            scans.append(ProseScan.of(file, probes))
+        except (OSError, UnicodeDecodeError) as exc:
+            typer.secho(f"skipped {file}: {exc}", fg=typer.colors.YELLOW, err=True)
+    if not scans:
+        typer.secho("Nothing to scan.", fg=typer.colors.RED, bold=True, err=True)
+        raise typer.Exit(1)
+    typer.echo(
+        "[" + ",\n".join(scan.model_dump_json(indent=2) for scan in scans) + "]" if as_json else render_scan(scans)
+    )
