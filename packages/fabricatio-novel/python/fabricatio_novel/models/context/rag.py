@@ -33,7 +33,8 @@ class RagStoryContext(StoryContext):
     retrieval state. Retrieved reference documents are held on
     ``retrieved_styles`` and render through :meth:`prefixed_header_entry` as one
     story-scoped entry shared by every scene write prompt's prefix-cacheable
-    region; they never enter ``writing_styles``.
+    region; they never enter ``writing_styles``. Once every scene of the story
+    carries content, :meth:`prefixed_header_entry` stops rendering them.
     """
 
     rag: RagRetrieval
@@ -48,8 +49,18 @@ class RagStoryContext(StoryContext):
         return self
 
     def prefixed_header_entry(self) -> ContextEntry | None:
-        """The retrieved style references as one entry seeded into every scene's prefix."""
-        if not self.retrieved_styles:
+        """The retrieved style references as one entry seeded into every scene's prefix.
+
+        Returns ``None`` once :meth:`~fabricatio_novel.models.context.story.StoryContext.is_fully_written`:
+        the reference pile exists to steer this story's scene writes, so once they
+        are written every later walk — the illustration proposals in particular —
+        stops re-seeding it, and the raw texts stay on :attr:`retrieved_styles`
+        for scoring and audit. The state is read off the prose itself rather than
+        kept in a flag, because the prefix log is neither persisted nor stable:
+        each walk re-derives the entry, so a tree rebuilt from a snapshot renders
+        exactly what the run rendered.
+        """
+        if not self.retrieved_styles or self.is_fully_written():
             return None
         return ContextEntry(
             kind="style_references",

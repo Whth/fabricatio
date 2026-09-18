@@ -189,11 +189,10 @@ class TestRAGCompose:
         story_a.add_context(
             SceneContext(title="SA1", description="Leaving.", expected_word_count=50).set_content("He left.")
         )
+        story_a.add_context(SceneContext(title="SA2", description="The road.", expected_word_count=50))
         story_b = RagStoryContext(title="StB", description="The return.", rag=RagRetrieval())
         story_b.add_retrieved_styles(["Style B."])
-        story_b.add_context(
-            SceneContext(title="SB1", description="Arriving.", expected_word_count=50).set_content("He arrived.")
-        )
+        story_b.add_context(SceneContext(title="SB1", description="Arriving.", expected_word_count=50))
         chapter.add_context(story_a)
         chapter.add_context(story_b)
 
@@ -516,3 +515,169 @@ class TestRAGCompose:
         assert captured
         assert "Initial State:" in captured[0]
         assert "wounded" in captured[0]
+
+    async def test_fully_written_story_stops_seeding_scene_prefixes(self) -> None:
+        """Assert the reference entry renders while a scene is unwritten and stops once every scene carries content."""
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        story.add_retrieved_styles(["Dark gothic prose with terse action lines."])
+        story.add_context(
+            SceneContext(title="S1", description="Leaving home.", expected_word_count=50).set_content("He left.")
+        )
+        unwritten = SceneContext(title="S2", description="The road.", expected_word_count=50)
+        story.add_context(unwritten)
+
+        while_writing = [entry.kind for scene in story.iter_prefixed_contexts() for entry in scene.prefix_log.entries]
+        assert while_writing == ["style_references", "style_references", "scene_content"]
+
+        unwritten.set_content("He walked.")
+        scenes = list(story.iter_prefixed_contexts())
+
+        assert story.prefixed_header_entry() is None
+        assert [entry.kind for entry in scenes[0].prefix_log.entries] == []
+        assert [entry.kind for entry in scenes[1].prefix_log.entries] == ["scene_content"]
+        assert story.retrieved_styles == ["Dark gothic prose with terse action lines."]
+
+    async def test_compose_story_stops_rendering_docs_once_scenes_written(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert a fully written story stops rendering its retrieved docs while keeping the raw texts."""
+        role = make_test_role(NovelCompose, RAGCompose, name="rag_role")
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7))
+        doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            return [doc]
+
+        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+            return ["the departure"]
+
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
+        with MockScript.from_values(
+            Value.from_json(
+                [
+                    {
+                        "title": "S1",
+                        "description": "Leaving home.",
+                        "weight": 1.0,
+                        "writing_styles": [],
+                        "writing_constraints": [],
+                    }
+                ],
+                name="scene plans",
+            ),
+            Value.from_text("He left.", name="scene prose"),
+        ):
+            result = await role.compose_story(story)
+
+        assert result is not None
+        assert story.retrieved_styles == [doc.as_prompt()]
+        assert story.prefixed_header_entry() is None
+        assert all(
+            entry.kind != "style_references"
+            for scene in story.iter_prefixed_contexts()
+            for entry in scene.prefix_log.entries
+        )
+
+    async def test_staged_compose_stops_rendering_docs_of_written_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert RagComposeScenesStage stops rendering a fully written story's retrieved docs."""
+        from fabricatio_novel.actions.novel import RagComposeScenesStage
+        from fabricatio_novel.capabilities.story import StoryCompose
+
+        async def fake_compose(
+            self: StoryCompose, ctx: StoryContext, send_to: str | None = None, **kwargs: object
+        ) -> bool:
+            for scene_ctx in ctx.child_contexts:
+                scene_ctx.set_content("He left.")
+            return True
+
+        monkeypatch.setattr(StoryCompose, "compose_scenes_phase", fake_compose)
+        stage = RagComposeScenesStage()
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        chapter = RagChapterContext(title="Ch1", description="The start.", expected_word_count=100)
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        story.add_retrieved_styles(["Dark gothic prose with terse action lines."])
+        scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
+        scene.set_plan(
+            ScenePlan(title="S1", description="Leaving home.", weight=1.0, writing_styles=[], writing_constraints=[])
+        )
+        story.add_context(scene)
+        chapter.add_context(story)
+        novel.add_context(chapter)
+
+        assert await stage._execute(novel) is True
+
+        assert story.retrieved_styles == ["Dark gothic prose with terse action lines."]
+        assert story.prefixed_header_entry() is None
+        assert all(
+            entry.kind != "style_references"
+            for scene_ctx in story.iter_prefixed_contexts()
+            for entry in scene_ctx.prefix_log.entries
+        )
+
+    async def test_staged_compose_keeps_docs_when_story_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert a story that fails mid-write keeps its retrieved docs for the retry and snapshot."""
+        from fabricatio_novel.actions.novel import RagComposeScenesStage
+        from fabricatio_novel.capabilities.story import StoryCompose
+
+        async def fake_compose(
+            self: StoryCompose, ctx: StoryContext, send_to: str | None = None, **kwargs: object
+        ) -> bool:
+            return False
+
+        monkeypatch.setattr(StoryCompose, "compose_scenes_phase", fake_compose)
+        stage = RagComposeScenesStage()
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        chapter = RagChapterContext(title="Ch1", description="The start.", expected_word_count=100)
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        story.add_retrieved_styles(["Dark gothic prose with terse action lines."])
+        story.add_context(SceneContext(title="S1", description="Leaving home.", expected_word_count=50))
+        chapter.add_context(story)
+        novel.add_context(chapter)
+
+        assert await stage._execute(novel) is False
+
+        assert story.prefixed_header_entry() is not None
+        assert any(
+            entry.kind == "style_references"
+            for scene_ctx in story.iter_prefixed_contexts()
+            for entry in scene_ctx.prefix_log.entries
+        )
+
+    async def test_rendering_state_survives_snapshot_round_trip(self) -> None:
+        """Assert a reloaded tree renders what the run rendered: docs while a scene is unwritten, none once all are."""
+        from fabricatio_novel.models.context.novel import RagNovelContext
+
+        novel = NovelContext.create("The hero seeks his father.", language="English")
+        chapter = RagChapterContext(title="Ch1", description="The start.", expected_word_count=100)
+        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
+        story.add_retrieved_styles(["Dark gothic prose with terse action lines."])
+        story.add_context(
+            SceneContext(title="S1", description="Leaving home.", expected_word_count=50).set_content("He left.")
+        )
+        unwritten = SceneContext(title="S2", description="The road.", expected_word_count=50)
+        story.add_context(unwritten)
+        chapter.add_context(story)
+        novel.add_context(chapter)
+
+        reloaded = RagNovelContext.model_validate(novel.model_dump())
+        reloaded_story = reloaded.child_contexts[0].child_contexts[0]
+
+        assert reloaded_story.retrieved_styles == ["Dark gothic prose with terse action lines."]
+        assert any(
+            entry.kind == "style_references"
+            for scene in reloaded_story.iter_prefixed_contexts()
+            for entry in scene.prefix_log.entries
+        )
+
+        reloaded_story.child_contexts[1].set_content("He walked.")
+
+        assert reloaded_story.prefixed_header_entry() is None
+        assert all(
+            entry.kind != "style_references"
+            for scene in reloaded_story.iter_prefixed_contexts()
+            for entry in scene.prefix_log.entries
+        )

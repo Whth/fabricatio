@@ -29,7 +29,10 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
     are planned; retrieved documents are held as the story's retrieved styles
     and render through ``prefixed_header_entry()`` into every scene write
     prompt's prefix-cacheable region. The next story's prefix cannot contain
-    them: stories forward only their scenes' entries.
+    them: stories forward only their scenes' entries. Once a story's scenes are
+    fully written, :meth:`~fabricatio_novel.models.context.rag.RagStoryContext.prefixed_header_entry`
+    stops rendering them into later walks (illustration proposals included)
+    while keeping the raw texts for scoring and audit.
     """
 
     rag_query: str = ""
