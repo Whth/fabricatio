@@ -52,7 +52,9 @@ later prompt.
 ## Key Features
 
 - **Markdown-native skills** — author skills as `.md` files with YAML frontmatter; no schema lock-in beyond three metadata keys.
-- **Progressive pipeline** — Level 0 (Rust): file scanning (`scan_skills`), keyword search (`search_skills`, also the deterministic pre-filter for huge libraries); Level 1 (Python): LLM-powered relevance selection (`select_skills`, delegated to the framework `UseLLM.achoose` chooser over skill briefings — set-validated, auto-retried, SMOL tier, capped) and essence distillation (`distill_skills`); Level 2: the composed `consult_skills` pipeline (select -> distill -> consulted knowledge). Consultation only — answering stays in your Action.
+- **Two library layouts** — per root, skills resolve either by the agent-skills convention (`<name>/SKILL.md`) or as flat files (`<name>.md`); the default roots include the user-level `~/.agents/skills` library.
+- **By-name gathering** — `gather_skills(names)` resolves skills straight from the lookup roots by name (direct path reads, no corpus scan) and registers them for consultation.
+- **Progressive pipeline** — Level 0 (Rust): file scanning (`scan_skills`), by-name resolution (`fetch_skill`), keyword search (`search_skills`, also the deterministic pre-filter for huge libraries); Level 1 (Python): LLM-powered relevance selection (`select_skills`, delegated to the framework `UseLLM.achoose` chooser over skill briefings — set-validated, auto-retried, SMOL tier, capped) and essence distillation (`distill_skills`); Level 2: the composed `consult_skills` pipeline (select -> distill -> consulted knowledge). Consultation only — answering stays in your Action.
 - **Progressive disclosure dial** — every call trades fidelity for tokens via `select=` / `distill=` / forced `names=`.
 - **Lightweight composition** — heavy `Skill` objects live in a process-wide `SkillRegistry`; your roles/actions carry only a list of name handles.
 - **Rust-backed performance** — parsing, lookup, and keyword matching are PyO3 (`fabricatio_skill.rust`).
@@ -61,7 +63,15 @@ later prompt.
 
 ### 1. Author skill files
 
-Drop markdown files into a skill directory (default roots: `skills/`, `extra/skills/`):
+Drop markdown files into a skill directory (default roots: `skills/`,
+`extra/skills/`, `~/.agents/skills`). Each root supports both layouts — the
+agent-skills convention and flat files:
+
+```
+skills/
+├── rust-async/SKILL.md      # <name>/SKILL.md layout
+└── code_review.md           # <name>.md layout
+```
 
 ```markdown
 ---
@@ -83,9 +93,10 @@ Frontmatter notes:
 ### 2. Consult — zero-config (canonical path)
 
 Nothing to load. On the **first** `consult_skills()` call of a role that has no
-skills yet, the default directories (`skills/`, `extra/skills/`, relative to
-the process working directory) are auto-scanned once and their skills
-registered. Authoring files and consulting is the whole loop:
+skills yet, the default directories (`skills/`, `extra/skills/` relative to
+the process working directory, plus the user-level `~/.agents/skills`) are
+auto-scanned once and their skills registered. Authoring files and consulting
+is the whole loop:
 
 ```python
 from fabricatio import Action, Event, Role, Task, WorkFlow
@@ -177,12 +188,43 @@ class AnswerWithTeamSkills(Action, UseSkill):
         ...
 ```
 
+### 5. Gather directly by name
+
+When you already know which skills you want, skip scanning entirely:
+`gather_skills` resolves each name through the lookup roots — trying
+`<dir>/<name>/SKILL.md` first, then `<dir>/<name>.md` (direct path reads, no
+directory walk) — registers the hits, and tracks them on the role.
+Unresolvable names are logged and skipped. The last default root is
+`~/.agents/skills`, so the user-level agent-skills library is available with
+zero configuration:
+
+```python
+from fabricatio import Action, Task
+from fabricatio_skill import UseSkill
+
+
+class AnswerWithNamedSkills(Action, UseSkill):
+    """Answer using two explicitly gathered skills."""
+
+    output_key: str = "task_output"
+
+    async def _execute(self, task_input: Task[str], **_) -> str:
+        self.gather_skills(["rust-async", "code_review"])   # by name, no scan
+        knowledge = await self.consult_skills(task_input.briefing)
+        return await self.aask(f"{knowledge}\n\n---\n\n{task_input.briefing}")
+```
+
+Pass `dirs=[...]` to resolve against custom libraries instead of the configured
+roots (`~` is expanded); `fetch_skills(names, dirs=...)` returns the resolved
+`Skill` objects without touching a role.
+
 The low-level pieces are also exposed for custom pipelines:
 
 ```python
-from fabricatio_skill import get_skill_registry, scan_skills, search_skills
+from fabricatio_skill import fetch_skill, get_skill_registry, scan_skills, search_skills
 
 skills = scan_skills("skills")            # Rust: parse all .md files -> [Skill]
+skill = fetch_skill("skills", "rust-async")  # Rust: resolve one name (no walk)
 registry = get_skill_registry()           # process-wide store (Rust)
 registry.register(skills)
 hits = search_skills("async", skills)     # Rust: keyword search over metadata
@@ -202,7 +244,7 @@ Configuration Guide at ../../docs/source/configuration.rst). Set them under the
 distill_skills_template = "built-in/distill_skills"
 max_selected_skills = 8
 prefilter_threshold = 100
-default_skill_dirs = ["skills", "extra/skills"]
+default_skill_dirs = ["skills", "extra/skills", "~/.agents/skills"]
 ```
 
 | Option | Type | Default | Description |
@@ -210,7 +252,7 @@ default_skill_dirs = ["skills", "extra/skills"]
 | `distill_skills_template` | `str` | `"built-in/distill_skills"` | Template name for the LLM prompt that distills skill content to its essence. |
 | `max_selected_skills` | `int` | `8` | Maximum number of skills the LLM may select per call (`0` = unlimited). Caps how many bodies reach distillation. |
 | `prefilter_threshold` | `int` | `100` | Pool size above which selection keyword-prefilters with the Rust `search_skills` before the LLM stage (`0` disables the prefilter). |
-| `default_skill_dirs` | `List[str]` | `["skills", "extra/skills"]` | Default directories auto-scanned on first consult when a role has no skills. |
+| `default_skill_dirs` | `List[str]` | `["skills", "extra/skills", "~/.agents/skills"]` | Default directories auto-scanned on first consult, and the lookup roots for by-name gathering (`~` is expanded at use time). |
 
 Access at runtime: `from fabricatio_skill.config import skill_config`.
 

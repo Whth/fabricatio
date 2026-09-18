@@ -7,6 +7,7 @@ __all__ = [
     "Skill",
     "SkillMeta",
     "SkillRegistry",
+    "fetch_skill",
     "get_skill",
     "scan_skills",
     "search_skills",
@@ -80,6 +81,21 @@ class SkillRegistry:
         r"""Return every registered skill name."""
     def __contains__(self, name: builtins.str) -> builtins.bool: ...
     def __len__(self) -> builtins.int: ...
+
+def fetch_skill(root: builtins.str, name: builtins.str) -> Skill | None:
+    r"""Fetch a single skill by name from a skill directory without scanning.
+
+    Tries the agent-skills convention `<root>/<name>/SKILL.md` first, then the
+    flat convention `<root>/<name>.md`. Direct path reads only — no directory walk.
+
+    Args:
+        root: Skill directory root to resolve the name against.
+        name: Skill name to fetch (a plain name; path separators are rejected).
+
+    Returns:
+        The parsed Skill, or None when no convention path holds a readable
+        `.md` file for this name.
+    """
 
 def get_skill(name: builtins.str, skills: typing.Sequence[Skill]) -> Skill | None:
     r"""Get a skill by exact name.

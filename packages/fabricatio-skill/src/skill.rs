@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 use rayon::prelude::*;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use walkdir::WalkDir;
 
@@ -155,6 +155,100 @@ fn parse_skill_file(raw: &str, relative_path: &str) -> Skill {
     }
 }
 
+/// A file layout a skill may use inside a [`SkillDir`].
+#[derive(Clone, Copy)]
+enum SkillLayout {
+    /// agent-skills convention: `<root>/<name>/SKILL.md`
+    Dir,
+    /// Flat convention: `<root>/<name>.md`
+    Flat,
+}
+
+impl SkillLayout {
+    /// Resolution order: the directory convention wins over the flat one.
+    const ALL: [Self; 2] = [Self::Dir, Self::Flat];
+
+    /// Path holding the skill named `name` under `root` in this layout.
+    fn path(self, root: &Path, name: &str) -> PathBuf {
+        match self {
+            Self::Dir => root.join(name).join("SKILL.md"),
+            Self::Flat => root.join(format!("{name}.md")),
+        }
+    }
+}
+
+/// A skill root directory: resolves bare names and scans `.md` files.
+///
+/// Owns every path convention, so the Python-facing functions stay thin:
+/// [`fetch`](Self::fetch) reads known [`SkillLayout`] paths directly (no walk),
+/// while [`scan`](Self::scan) walks the whole root in parallel. Both share
+/// [`load`](Self::load), which records paths relative to the root.
+struct SkillDir {
+    root: PathBuf,
+}
+
+impl SkillDir {
+    /// Bind to a root directory; it need not exist until read or scanned.
+    fn new(root: impl Into<PathBuf>) -> Self {
+        Self { root: root.into() }
+    }
+
+    /// Whether the root currently exists as a directory.
+    fn is_dir(&self) -> bool {
+        self.root.is_dir()
+    }
+
+    /// Resolve a bare `name` through [`SkillLayout::ALL`] without walking.
+    ///
+    /// Returns `None` for non-plain names (empty, separators, dot components)
+    /// and when no layout path holds a readable file.
+    fn fetch(&self, name: &str) -> Option<Skill> {
+        if !is_plain_name(name) {
+            return None;
+        }
+        SkillLayout::ALL
+            .into_iter()
+            .find_map(|layout| self.load(&layout.path(&self.root, name)))
+    }
+
+    /// Load every `.md` file under the root as a skill, in parallel.
+    fn scan(&self) -> Vec<Skill> {
+        WalkDir::new(&self.root)
+            .into_iter()
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| entry.file_type().is_file() && is_markdown(entry.path()))
+            .collect::<Vec<_>>()
+            .par_iter()
+            .filter_map(|entry| self.load(entry.path()))
+            .collect()
+    }
+
+    /// Read and parse one skill file; `None` when it is not a readable file.
+    fn load(&self, path: &Path) -> Option<Skill> {
+        let raw = std::fs::read_to_string(path).ok()?;
+        Some(parse_skill_file(&raw, &self.relative(path)))
+    }
+
+    /// `path` relative to the root, slash-normalized (`herdr/SKILL.md`).
+    fn relative(&self, path: &Path) -> String {
+        path.strip_prefix(&self.root)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .replace('\\', "/")
+    }
+}
+
+/// Whether `name` is a bare skill name: non-empty, no separators, no dot components.
+fn is_plain_name(name: &str) -> bool {
+    !name.is_empty() && !name.contains(['/', '\\']) && name != "." && name != ".."
+}
+
+/// Whether `path` carries the `.md` extension skill files use.
+fn is_markdown(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
+}
+
 /// Scan a directory for `.md` skill files and return parsed Skill objects.
 ///
 /// Walks the directory recursively, reads every `.md` file, parses YAML
@@ -168,41 +262,152 @@ fn parse_skill_file(raw: &str, relative_path: &str) -> Skill {
 #[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
 #[pyfunction]
 pub fn scan_skills(path: &str) -> PyResult<Vec<Skill>> {
-    let root = Path::new(path);
-    if !root.is_dir() {
+    let dir = SkillDir::new(path);
+    if !dir.is_dir() {
         return Err(PyFileNotFoundError::new_err(format!(
             "Skill directory not found: {path}"
         )));
     }
+    Ok(dir.scan())
+}
 
-    // Collect .md file paths first
-    let entries: Vec<_> = WalkDir::new(root)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_type().is_file()
-                && e.path()
-                    .extension()
-                    .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
-        })
-        .collect();
+/// Fetch a single skill by name from a skill directory without scanning.
+///
+/// Tries the agent-skills convention `<root>/<name>/SKILL.md` first, then the
+/// flat convention `<root>/<name>.md`. Direct path reads only — no directory walk.
+///
+/// Args:
+///     root: Skill directory root to resolve the name against.
+///     name: Skill name to fetch (a plain name; path separators are rejected).
+///
+/// Returns:
+///     The parsed Skill, or None when no convention path holds a readable
+///     `.md` file for this name.
+#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
+#[pyfunction]
+pub fn fetch_skill(root: &str, name: &str) -> Option<Skill> {
+    SkillDir::new(root).fetch(name)
+}
 
-    // Read and parse in parallel
-    let skills: Vec<Skill> = entries
-        .par_iter()
-        .filter_map(|entry| {
-            let full_path = entry.path();
-            let relative = full_path
-                .strip_prefix(root)
-                .ok()?
-                .to_string_lossy()
-                .replace('\\', "/");
-            let raw = std::fs::read_to_string(full_path).ok()?;
-            Some(parse_skill_file(&raw, &relative))
-        })
-        .collect();
+/// A searchable field of a [`Skill`], checked for every query term.
+#[derive(Clone, Copy)]
+enum SkillField {
+    /// Skill name (strongest signal).
+    Name,
+    /// Skill tags.
+    Tags,
+    /// Skill description.
+    Description,
+    /// Skill body (weakest signal, opt-in).
+    Content,
+}
 
-    Ok(skills)
+impl SkillField {
+    /// Fields matched against each term, strongest signal first.
+    const ALL: [Self; 4] = [Self::Name, Self::Tags, Self::Description, Self::Content];
+
+    /// Score added when a term matches this field.
+    fn weight(self) -> usize {
+        match self {
+            Self::Name => 10,
+            Self::Tags => 5,
+            Self::Description => 3,
+            Self::Content => 1,
+        }
+    }
+}
+
+/// A candidate skill prepared for matching: every searchable field lowercased once.
+struct SearchableSkill {
+    skill: Skill,
+    name: String,
+    description: String,
+    tags: Vec<String>,
+    /// Lowercased body; `None` while content search is disabled.
+    content: Option<String>,
+}
+
+impl SearchableSkill {
+    /// Lowercase the searchable fields; the body only when `in_content`.
+    fn new(skill: Skill, in_content: bool) -> Self {
+        Self {
+            name: skill.name.to_lowercase(),
+            description: skill.description.to_lowercase(),
+            tags: skill.tags.iter().map(|tag| tag.to_lowercase()).collect(),
+            content: in_content.then(|| skill.content.to_lowercase()),
+            skill,
+        }
+    }
+
+    /// Whether the lowercased `term` occurs in `field`.
+    fn matches(&self, field: SkillField, term: &str) -> bool {
+        match field {
+            SkillField::Name => self.name.contains(term),
+            SkillField::Tags => self.tags.iter().any(|tag| tag.contains(term)),
+            SkillField::Description => self.description.contains(term),
+            SkillField::Content => self
+                .content
+                .as_ref()
+                .is_some_and(|body| body.contains(term)),
+        }
+    }
+}
+
+/// A parsed keyword query, scored against candidate skills.
+struct SkillQuery {
+    /// Lowercased whitespace-separated terms; an empty query matches everything.
+    terms: Vec<String>,
+    /// Whether [`SkillField::Content`] participates in matching.
+    in_content: bool,
+}
+
+impl SkillQuery {
+    /// Split `query` into lowercased terms.
+    fn parse(query: &str, in_content: bool) -> Self {
+        Self {
+            terms: query
+                .to_lowercase()
+                .split_whitespace()
+                .map(str::to_owned)
+                .collect(),
+            in_content,
+        }
+    }
+
+    /// Weighted relevance of one candidate: the summed weights of every
+    /// field each term matches.
+    fn score(&self, skill: &SearchableSkill) -> usize {
+        self.terms
+            .iter()
+            .map(|term| {
+                SkillField::ALL
+                    .iter()
+                    .filter(|field| skill.matches(**field, term))
+                    .map(|field| field.weight())
+                    .sum::<usize>()
+            })
+            .sum()
+    }
+
+    /// Score all candidates in parallel; return matches by relevance, best first.
+    ///
+    /// An empty query returns `skills` untouched; skills scoring zero are dropped.
+    fn search(&self, skills: Vec<Skill>) -> Vec<Skill> {
+        if self.terms.is_empty() {
+            return skills;
+        }
+        let mut scored: Vec<(usize, Skill)> = skills
+            .into_par_iter()
+            .filter_map(|skill| {
+                let prepared = SearchableSkill::new(skill, self.in_content);
+                let score = self.score(&prepared);
+                (score > 0).then_some((score, prepared.skill))
+            })
+            .collect();
+        // Stable sort: equal scores keep their input order.
+        scored.sort_by_key(|(score, _)| std::cmp::Reverse(*score));
+        scored.into_iter().map(|(_, skill)| skill).collect()
+    }
 }
 
 /// Search skills by keyword matching against name, description, tags, and content.
@@ -218,52 +423,7 @@ pub fn scan_skills(path: &str) -> PyResult<Vec<Skill>> {
 #[pyfunction]
 #[pyo3(signature = (query, skills, in_content=false))]
 pub fn search_skills(query: &str, skills: Vec<Skill>, in_content: bool) -> Vec<Skill> {
-    let query_lower = query.to_lowercase();
-    let query_terms: Vec<&str> = query_lower.split_whitespace().collect();
-
-    if query_terms.is_empty() {
-        return skills;
-    }
-
-    // Score each skill: higher = more relevant
-    let mut scored: Vec<(usize, Skill)> = skills
-        .into_par_iter()
-        .filter_map(|skill| {
-            let name_lower = skill.name.to_lowercase();
-            let desc_lower = skill.description.to_lowercase();
-            let tags_lower: Vec<String> = skill.tags.iter().map(|t| t.to_lowercase()).collect();
-
-            let mut score: usize = 0;
-            for term in &query_terms {
-                // Name match (highest weight)
-                if name_lower.contains(term) {
-                    score += 10;
-                }
-                // Tag match (high weight)
-                if tags_lower.iter().any(|t| t.contains(term)) {
-                    score += 5;
-                }
-                // Description match (medium weight)
-                if desc_lower.contains(term) {
-                    score += 3;
-                }
-                // Content match (low weight, opt-in)
-                if in_content && skill.content.to_lowercase().contains(term) {
-                    score += 1;
-                }
-            }
-
-            if score > 0 {
-                Some((score, skill))
-            } else {
-                None
-            }
-        })
-        .collect();
-
-    // Sort by score descending
-    scored.sort_by_key(|b| std::cmp::Reverse(b.0));
-    scored.into_iter().map(|(_, skill)| skill).collect()
+    SkillQuery::parse(query, in_content).search(skills)
 }
 
 /// Get a skill by exact name.
@@ -360,7 +520,138 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<SkillMeta>()?;
     m.add_class::<SkillRegistry>()?;
     m.add_function(wrap_pyfunction!(scan_skills, m)?)?;
+    m.add_function(wrap_pyfunction!(fetch_skill, m)?)?;
     m.add_function(wrap_pyfunction!(search_skills, m)?)?;
     m.add_function(wrap_pyfunction!(get_skill, m)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn write(path: &Path, raw: &str) {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).unwrap();
+        }
+        std::fs::write(path, raw).unwrap();
+    }
+
+    #[test]
+    fn fetch_skill_dir_layout() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_dir_layout");
+        let _ = std::fs::remove_dir_all(&root);
+        write(
+            &root.join("herdr").join("SKILL.md"),
+            "---\nname: herdr\ndescription: \"Terminal mux\"\ntags: [cli]\n---\n# Herdr\nbody",
+        );
+
+        let skill = fetch_skill(root.to_str().unwrap(), "herdr").expect("dir layout resolves");
+        assert_eq!(skill.name, "herdr");
+        assert_eq!(skill.description, "Terminal mux");
+        assert_eq!(skill.tags, vec!["cli"]);
+        assert_eq!(skill.content, "# Herdr\nbody");
+        assert_eq!(skill.path, "herdr/SKILL.md");
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn fetch_skill_flat_layout() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_flat_layout");
+        let _ = std::fs::remove_dir_all(&root);
+        write(
+            &root.join("code_review.md"),
+            "---\nname: code_review\ndescription: Review code\n---\n# Review\nbody",
+        );
+
+        let skill =
+            fetch_skill(root.to_str().unwrap(), "code_review").expect("flat layout resolves");
+        assert_eq!(skill.name, "code_review");
+        assert_eq!(skill.path, "code_review.md");
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn fetch_skill_dir_layout_wins_over_flat() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_precedence");
+        let _ = std::fs::remove_dir_all(&root);
+        write(
+            &root.join("dual").join("SKILL.md"),
+            "---\nname: dual\ndescription: from dir\n---\ndir body",
+        );
+        write(
+            &root.join("dual.md"),
+            "---\nname: dual\ndescription: from flat\n---\nflat body",
+        );
+
+        let skill = fetch_skill(root.to_str().unwrap(), "dual").expect("resolves");
+        assert_eq!(skill.description, "from dir");
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn fetch_skill_missing_returns_none() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_missing");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+
+        assert!(fetch_skill(root.to_str().unwrap(), "nope").is_none());
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn fetch_skill_rejects_path_like_names() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_traversal");
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+
+        for name in ["", ".", "..", "a/b", "a\\b", "../../evil"] {
+            assert!(
+                fetch_skill(root.to_str().unwrap(), name).is_none(),
+                "name: {name}"
+            );
+        }
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    /// Build a skill from plain parts; search tests place the term in one field each.
+    fn skill(name: &str, description: &str, tags: &[&str], content: &str) -> Skill {
+        Skill {
+            name: name.to_string(),
+            description: description.to_string(),
+            tags: tags.iter().map(|tag| tag.to_string()).collect(),
+            content: content.to_string(),
+            path: format!("{name}.md"),
+        }
+    }
+
+    #[test]
+    fn search_skills_ranks_name_then_tags_then_description_then_content() {
+        let skills = vec![
+            skill("content_hit", "", &[], "needle in the body"),
+            skill("description_hit", "needle in the description", &[], ""),
+            skill("tag_hit", "", &["needle"], ""),
+            skill("needle", "", &[], ""),
+        ];
+
+        let hits = search_skills("needle", skills, true);
+        let names: Vec<&str> = hits.iter().map(|s| s.name.as_str()).collect();
+
+        assert_eq!(
+            names,
+            vec!["needle", "tag_hit", "description_hit", "content_hit"]
+        );
+    }
+
+    #[test]
+    fn search_skills_blank_query_returns_all_untouched() {
+        let skills = vec![skill("a", "", &[], ""), skill("b", "", &[], "")];
+
+        assert_eq!(search_skills("   ", skills, false).len(), 2);
+    }
 }

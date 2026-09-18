@@ -1,5 +1,5 @@
 """Capabilities defined in fabricatio-skill."""
 
-from fabricatio_skill.capabilities.skill import UseSkill
+from fabricatio_skill.capabilities.skill import UseSkill, fetch_skills
 
-__all__ = ["UseSkill"]
+__all__ = ["UseSkill", "fetch_skills"]

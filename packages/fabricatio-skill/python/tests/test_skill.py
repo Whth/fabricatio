@@ -5,9 +5,10 @@ from dataclasses import replace
 import fabricatio_skill.capabilities.skill as skill_module
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_skill.capabilities.skill import UseSkill
+from fabricatio_skill.capabilities.skill import UseSkill, fetch_skills
+from fabricatio_skill.config import SkillConfig
 from fabricatio_skill.models.skill import get_skill_registry
-from fabricatio_skill.rust import Skill, SkillMeta, get_skill, scan_skills, search_skills
+from fabricatio_skill.rust import Skill, SkillMeta, fetch_skill, get_skill, scan_skills, search_skills
 
 
 class SkillRole(LLMTestRole, UseSkill):
@@ -144,6 +145,84 @@ class TestSkillRust:
         assert get_skill("foo", skills).name == "foo"
         assert get_skill("baz", skills) is None
 
+    def test_fetch_skill_dir_layout(self, tmp_path: object) -> None:
+        """Agent-skills convention: <root>/<name>/SKILL.md resolves by name."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        skill_dir = root / "herdr"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            '---\nname: herdr\ndescription: "Terminal mux"\ntags: [cli]\n---\n# Herdr\nbody',
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        skill = fetch_skill(str(root), "herdr")
+        assert skill is not None
+        assert skill.name == "herdr"
+        assert skill.description == "Terminal mux"
+        assert skill.tags == ["cli"]
+        assert skill.content == "# Herdr\nbody"
+        assert skill.path == "herdr/SKILL.md"
+
+    def test_fetch_skill_flat_layout(self, tmp_path: object) -> None:
+        """Flat convention: <root>/<name>.md resolves by name."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        root.mkdir()
+        (root / "code_review.md").write_text(
+            "---\nname: code_review\ndescription: Review code\n---\n# Review\nbody",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        skill = fetch_skill(str(root), "code_review")
+        assert skill is not None
+        assert skill.name == "code_review"
+        assert skill.path == "code_review.md"
+
+    def test_fetch_skill_dir_layout_wins_over_flat(self, tmp_path: object) -> None:
+        """When both conventions exist, <name>/SKILL.md takes precedence."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        (root / "dual").mkdir(parents=True)
+        (root / "dual" / "SKILL.md").write_text(
+            "---\nname: dual\ndescription: from dir\n---\ndir body",
+            encoding="utf-8",
+            newline="\n",
+        )
+        (root / "dual.md").write_text(
+            "---\nname: dual\ndescription: from flat\n---\nflat body",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        skill = fetch_skill(str(root), "dual")
+        assert skill is not None
+        assert skill.description == "from dir"
+
+    def test_fetch_skill_missing_returns_none(self, tmp_path: object) -> None:
+        """Names with no convention file resolve to None."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        root.mkdir()
+
+        assert fetch_skill(str(root), "nope") is None
+
+    def test_fetch_skill_rejects_path_like_names(self, tmp_path: object) -> None:
+        """Separators, dot components, and empty names are rejected."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        root.mkdir()
+
+        for name in ["", ".", "..", "a/b", "a\\b", "../../evil"]:
+            assert fetch_skill(str(root), name) is None, name
+
 
 # ── Python-level tests ───────────────────────────────────────────────
 
@@ -188,6 +267,99 @@ class TestUseSkill:
         result = role.add_skills(s1).add_skills(s2)
         assert result is role
         assert len(role.skills) == 2
+
+    def test_gather_skills_by_name(self, tmp_path: object) -> None:
+        """Gather both layouts by name: registered, tracked in order, chained; missing skipped."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        (root / "dir_skill").mkdir(parents=True)
+        (root / "dir_skill" / "SKILL.md").write_text(
+            "---\nname: dir_skill\ndescription: D\n---\n# Dir\nbody dir.",
+            encoding="utf-8",
+            newline="\n",
+        )
+        (root / "flat_skill.md").write_text(
+            "---\nname: flat_skill\ndescription: F\n---\n# Flat\nbody flat.",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        role = SkillRole(name="skill")
+        result = role.gather_skills(["dir_skill", "nope", "flat_skill"], dirs=[str(root)])
+
+        assert result is role
+        assert role.skill_names == ["dir_skill", "flat_skill"]
+        assert get_skill_registry().get("dir_skill") is not None
+        assert get_skill_registry().get("flat_skill") is not None
+
+        # Duplicate names collapse to a single resolution.
+        assert len(fetch_skills(["dir_skill", "dir_skill"], dirs=[str(root)])) == 1
+
+    def test_gather_skills_first_root_wins(self, tmp_path: object) -> None:
+        """The first lookup root that resolves a name supplies the skill."""
+        from pathlib import Path
+
+        root_a = Path(str(tmp_path)) / "a"
+        root_b = Path(str(tmp_path)) / "b"
+        for root, desc in ((root_a, "from a"), (root_b, "from b")):
+            (root / "dual").mkdir(parents=True)
+            (root / "dual" / "SKILL.md").write_text(
+                f"---\nname: dual\ndescription: {desc}\n---\nbody",
+                encoding="utf-8",
+                newline="\n",
+            )
+
+        assert fetch_skills(["dual"], dirs=[str(root_a), str(root_b)])[0].description == "from a"
+        assert fetch_skills(["dual"], dirs=[str(root_b), str(root_a)])[0].description == "from b"
+
+    @pytest.mark.asyncio
+    async def test_gather_skills_feeds_consult(self, tmp_path: object) -> None:
+        """A gathered skill is consultable through the normal pipeline."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        (root / "gathered").mkdir(parents=True)
+        (root / "gathered" / "SKILL.md").write_text(
+            "---\nname: gathered\ndescription: G\n---\n# Gathered\nreal body.",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        role = SkillRole(name="skill")
+        role.gather_skills(["gathered"], dirs=[str(root)])
+
+        result = await role.consult_skills("q", names=["gathered"], select=False, distill=False)
+        assert result == "# Gathered\nreal body."
+
+    def test_fetch_skills_expands_default_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
+        """dirs=None reads default_skill_dirs and expands `~` against the user home."""
+        from pathlib import Path
+        from unittest.mock import patch
+
+        home = Path(str(tmp_path)) / "home"
+        skill_dir = home / ".agents" / "skills" / "tilde_one"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: tilde_one\ndescription: T\n---\nbody",
+            encoding="utf-8",
+            newline="\n",
+        )
+        monkeypatch.setenv("USERPROFILE", str(home))
+        monkeypatch.setenv("HOME", str(home))
+
+        with patch.object(
+            skill_module,
+            "skill_config",
+            replace(skill_module.skill_config, default_skill_dirs=["~/.agents/skills"]),
+        ):
+            got = fetch_skills(["tilde_one"])
+
+        assert [s.name for s in got] == ["tilde_one"]
+
+    def test_default_dirs_include_agents_skills(self) -> None:
+        """The declared default lookup roots include the user-level agent-skills library."""
+        assert "~/.agents/skills" in SkillConfig().default_skill_dirs
 
     @pytest.mark.asyncio
     async def test_consult_skills_no_skills(self) -> None:

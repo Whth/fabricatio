@@ -12,10 +12,38 @@ from pydantic import Field, PrivateAttr
 
 from fabricatio_skill.config import skill_config
 from fabricatio_skill.models.skill import get_skill_registry
-from fabricatio_skill.rust import Skill, scan_skills, search_skills
+from fabricatio_skill.rust import Skill, fetch_skill, scan_skills, search_skills
 
 if TYPE_CHECKING:
     from fabricatio_core.models.generic import WithBriefing
+
+
+def fetch_skills(names: list[str], dirs: list[str | Path] | None = None) -> list[Skill]:
+    """Fetch skills directly by name from skill directories.
+
+    Resolves each name against the lookup roots without scanning: tries the
+    agent-skills convention ``<dir>/<name>/SKILL.md`` first, then the flat
+    convention ``<dir>/<name>.md``. The first directory that resolves a name
+    wins; names that resolve to nothing are logged and skipped.
+
+    Args:
+        names: Skill names to fetch.
+        dirs: Lookup roots (``~`` is expanded). ``None`` →
+            ``skill_config.default_skill_dirs``.
+
+    Returns:
+        Resolved skills in the order of ``names`` (duplicates collapse).
+    """
+    roots = [Path(d).expanduser() for d in (dirs if dirs is not None else skill_config.default_skill_dirs)]
+    found: dict[str, Skill] = {}
+    for name in dict.fromkeys(names):
+        for root in roots:
+            if (skill := fetch_skill(str(root), name)) is not None:
+                found[name] = skill
+                break
+        else:
+            logger.warn(f"Skill '{name}' not found in any lookup dir: {[str(r) for r in roots]}")
+    return list(found.values())
 
 
 class UseSkill(UseLLM, ABC):
@@ -85,6 +113,26 @@ class UseSkill(UseLLM, ABC):
         logger.info(f"Registered {len(new_names)} skill(s): {new_names}")
         return self
 
+    def gather_skills(self, names: list[str], dirs: list[str | Path] | None = None) -> Self:
+        """Gather skills directly by name and track them on this role.
+
+        Resolves each name via :func:`fetch_skills` (``<dir>/<name>/SKILL.md``
+        then ``<dir>/<name>.md`` per lookup root — direct path reads, no
+        directory scan), registers the hits in the global registry, and
+        extends ``skill_names``. Missing names are logged and skipped;
+        already-tracked names are not duplicated.
+
+        Args:
+            names: Skill names to gather.
+            dirs: Lookup roots (``~`` is expanded). ``None`` →
+                ``skill_config.default_skill_dirs``.
+
+        Returns:
+            Self for method chaining.
+        """
+        self.add_skills(fetch_skills(names, dirs))
+        return self
+
     def _ensure_default_skills(self) -> None:
         """Auto-load ``default_skill_dirs`` once, when this role has no skills yet.
 
@@ -96,7 +144,7 @@ class UseSkill(UseLLM, ABC):
             return
         self._default_dirs_scanned = True
         for skill_dir in skill_config.default_skill_dirs:
-            root = Path(skill_dir)
+            root = Path(skill_dir).expanduser()
             if not root.is_dir():
                 continue
             found = scan_skills(str(root))
