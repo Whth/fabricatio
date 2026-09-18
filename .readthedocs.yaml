@@ -13,9 +13,11 @@ build:
     post_create_environment:
       - pip install uv
     post_install:
-      - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-      - export PATH="$HOME/.cargo/bin:$PATH" && rustup default nightly
-      - export PATH="$HOME/.cargo/bin:$PATH" && . $READTHEDOCS_VIRTUALENV_PATH/bin/activate && uv sync --no-install-project --group docs --index https://pypi.org/simple --active --inexact
+      # Docs-only environment: Sphinx/AutoAPI parse the sources statically, so the
+      # workspace packages are never imported here. Installing the default dev group
+      # (and its Rust/PyO3 members) consumed ~485s of the 900s community build budget,
+      # timing the build out before RTD could upload the artifact.
+      - . $READTHEDOCS_VIRTUALENV_PATH/bin/activate && uv sync --only-group docs --no-install-project --index https://pypi.org/simple --active --inexact
 
 
       # Build documentation in the "docs/" directory with Sphinx
