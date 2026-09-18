@@ -20,7 +20,11 @@ from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 
 
-class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig], ABC):
+class RAGCompose[CTX: ChapterContext](
+    ChapterCompose[CTX, RagStoryContext],
+    LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, WritingStyleFetchConfig],
+    ABC,
+):
     """Novel composition capabilities extended with writing style retrieval.
 
     Retrieval settings are sealed onto a dedicated :class:`~fabricatio_novel.models.context.rag.RagStoryContext`
@@ -43,7 +47,7 @@ class RAGCompose(ChapterCompose, LancedbRAG[WritingStyleDocument, LancedbAddRAGC
 
     async def plan_stories_phase(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:

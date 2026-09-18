@@ -15,22 +15,22 @@ from fabricatio_novel.models.plan import ScenePlan, ScenePlans
 from fabricatio_novel.models.story import Story
 
 
-class StoryCompose(SceneCompose, ABC):
+class StoryCompose[CTX: StoryContext](SceneCompose[SceneContext], ABC):
     """This class contains the capabilities for the story."""
 
     async def before_compose_story_context(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> StoryContext:
+    ) -> CTX:
         """Identity hook invoked before composing a story; may mutate the context."""
         return ctx
 
     async def after_compose_story_context(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> StoryContext:
+    ) -> CTX:
         """Identity hook invoked after generating a story; may mutate the context."""
         return ctx
 
@@ -40,7 +40,7 @@ class StoryCompose(SceneCompose, ABC):
 
     async def plan_scenes(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[ScenePlan] | None:
@@ -73,7 +73,7 @@ class StoryCompose(SceneCompose, ABC):
 
     async def plan_scenes_phase(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -106,7 +106,7 @@ class StoryCompose(SceneCompose, ABC):
 
     async def prepare_scene_write(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
@@ -116,7 +116,7 @@ class StoryCompose(SceneCompose, ABC):
 
     async def compose_scenes_phase(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -142,10 +142,10 @@ class StoryCompose(SceneCompose, ABC):
 
     async def generate_story_context(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> StoryContext | None:
+    ) -> CTX | None:
         """Generate the story by composing its scenes.
 
         Runs the staged phases in order: scene planning, scene write
@@ -162,7 +162,7 @@ class StoryCompose(SceneCompose, ABC):
 
     async def compose_story(
         self,
-        ctx: StoryContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Story | None:

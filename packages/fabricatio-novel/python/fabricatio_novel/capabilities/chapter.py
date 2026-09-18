@@ -20,22 +20,22 @@ from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import StoryPlan, StoryPlans
 
 
-class ChapterCompose(StoryCompose, ABC):
+class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC):
     """This class contains the capabilities for the chapter."""
 
     async def before_compose_chapter_context(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ChapterContext:
+    ) -> CTX:
         """Identity hook invoked before composing a chapter; may mutate the context."""
         return ctx
 
     async def after_compose_chapter_context(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ChapterContext:
+    ) -> CTX:
         """Identity hook invoked after generating a chapter; may mutate the context."""
         return ctx
 
@@ -45,7 +45,7 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def plan_stories(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[StoryPlan] | None:
@@ -78,7 +78,7 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def draft_story_spans(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
@@ -138,7 +138,7 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def plan_stories_phase(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -168,7 +168,7 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def compose_stories_phase(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -187,10 +187,10 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def generate_chapter_context(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> ChapterContext | None:
+    ) -> CTX | None:
         """Generate the chapter by composing its stories.
 
         Runs the staged phases in order: story planning and story
@@ -206,7 +206,7 @@ class ChapterCompose(StoryCompose, ABC):
 
     async def compose_chapter(
         self,
-        ctx: ChapterContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:

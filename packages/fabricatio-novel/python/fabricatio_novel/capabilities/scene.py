@@ -15,22 +15,22 @@ from fabricatio_novel.models.scene import Scene
 from fabricatio_novel.utils import strip_overlapping_prefix
 
 
-class SceneCompose(CharacterCompose, ABC):
+class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
     """This class contains the capabilities for the scene."""
 
     async def before_compose_scene_context(
         self,
-        ctx: SceneContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> SceneContext:
+    ) -> CTX:
         """Identity hook invoked before composing a scene; may mutate the context."""
         return ctx
 
     async def after_compose_scene_context(
         self,
-        ctx: SceneContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> SceneContext:
+    ) -> CTX:
         """Identity hook invoked after generating a scene; may mutate the context."""
         return ctx
 
@@ -38,7 +38,7 @@ class SceneCompose(CharacterCompose, ABC):
         """Identity hook invoked on the composed scene; may transform and return the scene."""
         return scene
 
-    def _scene_requirement_vars(self, ctx: SceneContext) -> dict[str, object]:
+    def _scene_requirement_vars(self, ctx: CTX) -> dict[str, object]:
         """Build the scene_requirement template variables for a scene context.
 
         Overriding capabilities (RAG) reuse these vars and add their own
@@ -59,7 +59,7 @@ class SceneCompose(CharacterCompose, ABC):
 
     async def prepare_scene_requirement(
         self,
-        ctx: SceneContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
     ) -> str:
         """Render the scene requirement prompt from the scene context.
@@ -74,10 +74,10 @@ class SceneCompose(CharacterCompose, ABC):
 
     async def generate_scene_context(
         self,
-        ctx: SceneContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> SceneContext:
+    ) -> CTX:
         """Generate the scene content via the LLM.
 
         Renders the scene requirement, asks the LLM for the scene text, and
@@ -120,7 +120,7 @@ class SceneCompose(CharacterCompose, ABC):
 
     async def compose_scene(
         self,
-        ctx: SceneContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:

@@ -16,10 +16,11 @@ from fabricatio_core.rust import TASK, detect_language
 
 from fabricatio_novel.capabilities.scene import SceneCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.series_book import SeriesBible
 
 
-class BibleCompose(SceneCompose, ABC):
+class BibleCompose(SceneCompose[SceneContext], ABC):
     """Setting bible composition: the one bible per run, composed once from the outline."""
 
     async def compose_setting_bible(

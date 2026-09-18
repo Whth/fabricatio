@@ -17,26 +17,27 @@ from fabricatio_novel.models.context.base import (
 )
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.plan import ChapterPlan, ChapterPlans, NovelPlan
 
 
-class NovelCompose(ChapterCompose, ABC):
+class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext, ChapterPlan], StoryContext], ABC):
     """This class contains the capabilities for the novel."""
 
     async def before_compose_novel_context(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> NovelContext:
+    ) -> CTX:
         """Identity hook invoked before composing a novel; may mutate the context."""
         return ctx
 
     async def after_compose_novel_context(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         **kwargs: Unpack[LLMKwargs],
-    ) -> NovelContext:
+    ) -> CTX:
         """Identity hook invoked after generating a novel; may mutate the context."""
         return ctx
 
@@ -46,7 +47,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def plan_chapters(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[ChapterPlan] | None:
@@ -78,7 +79,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def propose_novel_metadata(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -111,7 +112,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def prepare_character_span(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
@@ -145,7 +146,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def draft_chapter_spans(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> None:
@@ -205,7 +206,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def plan_chapters_phase(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -235,7 +236,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def compose_chapters_phase(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
@@ -253,7 +254,7 @@ class NovelCompose(ChapterCompose, ABC):
                 return False
         return True
 
-    def assemble_novel(self, ctx: NovelContext) -> Novel:
+    def assemble_novel(self, ctx: CTX) -> Novel:
         """Materialize the composed context tree as a Novel."""
         novel = Novel.from_context(ctx)
         logger.info(
@@ -263,10 +264,10 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def generate_novel_context(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
-    ) -> NovelContext | None:
+    ) -> CTX | None:
         """Generate the novel by composing its chapters.
 
         Runs the staged phases in order: metadata proposal, roster character
@@ -286,7 +287,7 @@ class NovelCompose(ChapterCompose, ABC):
 
     async def compose_novel(
         self,
-        ctx: NovelContext,
+        ctx: CTX,
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
