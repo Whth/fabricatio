@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-novel"
-version = "0.27.0"
+version = "0.28.0"
 description = "AI-powered novel generation, from outline to publication-ready EPUB."
 readme = "README.md"
 license = "MIT"
