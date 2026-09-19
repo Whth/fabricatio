@@ -50,14 +50,16 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
 
     async def arefined_query(
         self,
-        question: list[str] | str,
+        question: str,
         send_to: str | None = SMOL,
         **kwargs: Unpack[ListingKwargs[str]],
     ) -> list[str] | None:
         """Refines the given question using a template.
 
         Args:
-            question (List[str] | str): The question to be refined.
+            question (str): The question to be refined. It opens the rendered prompt verbatim, so a
+                caller that prepends a run-wide prefix — its skills section, say — has those bytes
+                lead every request and stay inside the provider's prefix cache.
             send_to (str | None): Model group to use
             **kwargs (Unpack[ChooseKwargs]): Additional keyword arguments for the refinement process.
 
@@ -67,7 +69,7 @@ class RAG[STD: StoredDocumentModel, SRD: SearchedDocumentModel, AC: RAGConfigBas
         return await self.alist_v(
             TEMPLATE_MANAGER.render_template(
                 rag_config.refined_query_template,
-                {"question": [question] if isinstance(question, str) else question},
+                {"question": question},
             ),
             value_type=str,
             send_to=send_to,

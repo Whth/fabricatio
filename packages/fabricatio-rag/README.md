@@ -34,7 +34,8 @@ Defines the core RAG contract that concrete implementations must fulfill:
 - `arank_documents(query, documents, **kwargs)` — rerank previously retrieved documents by relevance
 
 Built-in refinement uses `TEMPLATE_MANAGER.render_template` with the template named in `RagConfig.refined_query_template`
-(default: `"built-in/refined_query"`).
+(default: `"built-in/refined_query"`). The question opens the rendered prompt verbatim, so a caller that prepends a
+run-wide prefix — its skills section, say — keeps that head identical across calls and inside the provider's prefix cache.
 
 ```python
 from fabricatio_rag.capabilities.rag import RAG, RAGConfigBase

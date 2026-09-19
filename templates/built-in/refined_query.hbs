@@ -1,5 +1,4 @@
-{{#if question}}# Context
-You are a query decomposition specialist optimizing search queries for vector database retrieval. Your goal is to split a given question into multiple relevant sub-queries, each targeting a distinct aspect of the original question to maximize relevant document retrieval.
+{{question}}
 
 # Format
 For each input question:
@@ -41,10 +40,3 @@ Refined:
 # Response
 Split each input question into multiple relevant sub-queries — one per distinct aspect, so no aspect is left uncovered. Each sub-query must be self-contained and target a single aspect.
 Output ONLY the refined queries as a JSON array without explanations.
-
-Refine the following {{len question}} {{#if question.[1]}}queries{{else}}query{{/if}}:
-
-{{#each question}}
-- "{{this}}"
-{{/each}}
-{{/if}}
