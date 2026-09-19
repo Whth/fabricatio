@@ -80,6 +80,7 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
                 "expected_word_count": ctx.expected_word_count,
                 "writing_styles": ctx.writing_styles,
                 "writing_constraints": ctx.writing_constraints,
+                "style_references": ctx.style_references(),
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
             },
@@ -106,7 +107,12 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
         logger.debug("Proposing novel metadata from outline")
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.novel_metadata_requirement_template,
-            {"outline": ctx.outline, "language": ctx.language, "constraint": ctx.writing_constraints},
+            {
+                "outline": ctx.outline,
+                "language": ctx.language,
+                "constraint": ctx.writing_constraints,
+                "style_references": ctx.style_references(),
+            },
         )
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
         if plan is None:

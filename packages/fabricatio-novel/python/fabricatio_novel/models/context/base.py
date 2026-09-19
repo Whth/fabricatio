@@ -188,6 +188,18 @@ class ContextBase[P: WeightedPlan](
         """
         return None
 
+    def style_references(self) -> list[str]:
+        """This element's retrieved writing style reference texts.
+
+        Empty on every plain context: the documents live on the RAG-bound
+        subclasses alone — a sealed story holds the references its scene writes
+        render, the RAG run's root the ones fetched from the outline for
+        planning — and each one renders them where its own stage needs them. The
+        planning prompts read this accessor off the context they plan, so a
+        plain tree renders no references section at all.
+        """
+        return []
+
     @abstractmethod
     def prefixed_entries(self) -> tuple[ContextEntry, ...]:
         """This element's blocks contributed to every following sibling's prefix.

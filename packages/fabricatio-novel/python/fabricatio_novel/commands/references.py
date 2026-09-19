@@ -38,10 +38,10 @@ def store_reference_texts(
     cfg(["lancedb"])
     from fabricatio_rag.capabilities.chunk import PreciseChunkText
 
-    from fabricatio_novel.capabilities.rag import RAGCompose
+    from fabricatio_novel.capabilities.rag import RAGStyleFetch
     from fabricatio_novel.models.rag import WritingStyleAddConfig, WritingStyleDocument
 
-    class IngestRole(Role, PreciseChunkText, RAGCompose):
+    class IngestRole(Role, PreciseChunkText, RAGStyleFetch):
         """Role for chunking and storing writing style references."""
 
     files = _collect_files(patterns)
@@ -82,10 +82,10 @@ def store_enriched_texts(
     from fabricatio_rag.capabilities.chunk import PreciseChunkText
     from fabricatio_rag.capabilities.enrich import EnrichChunkText
 
-    from fabricatio_novel.capabilities.rag import RAGCompose
+    from fabricatio_novel.capabilities.rag import RAGStyleFetch
     from fabricatio_novel.models.rag import EnrichedAddConfig, EnrichedDocument
 
-    class EnrichRole(Role, PreciseChunkText, EnrichChunkText, RAGCompose):
+    class EnrichRole(Role, PreciseChunkText, EnrichChunkText, RAGStyleFetch):
         """Role for chunking, enriching, and storing reference chunks."""
 
     files = _collect_files(patterns)

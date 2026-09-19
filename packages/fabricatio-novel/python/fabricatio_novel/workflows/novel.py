@@ -15,6 +15,8 @@ from fabricatio_novel.actions.novel import (
     ProposeNovelMetadataStage,
     ProposeSettingBibleStage,
     RagComposeScenesStage,
+    RagInitNovelContext,
+    RagPlanChaptersStage,
     RagPlanScenesStage,
     RagPlanStoriesStage,
 )
@@ -49,11 +51,11 @@ RagDebugNovelWorkflow = WorkFlow(
         "whole-tree snapshot into the given persist_dir. Returns the exported artifact path."
     ),
     steps=(
-        InitNovelContext,
+        RagInitNovelContext,
         ProposeNovelMetadataStage,
         ProposeSettingBibleStage,
         PrepareCharacterSpanStage,
-        PlanChaptersStage,
+        RagPlanChaptersStage,
         RagPlanStoriesStage,
         RagPlanScenesStage,
         RagComposeScenesStage,
@@ -70,11 +72,11 @@ RagIllustrationDebugNovelWorkflow = WorkFlow(
         "persists a whole-tree snapshot into the given persist_dir. Returns the exported artifact path."
     ),
     steps=(
-        InitNovelContext,
+        RagInitNovelContext,
         ProposeNovelMetadataStage,
         ProposeSettingBibleStage,
         PrepareCharacterSpanStage,
-        PlanChaptersStage,
+        RagPlanChaptersStage,
         RagPlanStoriesStage,
         RagPlanScenesStage,
         RagComposeScenesStage,

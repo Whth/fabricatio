@@ -3,9 +3,12 @@
 from collections.abc import Generator
 from typing import Self, final
 
+from pydantic import Field
+
 from fabricatio_novel.models.context.base import ParentContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
 from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.rag import RagBound, RagRetrieval
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 
@@ -59,11 +62,38 @@ class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[C, P]):
         return self
 
 
-class RagNovelContext(NovelContext[RagChapterContext, NovelPlan]):
-    """The RAG run's root channel: every chapter houses sealed stories.
+class RagNovelContext(RagBound, NovelContext[RagChapterContext, NovelPlan]):
+    """The RAG run's root channel: every chapter houses RAG-typed stories, and the novel level holds its own references.
 
-    :class:`RagChapterContext` constrains each chapter's children, so reloading
-    a persisted RAG run into this class restores the chapters — and through them
-    the sealed stories' retrieval state — by pydantic validation alone. Plain
+    :class:`RagChapterContext` constrains each chapter's children, so reloading a
+    persisted RAG run into this class restores the chapters — and through them the
+    sealed stories' retrieval state — by pydantic validation alone. Plain
     snapshots fail this stricter validation and load as :class:`NovelContext`.
+
+    The root is where a RAG run retrieves first: the references fetched from the
+    novel outline render into the prompts that plan the novel and its chapters —
+    and into nothing else, so the scene writers keep seeing only the story-level
+    references. The chapters carry the RAG chapter type from the moment they are
+    planned, which keeps every stage of a run reloadable as this class.
     """
+
+    rag: RagRetrieval = Field(default_factory=RagRetrieval)
+    """Retrieval settings for the novel-level writing style references; defaulted so snapshots written before the novel level retrieved anything still load as this class."""
+
+    @classmethod
+    def seal(cls, novel: NovelContext, rag: RagRetrieval) -> "RagNovelContext":
+        """Rebind a plain novel root as RAG-bound, carrying the given retrieval settings.
+
+        The rebind copies every field off the plain root's instance state — the
+        run-wide constants, the setting bible and the seeded prefix included — so
+        only ``rag``, absent from the plain class, is applied on top. Sealing runs
+        before the chapters are planned: the children are still empty then, which
+        is what lets this class's chapter constraint validate, and the chapter
+        planning phase promotes what it creates.
+
+        Sealing an already RAG-bound root returns it unchanged.
+        """
+        if isinstance(novel, RagNovelContext):
+            return novel
+
+        return cls.model_validate({**vars(novel), "rag": rag})

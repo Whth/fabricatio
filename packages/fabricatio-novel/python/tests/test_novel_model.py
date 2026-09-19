@@ -38,10 +38,10 @@ class TestNovelContext:
         assert ctx.language == "English"
 
     def test_base_contexts_carry_no_rag_state(self) -> None:
-        """Assert the standard context tree is RAG-free; retrieval lives on RagStoryContext."""
-        assert "rag" not in NovelContext.model_fields
-        assert "rag" not in ChapterContext.model_fields
-        assert "rag" not in StoryContext.model_fields
+        """Assert the standard context tree is RAG-free; retrieval lives on the RAG-bound subclasses."""
+        for context in (NovelContext, ChapterContext, StoryContext):
+            assert "rag" not in context.model_fields
+            assert "retrieved_styles" not in context.model_fields
 
     def test_update_from_adopts_scalar_fields(self) -> None:
         """Assert update_from copies the plan's scalar fields only, leaving the channels alone."""

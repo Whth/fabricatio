@@ -23,7 +23,7 @@ from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
 from fabricatio_novel.capabilities.novel import NovelCompose
-from fabricatio_novel.capabilities.rag import RAGCompose
+from fabricatio_novel.capabilities.rag import RAGChapterCompose, RAGNovelCompose
 from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.chapter import RagChapterContext
@@ -45,7 +45,10 @@ __all__ = [
     "ProposeNovelMetadataStage",
     "ProposeSettingBibleStage",
     "RagComposeScenesStage",
+    "RagInitNovelContext",
+    "RagPlanChaptersStage",
     "RagPlanScenesStage",
+    "RagPlanStoriesStage",
     "StageAction",
 ]
 
@@ -73,17 +76,50 @@ class InitNovelContext(StageAction, NovelCompose):
     output_key: str = "novel_ctx"
     stage: ClassVar[str] = "01_init"
 
-    async def _execute(self, *_: Any, **cxt: Any) -> NovelContext:
-        outline = ok(cxt.get("novel_outline"), "`novel_outline` is required in the task init context")
-        ctx = NovelContext.create(outline, language=cxt.get("novel_language"))
-        if constraint := cxt.get("writing_constraint"):
-            ctx.set_writing_constraints([str(constraint)])
-        if bible_path := cxt.get("bible_path"):
-            ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
+    async def init_novel_context(
+        self,
+        outline: str,
+        *,
+        language: str | None = None,
+        constraint: str = "",
+        bible_path: Path | None = None,
+        send_to: str | None = TASK,
+    ) -> NovelContext:
+        """Build the root from the run's settings and fire the before hook on it.
+
+        The hook's return replaces the root — it is where a RAG run seals the
+        context class itself and fetches the references the planning prompts
+        render — so the caller snapshots exactly what the hook handed back.
+        """
+        ctx = NovelContext.create(outline, language=language)
+        if constraint:
+            ctx.set_writing_constraints([constraint])
+        if bible_path is not None:
+            ctx.set_series_bible(SeriesBible.model_validate_json(bible_path.read_text(encoding="utf-8")))
         ctx.seed_bible_prefix()
-        ctx = await self.before_compose_novel_context(ctx, send_to=cxt.get("send_to", TASK))
+        return await self.before_compose_novel_context(ctx, send_to=send_to)
+
+    async def _execute(self, *_: Any, **cxt: Any) -> NovelContext:
+        ctx = await self.init_novel_context(
+            ok(cxt.get("novel_outline"), "`novel_outline` is required in the task init context"),
+            language=cxt.get("novel_language"),
+            constraint=cxt.get("writing_constraint") or "",
+            bible_path=cxt.get("bible_path"),
+            send_to=cxt.get("send_to", TASK),
+        )
         await self.snapshot(ctx, cxt)
         return ctx
+
+
+class RagInitNovelContext(InitNovelContext, RAGNovelCompose):
+    """Init stage of a RAG run: the before hook seals the root and fetches the novel's style references.
+
+    The stage body stays the base one — build, hook, snapshot — because the RAG
+    work lives in the hook the mixin overrides, so the single snapshot the base
+    writes already holds the sealed root with its references.
+    """
+
+    ctx_override: ClassVar[bool] = True
 
 
 class ProposeNovelMetadataStage(StageAction, NovelCompose):
@@ -148,6 +184,15 @@ class PlanChaptersStage(StageAction, NovelCompose):
         return planned
 
 
+class RagPlanChaptersStage(PlanChaptersStage, RAGNovelCompose):
+    """Chapter planning of a RAG run: the novel's references reach the prompt and the chapters carry the RAG type.
+
+    The stage body stays the base one — :meth:`RAGNovelCompose.plan_chapters_phase`
+    renders the phase's prompt from the sealed root and promotes what it plans — so
+    the snapshot already holds the chapters the later stages seal stories into.
+    """
+
+
 class PlanStoriesStage(StageAction, ChapterCompose):
     """Fire ``before_compose_chapter_context`` per chapter, then plan its stories and draft their spans."""
 
@@ -165,10 +210,10 @@ class PlanStoriesStage(StageAction, ChapterCompose):
         return True
 
 
-class RagPlanStoriesStage(PlanStoriesStage, RAGCompose):
+class RagPlanStoriesStage(PlanStoriesStage, RAGChapterCompose):
     """Story planning with the RAG seal.
 
-    :meth:`RAGCompose.plan_stories_phase` seals each chapter's stories with
+    :meth:`RAGChapterCompose.plan_stories_phase` seals each chapter's stories with
     the context-overridden retrieval settings right after they are planned;
     each sealed chapter is then promoted to
     :class:`~fabricatio_novel.models.context.chapter.RagChapterContext`, so the
@@ -304,16 +349,16 @@ class DumpNovelStage(Action, NovelCompose):
         return texts_dir if fmt == "txt" else epub_path
 
 
-class RagPlanScenesStage(PlanScenesStage, RAGCompose):
+class RagPlanScenesStage(PlanScenesStage, RAGChapterCompose):
     """Scene planning over stories already sealed by :class:`RagPlanStoriesStage`.
 
-    Mixing in :class:`RAGCompose` resolves :meth:`RAGCompose.prepare_story`
+    Mixing in :class:`RAGChapterCompose` resolves :meth:`RAGChapterCompose.prepare_story`
     ahead of the plain implementation, so each sealed story's style
     references are retrieved before its scenes are planned.
     """
 
 
-class RagComposeScenesStage(ComposeScenesStage, RAGCompose):
+class RagComposeScenesStage(ComposeScenesStage, RAGChapterCompose):
     """Scene composition over stories already sealed by :class:`RagPlanScenesStage`."""
 
 

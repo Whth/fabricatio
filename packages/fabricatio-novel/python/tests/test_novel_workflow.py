@@ -255,7 +255,9 @@ class TestNovelWorkflow:
         from fabricatio_comfyui.models.specs import SketchSpec
         from fabricatio_core import Event, Role, Task
         from fabricatio_novel.actions.novel import IllustrateNovelStage
-        from fabricatio_novel.capabilities.rag import RAGCompose
+        from fabricatio_novel.benchmark.models import StageArtifact
+        from fabricatio_novel.capabilities.rag import RAGStyleFetch
+        from fabricatio_novel.models.context.novel import RagNovelContext
         from fabricatio_novel.workflows.novel import RagIllustrationDebugNovelWorkflow
 
         png_1x1 = base64.b64decode(
@@ -276,8 +278,8 @@ class TestNovelWorkflow:
         async def fake_arefined_query(question: object, **kwargs: object) -> list[str]:
             return ["the floating atlas", "a drifting city"]
 
-        monkeypatch.setattr(RAGCompose, "afetch_document", staticmethod(fake_afetch_document))
-        monkeypatch.setattr(RAGCompose, "arefined_query", staticmethod(fake_arefined_query))
+        monkeypatch.setattr(RAGStyleFetch, "afetch_document", staticmethod(fake_afetch_document))
+        monkeypatch.setattr(RAGStyleFetch, "arefined_query", staticmethod(fake_arefined_query))
 
         monkeypatch.setattr(IllustrateNovelStage, "generate_image", staticmethod(fake_generate_image))
 
@@ -294,7 +296,7 @@ class TestNovelWorkflow:
             # Resalt the outline whenever an upstream prompt template changes:
             # stale cache entries from the old prompt text otherwise create a
             # mixed hit/miss run that misaligns the scripted stack.
-            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait, v4 salt.",
+            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait, v5 salt.",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -366,6 +368,11 @@ class TestNovelWorkflow:
             "stage_08_scenes",
             "stage_09_novel",
         ]
+        # the run is RAG-typed from the root down: the init and chapter-plan stages
+        # snapshot trees whose retrieval state the benchmark's loader restores.
+        stages = {stage.name: stage.load() for stage in StageArtifact.collect(persist_dir)}
+        assert type(stages["stage_01_init"]) is RagNovelContext
+        assert type(stages["stage_05_chapter_plans"]) is RagNovelContext
         with zipfile.ZipFile(epub) as zf:
             names = zf.namelist()
             assert any(name.endswith("images/scene_01_01.png") for name in names)
