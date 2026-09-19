@@ -274,8 +274,8 @@ history stays intact.
 | `PlanScenesStage` / `RagPlanScenesStage` | `07_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
 | `ComposeScenesStage` / `RagComposeScenesStage` | `08_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
 | `AssembleNovelStage` | `09_novel` — fires `after_compose_novel_context`, then `assemble_novel` |
-| `IllustrateNovelStage` | `DumpNovelStage` whose `post_process_novel` resolves to per-scene illustration; adds no snapshot dir |
-| `DumpNovelStage` | fires `post_process_novel`, then export — JSON always; EPUB and/or per-chapter `chapters/NN.txt` per `format` |
+| `IllustrateNovelStage` | `DumpNovelStage` of the illustrated pipeline: `post_process_novel` resolves to `IllustrateScenes`', whose interface declares `persist_dir`, `send_to` and the illustration knobs, so this action declares and passes them; adds no snapshot dir |
+| `DumpNovelStage` | fires `post_process_novel(ctx, novel)` — exactly the arguments the novel capability declares — then exports: JSON always, EPUB and/or `chapters/NN.txt` per the unpacked `export_format` (`ExportFormat`) plus `output_path`/`font`/`cover` |
 
 Every stage wraps one `compose_novel` chain segment and fires the chain's lifecycle hooks at their chain positions, so a hook override on a stage customizes the staged run exactly like it customizes the programmatic chain; the scene-level hooks fire inside `compose_scenes_phase`, exactly as they do in the chain.
 

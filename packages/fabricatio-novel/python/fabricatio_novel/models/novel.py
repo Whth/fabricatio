@@ -1,5 +1,6 @@
 """Output model for a composed novel: plan fields, materialized chapters and EPUB export."""
 
+from enum import StrEnum, auto
 from pathlib import Path
 from typing import Self
 
@@ -12,6 +13,14 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
 from fabricatio_novel.rust import NovelBuilder
+
+
+class ExportFormat(StrEnum):
+    """Artifacts a finished novel is exported into."""
+
+    EPUB = auto()
+    TXT = auto()
+    BOTH = auto()
 
 
 class Novel(PersistentAble, NovelPlan):

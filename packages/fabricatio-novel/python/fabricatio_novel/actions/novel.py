@@ -28,7 +28,7 @@ from fabricatio_novel.capabilities.story import StoryCompose
 from fabricatio_novel.models.chapter import Chapter
 from fabricatio_novel.models.context.chapter import RagChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
-from fabricatio_novel.models.novel import Novel
+from fabricatio_novel.models.novel import ExportFormat, Novel
 from fabricatio_novel.models.series_book import SeriesBible
 from fabricatio_novel.models.story import Story
 
@@ -319,39 +319,62 @@ class AssembleNovelStage(StageAction, NovelCompose):
 class DumpNovelStage(Action, NovelCompose):
     """Fire ``post_process_novel``, then export the novel to JSON plus EPUB and/or per-chapter texts.
 
-    The hook call resolves polymorphically: plain workflows get the identity
-    default, while the illustration variant (:class:`IllustrateNovelStage`)
-    resolves it to :meth:`IllustrateScenes.post_process_novel`, so every scene
-    is illustrated before the artifact is written.
+    The task init context is unpacked straight into the parameters below — each knob is
+    declared once, with its default — and the hook is called with exactly what the novel
+    capability declares, ``(ctx, novel)``. A pipeline whose chain declares more brings its
+    own dump action (:class:`IllustrateNovelStage`) instead of smuggling keywords here.
     """
 
     output_key: str = OUTPUT_KEY
 
-    async def _execute(self, novel_ctx: NovelContext, novel: Novel, *_: Any, **cxt: Any) -> Path:
-        persist_dir = Path(ok(cxt.get("persist_dir"), "`persist_dir` is required in the task init context"))
-        persist_dir.mkdir(parents=True, exist_ok=True)
-        novel = await self.post_process_novel(
-            novel_ctx,
-            novel,
-            persist_dir=persist_dir,
-            send_to=cxt.get("send_to", TASK),
-            illustration_choose_loras=cxt.get("illustration_choose_loras"),
-            illustration_judge=cxt.get("illustration_judge"),
-            illustration_judge_max_tries=cxt.get("illustration_judge_max_tries"),
+    async def _execute(
+        self,
+        novel_ctx: NovelContext,
+        novel: Novel,
+        *,
+        persist_dir: Path,
+        export_format: ExportFormat = ExportFormat.EPUB,
+        output_path: str | None = None,
+        font: str | Path | None = None,
+        cover: str | Path | None = None,
+        **_: Any,
+    ) -> Path:
+        """Fire the post-process hook this chain resolves, then export the JSON snapshot and the artifacts."""
+        novel = await self.post_process_novel(novel_ctx, novel)
+        return self.export(
+            novel, persist_dir, export_format=export_format, output_path=output_path, font=font, cover=cover
         )
-        fmt = str(cxt.get("format") or "epub")
-        ok(fmt in ("epub", "txt", "both"), f"`format` must be 'epub', 'txt', or 'both', got '{fmt}'")
-        output = cxt.get("output_path")
-        epub_path = persist_dir / output if output else persist_dir / "novel.epub"
+
+    def export(
+        self,
+        novel: Novel,
+        persist_dir: Path,
+        *,
+        export_format: ExportFormat = ExportFormat.EPUB,
+        output_path: str | None = None,
+        font: str | Path | None = None,
+        cover: str | Path | None = None,
+    ) -> Path:
+        """Persist the novel and write the artifacts the run selected, returning the exported path."""
+        persist_dir.mkdir(parents=True, exist_ok=True)
+        epub_path = persist_dir / output_path if output_path else persist_dir / "novel.epub"
         texts_dir = persist_dir / "chapters"
         novel.persist(persist_dir)
-        if fmt in ("epub", "both"):
-            novel.dump_epub(epub_path, font=cxt.get("font"), cover=cxt.get("cover"))
-            logger.info(f"EPUB dumped to {epub_path}")
-        if fmt in ("txt", "both"):
-            novel.dump_texts(texts_dir)
-            logger.info(f"Chapter texts dumped to {texts_dir}")
-        return texts_dir if fmt == "txt" else epub_path
+        match export_format:
+            case ExportFormat.TXT:
+                novel.dump_texts(texts_dir)
+                logger.info(f"Chapter texts dumped to {texts_dir}")
+                return texts_dir
+            case ExportFormat.EPUB:
+                novel.dump_epub(epub_path, font=font, cover=cover)
+                logger.info(f"EPUB dumped to {epub_path}")
+                return epub_path
+            case ExportFormat.BOTH:
+                novel.dump_epub(epub_path, font=font, cover=cover)
+                logger.info(f"EPUB dumped to {epub_path}")
+                novel.dump_texts(texts_dir)
+                logger.info(f"Chapter texts dumped to {texts_dir}")
+                return epub_path
 
 
 class RagPlanScenesStage(PlanScenesStage, RAGChapterCompose):
@@ -368,4 +391,40 @@ class RagComposeScenesStage(ComposeScenesStage, RAGChapterCompose):
 
 
 class IllustrateNovelStage(DumpNovelStage, IllustrateScenes):
-    """Dump-stage variant whose ``post_process_novel`` resolves to per-scene illustration."""
+    """Dump action of the illustrated pipeline: its post-process hook draws every scene first.
+
+    ``post_process_novel`` resolves to :meth:`IllustrateScenes.post_process_novel`, whose
+    signature declares ``persist_dir``, ``send_to`` and the illustration knobs, so this action
+    declares them too and passes them on; the plain :class:`DumpNovelStage` calls the same hook
+    with the base interface's arguments alone.
+    """
+
+    async def _execute(  # noqa: PLR0913 - one parameter per task init context key, as the context is unpacked here
+        self,
+        novel_ctx: NovelContext,
+        novel: Novel,
+        *,
+        persist_dir: Path,
+        export_format: ExportFormat = ExportFormat.EPUB,
+        output_path: str | None = None,
+        font: str | Path | None = None,
+        cover: str | Path | None = None,
+        send_to: str | None = TASK,
+        illustration_choose_loras: bool | None = None,
+        illustration_judge: bool | None = None,
+        illustration_judge_max_tries: int | None = None,
+        **_: Any,
+    ) -> Path:
+        """Illustrate every scene through the chain's hook, then export the JSON snapshot and the artifacts."""
+        novel = await self.post_process_novel(
+            novel_ctx,
+            novel,
+            persist_dir=persist_dir,
+            send_to=send_to,
+            illustration_choose_loras=illustration_choose_loras,
+            illustration_judge=illustration_judge,
+            illustration_judge_max_tries=illustration_judge_max_tries,
+        )
+        return self.export(
+            novel, persist_dir, export_format=export_format, output_path=output_path, font=font, cover=cover
+        )

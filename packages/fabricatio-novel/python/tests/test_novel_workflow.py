@@ -8,6 +8,7 @@ from _support import card
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.rust import CONFIG, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP, MockScript, Value
+from fabricatio_novel.models.novel import ExportFormat
 from fabricatio_novel.models.plan import NovelPlan
 
 # Workflow tests subscribe a plain ``Role`` (no scoped ``llm_send_to``), so the real
@@ -100,7 +101,7 @@ class TestNovelWorkflow:
                 assert any(stage_dir.glob("*.json")), f"{stage_dir.name} lacks a snapshot"
 
     async def test_debug_workflow_txt_format_exports_chapter_texts(self, tmp_path: Path) -> None:
-        """Assert format='txt' skips the EPUB and returns the per-chapter text directory."""
+        """Assert ``export_format='txt'`` skips the EPUB and returns the per-chapter text directory."""
         from fabricatio_core import Event, Role, Task
         from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 
@@ -114,7 +115,7 @@ class TestNovelWorkflow:
             novel_outline=f"The lighthouse keeper's daughter charts the reef at low tide, wf v3 salt. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
-            format="txt",
+            export_format=ExportFormat.TXT,
         )
         meta = NovelPlan(
             title="The Search",
@@ -192,7 +193,7 @@ class TestNovelWorkflow:
             novel_outline=f"The clockmaker's apprentice winds the great gear at dawn. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
-            format="txt",
+            export_format=ExportFormat.TXT,
         )
         meta = NovelPlan(
             title="The Search",
@@ -244,6 +245,44 @@ class TestNovelWorkflow:
         texts = list((persist_dir / "chapters").glob("*.txt"))
         assert texts, "chapter texts must be exported"
         assert any("HOOKED" in p.read_text(encoding="utf-8") for p in texts)
+
+    async def test_dump_stage_calls_the_hook_with_the_declared_arguments_only(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert the dump action passes ``(ctx, novel)`` — a hook declaring no ``**kwargs`` still runs.
+
+        The illustrated pipeline is a dump action of its own (:class:`IllustrateNovelStage`)
+        precisely so this one never passes keywords the novel capability does not declare;
+        the strict hook here rejects any leaked keyword with a ``TypeError``.
+        """
+        from fabricatio_novel.actions.novel import DumpNovelStage
+        from fabricatio_novel.models.context.novel import NovelContext
+        from fabricatio_novel.models.novel import Novel
+
+        hooked: list[str] = []
+
+        async def strict_hook(self: object, ctx: NovelContext, novel: Novel) -> Novel:
+            hooked.append(ctx.outline)
+            return novel
+
+        monkeypatch.setattr(DumpNovelStage, "post_process_novel", strict_hook)
+
+        ctx = NovelContext.create("The clockmaker's apprentice winds the great gear at dawn.", language="English")
+        novel = Novel(
+            title="The Gear",
+            description="An apprentice winds the gear.",
+            expected_word_count=100,
+            writing_styles=[],
+            writing_constraints=[],
+            chapter=[],
+        )
+
+        artifact = await DumpNovelStage()._execute(ctx, novel, persist_dir=tmp_path, export_format=ExportFormat.TXT)
+
+        assert hooked == [ctx.outline]
+        assert artifact == tmp_path / "chapters"
+        assert (tmp_path / "chapters").is_dir()
+        assert next(tmp_path.glob("Novel_*.json"), None) is not None
 
     async def test_rag_illustration_workflow_embeds_scene_images(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

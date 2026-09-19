@@ -2,7 +2,6 @@
 
 import asyncio
 from datetime import datetime
-from enum import StrEnum
 from pathlib import Path
 
 import typer
@@ -20,6 +19,7 @@ from fabricatio_novel.benchmark import (
 )
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline, _split_skills
+from fabricatio_novel.models.novel import ExportFormat
 from fabricatio_novel.workflows.novel import (
     DebugNovelWorkflow,
     RagDebugNovelWorkflow,
@@ -37,22 +37,16 @@ def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Path | None
     return asyncio.run(_run())
 
 
-class ExportFormat(StrEnum):
-    """Export formats for a generated novel."""
-
-    EPUB = "epub"
-    TXT = "txt"
-    BOTH = "both"
-
-
 def _report_generation(run_dir: Path, artifact: Path, fmt: ExportFormat) -> None:
     """Echo the run summary with the exported artifact locations, then report the run's benchmark score."""
     parts = ["✅ Novel generated", f"   JSON:  {run_dir}"]
-    if fmt is ExportFormat.TXT:
-        parts.append(f"   TXT:   {artifact}")
-    else:
-        parts.append(f"   EPUB:  {artifact}")
-        if fmt is ExportFormat.BOTH:
+    match fmt:
+        case ExportFormat.EPUB:
+            parts.append(f"   EPUB:  {artifact}")
+        case ExportFormat.TXT:
+            parts.append(f"   TXT:   {artifact}")
+        case ExportFormat.BOTH:
+            parts.append(f"   EPUB:  {artifact}")
             parts.append(f"   TXT:   {run_dir / 'chapters'}")
     typer.secho("\n   ".join(parts), fg=typer.colors.GREEN, bold=True)
     _report_benchmark(run_dir)
@@ -169,7 +163,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         bible_path=bible,
         persist_dir=run_dir,
         output_path=output,
-        format=export_format.value,
+        export_format=export_format,
         font=font,
         cover=cover,
         skills=_split_skills(skills),
@@ -275,7 +269,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         rag_limit=retrieve_limit or 15,
         persist_dir=run_dir,
         output_path=output,
-        format=export_format.value,
+        export_format=export_format,
         font=font,
         cover=cover,
         skills=_split_skills(skills),
@@ -396,7 +390,7 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         rag_limit=retrieve_limit or 15,
         persist_dir=run_dir,
         output_path=output,
-        format=export_format.value,
+        export_format=export_format,
         font=font,
         cover=cover,
         skills=_split_skills(skills),
