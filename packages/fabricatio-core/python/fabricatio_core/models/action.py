@@ -35,7 +35,7 @@ class Action(WithBriefing, ABC):
     """
 
     ctx_override: ClassVar[bool] = False
-    """Whether to override the instance attr by the context variable."""
+    """Whether to inject the context's values into this action's model fields."""
 
     name: str = Field(default="")
     """The name of the action."""
@@ -150,10 +150,17 @@ class WorkFlow(WithBriefing):
         yield from self._instances
 
     def override_action_variable(self, action: Action, ctx: dict[str, Any]) -> Self:
-        """Override action variable with context values."""
+        """Inject the context's values into the action's model fields.
+
+        Only the fields the action declares are written: the context carries
+        arbitrary keys, and a key may well name an attribute the action derives
+        rather than stores -- a read-only property, a ``ClassVar`` -- which is
+        not the action's config and which pydantic refuses to set.
+        """
         if action.ctx_override:
+            fields = type(action).model_fields
             for k, v in ctx.items():
-                if hasattr(action, k):
+                if k in fields:
                     setattr(action, k, v)
 
         return self
