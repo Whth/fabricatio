@@ -149,8 +149,10 @@ class UseSkill(UseLLM, ABC):
         Resolves each name through the lookup roots (``<dir>/<name>/SKILL.md``
         then ``<dir>/<name>.md`` per root — direct path reads, no directory
         scan), loads the hits into the process-wide library, and extends
-        ``skill_names``. Missing names are logged and skipped; names already in
-        the library keep their first copy and are not read again.
+        ``skill_names``. Names no root resolves are skipped, not raised: the
+        library reports them in one warning naming every root it searched, so
+        an all-miss call tracks nothing and the caller carries on. Names
+        already in the library keep their first copy and are not read again.
 
         Args:
             names: Skill names to gather.
@@ -163,12 +165,7 @@ class UseSkill(UseLLM, ABC):
         """
         roots = None if dirs is None else [str(d) for d in dirs]
         wanted = list(dict.fromkeys(names))
-        found = self.skill_library.load_by_name(wanted, roots, skill_config.extra_skill_dirs)
-        for name in wanted:
-            if name not in found:
-                lookup = "the cross-client skill dirs" if roots is None else roots
-                logger.warn(f"Skill '{name}' not found in {lookup}")
-        return self._track(found)
+        return self._track(self.skill_library.load_by_name(wanted, roots, skill_config.extra_skill_dirs))
 
     # ── Level 2: Select ──────────────────────────────────────────────
 
@@ -337,10 +334,10 @@ class UseSkill(UseLLM, ABC):
         # Stage 2: SELECT
         if names:
             selected = self._resolve_skills(names)
-            if len(selected) < len(names):
-                found = {s.name for s in selected}
-                missing = [n for n in names if n not in found]
-                logger.warn(f"Skills not found: {missing}")
+            found = {s.name for s in selected}
+            missing = [n for n in names if n not in found]
+            if missing:
+                logger.warn(f"Unknown skill(s): {', '.join(missing)}. Not in the skill library.")
         elif select:
             selected = await self.select_skills(question, k=k, send_to=send_to, **kwargs)
         else:

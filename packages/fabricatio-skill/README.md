@@ -220,9 +220,11 @@ When you already know which skills you want, skip scanning entirely:
 `gather_skills` resolves each name through the lookup roots — trying
 `<dir>/<name>/SKILL.md` first, then `<dir>/<name>.md` (direct path reads, no
 directory walk) — registers the hits, and tracks them on the role.
-Unresolvable names are logged and skipped. With no `dirs=`, the lookup roots are
-the cross-client ones plus `extra_skill_dirs`, so the agent-skills library is
-available with zero configuration:
+Unresolvable names are skipped, not raised: the library reports them in one
+warning naming every root it searched, so an all-miss call simply tracks
+nothing. With no `dirs=`, the lookup roots are the cross-client ones plus
+`extra_skill_dirs`, so the agent-skills library is available with zero
+configuration:
 
 ```python
 from fabricatio import Action, Task
@@ -268,8 +270,9 @@ Both loaders return the names they made available — a name already in the
 library is reported too, never read a second time — which is how the role-level
 `scan_skills`/`gather_skills` track what they loaded. `load_scanned` is strict
 (a missing root raises `FileNotFoundError`), while `load_by_name` and
-`load_skill_dirs` are lenient (unresolved names and absent roots are skipped);
-`add`, `remove`, and `clear` return the library for chaining.
+`load_skill_dirs` are lenient: unresolved names and absent roots are skipped, and
+`load_by_name` reports the names nothing resolved in one warning naming the roots
+it searched; `add`, `remove`, and `clear` return the library for chaining.
 
 ## Configuration
 

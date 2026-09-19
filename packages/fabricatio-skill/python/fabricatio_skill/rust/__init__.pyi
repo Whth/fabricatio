@@ -114,7 +114,10 @@ class SkillRegistry:
         Tries each root in order — `<root>/<name>/SKILL.md` first, then
         `<root>/<name>.md` (direct path reads, no directory walk). Names already
         in the library keep their first copy and are not read again; names no
-        root resolves are skipped.
+        root resolves are skipped, so resolution itself never fails: a call
+        whose names all miss returns an empty selection and the caller carries
+        on. Unresolved names are reported here, in one warning naming every
+        root that was searched — callers need no guard of their own.
 
         Args:
             names: Skill names to resolve; duplicates collapse.
@@ -125,7 +128,8 @@ class SkillRegistry:
 
         Returns:
             The names that are now in the library, in argument order. A name
-            already in the library is reported too, without being read again.
+            already in the library is reported too, without being read again;
+            names no root resolves are left out.
         """
     def add(self, skills: typing.Sequence[Skill]) -> SkillRegistry:
         r"""Merge already-parsed skills into the library; the first copy of a name wins.

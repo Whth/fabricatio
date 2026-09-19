@@ -1,4 +1,4 @@
-use fabricatio_logger::info;
+use fabricatio_logger::{info, warn};
 use parking_lot::Mutex;
 use pyo3::exceptions::PyFileNotFoundError;
 use pyo3::prelude::*;
@@ -275,7 +275,11 @@ fn expand_home(raw: &str) -> Option<PathBuf> {
     }
     let home = ["USERPROFILE", "HOME"]
         .into_iter()
-        .find_map(|var| std::env::var_os(var).filter(|value| !value.is_empty()).map(PathBuf::from))
+        .find_map(|var| {
+            std::env::var_os(var)
+                .filter(|value| !value.is_empty())
+                .map(PathBuf::from)
+        })
         .or_else(|| {
             let drive = std::env::var_os("HOMEDRIVE").filter(|value| !value.is_empty())?;
             let path = std::env::var_os("HOMEPATH").filter(|value| !value.is_empty())?;
@@ -284,7 +288,11 @@ fn expand_home(raw: &str) -> Option<PathBuf> {
             Some(home)
         })?;
     let rest = rest.trim_start_matches(['/', '\\']);
-    Some(if rest.is_empty() { home } else { home.join(rest) })
+    Some(if rest.is_empty() {
+        home
+    } else {
+        home.join(rest)
+    })
 }
 
 /// Resolve one configured root to a directory that exists right now.
@@ -546,7 +554,10 @@ impl SkillRegistry {
     /// Tries each root in order — `<root>/<name>/SKILL.md` first, then
     /// `<root>/<name>.md` (direct path reads, no directory walk). Names already
     /// in the library keep their first copy and are not read again; names no
-    /// root resolves are skipped.
+    /// root resolves are skipped, so resolution itself never fails: a call
+    /// whose names all miss returns an empty selection and the caller carries
+    /// on. Unresolved names are reported here, in one warning naming every
+    /// root that was searched — callers need no guard of their own.
     ///
     /// Args:
     ///     names: Skill names to resolve; duplicates collapse.
@@ -557,7 +568,8 @@ impl SkillRegistry {
     ///
     /// Returns:
     ///     The names that are now in the library, in argument order. A name
-    ///     already in the library is reported too, without being read again.
+    ///     already in the library is reported too, without being read again;
+    ///     names no root resolves are left out.
     #[pyo3(signature = (names, roots=None, extra_skill_dirs=None))]
     fn load_by_name(
         &self,
@@ -566,30 +578,50 @@ impl SkillRegistry {
         extra_skill_dirs: Option<Vec<String>>,
     ) -> Vec<String> {
         let extra: Vec<String> = extra_skill_dirs.unwrap_or_default();
-        let raw: Vec<&str> = match &roots {
-            None => CROSS_CLIENT_SKILL_DIRS.iter().copied().collect(),
-            Some(roots) => roots.iter().map(String::as_str).collect(),
+        let mut declared: Vec<String> = match &roots {
+            None => CROSS_CLIENT_SKILL_DIRS
+                .iter()
+                .map(|root| (*root).to_string())
+                .collect(),
+            Some(roots) => roots.clone(),
         };
-        let dirs: Vec<SkillDir> = raw
-            .into_iter()
-            .chain(extra.iter().map(String::as_str))
+        for root in &extra {
+            push_unique(&mut declared, root.clone());
+        }
+        let dirs: Vec<SkillDir> = declared
+            .iter()
             .map(|root| SkillDir::new(expand_home(root).unwrap_or_else(|| PathBuf::from(root))))
             .collect();
 
-        let mut store = STORE.lock();
         let mut loaded = Vec::new();
-        for name in names {
-            if loaded.contains(&name) {
-                continue;
+        let mut missing = Vec::new();
+        {
+            let mut store = STORE.lock();
+            for name in names {
+                if loaded.contains(&name) || missing.contains(&name) {
+                    continue;
+                }
+                if store.contains_key(&name) {
+                    push_unique(&mut loaded, name);
+                } else if let Some(skill) = dirs.iter().find_map(|dir| dir.fetch(&name)) {
+                    store.entry(name.clone()).or_insert(skill);
+                    push_unique(&mut loaded, name);
+                } else {
+                    missing.push(name);
+                }
             }
-            if store.contains_key(&name) {
-                push_unique(&mut loaded, name);
-                continue;
-            }
-            if let Some(skill) = dirs.iter().find_map(|dir| dir.fetch(&name)) {
-                store.entry(name.clone()).or_insert(skill);
-                push_unique(&mut loaded, name);
-            }
+        }
+        if !missing.is_empty() {
+            let searched = if declared.is_empty() {
+                "(no lookup roots)".to_string()
+            } else {
+                declared.join(", ")
+            };
+            warn!(
+                "Unknown skill(s): {}. Searched: {}",
+                missing.join(", "),
+                searched
+            );
         }
         loaded
     }
@@ -857,6 +889,43 @@ mod tests {
         );
 
         assert_eq!(found, ["extra_lookup_test"]);
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn load_by_name_keeps_hits_and_leaves_unresolvable_names_out() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_unknown_names");
+        let absent = std::env::temp_dir().join("fabricatio_skill_test_unknown_names_absent");
+        let _ = std::fs::remove_dir_all(&root);
+        write(
+            &root.join("resolved_only.md"),
+            "---\nname: resolved_only\ndescription: hit\n---\nbody",
+        );
+
+        let registry = SkillRegistry::new();
+        let found = registry.load_by_name(
+            vec![
+                "resolved_only".to_string(),
+                "absent_one".to_string(),
+                "absent_one".to_string(),
+                "absent_two".to_string(),
+            ],
+            Some(vec![
+                absent.to_string_lossy().into_owned(),
+                root.to_string_lossy().into_owned(),
+            ]),
+            None,
+        );
+
+        assert_eq!(found, ["resolved_only"]);
+
+        let all_missed =
+            registry.load_by_name(vec!["absent_three".to_string()], None, Some(Vec::new()));
+        assert!(
+            all_missed.is_empty(),
+            "an all-miss selection is empty, not an error: {all_missed:?}"
+        );
 
         std::fs::remove_dir_all(&root).unwrap();
     }

@@ -386,6 +386,16 @@ class TestUseSkill:
         deduped = SkillRegistry().clear().load_by_name(["dir_skill", "dir_skill"], [str(root)])
         assert deduped == ["dir_skill"]
 
+    def test_unknown_names_resolve_to_an_empty_selection(self) -> None:
+        """Names nothing resolves never raise: every resolve entry point returns an empty selection."""
+        role = SkillRole(name="skill")
+
+        assert SkillRegistry().load_by_name(["ghost_one", "ghost_two"]) == []
+        assert role.gather_skills(["ghost_one", "ghost_two"]) is role
+        assert role.skill_names == []
+        assert role.skills == []
+        assert role._resolve_skills(["ghost_one"]) == []
+
     def test_gather_skills_first_root_wins(self, tmp_path: object) -> None:
         """The first lookup root that resolves a name supplies the skill."""
         from pathlib import Path
