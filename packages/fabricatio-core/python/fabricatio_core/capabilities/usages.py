@@ -162,15 +162,14 @@ class UseLLM(LLMScopedConfig, ABC):
             _kw = kwargs
             for lap in range(max_validations):
                 try:
-                    if (
-                        validated := validator(response := await self.aask(question=q, send_to=send_to, **_kw))
-                    ) is not None:
+                    response = await self.aask(question=q, send_to=send_to, **_kw)
+                    if (validated := validator(response)) is not None:
                         logger.debug(f"Successfully validated the response at {lap}th attempt.")
                         return validated
+                    logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
                 except (ValidationError, RuntimeError) as e:
                     logger.error(f"Error during validation:\n{e}")
                     logger.debug(traceback.format_exc())
-                logger.error(f"Failed to validate the response at {lap}th attempt:\n{response}")
                 _kw = override_kwargs(_kw, no_cache=True)
 
             if default is None:
