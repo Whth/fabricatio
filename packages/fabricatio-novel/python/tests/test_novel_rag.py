@@ -442,7 +442,7 @@ class TestRAGChapterCompose:
 
     async def test_plan_stories_phase_seals_and_is_idempotent(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the RAG story-planning phase seals plain stories and leaves sealed ones untouched."""
-        from fabricatio_novel.actions.novel import RagPlanStoriesStage
+        from fabricatio_novel.actions.rag import RagPlanStoriesStage
         from fabricatio_novel.capabilities.chapter import ChapterCompose
 
         async def fake_plan(self: ChapterCompose, ctx: ChapterContext, send_to: str | None = None) -> bool:
@@ -468,7 +468,7 @@ class TestRAGChapterCompose:
 
     async def test_rag_plan_stage_seals_stories_from_task_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert RagPlanStoriesStage seals each chapter's stories with the context-overridden settings."""
-        from fabricatio_novel.actions.novel import RagPlanStoriesStage
+        from fabricatio_novel.actions.rag import RagPlanStoriesStage
         from fabricatio_novel.capabilities.chapter import ChapterCompose
 
         async def fake_plan(self: ChapterCompose, ctx: ChapterContext, send_to: str | None = None) -> bool:
@@ -591,7 +591,7 @@ class TestRAGChapterCompose:
 
     async def test_staged_compose_stops_rendering_docs_of_written_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert RagComposeScenesStage stops rendering a fully written story's retrieved docs."""
-        from fabricatio_novel.actions.novel import RagComposeScenesStage
+        from fabricatio_novel.actions.rag import RagComposeScenesStage
         from fabricatio_novel.capabilities.story import StoryCompose
 
         async def fake_compose(
@@ -627,7 +627,7 @@ class TestRAGChapterCompose:
 
     async def test_staged_compose_keeps_docs_when_story_fails(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert a story that fails mid-write keeps its retrieved docs for the retry and snapshot."""
-        from fabricatio_novel.actions.novel import RagComposeScenesStage
+        from fabricatio_novel.actions.rag import RagComposeScenesStage
         from fabricatio_novel.capabilities.story import StoryCompose
 
         async def fake_compose(
@@ -695,7 +695,7 @@ class TestRAGNovelCompose:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Assert the RAG init stage seals the root with its settings, searches the outline, and snapshots it."""
-        from fabricatio_novel.actions.novel import RagInitNovelContext
+        from fabricatio_novel.actions.rag import RagInitNovelContext
 
         stage = RagInitNovelContext(rag_query="terse prose", rag_limit=2)
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
@@ -775,7 +775,7 @@ class TestRAGNovelCompose:
 
     async def test_planning_chapters_leaves_them_the_rag_chapter_type(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert the RAG chapter planning phase promotes the chapters it plans onto the RAG chapter type."""
-        from fabricatio_novel.actions.novel import RagPlanChaptersStage
+        from fabricatio_novel.actions.rag import RagPlanChaptersStage
 
         stage = RagPlanChaptersStage()
         novel = RagNovelContext(title="The Atlas", description="A drifting city.", outline="Outline.")

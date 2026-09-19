@@ -293,11 +293,11 @@ class TestNovelWorkflow:
 
         from fabricatio_comfyui.models.specs import SketchSpec
         from fabricatio_core import Event, Role, Task
-        from fabricatio_novel.actions.novel import IllustrateNovelStage
+        from fabricatio_novel.actions.illustration import IllustrateNovelStage
         from fabricatio_novel.benchmark.models import StageArtifact
         from fabricatio_novel.capabilities.rag import RAGStyleFetch
         from fabricatio_novel.models.context.novel import RagNovelContext
-        from fabricatio_novel.workflows.novel import RagIllustrationDebugNovelWorkflow
+        from fabricatio_novel.workflows.illustration import RagIllustrationDebugNovelWorkflow
 
         png_1x1 = base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="

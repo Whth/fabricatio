@@ -1,4 +1,8 @@
-"""Staged novel writing workflows with per-stage persistence."""
+"""The plain staged novel workflow: every stage persists a whole-tree snapshot.
+
+The retrieval variant lives in :mod:`fabricatio_novel.workflows.rag` and the
+illustrated one in :mod:`fabricatio_novel.workflows.illustration`.
+"""
 
 from fabricatio_core.models.action import WorkFlow
 
@@ -6,7 +10,6 @@ from fabricatio_novel.actions.novel import (
     AssembleNovelStage,
     ComposeScenesStage,
     DumpNovelStage,
-    IllustrateNovelStage,
     InitNovelContext,
     PlanChaptersStage,
     PlanScenesStage,
@@ -14,14 +17,9 @@ from fabricatio_novel.actions.novel import (
     PrepareCharacterSpanStage,
     ProposeNovelMetadataStage,
     ProposeSettingBibleStage,
-    RagComposeScenesStage,
-    RagInitNovelContext,
-    RagPlanChaptersStage,
-    RagPlanScenesStage,
-    RagPlanStoriesStage,
 )
 
-__all__ = ["DebugNovelWorkflow", "RagDebugNovelWorkflow", "RagIllustrationDebugNovelWorkflow"]
+__all__ = ["DebugNovelWorkflow"]
 
 DebugNovelWorkflow = WorkFlow(
     name="Debug Novel",
@@ -41,46 +39,5 @@ DebugNovelWorkflow = WorkFlow(
         ComposeScenesStage,
         AssembleNovelStage,
         DumpNovelStage,
-    ),
-)
-
-RagDebugNovelWorkflow = WorkFlow(
-    name="Debug Novel (RAG)",
-    description=(
-        "Step-by-step novel generation with writing style RAG; every stage persists a "
-        "whole-tree snapshot into the given persist_dir. Returns the exported artifact path."
-    ),
-    steps=(
-        RagInitNovelContext,
-        ProposeNovelMetadataStage,
-        ProposeSettingBibleStage,
-        PrepareCharacterSpanStage,
-        RagPlanChaptersStage,
-        RagPlanStoriesStage,
-        RagPlanScenesStage,
-        RagComposeScenesStage,
-        AssembleNovelStage,
-        DumpNovelStage,
-    ),
-)
-
-RagIllustrationDebugNovelWorkflow = WorkFlow(
-    name="Debug Novel (RAG + Illustration)",
-    description=(
-        "Step-by-step novel generation with writing style RAG and a single post-process pass "
-        "that renders a ComfyUI illustration for every scene into the EPUB; every stage "
-        "persists a whole-tree snapshot into the given persist_dir. Returns the exported artifact path."
-    ),
-    steps=(
-        RagInitNovelContext,
-        ProposeNovelMetadataStage,
-        ProposeSettingBibleStage,
-        PrepareCharacterSpanStage,
-        RagPlanChaptersStage,
-        RagPlanStoriesStage,
-        RagPlanScenesStage,
-        RagComposeScenesStage,
-        AssembleNovelStage,
-        IllustrateNovelStage,
     ),
 )

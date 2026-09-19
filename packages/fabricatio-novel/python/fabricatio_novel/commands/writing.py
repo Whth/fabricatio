@@ -20,11 +20,9 @@ from fabricatio_novel.benchmark import (
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline, _split_skills
 from fabricatio_novel.models.novel import ExportFormat
-from fabricatio_novel.workflows.novel import (
-    DebugNovelWorkflow,
-    RagDebugNovelWorkflow,
-    RagIllustrationDebugNovelWorkflow,
-)
+from fabricatio_novel.workflows.illustration import RagIllustrationDebugNovelWorkflow
+from fabricatio_novel.workflows.novel import DebugNovelWorkflow
+from fabricatio_novel.workflows.rag import RagDebugNovelWorkflow
 
 
 def _run_workflow(task: Task, workflow: WorkFlow, namespace: str) -> Path | None:
