@@ -110,7 +110,10 @@ class ProposeSettingBibleStage(StageAction, BibleCompose):
             await self.snapshot(novel_ctx, cxt)
             return True
         proposed = await self.compose_setting_bible(
-            novel_ctx.outline, novel_ctx.language, send_to=cxt.get("send_to", TASK)
+            novel_ctx.outline,
+            novel_ctx.language,
+            novel_ctx.skill_section(),
+            send_to=cxt.get("send_to", TASK),
         )
         if proposed is None:
             logger.error("Setting bible proposal failed; aborting novel generation")

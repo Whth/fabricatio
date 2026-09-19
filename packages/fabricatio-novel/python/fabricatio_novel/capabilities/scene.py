@@ -53,7 +53,10 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
 
         Overriding capabilities (RAG) reuse these vars and add their own
         blocks before rendering. The setting bible arrives through the
-        seeded prefix entry, not as a dedicated template variable.
+        seeded prefix entry, not as a dedicated template variable; the
+        skills section renders as its own head variable — the same bytes
+        every planning prompt opens with, so the provider prefix cache
+        serves the scene writes too.
         """
         return {
             "title": ctx.title,
@@ -64,6 +67,7 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
             "characters": ctx.dump_characters(),
             "cast": ctx.cast,
             "language": ctx.language,
+            "skills": ctx.skill_section(),
             "novel_so_far": ctx.prefix_log.render(),
         }
 

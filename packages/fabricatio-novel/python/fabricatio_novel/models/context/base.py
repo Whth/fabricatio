@@ -168,10 +168,11 @@ class ContextBase[P: WeightedPlan](
     def skill_section(self) -> str:
         """The run's selected skills as the one byte-stable section every prompt that shows them renders.
 
-        The running prefix and the planning and retrieval prompts build the section from these
-        same bytes, so a run's calls to one model lead with an identical head and the provider's
-        prefix cache carries over from one call to the next. An empty selection renders an empty
-        string, which callers guard on.
+        The metadata proposal, the plan prompts, the scene write prompt and the retrieval
+        refinements all render the section from these same bytes, so a run's calls to one
+        model lead with an identical head and the provider's prefix cache carries over
+        from one call to the next. An empty selection renders an empty string, which
+        callers guard on.
         """
         references = self.skill_references()
         if not references:

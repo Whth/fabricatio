@@ -3,12 +3,16 @@
 from pathlib import Path
 
 import pytest
+from _support import card
+from fabricatio_character.models.character import CharacterCardBoundaries, CharacterSpan
 from fabricatio_core import TEMPLATE_MANAGER
 from fabricatio_mock import make_test_role
 from fabricatio_novel.actions.novel import InitNovelContext
+from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGChapterCompose, RAGNovelCompose
 from fabricatio_novel.config import novel_config
+from fabricatio_novel.models.context.base import CharacterSpans
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
@@ -43,8 +47,8 @@ def _install_skills(root: Path) -> None:
 class TestSkillInit:
     """Test suite for resolving the user's skills onto the run's root."""
 
-    async def test_init_stage_binds_skills_by_name_and_leads_the_prefix(self, tmp_path: Path) -> None:
-        """Assert the init stage binds the names, resolves their bodies by name, and leads the prefix."""
+    async def test_init_stage_binds_skills_by_name(self, tmp_path: Path) -> None:
+        """Assert the init stage binds the resolved names and renders their bodies by name."""
         name = "novel-lead-prefix"
         _write_skill(tmp_path, name, SKILL_BODY)
         _install_skills(tmp_path)
@@ -58,8 +62,6 @@ class TestSkillInit:
 
         assert ctx.skill_names == [name]
         assert ctx.skill_references() == [SKILL_BODY.strip()]
-        assert [entry.kind for entry in ctx.prefix_log.entries] == ["skills", "setting_bible"]
-        assert ctx.prefix_log.render().startswith(ctx.skill_section())
         assert ctx.skill_section().startswith("--- Start of Novel Skills ---")
 
     async def test_unknown_skill_is_skipped_not_fatal(self, tmp_path: Path) -> None:
@@ -71,14 +73,13 @@ class TestSkillInit:
 
         assert ctx.skill_names == ["style"]
         assert ctx.skill_references() == [SKILL_BODY.strip()]
-        assert ctx.prefix_log.render().startswith(ctx.skill_section())
 
     async def test_vanished_skill_drops_out_without_crashing_the_walk(self) -> None:
         """Assert a name that no longer resolves in a rebuilt tree renders nothing instead of raising."""
         ctx = NovelContext.create(OUTLINE, language="English").with_skills(["gone"])
 
         assert ctx.skill_references() == []
-        assert not ctx.seed_skill_prefix().prefix_log.entries
+        assert ctx.skill_section() == ""
 
     async def test_assignment_order_does_not_change_the_rendered_section(self, tmp_path: Path) -> None:
         """Assert the same selection in either order renders one byte-identical section, so prefix cache holds."""
@@ -91,7 +92,6 @@ class TestSkillInit:
 
         section = forward.skill_section()
         assert section == reverse.skill_section()
-        assert forward.prefix_log.render() == reverse.prefix_log.render()
         assert section.index(SKILL_BODY) < section.index("Open every chapter on a turn of weather.")
 
     async def test_skills_travel_down_the_creation_chains(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -147,31 +147,56 @@ class TestSkillInit:
 class TestSkillPrompts:
     """Test suite for the skills in the planning and scene-write prompts."""
 
-    async def test_plan_prompts_lead_with_the_skills(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """Assert the skills render above the outline in the novel, chapter and story planning prompts."""
-        role = make_test_role(NovelCompose, name="skill_plan_role")
+    async def test_content_prompts_lead_with_the_skills(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        """Assert the skills head every content prompt: metadata, bible, roster spans, plans and boundary cards."""
+        role = make_test_role(NovelCompose, BibleCompose, name="skill_plan_role")
         _write_skill(tmp_path, "style", SKILL_BODY)
         _install_skills(tmp_path)
         role.fetch_skills(["style"])
         novel = NovelContext.create(OUTLINE, language="English").with_skills(["style"])
+        novel.set_series_bible(SeriesBible(characters=["Hero"], background_settings=["A cold river."]))
         chapter = ChapterContext.create(OUTLINE, language="English").with_skills(["style"])
         story = StoryContext.create(OUTLINE, language="English").with_skills(["style"])
         captured: list[str] = []
 
-        async def fake_propose(model: object, requirement: str, *args: object, **kwargs: object) -> None:
+        async def fake_propose(model: object, requirement: str, *args: object, **kwargs: object) -> object:
             captured.append(requirement)
+            if model is CharacterSpans:
+                return CharacterSpans(root=[])
+            if model is CharacterCardBoundaries:
+                return CharacterCardBoundaries(root=[])
+            return None
+
+        async def fake_list_v(requirement: str, *args: object, **kwargs: object) -> list[str]:
+            captured.append(requirement)
+            return ["Hero"]
 
         monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
+        monkeypatch.setattr(type(role), "alist_v", staticmethod(fake_list_v))
 
         await role.plan_chapters(novel)
         await role.plan_stories(chapter)
         await role.plan_scenes(story)
+        await role.propose_novel_metadata(novel)
+        await role.prepare_character_span(novel)
+        await role.compose_setting_bible(OUTLINE, "English", novel.skill_section())
+        chapter.add_context(StoryContext.create(OUTLINE, language="English", title="Story One", description="Go."))
+        chapter.add_context(StoryContext.create(OUTLINE, language="English", title="Story Two", description="Back."))
+        chapter.set_charactor_spans([CharacterSpan(start=card(), end=card())])
+        await role.draft_story_spans(chapter)
+        novel.add_context(ChapterContext.create(OUTLINE, language="English", title="Chapter One", description="Go."))
+        novel.add_context(ChapterContext.create(OUTLINE, language="English", title="Chapter Two", description="Back."))
+        novel.set_charactor_spans([CharacterSpan(start=card(), end=card())])
+        await role.draft_chapter_spans(novel)
 
-        assert len(captured) == 3
+        assert len(captured) == 9
         section = novel.skill_section()
         for prompt in captured:
             assert prompt.startswith(section)
             assert SKILL_BODY in prompt
+        with_outline = [prompt for prompt in captured if "--- Start of Novel Outline ---" in prompt]
+        assert len(with_outline) == 7
+        for prompt in with_outline:
             assert prompt.index(SKILL_BODY) < prompt.index("--- Start of Novel Outline ---")
 
     async def test_plain_run_renders_no_skills_section(self) -> None:
@@ -198,20 +223,20 @@ class TestSkillPrompts:
         assert requirement.startswith("--- Start of Novel Outline ---")
 
     async def test_scene_write_prompt_leads_with_the_skills(self, tmp_path: Path) -> None:
-        """Assert the skills open the running manuscript, before the scenes already written."""
+        """Assert the skills head the scene write prompt, ahead of the manuscript block."""
         role = make_test_role(NovelCompose, name="skill_scene_role")
         _write_skill(tmp_path, "style", SKILL_BODY)
         _install_skills(tmp_path)
         role.fetch_skills(["style"])
-        novel = NovelContext.create(OUTLINE, language="English").with_skills(["style"]).seed_skill_prefix()
-        chapter = ChapterContext.create(OUTLINE, language="English")
-        story = StoryContext.create(OUTLINE, language="English")
+        novel = NovelContext.create(OUTLINE, language="English").with_skills(["style"])
+        chapter = ChapterContext.create(OUTLINE, language="English").with_skills_from(novel)
+        story = StoryContext.create(OUTLINE, language="English").with_skills_from(chapter)
         story.add_context(
-            SceneContext(title="Sc1", description="The hero packs.", expected_word_count=50).set_content(
-                "The hero folded the map and left."
-            )
+            SceneContext(title="Sc1", description="The hero packs.", expected_word_count=50)
+            .with_skills_from(story)
+            .set_content("The hero folded the map and left.")
         )
-        second = SceneContext(title="Sc2", description="The road.", expected_word_count=50)
+        second = SceneContext(title="Sc2", description="The road.", expected_word_count=50).with_skills_from(story)
         story.add_context(second)
         chapter.add_context(story)
         novel.add_context(chapter)
@@ -222,8 +247,8 @@ class TestSkillPrompts:
 
         requirement = await role.prepare_scene_requirement(second)
 
-        assert [entry.kind for entry in second.prefix_log.entries] == ["skills", "chapter_header", "scene_content"]
-        assert novel.skill_section() in requirement
+        assert [entry.kind for entry in second.prefix_log.entries] == ["chapter_header", "scene_content"]
+        assert requirement.startswith(novel.skill_section())
         assert requirement.index(SKILL_BODY) < requirement.index("The hero folded the map and left.")
 
     async def test_story_retrieval_refinement_leads_with_the_same_section(

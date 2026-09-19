@@ -723,7 +723,11 @@ class TestRAGNovelCompose:
         assert ctx.rag == RagRetrieval(query="terse prose", limit=2)
         assert ctx.style_references() == [doc.as_prompt()]
         assert ctx.language == "English"
-        assert refined == ["The hero seeks his father.\nterse prose"]
+        # the outline is wrapped exactly as the planning prompts render it, so this
+        # first call of a run primes the prefix every planning call afterwards reuses
+        assert refined == [
+            "--- Start of Novel Outline ---\nThe hero seeks his father.\n--- End of Novel Outline ---\nterse prose"
+        ]
         assert fetched == [["a duel at dusk", "a quiet standoff"]]
 
         (snapshot,) = (tmp_path / "stage_01_init").glob("RagNovelContext_*.json")

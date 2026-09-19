@@ -117,6 +117,7 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
                 TEMPLATE_MANAGER.render_template(
                     novel_config.boundary_requirement_template,
                     {
+                        "skills": ctx.skill_section(),
                         "drafting_title": "Story Character Boundary Drafting",
                         "endpoint_source": "chapter spans",
                         "parent_title": "Chapter",

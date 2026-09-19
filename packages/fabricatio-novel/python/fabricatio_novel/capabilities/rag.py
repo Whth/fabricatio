@@ -7,7 +7,7 @@ from fabricatio_core import logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
-from fabricatio_core.utils import cfg
+from fabricatio_core.utils import cfg, wrap_in_block
 
 cfg(["lancedb"])
 
@@ -104,10 +104,14 @@ class RAGNovelCompose(NovelCompose, RAGStyleFetch, ABC):
 
         The novel is planned and its chapters are planned from the outline, so that
         is the text the search reads — the description does not exist yet when the
-        run retrieves.
+        run retrieves. The outline is wrapped exactly as the planning prompts
+        render it, so this first call of the run primes the same head every
+        planning call afterwards reuses.
         """
         sealed = RagNovelContext.seal(ctx, RagRetrieval(query=self.rag_query, limit=self.rag_limit))
-        source = "\n\n".join(part for part in (sealed.skill_section(), sealed.outline) if part)
+        source = "\n\n".join(
+            part for part in (sealed.skill_section(), wrap_in_block(sealed.outline, title="Novel Outline")) if part
+        )
         docs = await self._fetch_style_docs(source, sealed.rag, "the novel", send_to=send_to, **kwargs)
         sealed.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for the novel root")

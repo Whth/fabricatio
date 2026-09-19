@@ -86,12 +86,13 @@ allocation, character-arc stitching, prefix propagation, assembly — is determi
 
 | Stage | Template · prompted with | Yields |
 |---|---|---|
-| Metadata | `novel_metadata_requirement` ← `outline`, `language`, `constraint` | `NovelPlan` (adopted onto the root) |
-| Roster spans | `novel_character_span` ← bible prompt block, title, description | `CharacterSpan[]` — skipped without a roster |
+| Metadata | `novel_metadata_requirement` ← `outline`, `language`, `constraint`, `skills`, `style_references` | `NovelPlan` (adopted onto the root) |
+| Bible | `setting_bible_characters` + `setting_bible_background` ← `outline`, `language`, `skills` | `SeriesBible` — character roster and background settings, immutable for the run |
+| Roster spans | `novel_character_span` ← outline, `skills`, bible prompt block, title, description | `CharacterSpan[]` — skipped without a roster |
 | Chapter plans | `plan_requirement` ← outline, novel fields, word count, styles, constraint, characters | `ChapterPlan[]` |
-| Chapter boundaries | `boundary_requirement` ← roster spans, chapter titles/descriptions | N−1 boundary cards per character |
+| Chapter boundaries | `boundary_requirement` ← `skills`, roster spans, chapter titles/descriptions | N−1 boundary cards per character |
 | Story plans | `plan_requirement` ← chapter fields, styles, constraint, characters, cast | `StoryPlan[]` |
-| Story boundaries | `boundary_requirement` ← chapter spans, story titles/descriptions | S−1 boundary cards per character |
+| Story boundaries | `boundary_requirement` ← `skills`, chapter spans, story titles/descriptions | S−1 boundary cards per character |
 | Scene plans | `plan_requirement` ← story fields, styles, constraint, characters, cast | `ScenePlan[]` |
 | Scene prose | `scene_requirement` ← 11 variables, see below | plain prose → `Scene.content` |
 | Scene illustration | `scene_illustration_prompt` ← novel/chapter/story/scene titles, description, content, cast, `illustration_constraint` | `SketchSpec` (prompt, negative prompt, LLM-chosen `mp`/`prop`) → PNGs rendered concurrently per scene (post-process) |
@@ -115,8 +116,9 @@ from its own plan alone). Each level then passes state down:
   every descendant inherits it through its own log
 - **Selected skills** — the names the user gave (plus their lookup roots) are resolved once at
   the root, carried by every level, and fetched by name from the skill library whenever a
-  prompt is assembled: one byte-stable section leads every descendant's running prefix, every
-  plan prompt and every RAG query refinement (never the metadata proposal)
+  prompt is assembled: one byte-stable section heads the metadata proposal, the setting bible
+  proposals, the roster-span proposal, the boundary-card proposals, every plan prompt, every scene
+  write prompt and every RAG query refinement
 - **Word budget** — each level splits its `expected_word_count` among children by plan weight
 - **Writing style** — accumulated verbatim down the chain (style stacking)
 - **Writing constraint** — scoped, never merged: each level carries its own entries, its planner
@@ -254,7 +256,7 @@ history stays intact.
 | `SceneCompose` | Scene requirement rendering + prose generation |
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
-| `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards), and the run's skills — `fetch_skills` resolves names through the fabricatio-skill library (which logs and skips an unknown one), `apply_skills` binds the names that resolved to the root and seeds their text as its leading prefix entry |
+| `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N−1 boundary cards), and the run's skills — `fetch_skills` resolves names through the fabricatio-skill library (which logs and skips an unknown one), `apply_skills` binds the names that resolved to the root, whose prompts render their bodies as one leading section |
 | `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit` settings plus the decomposed multi-head search, whose refinement prompt leads with the run's skills section |
 | `RAGNovelCompose` | Seals the root with the retrieval settings in `before_compose_novel_context`, searches the outline, and renders the documents into the metadata and chapter-planning prompts |
 | `RAGChapterCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
@@ -399,11 +401,13 @@ rebuilt in a fresh process re-reads exactly the files it resolved (a name that n
 resolves is logged and dropped rather than crashing the walk that renders it).
 
 The resolved text forms one section (`ctx.skill_section()`) whose bytes are identical everywhere
-they appear: it is the first entry of every descendant's prefix log (ahead of the setting bible),
-and it leads every plan prompt, above the outline. The refinement prompt builds its head the same
-way: the section is prepended to the question, which the template renders at byte 0. Because a
-run's calls to one model therefore open with the same head, the provider's prefix cache carries
-over between them; the metadata proposal is unaffected.
+they appear: the metadata proposal, the setting bible proposals, the roster-span and boundary-card
+proposals, every plan prompt and every scene write prompt render it as their first block — ahead of
+the outline, or, for a scene, ahead of the manuscript block — so a run's calls to one model open
+with the same head and the provider's prefix cache carries over between them. The refinement prompt builds its head the
+same way: the section is prepended to the wrapped outline its template renders at byte 0. Nothing
+stores the text as prompt context: the log carries the manuscript itself, and the section is rendered
+from the root's `skill_names` wherever a prompt shows it.
 
 ```python
 import asyncio

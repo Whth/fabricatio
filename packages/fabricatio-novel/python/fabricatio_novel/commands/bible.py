@@ -71,7 +71,7 @@ def create_bible(
         """Role for composing setting bibles."""
 
     role = BibleRole(name="bible_creator")
-    bible = asyncio.run(role.compose_setting_bible(_resolve_outline(outline, outline_file), language, send_to))
+    bible = asyncio.run(role.compose_setting_bible(_resolve_outline(outline, outline_file), language, send_to=send_to))
     if bible is None:
         typer.secho("❌ Failed to create setting bible.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)

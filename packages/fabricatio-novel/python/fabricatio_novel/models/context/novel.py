@@ -44,26 +44,6 @@ class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[C, P]):
         self.series_bible = series_bible
         return self
 
-    def seed_skill_prefix(self) -> Self:
-        """Seed the run's skills as the leading entry of the running prefix.
-
-        The skills are the user's own instructions for this novel, so they lead
-        everything the run composes: each walk copies them into every
-        descendant's prefix log, ahead of the setting bible. The entry carries
-        the very bytes the planning and retrieval prompts lead with, so a run's
-        calls to one model share that cached head. Idempotent: a run without
-        skills seeds nothing and an existing entry is never duplicated.
-        """
-        if not self.skill_names:
-            return self
-        if any(entry.kind == "skills" for entry in self.prefix_log.entries):
-            return self
-        section = self.skill_section()
-        if not section:
-            return self
-        self.prefix_log = self.prefix_log.with_entry(ContextEntry(kind="skills", title="Novel Skills", body=section))
-        return self
-
     def seed_bible_prefix(self) -> Self:
         """Seed the running prefix with the setting bible so every descendant inherits it.
 

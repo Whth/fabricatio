@@ -53,17 +53,16 @@ class NovelCompose[CTX: NovelContext](
         return skills
 
     def apply_skills(self, ctx: CTX, names: list[str]) -> CTX:
-        """Bind the run's resolved skill selection to the root context and seed it as the leading prefix entry.
+        """Bind the run's resolved skill selection to the root context.
 
         The library resolves and parses each name here and logs the ones no root
         provides — resolution never fails the run — while the context carries only the
         names that resolved: the bodies stay in the process-wide library, re-read there
         whenever a tree is rebuilt in a fresh process, so no element keeps a copy of
-        the text.
+        the text and every prompt renders the section from the names.
         """
         resolved = [skill.name for skill in self.fetch_skills(names)]
-        ctx.with_skills(resolved)
-        return ctx.seed_skill_prefix()
+        return ctx.with_skills(resolved)
 
     async def before_compose_novel_context(
         self,
@@ -153,6 +152,7 @@ class NovelCompose[CTX: NovelContext](
                 "language": ctx.language,
                 "constraint": ctx.writing_constraints,
                 "style_references": ctx.style_references(),
+                "skills": ctx.skill_section(),
             },
         )
         plan = await self.propose(NovelPlan, requirement, send_to, **kwargs)
@@ -188,6 +188,7 @@ class NovelCompose[CTX: NovelContext](
                     novel_config.novel_character_span_template,
                     {
                         "outline": ctx.outline,
+                        "skills": ctx.skill_section(),
                         "bible": bible.as_prompt(),
                         "desc": ctx.description,
                         "title": ctx.title,
@@ -231,6 +232,7 @@ class NovelCompose[CTX: NovelContext](
                 TEMPLATE_MANAGER.render_template(
                     novel_config.boundary_requirement_template,
                     {
+                        "skills": ctx.skill_section(),
                         "drafting_title": "Chapter Character Boundary Drafting",
                         "endpoint_source": "novel roster",
                         "parent_title": "Novel",
@@ -298,12 +300,11 @@ class NovelCompose[CTX: NovelContext](
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Seed the run's leading prefix entries and compose every chapter in prefix order.
+        """Seed the run's setting bible into the running prefix and compose every chapter in prefix order.
 
         Returns:
             bool: True when every chapter composed; False on any failure.
         """
-        ctx.seed_skill_prefix()
         ctx.seed_bible_prefix()
         total = len(ctx.child_contexts)
         for i, chapter_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):

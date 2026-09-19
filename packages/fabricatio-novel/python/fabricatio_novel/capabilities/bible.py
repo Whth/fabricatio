@@ -27,16 +27,21 @@ class BibleCompose(SceneCompose[SceneContext], ABC):
         self,
         outline: str,
         language: str | None = None,
+        skills: str = "",
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> SeriesBible | None:
-        """Compose the full setting bible from the outline, per section."""
+        """Compose the full setting bible from the outline, per section.
+
+        ``skills`` is the run's rendered skills section: it leads both proposals,
+        so the roster and the world facts honor the user's own instructions.
+        """
         logger.debug("Composing setting bible from outline")
         lang = language or detect_language(outline)
-        characters = await self._compose_characters(outline, lang, send_to, **kwargs)
+        characters = await self._compose_characters(outline, lang, skills, send_to, **kwargs)
         if characters is None:
             return None
-        background = await self._compose_background(outline, lang, send_to, **kwargs)
+        background = await self._compose_background(outline, lang, skills, send_to, **kwargs)
         if background is None:
             return None
         return SeriesBible(characters=characters, background_settings=background)
@@ -45,13 +50,14 @@ class BibleCompose(SceneCompose[SceneContext], ABC):
         self,
         outline: str,
         language: str,
+        skills: str,
         send_to: str | None,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[str] | None:
         """Propose the character roster as one string per character."""
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.setting_bible_characters_template,
-            {"outline": outline, "language": language},
+            {"outline": outline, "language": language, "skills": skills},
         )
         return await self.alist_v(requirement, str, send_to=send_to, **kwargs)
 
@@ -59,12 +65,13 @@ class BibleCompose(SceneCompose[SceneContext], ABC):
         self,
         outline: str,
         language: str,
+        skills: str,
         send_to: str | None,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[str] | None:
         """Propose the background settings as a list of plain strings."""
         requirement = TEMPLATE_MANAGER.render_template(
             novel_config.setting_bible_background_template,
-            {"outline": outline, "language": language},
+            {"outline": outline, "language": language, "skills": skills},
         )
         return await self.alist_v(requirement, str, send_to=send_to, **kwargs)
