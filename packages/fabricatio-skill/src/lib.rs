@@ -10,6 +10,7 @@ mod skill;
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    fabricatio_logger::init_logger_auto()?;
     skill::register(python, m)?;
     Ok(())
 }

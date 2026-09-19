@@ -46,7 +46,7 @@ class ConsultSkills(Action, UseSkill):
     """Consult the skill library, then answer grounded in the distilled knowledge."""
 
     output_key: str = "task_output"
-    skill_dir: str  # gather from here; without an explicit gather, ./skills and ./extra/skills auto-load
+    skill_dir: str  # gather from here; the library loads ./.agents/skills when it is created
 
     async def _execute(self, task_input: Task[str], **_) -> str:
         self.scan_skills(self.skill_dir)  # one in-memory copy per skill; idempotent

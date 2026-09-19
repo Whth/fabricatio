@@ -5,6 +5,7 @@ relevant skills via LLM, distill to essential context, and inject into prompts.
 """
 
 from fabricatio_skill.capabilities.skill import UseSkill
+from fabricatio_skill.inited_service import get_skill_registry
 from fabricatio_skill.rust import Skill, SkillMeta, SkillRegistry
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "SkillMeta",
     "SkillRegistry",
     "UseSkill",
+    "get_skill_registry",
 ]

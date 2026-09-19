@@ -8,9 +8,10 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.models.kwargs_types import ChooseKwargs
 from fabricatio_core.rust import SMOL
-from pydantic import Field, PrivateAttr
+from pydantic import Field
 
 from fabricatio_skill.config import skill_config
+from fabricatio_skill.inited_service import get_skill_registry
 from fabricatio_skill.rust import Skill, SkillRegistry
 
 if TYPE_CHECKING:
@@ -28,11 +29,18 @@ class UseSkill(UseLLM, ABC):
 
         role.scan_skills("team-skills").gather_skills(["security", "review"])
 
+    ``get_skill_registry()`` creates the process-wide library already loaded
+    from the cross-client skill dirs, so a role that tracks no names of its own
+    consults the whole library — drop a skill into ``.agents/skills`` and
+    ``consult_skills`` finds it, with no loading step and no state to keep.
+
     Pipeline levels:
 
     Level 0 (Rust):   ``SkillRegistry`` — scan / search / get: file discovery +
-                      keyword matching. ``search`` doubles as a deterministic
-                      pre-filter for large pools (see ``prefilter_threshold``).
+                      keyword matching, including the cross-client skill dirs and
+                      the configured extras (``load_skill_dirs``). ``search``
+                      doubles as a deterministic pre-filter for large pools (see
+                      ``prefilter_threshold``).
     Level 1 (Python): select / distill — LLM-powered relevance + extraction.
                       Selection is a framework ``achoose`` round-trip over skill
                       briefings: the JSON reply is set-validated against the
@@ -48,26 +56,39 @@ class UseSkill(UseLLM, ABC):
     """
 
     skill_names: list[str] = Field(default_factory=list)
-    """Names of loaded skills available for this role/action (resolved via the library)."""
+    """Names of skills this role loaded itself (resolved via the library).
 
-    _default_dirs_scanned: bool = PrivateAttr(default=False)
-    """Whether the default skill dirs were already probed for this instance."""
+    Empty means the role consults whatever the process-wide library holds, which
+    is created loaded from the cross-client skill dirs.
+    """
 
     # ── helpers ───────────────────────────────────────────────────────
 
     @property
     def skill_library(self) -> SkillRegistry:
-        """The process-wide skill library: one in-memory copy of every loaded skill."""
-        return SkillRegistry.instance()
+        """The process-wide skill library: one in-memory copy of every loaded skill.
+
+        The instance from ``get_skill_registry()``, created loaded from the
+        cross-client skill dirs plus ``extra_skill_dirs``.
+        """
+        return get_skill_registry()
+
+    def _pool_names(self) -> list[str]:
+        """Names this role consults: the ones it tracks, or the whole library when it tracks none.
+
+        A role that loaded nothing of its own falls back to the process-wide
+        library, which is created loaded from the cross-client skill dirs — that
+        is what makes zero-config use work without per-role bookkeeping.
+        """
+        return self.skill_names or self.skill_library.names()
 
     def _resolve_skills(self, names: list[str] | None = None) -> list[Skill]:
         """Return Skill objects from the library.
 
         Args:
-            names: Specific names to resolve. ``None`` → ``self.skill_names``.
+            names: Specific names to resolve. ``None`` → this role's pool.
         """
-        target = names if names is not None else self.skill_names
-        return self.skill_library.get_many(target)
+        return self.skill_library.get_many(self._pool_names() if names is None else names)
 
     def _track(self, names: list[str]) -> Self:
         """Track freshly loaded skill names on this role, without duplicating.
@@ -133,38 +154,21 @@ class UseSkill(UseLLM, ABC):
 
         Args:
             names: Skill names to gather.
-            dirs: Lookup roots (``~`` is expanded). ``None`` →
-                ``skill_config.default_skill_dirs``.
+            dirs: Lookup roots, tried in order (``~`` is expanded by the
+                library). ``None`` → the cross-client skill dirs, then
+                ``skill_config.extra_skill_dirs``.
 
         Returns:
             Self for method chaining.
         """
-        roots = [str(Path(d).expanduser()) for d in (dirs if dirs is not None else skill_config.default_skill_dirs)]
+        roots = None if dirs is None else [str(d) for d in dirs]
         wanted = list(dict.fromkeys(names))
-        found = self.skill_library.load_by_name(wanted, roots)
+        found = self.skill_library.load_by_name(wanted, roots, skill_config.extra_skill_dirs)
         for name in wanted:
             if name not in found:
-                logger.warn(f"Skill '{name}' not found in any lookup dir: {roots}")
+                lookup = "the cross-client skill dirs" if roots is None else roots
+                logger.warn(f"Skill '{name}' not found in {lookup}")
         return self._track(found)
-
-    def _ensure_default_skills(self) -> None:
-        """Auto-load ``default_skill_dirs`` once, when this role has no skills yet.
-
-        Lets ``consult_skills`` work out of the box: drop skill files into the
-        default dirs and call it — no explicit loading needed. Idempotent per
-        instance; explicit ``scan_skills``/``gather_skills`` take precedence.
-        """
-        if self._default_dirs_scanned or self.skill_names:
-            return
-        self._default_dirs_scanned = True
-        for skill_dir in skill_config.default_skill_dirs:
-            root = Path(skill_dir).expanduser()
-            if not root.is_dir():
-                continue
-            found = self.skill_library.load_scanned([str(root)])
-            if found:
-                self._track(found)
-                logger.info(f"Auto-loaded {len(found)} skill(s) from default dir '{skill_dir}'")
 
     # ── Level 2: Select ──────────────────────────────────────────────
 
@@ -188,7 +192,8 @@ class UseSkill(UseLLM, ABC):
 
         Args:
             question: The question/task to match skills against.
-            available: Skill name pool to select from. Defaults to self.skill_names.
+            available: Skill name pool to select from. Defaults to this role's
+                    pool: its tracked names, or the whole library when it tracks none.
             k: Max skills this call may fetch. ``None`` → the ``max_selected_skills`` config;
                     ``0`` → no limit; ``n`` → at most ``n``. Overrides the config cap.
             send_to (str | None): Routing-group variant for the LLM call. Resolved against
@@ -203,8 +208,7 @@ class UseSkill(UseLLM, ABC):
             ``[]`` when nothing matched (or the pool is empty) and ``None`` when
             the LLM failed to produce a parseable selection after retries.
         """
-        self._ensure_default_skills()
-        pool_names = available if available is not None else self.skill_names
+        pool_names = available if available is not None else self._pool_names()
         pool = self.skill_library.get_many(pool_names)
         if not pool:
             logger.warn("No skills available for selection.")
@@ -304,8 +308,9 @@ class UseSkill(UseLLM, ABC):
 
         Pipeline stages:
 
-        1. ENSURE (optional): auto-load skills from ``default_skill_dirs`` when
-           this role has none (zero-config usage).
+        1. POOL: the role's tracked names, or the whole library when it tracks
+           none (the library is created loaded from the cross-client skill
+           dirs, so zero-config use needs no loading step).
         2. SELECT: pick relevant skills (forced by names, or the framework
            chooser over a keyword pre-filtered, capped pool).
         3. DISTILL: extract essence (LLM-powered, or raw content).
@@ -313,8 +318,8 @@ class UseSkill(UseLLM, ABC):
         Args:
             question: The question/task to consult the skills about.
             names: Force-select these skill names (skips LLM selection).
-                   If None and select=True, uses LLM to pick from self.skill_names.
-                   If None and select=False, uses all self.skill_names.
+                   If None and select=True, uses LLM to pick from the pool.
+                   If None and select=False, uses the whole pool.
             select: Whether to use LLM for skill selection (default True).
             distill: Whether to use LLM for distillation (default True).
             k: Max skills this call may fetch. ``None`` → the ``max_selected_skills`` config;
@@ -329,8 +334,6 @@ class UseSkill(UseLLM, ABC):
         Returns:
             Consulted skill knowledge, or ``""`` when nothing is relevant.
         """
-        self._ensure_default_skills()
-
         # Stage 2: SELECT
         if names:
             selected = self._resolve_skills(names)

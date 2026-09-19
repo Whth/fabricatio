@@ -1338,10 +1338,10 @@ fabricatio-skill
      - integer
      - ``100``
      - Pool size above which selection keyword-prefilters with ``SkillRegistry.search`` before the LLM stage (0 disables).
-   * - ``default_skill_dirs``
+   * - ``extra_skill_dirs``
      - list
-     - ``["skills", "extra/skills", "~/.agents/skills"]``
-     - Default directories auto-scanned on first consult, and the lookup roots for by-name gathering (``~`` is expanded at use time).
+     - ``[]``
+     - Extra directories loaded and searched besides the cross-client Agent Skills roots (``.agents/skills`` + ``~/.agents/skills``, fixed in Rust). Loaded after them, so a standard-location skill wins a name collision (``~`` is expanded at use time). Add client-specific roots here (e.g. ``.claude/skills``) or pass ``dirs=`` per call.
 
 fabricatio-tagging
 ^^^^^^^^^^^^^^^^^^

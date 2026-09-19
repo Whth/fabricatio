@@ -1,3 +1,4 @@
+use fabricatio_logger::info;
 use parking_lot::Mutex;
 use pyo3::exceptions::PyFileNotFoundError;
 use pyo3::prelude::*;
@@ -250,6 +251,52 @@ fn is_markdown(path: &Path) -> bool {
         .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
 }
 
+/// The cross-client skill roots the library loads on its own.
+///
+/// The Agent Skills standard tells every host to read the project-local
+/// `.agents/skills` and the user-level `~/.agents/skills`
+/// (<https://agentskills.io/client-implementation/adding-skills-support>), so
+/// skills installed by any compliant client are visible here. Client-specific
+/// locations (`.claude/skills`, a bundled `skills/` dir, ...) are deliberately
+/// not part of this list — `SkillRegistry` callers pass them per call, and
+/// `skill_config.extra_skill_dirs` adds them process-wide.
+const CROSS_CLIENT_SKILL_DIRS: [&str; 2] = [".agents/skills", "~/.agents/skills"];
+
+/// Expand a leading `~` to the current user's home directory.
+///
+/// Mirrors `pathlib`'s expansion so a configured root means the same thing on
+/// both sides of the boundary: `USERPROFILE` wins, then `HOME`, then the
+/// `HOMEDRIVE` + `HOMEPATH` pair Windows shells export. `None` when `raw` has
+/// no leading `~`, names another user (`~other`), or no home is known.
+fn expand_home(raw: &str) -> Option<PathBuf> {
+    let rest = raw.strip_prefix('~')?;
+    if !rest.is_empty() && !rest.starts_with(['/', '\\']) {
+        return None;
+    }
+    let home = ["USERPROFILE", "HOME"]
+        .into_iter()
+        .find_map(|var| std::env::var_os(var).filter(|value| !value.is_empty()).map(PathBuf::from))
+        .or_else(|| {
+            let drive = std::env::var_os("HOMEDRIVE").filter(|value| !value.is_empty())?;
+            let path = std::env::var_os("HOMEPATH").filter(|value| !value.is_empty())?;
+            let mut home = PathBuf::from(drive);
+            home.push(path);
+            Some(home)
+        })?;
+    let rest = rest.trim_start_matches(['/', '\\']);
+    Some(if rest.is_empty() { home } else { home.join(rest) })
+}
+
+/// Resolve one configured root to a directory that exists right now.
+///
+/// `~` is expanded and the result probed; `None` marks a root to skip, which
+/// is the ordinary case for the conventional dirs (most projects have no
+/// `.agents/skills`).
+fn resolve_root(raw: &str) -> Option<PathBuf> {
+    let root = expand_home(raw).unwrap_or_else(|| PathBuf::from(raw));
+    SkillDir::new(&root).is_dir().then_some(root)
+}
+
 /// A searchable field of a [`Skill`], checked for every query term.
 #[derive(Clone, Copy)]
 enum SkillField {
@@ -402,10 +449,10 @@ fn push_unique(names: &mut Vec<String>, name: String) {
 /// The process-wide skill library: one in-memory copy of every loaded skill.
 ///
 /// Python roles store skill **names** (plain ``str``) and resolve real
-/// ``Skill`` objects through this library at runtime. ``instance()`` hands out
-/// the library itself — every handle shares the same store, so a skill file is
-/// parsed once per process — and the loaders return the names they made
-/// available (a cached name is reported, never read again).
+/// ``Skill`` objects through this library at runtime. ``SkillRegistry()`` hands
+/// out a handle to the library itself — every handle shares the same store, so
+/// a skill file is parsed once per process — and the loaders return the names
+/// they made available (a cached name is reported, never read again).
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
 pub struct SkillRegistry;
@@ -414,8 +461,8 @@ pub struct SkillRegistry;
 #[pymethods]
 impl SkillRegistry {
     /// The process-wide library. Every handle shares the same in-memory skills.
-    #[staticmethod]
-    fn instance() -> Self {
+    #[new]
+    fn new() -> Self {
         Self
     }
 
@@ -454,6 +501,46 @@ impl SkillRegistry {
         Ok(canonical_names(found, &mut STORE.lock()))
     }
 
+    /// Load the cross-client skill dirs, plus any extra dirs the caller configures.
+    ///
+    /// The cross-client roots ([`CROSS_CLIENT_SKILL_DIRS`]) load first — the
+    /// project-local one, then the user-level one — followed by
+    /// `extra_skill_dirs`, so the standard locations win on a name collision.
+    /// Each root is expanded (`~` → the user's home) and probed on every call,
+    /// so a machine that has none of them is a no-op rather than an error —
+    /// unlike [`load_scanned`](Self::load_scanned), which fails loud on a root
+    /// the caller passed explicitly.
+    ///
+    /// Args:
+    ///     extra_skill_dirs: Additional roots to load after the cross-client
+    ///         ones (``skill_config.extra_skill_dirs``); omit for none.
+    ///
+    /// Returns:
+    ///     The names those roots made available, in root order.
+    #[pyo3(signature = (extra_skill_dirs=None))]
+    fn load_skill_dirs(&self, extra_skill_dirs: Option<Vec<String>>) -> Vec<String> {
+        let extra: Vec<String> = extra_skill_dirs.unwrap_or_default();
+        let roots: Vec<&str> = CROSS_CLIENT_SKILL_DIRS
+            .iter()
+            .copied()
+            .chain(extra.iter().map(String::as_str))
+            .collect();
+
+        let mut found = Vec::new();
+        for raw in roots {
+            let Some(root) = resolve_root(raw) else {
+                continue;
+            };
+            let skills = SkillDir::new(&root).scan();
+            if skills.is_empty() {
+                continue;
+            }
+            info!("Loaded {} skill(s) from skill dir '{}'", skills.len(), raw);
+            found.extend(skills);
+        }
+        canonical_names(found, &mut STORE.lock())
+    }
+
     /// Resolve each name through `roots` and load the hits into the library.
     ///
     /// Tries each root in order — `<root>/<name>/SKILL.md` first, then
@@ -463,13 +550,32 @@ impl SkillRegistry {
     ///
     /// Args:
     ///     names: Skill names to resolve; duplicates collapse.
-    ///     roots: Lookup roots, tried in order.
+    ///     roots: Lookup roots, tried in order. Omit to use the cross-client
+    ///         skill dirs.
+    ///     extra_skill_dirs: Additional roots tried after `roots`
+    ///         (``skill_config.extra_skill_dirs``); omit for none.
     ///
     /// Returns:
     ///     The names that are now in the library, in argument order. A name
     ///     already in the library is reported too, without being read again.
-    fn load_by_name(&self, names: Vec<String>, roots: Vec<String>) -> Vec<String> {
-        let dirs: Vec<SkillDir> = roots.iter().map(SkillDir::new).collect();
+    #[pyo3(signature = (names, roots=None, extra_skill_dirs=None))]
+    fn load_by_name(
+        &self,
+        names: Vec<String>,
+        roots: Option<Vec<String>>,
+        extra_skill_dirs: Option<Vec<String>>,
+    ) -> Vec<String> {
+        let extra: Vec<String> = extra_skill_dirs.unwrap_or_default();
+        let raw: Vec<&str> = match &roots {
+            None => CROSS_CLIENT_SKILL_DIRS.iter().copied().collect(),
+            Some(roots) => roots.iter().map(String::as_str).collect(),
+        };
+        let dirs: Vec<SkillDir> = raw
+            .into_iter()
+            .chain(extra.iter().map(String::as_str))
+            .map(|root| SkillDir::new(expand_home(root).unwrap_or_else(|| PathBuf::from(root))))
+            .collect();
+
         let mut store = STORE.lock();
         let mut loaded = Vec::new();
         for name in names {
@@ -700,6 +806,59 @@ mod tests {
         assert_eq!(store.len(), 2);
         assert_eq!(store["a"].description, "first");
         assert_eq!(store["b"].description, "other");
+    }
+
+    #[test]
+    fn expand_home_leaves_non_home_paths_alone() {
+        for raw in [".agents/skills", "skills", "/abs/skills", "~other/skills"] {
+            assert!(expand_home(raw).is_none(), "raw: {raw}");
+        }
+    }
+
+    #[test]
+    fn load_skill_dirs_loads_extras_and_skips_absent_roots() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_extras");
+        let missing = std::env::temp_dir().join("fabricatio_skill_test_extras_missing");
+        let _ = std::fs::remove_dir_all(&root);
+        let _ = std::fs::remove_dir_all(&missing);
+        write(
+            &root.join("conv").join("SKILL.md"),
+            "---\nname: conv_extra_test\ndescription: extra root\n---\nbody",
+        );
+
+        let registry = SkillRegistry::new();
+        let names = registry.load_skill_dirs(Some(vec![
+            missing.to_string_lossy().into_owned(),
+            root.to_string_lossy().into_owned(),
+        ]));
+
+        assert!(
+            names.contains(&"conv_extra_test".to_string()),
+            "the extra root must load: {names:?}"
+        );
+
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn load_by_name_resolves_through_extras() {
+        let root = std::env::temp_dir().join("fabricatio_skill_test_extras_lookup");
+        let _ = std::fs::remove_dir_all(&root);
+        write(
+            &root.join("extra_lookup_test.md"),
+            "---\nname: extra_lookup_test\ndescription: by-name extra\n---\nbody",
+        );
+
+        let registry = SkillRegistry::new();
+        let found = registry.load_by_name(
+            vec!["extra_lookup_test".to_string()],
+            None,
+            Some(vec![root.to_string_lossy().into_owned()]),
+        );
+
+        assert_eq!(found, ["extra_lookup_test"]);
+
+        std::fs::remove_dir_all(&root).unwrap();
     }
 
     /// Build a skill from plain parts; search tests place the term in one field each.

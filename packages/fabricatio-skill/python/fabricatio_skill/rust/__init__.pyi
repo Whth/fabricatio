@@ -58,13 +58,12 @@ class SkillRegistry:
     r"""The process-wide skill library: one in-memory copy of every loaded skill.
 
     Python roles store skill **names** (plain ``str``) and resolve real
-    ``Skill`` objects through this library at runtime. ``instance()`` hands out
-    the library itself — every handle shares the same store, so a skill file is
-    parsed once per process — and the loaders return the names they made
-    available (a cached name is reported, never read again).
+    ``Skill`` objects through this library at runtime. ``SkillRegistry()`` hands
+    out a handle to the library itself — every handle shares the same store, so
+    a skill file is parsed once per process — and the loaders return the names
+    they made available (a cached name is reported, never read again).
     """
-    @staticmethod
-    def instance() -> SkillRegistry:
+    def __new__(cls) -> SkillRegistry:
         r"""The process-wide library. Every handle shares the same in-memory skills."""
     def load_scanned(self, roots: typing.Sequence[builtins.str]) -> builtins.list[builtins.str]:
         r"""Load every `.md` file found under each root into the library.
@@ -84,8 +83,31 @@ class SkillRegistry:
             FileNotFoundError: One of the roots is not an existing directory
                 (nothing is loaded in that case).
         """
+    def load_skill_dirs(
+        self, extra_skill_dirs: typing.Sequence[builtins.str] | None = None
+    ) -> builtins.list[builtins.str]:
+        r"""Load the cross-client skill dirs, plus any extra dirs the caller configures.
+
+        The cross-client roots ([`CROSS_CLIENT_SKILL_DIRS`]) load first — the
+        project-local one, then the user-level one — followed by
+        `extra_skill_dirs`, so the standard locations win on a name collision.
+        Each root is expanded (`~` → the user's home) and probed on every call,
+        so a machine that has none of them is a no-op rather than an error —
+        unlike [`load_scanned`](Self::load_scanned), which fails loud on a root
+        the caller passed explicitly.
+
+        Args:
+            extra_skill_dirs: Additional roots to load after the cross-client
+                ones (``skill_config.extra_skill_dirs``); omit for none.
+
+        Returns:
+            The names those roots made available, in root order.
+        """
     def load_by_name(
-        self, names: typing.Sequence[builtins.str], roots: typing.Sequence[builtins.str]
+        self,
+        names: typing.Sequence[builtins.str],
+        roots: typing.Sequence[builtins.str] | None = None,
+        extra_skill_dirs: typing.Sequence[builtins.str] | None = None,
     ) -> builtins.list[builtins.str]:
         r"""Resolve each name through `roots` and load the hits into the library.
 
@@ -96,7 +118,10 @@ class SkillRegistry:
 
         Args:
             names: Skill names to resolve; duplicates collapse.
-            roots: Lookup roots, tried in order.
+            roots: Lookup roots, tried in order. Omit to use the cross-client
+                skill dirs.
+            extra_skill_dirs: Additional roots tried after `roots`
+                (``skill_config.extra_skill_dirs``); omit for none.
 
         Returns:
             The names that are now in the library, in argument order. A name

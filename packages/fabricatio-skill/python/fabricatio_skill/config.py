@@ -19,11 +19,19 @@ class SkillConfig:
     """Pool size above which ``select_skills`` keyword-prefilters the pool with the
     library's ``SkillRegistry.search`` before the LLM stage (0 disables the prefilter)."""
 
-    default_skill_dirs: list[str] = field(default_factory=lambda: ["skills", "extra/skills", "~/.agents/skills"])
-    """Default directories scanned on first consult, and the roots used to
-    resolve by-name gathering (``gather_skills``/``scan_skills``). ``~`` is
-    expanded at use time; the last entry is the user-level agent-skills
-    library (``<name>/SKILL.md`` convention)."""
+    extra_skill_dirs: list[str] = field(default_factory=list)
+    """Additional skill directories to load besides the cross-client Agent Skills roots.
+
+    The library always loads the standard cross-client locations — the
+    project-local ``.agents/skills`` and the user-level ``~/.agents/skills``,
+    fixed on the Rust side
+    (https://agentskills.io/client-implementation/adding-skills-support) — then
+    these, so a skill in a standard location wins over the same name here.
+    Client-specific locations (``.claude/skills``, a bundled ``skills/`` dir,
+    ...) are deliberately not part of the standard: list them here to search
+    them process-wide, or pass ``dirs=`` to ``gather_skills`` / ``scan_skills``
+    for a single call. ``~`` is expanded at use time, and only markdown files
+    are ever read, so other files dropped in these dirs are ignored."""
 
 
 skill_config = CONFIG.load("skill", SkillConfig)

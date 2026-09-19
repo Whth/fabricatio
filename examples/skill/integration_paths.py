@@ -3,7 +3,7 @@ r"""Five ways to integrate fabricatio-skill into a system - one runnable tour.
 A skill is a markdown file: YAML frontmatter (`name`, `description`, `tags`) plus a body.
 This package only ever *consults* skills - every path below ends with your own LLM call.
 
-1. drop-in capability - mix the capability in, ship a `skills/` directory, done. Zero wiring.
+1. drop-in capability - mix the capability in, ship a `.agents/skills/` directory, done. Zero wiring.
 2. explicit library   - keep your own directory and file layout, register it yourself.
 3. by name            - you know the skills already: no scan, no LLM selection, no guesswork.
 4. manual stages      - call SELECT and DISTILL yourself and own the prompt assembly.
@@ -75,15 +75,16 @@ def show(label: str, text: str, width: int = 180) -> None:
 
 
 async def path_1_drop_in_capability() -> None:
-    """Ship a `skills/` directory next to your entrypoint and mix `UseSkill` into an Action.
+    """Ship a `.agents/skills/` directory next to your entrypoint and mix `UseSkill` into an Action.
 
-    Nothing is loaded by hand: the default roots (`skills/` and `extra/skills/`, resolved
-    against the process working directory, plus `~/.agents/skills`) are scanned on the first
-    `consult_skills()` call, and only the skill names are tracked on the action.
+    Nothing is loaded by hand: the process-wide library is created loaded from the cross-client
+    skill roots (`./.agents/skills` resolved against the process working directory, plus the
+    user-level `~/.agents/skills`). The action tracks no names of its own, so it consults the
+    whole library.
     """
 
-    class AnswerFromDefaultRoots(Action, UseSkill):
-        """Answer the task briefing from the auto-loaded skill library."""
+    class AnswerFromSkillLibrary(Action, UseSkill):
+        """Answer the task briefing from the loaded skill library."""
 
         output_key: str = "task_output"
 
@@ -94,15 +95,15 @@ async def path_1_drop_in_capability() -> None:
             show(f"consulted knowledge ({len(knowledge)} chars)", knowledge)
             return await self.aask(f"{knowledge}\n\n---\n\n{task_input.briefing}")
 
-    action = AnswerFromDefaultRoots()
-    Role.with_bio(name="skill:drop-in", description="answers from the default skill roots").subscribe(
+    action = AnswerFromSkillLibrary()
+    Role.with_bio(name="skill:drop-in", description="answers from the loaded skill library").subscribe(
         Event.quick_instantiate("skill_drop_in"), WorkFlow(name="skill drop in", steps=(action,))
     ).dispatch()
 
     project = Path(tempfile.mkdtemp(prefix="skill_project_"))
-    write_library(project / "skills")
+    write_library(project / ".agents" / "skills")
     cwd = Path.cwd()
-    os.chdir(project)  # the relative default roots resolve against the working directory
+    os.chdir(project)  # the project-local skill root resolves against the working directory
     try:
         answer = await Task(name="tokio question", goals=[QUESTION], description=QUESTION).delegate("skill_drop_in")
     finally:
@@ -110,7 +111,7 @@ async def path_1_drop_in_capability() -> None:
 
     assert isinstance(answer, str), "delegate resolves to the action's task_output"
     assert answer.strip(), "the answer should not be empty"
-    print(f"   auto-loaded from ./skills: {action.skill_names}")
+    print(f"   library holds (consulted as-is): {[s.name for s in action.skills]}")
     show("answer", answer)
 
 
@@ -124,7 +125,7 @@ async def path_2_explicit_library(library: Path) -> None:
     """
 
     class AnswerFromOwnLibrary(Action, UseSkill):
-        """Consult one explicit library directory instead of the default roots."""
+        """Consult one explicit library directory instead of the standard skill roots."""
 
         output_key: str = "task_output"
         skill_dir: str  # ctor-injected: where this deployment keeps its skills
@@ -137,7 +138,7 @@ async def path_2_explicit_library(library: Path) -> None:
             show(f"consulted knowledge ({len(knowledge)} chars)", knowledge)
             return await self.aask(f"{knowledge}\n\n---\n\n{task_input.briefing}")
 
-    print(f"   library holds: {SkillRegistry.instance().names()}")
+    print(f"   library holds: {SkillRegistry().names()}")
 
     Role.with_bio(name="skill:own-library", description="answers from one registered directory").subscribe(
         Event.quick_instantiate("skill_own_library"),
@@ -146,7 +147,7 @@ async def path_2_explicit_library(library: Path) -> None:
 
     answer = await Task(name="tokio question", goals=[QUESTION], description=QUESTION).delegate("skill_own_library")
     assert isinstance(answer, str), "delegate resolves to the action's task_output"
-    print(f"   library now holds: {SkillRegistry.instance().names()}")
+    print(f"   library now holds: {SkillRegistry().names()}")
     show("answer", answer)
 
 
@@ -160,7 +161,7 @@ async def path_3_by_name(library: Path) -> None:
     with zero LLM stages in between.
     """
     wanted = ["rust-async", "sql-style", "does-not-exist"]
-    resolved = SkillRegistry.instance().load_by_name(wanted, [str(library)])
+    resolved = SkillRegistry().load_by_name(wanted, [str(library)])
     print(f"   load_by_name({wanted}) -> {resolved} (missing names are skipped)")
 
     class AnswerFromNamedSkills(Action, UseSkill):
@@ -234,7 +235,7 @@ def path_5_framework_free(library: Path) -> str:
     content-free view for cheap menus, and the library is process-wide - the same one
     the capability mixin above resolves through.
     """
-    registry = SkillRegistry.instance()
+    registry = SkillRegistry()
     catalog_names = registry.load_scanned([str(library)])  # walk + parse every .md
     one = registry.get("rust-async")  # exact-name lookup in the parsed copy
     hits = registry.search("tokio", names=catalog_names, in_content=True)  # keyword search, no LLM
@@ -254,7 +255,7 @@ async def main() -> None:
     library = write_library(Path(tempfile.mkdtemp(prefix="skill_demo_")) / "skills")
     print(f"demo library: {library}")
 
-    print("\n1/5 drop-in capability - mix UseSkill in, ship ./skills")
+    print("\n1/5 drop-in capability - mix UseSkill in, ship ./.agents/skills")
     await path_1_drop_in_capability()
 
     print("\n2/5 explicit library - register your own directory")

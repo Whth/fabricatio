@@ -7,7 +7,7 @@ import fabricatio_skill.capabilities.skill as skill_module
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
 from fabricatio_skill.capabilities.skill import UseSkill
-from fabricatio_skill.config import SkillConfig
+from fabricatio_skill.inited_service import get_skill_registry
 from fabricatio_skill.rust import Skill, SkillMeta, SkillRegistry
 
 
@@ -17,8 +17,13 @@ class SkillRole(LLMTestRole, UseSkill):
 
 @pytest.fixture(autouse=True)
 def _clean_library() -> Iterator[None]:
-    """Run every test against an empty process-wide library."""
-    library = SkillRegistry.instance()
+    """Run every test against an empty process-wide library.
+
+    Creating it here (rather than inside a test) keeps the one-time load of the
+    cross-client dirs out of the test bodies: whichever test ran first would
+    otherwise see the developer's own skills.
+    """
+    library = get_skill_registry()
     library.clear()
     yield
     library.clear()
@@ -83,18 +88,18 @@ class TestSkillRust:
         (skill_dir / "plain.md").write_text("# Plain\nJust content.", encoding="utf-8")
         (skill_dir / "notes.txt").write_text("ignored", encoding="utf-8")
 
-        loaded = SkillRegistry.instance().load_scanned([str(skill_dir)])
+        loaded = SkillRegistry().load_scanned([str(skill_dir)])
 
         assert set(loaded) == {"code_review", "security", "plain"}
 
     def test_load_scanned_missing_root_raises(self) -> None:
         """A missing root raises and loads nothing."""
         with pytest.raises(FileNotFoundError):
-            SkillRegistry.instance().load_scanned(["/nonexistent/path"])
+            SkillRegistry().load_scanned(["/nonexistent/path"])
 
     def test_search_ranks_name_match_first(self) -> None:
         """Keyword search over loaded skills; a name hit outranks a description hit."""
-        library = SkillRegistry.instance().add(
+        library = SkillRegistry().add(
             [
                 Skill(
                     name="code_review",
@@ -128,7 +133,7 @@ class TestSkillRust:
 
     def test_search_in_content_gate(self) -> None:
         """``in_content`` decides whether skill bodies are searched."""
-        library = SkillRegistry.instance().add(
+        library = SkillRegistry().add(
             [
                 Skill(name="a", description="", tags=[], content="SQL injection prevention guide", path="a.md"),
                 Skill(name="b", description="", tags=[], content="Performance tuning tips", path="b.md"),
@@ -142,7 +147,7 @@ class TestSkillRust:
 
     def test_get_by_exact_name(self) -> None:
         """Exact-name lookup; a name that is not loaded resolves to None."""
-        library = SkillRegistry.instance().add(
+        library = SkillRegistry().add(
             [
                 Skill(name="foo", description="", tags=[], content="", path="a.md"),
                 Skill(name="bar", description="", tags=[], content="", path="b.md"),
@@ -168,7 +173,7 @@ class TestSkillRust:
             newline="\n",
         )
 
-        registry = SkillRegistry.instance()
+        registry = SkillRegistry()
         assert registry.load_by_name(["herdr"], [str(root)]) == ["herdr"]
 
         skill = registry.get("herdr")
@@ -191,7 +196,7 @@ class TestSkillRust:
             newline="\n",
         )
 
-        registry = SkillRegistry.instance()
+        registry = SkillRegistry()
         assert registry.load_by_name(["code_review"], [str(root)]) == ["code_review"]
 
         skill = registry.get("code_review")
@@ -216,7 +221,7 @@ class TestSkillRust:
             newline="\n",
         )
 
-        registry = SkillRegistry.instance()
+        registry = SkillRegistry()
         assert registry.load_by_name(["dual"], [str(root)]) == ["dual"]
 
         skill = registry.get("dual")
@@ -230,7 +235,7 @@ class TestSkillRust:
         root = Path(str(tmp_path)) / "lib"
         root.mkdir()
 
-        assert SkillRegistry.instance().load_by_name(["nope"], [str(root)]) == []
+        assert SkillRegistry().load_by_name(["nope"], [str(root)]) == []
 
     def test_load_by_name_rejects_path_like_names(self, tmp_path: object) -> None:
         """Separators, dot components, and empty names are rejected."""
@@ -239,7 +244,7 @@ class TestSkillRust:
         root = Path(str(tmp_path)) / "lib"
         root.mkdir()
 
-        assert SkillRegistry.instance().load_by_name(["", ".", "..", "a/b", "a\\b", "../../evil"], [str(root)]) == []
+        assert SkillRegistry().load_by_name(["", ".", "..", "a/b", "a\\b", "../../evil"], [str(root)]) == []
 
     def test_library_keeps_one_copy_until_removed(self, tmp_path: object) -> None:
         """A loaded skill is not re-read while it stays in the library; remove() frees it."""
@@ -254,7 +259,7 @@ class TestSkillRust:
             newline="\n",
         )
 
-        library = SkillRegistry.instance()
+        library = SkillRegistry()
         assert library.load_scanned([str(root)]) == ["cached"]
         first = library.get("cached")
         assert first is not None
@@ -378,7 +383,7 @@ class TestUseSkill:
         assert "flat_skill" in role.skill_library
 
         # Duplicate names collapse to a single library entry.
-        deduped = SkillRegistry.instance().clear().load_by_name(["dir_skill", "dir_skill"], [str(root)])
+        deduped = SkillRegistry().clear().load_by_name(["dir_skill", "dir_skill"], [str(root)])
         assert deduped == ["dir_skill"]
 
     def test_gather_skills_first_root_wins(self, tmp_path: object) -> None:
@@ -395,7 +400,7 @@ class TestUseSkill:
                 newline="\n",
             )
 
-        library = SkillRegistry.instance()
+        library = SkillRegistry()
         assert library.load_by_name(["dual"], [str(root_a), str(root_b)]) == ["dual"]
         first = library.get("dual")
         assert first is not None
@@ -426,35 +431,126 @@ class TestUseSkill:
         result = await role.consult_skills("q", names=["gathered"], select=False, distill=False)
         assert result == "# Gathered\nreal body."
 
-    def test_gather_skills_expands_default_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
-        """dirs=None reads default_skill_dirs and expands `~` against the user home."""
+    def test_gather_skills_uses_the_cross_client_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
+        """Without dirs, by-name gathering resolves through the cross-client roots (`~` expanded)."""
         from pathlib import Path
-        from unittest.mock import patch
 
-        home = Path(str(tmp_path)) / "home"
+        base = Path(str(tmp_path))
+        home, workdir = base / "home", base / "workdir"
+        home.mkdir()
+        workdir.mkdir()
         skill_dir = home / ".agents" / "skills" / "tilde_one"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: tilde_one\ndescription: T\n---\nbody",
+            "---\nname: tilde_one\ndescription: two\n---\n# Two\ntwo.",
             encoding="utf-8",
             newline="\n",
         )
         monkeypatch.setenv("USERPROFILE", str(home))
         monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(workdir)
 
         role = SkillRole(name="skill")
-        with patch.object(
-            skill_module,
-            "skill_config",
-            replace(skill_module.skill_config, default_skill_dirs=["~/.agents/skills"]),
-        ):
-            role.gather_skills(["tilde_one"])
+        role.gather_skills(["tilde_one"])
 
         assert [s.name for s in role.skills] == ["tilde_one"]
 
-    def test_default_dirs_include_agents_skills(self) -> None:
-        """The declared default lookup roots include the user-level agent-skills library."""
-        assert "~/.agents/skills" in SkillConfig().default_skill_dirs
+    @pytest.mark.parametrize("root", [".agents/skills", "~/.agents/skills"])
+    def test_cross_client_dirs_are_loaded(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object, root: str) -> None:
+        """Both cross-client roots load: the project dir from the cwd, `~` from the home."""
+        from pathlib import Path
+
+        base = Path(str(tmp_path))
+        home, workdir = base / "home", base / "workdir"
+        home.mkdir()
+        workdir.mkdir()
+        owner = home if root.startswith("~") else workdir
+        skill_dir = owner / root.removeprefix("~").removeprefix("/") / "conv"
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text(
+            "---\nname: conv\ndescription: C\n---\n# Conv\nbody.",
+            encoding="utf-8",
+            newline="\n",
+        )
+        monkeypatch.setenv("USERPROFILE", str(home))
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(workdir)
+
+        registry = SkillRegistry()
+        assert registry.load_skill_dirs() == ["conv"]
+
+    def test_client_specific_dirs_stay_out_of_the_library(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: object
+    ) -> None:
+        """`.claude/skills` and a bundled `skills/` dir are not part of the standard roots."""
+        from pathlib import Path
+
+        base = Path(str(tmp_path))
+        home, workdir = base / "home", base / "workdir"
+        home.mkdir()
+        workdir.mkdir()
+        for root, name in [
+            (".agents/skills", "conv"),
+            (".claude/skills", "claude_only"),
+            ("skills", "plain_only"),
+        ]:
+            skill_dir = workdir / root / name
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                f"---\nname: {name}\ndescription: C\n---\n# {name}\nbody.",
+                encoding="utf-8",
+                newline="\n",
+            )
+        monkeypatch.setenv("USERPROFILE", str(home))
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(workdir)
+
+        registry = SkillRegistry()
+        assert registry.load_skill_dirs() == ["conv"]
+
+    def test_extra_skill_dirs_load_after_the_cross_client_roots(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: object
+    ) -> None:
+        """Configured extras load too, and a standard-location skill wins a name collision."""
+        from pathlib import Path
+
+        base = Path(str(tmp_path))
+        home, workdir, extra = base / "home", base / "workdir", base / "extra"
+        home.mkdir()
+        workdir.mkdir()
+        extra.mkdir()
+        for root, name, body in [
+            ("standard_conv", "standard_conv", "from the standard dir"),
+            ("extra_conv", "standard_conv", "from the extra dir"),
+        ]:
+            skill_dir = (workdir / ".agents" / "skills" if root == "standard_conv" else extra) / name
+            skill_dir.mkdir(parents=True)
+            (skill_dir / "SKILL.md").write_text(
+                f"---\nname: standard_conv\ndescription: C\n---\n{body}",
+                encoding="utf-8",
+                newline="\n",
+            )
+        monkeypatch.setenv("USERPROFILE", str(home))
+        monkeypatch.setenv("HOME", str(home))
+        monkeypatch.chdir(workdir)
+
+        registry = SkillRegistry()
+        loaded = registry.load_skill_dirs([str(extra / "standard_conv")])
+
+        assert loaded == ["standard_conv"]
+        skill = registry.get("standard_conv")
+        assert skill is not None
+        assert skill.content == "from the standard dir"
+
+    @pytest.mark.asyncio
+    async def test_consult_uses_the_library_when_the_role_tracks_nothing(self) -> None:
+        """A role that loaded nothing of its own consults the whole library."""
+        role = SkillRole(name="skill")
+        role.skill_library.add([Skill(name="only", description="D", tags=[], content="library body.", path="only.md")])
+        role.mock_llm_response('["only"]')
+
+        assert role.skill_names == []
+        assert await role.consult_skills("anything", distill=False) == "library body."
 
     @pytest.mark.asyncio
     async def test_consult_skills_no_skills(self) -> None:
@@ -635,30 +731,6 @@ class TestUseSkill:
 
         result = await role.consult_skills("alpha docs", distill=False)
         assert result == "alpha body\n\nunrelated body"
-
-    @pytest.mark.asyncio
-    async def test_consult_skills_autoloads_default_dirs(self, monkeypatch: object, tmp_path: object) -> None:
-        """A role without skills auto-loads default_skill_dirs on first consult."""
-        from pathlib import Path
-
-        skill_dir = Path(str(tmp_path)) / "skills"
-        skill_dir.mkdir()
-        (skill_dir / "one.md").write_text(
-            "---\nname: auto_one\ndescription: Auto loaded\ntags: [auto]\n---\n# One\nbody one.",
-            encoding="utf-8",
-            newline="\n",
-        )
-        monkeypatch.setattr(
-            skill_module,
-            "skill_config",
-            replace(skill_module.skill_config, default_skill_dirs=[str(skill_dir)]),
-        )
-
-        role = SkillRole(name="skill")
-        result = await role.consult_skills("anything", select=False, distill=False)
-
-        assert [s.name for s in role.skills] == ["auto_one"]
-        assert result == "# One\nbody one."
 
     @pytest.mark.asyncio
     async def test_select_skills_k_overrides_cap(self) -> None:
