@@ -113,6 +113,10 @@ from its own plan alone). Each level then passes state down:
   exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)
 - **Setting bible** — rendered once at the root into a `setting_bible` prefix entry;
   every descendant inherits it through its own log
+- **Selected skills** — the names the user gave (plus their lookup roots) are resolved once at
+  the root, carried by every level, and fetched by name from the skill library whenever a
+  prompt is assembled: one byte-stable section leads every descendant's running prefix, every
+  plan prompt and every RAG query refinement (never the metadata proposal)
 - **Word budget** — each level splits its `expected_word_count` among children by plan weight
 - **Writing style** — accumulated verbatim down the chain (style stacking)
 - **Writing constraint** — scoped, never merged: each level carries its own entries, its planner
@@ -215,7 +219,7 @@ its probe file. Without a table the corpus-independent metrics still run, and th
 
 | Class | Role |
 |---|---|
-| `NovelContext` | Root channel: outline, language, roster `charactor_span`, `chapter_context` |
+| `NovelContext` | Root channel: outline, language, the run's `skill_names`, roster `charactor_span`, `chapter_context` |
 | `RagNovelContext` | `NovelContext` subclass carrying the novel-level `RagRetrieval` settings and the documents fetched from the outline; renders them into the metadata and chapter-planning prompts |
 | `ChapterContext` | Chapter channel: `charactor_span`, `story_context`, heading block |
 | `RagChapterContext` | `ChapterContext` subclass whose stories are `RagStoryContext`s; the RAG chapter stage promotes what it plans, so a reloaded snapshot keeps the sealed types |
@@ -250,8 +254,8 @@ history stays intact.
 | `SceneCompose` | Scene requirement rendering + prose generation |
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
-| `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
-| `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit` settings plus the decomposed multi-head search |
+| `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards), and the run's skills — `fetch_skills` resolves names through the fabricatio-skill library (which logs and skips an unknown one), `apply_skills` binds the names that resolved to the root and seeds their text as its leading prefix entry |
+| `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit` settings plus the decomposed multi-head search, whose refinement prompt leads with the run's skills section |
 | `RAGNovelCompose` | Seals the root with the retrieval settings in `before_compose_novel_context`, searches the outline, and renders the documents into the metadata and chapter-planning prompts |
 | `RAGChapterCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
 | `BibleCompose` | Composes the setting bible from the outline once; immutable for the run |
@@ -358,6 +362,10 @@ fanvl wri -o "..." --judge --judge-tries 5  # vision-judge each illustration; re
 # Constrain generation with a setting bible + global writing constraint
 fanvl w -o "..." -b settings/bible.json -c "first person view throughout"
 
+# Write with the user's own skills from the fabricatio-skill library
+fanvl w  -o "..." -s terse-action -s no-adverbs   # repeatable, or comma-separated: -s terse-action,no-adverbs
+# Extra skill roots are configured once, not per run: [ext.skill] extra_skill_dirs in fabricatio.toml
+
 # Export as plain text instead of (or besides) EPUB: chapters/01.txt, 02.txt, …
 fanvl w -o "..." --format both
 fanvl w -o "..." --format txt
@@ -372,6 +380,41 @@ fanvl store-refs ./corpus/*.txt
 fanvl enrich-refs ./corpus/*.txt -eg "Extract world-building facts"
 ```
 
+### Skills
+
+Skills are built into novel composition, not an add-on: a run names them and every
+planning prompt and scene write honors them. `--skill`/`-s` (repeatable, comma-separated
+allowed) resolves each name through the `fabricatio-skill` library — `<root>/<name>/SKILL.md`
+then `<root>/<name>.md`, over the cross-client skill dirs plus `[ext.skill]
+extra_skill_dirs` — and a name that resolves nowhere is logged by the library, with
+the roots it searched, while the run goes on with the names that resolved. Extra skill
+roots are configured there once (`extra_skill_dirs`), never per run.
+
+The run binds only the **names it resolved** to its root context (`skill_names`), and
+every level carries that selection the way it carries `outline`.
+The bodies stay in the process-wide `fabricatio-skill` library, which parses a skill once and
+hands the same text to every walk: prompt assembly fetches them by name through
+`ctx.skill_references()`, so a run renders byte-identical text on every walk and a tree
+rebuilt in a fresh process re-reads exactly the files it resolved (a name that no longer
+resolves is logged and dropped rather than crashing the walk that renders it).
+
+The resolved text forms one section (`ctx.skill_section()`) whose bytes are identical everywhere
+they appear: it is the first entry of every descendant's prefix log (ahead of the setting bible),
+and it leads every plan prompt, above the outline. The refinement prompt builds its head the same
+way: the section is prepended to the question, which the template renders at byte 0. Because a
+run's calls to one model therefore open with the same head, the provider's prefix cache carries
+over between them; the metadata proposal is unaffected.
+
+```python
+import asyncio
+
+from fabricatio_novel.actions.novel import InitNovelContext
+
+ctx = asyncio.run(
+    InitNovelContext().init_novel_context("In a world where dreams are currency...", skills=["terse-action"])
+)
+```
+
 ### Programmatic
 
 ```python
@@ -380,6 +423,7 @@ from fabricatio_core import Event
 
 event = Event.instantiate("write")
 event.payload["novel_outline"] = "In a world where dreams are currency..."
+event.payload["skills"] = ["terse-action"]  # resolved once at the root, honored by every prompt
 role = Role.with_bio(name="writer").subscribe(event, DebugNovelWorkflow).dispatch()
 ```
 
@@ -405,6 +449,7 @@ builder.export("output.epub")
 ## Dependencies
 
 - `fabricatio-core` — Core interfaces, template management, LLM capabilities
+- `fabricatio-skill` — Markdown skill library the run resolves its `--skill` names against
 - `fabricatio-character` — Character card models
 - `pydantic` — Data validation via models
 - Optional: `fabricatio-lancedb` — writing style RAG, `typer` — CLI

@@ -8,6 +8,7 @@ from fabricatio_core import TEMPLATE_MANAGER, logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
 from fabricatio_core.utils import ok
+from fabricatio_skill import Skill, UseSkill
 
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.config import novel_config
@@ -22,8 +23,47 @@ from fabricatio_novel.models.novel import Novel
 from fabricatio_novel.models.plan import ChapterPlan, ChapterPlans, NovelPlan
 
 
-class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext, ChapterPlan], StoryContext], ABC):
+class NovelCompose[CTX: NovelContext](
+    ChapterCompose[ChapterContext[StoryContext, ChapterPlan], StoryContext], UseSkill, ABC
+):
     """This class contains the capabilities for the novel."""
+
+    def fetch_skills(self, names: list[str]) -> list[Skill]:
+        """Resolve the run's skills by name through the process-wide skill library.
+
+        Skills are built into novel composition: a run carries the names the user
+        selected and hands them to the fabricatio-skill library, which parses a skill
+        once per process and keeps the body for every later walk — the planning
+        prompts render them above the outline and the running prefix leads with them.
+        The lookup roots are the library's own (the cross-client skill dirs plus
+        ``[ext.skill] extra_skill_dirs``). Resolution never fails: the library logs
+        every name that resolves in no root, and the run goes on with the names that
+        did.
+
+        Args:
+            names: Skill names the user selected, in the order given.
+
+        Returns:
+            The resolved skills, in argument order; names that resolved nowhere are absent.
+        """
+        wanted = list(dict.fromkeys(names))
+        self.gather_skills(wanted)
+        skills = self.skill_library.get_many(wanted)
+        logger.info(f"Loaded {len(skills)} skill(s) for the novel: {', '.join(skill.name for skill in skills)}")
+        return skills
+
+    def apply_skills(self, ctx: CTX, names: list[str]) -> CTX:
+        """Bind the run's resolved skill selection to the root context and seed it as the leading prefix entry.
+
+        The library resolves and parses each name here and logs the ones no root
+        provides — resolution never fails the run — while the context carries only the
+        names that resolved: the bodies stay in the process-wide library, re-read there
+        whenever a tree is rebuilt in a fresh process, so no element keeps a copy of
+        the text.
+        """
+        resolved = [skill.name for skill in self.fetch_skills(names)]
+        ctx.with_skills(resolved)
+        return ctx.seed_skill_prefix()
 
     async def before_compose_novel_context(
         self,
@@ -81,6 +121,7 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
                 "writing_styles": ctx.writing_styles,
                 "writing_constraints": ctx.writing_constraints,
                 "style_references": ctx.style_references(),
+                "skills": ctx.skill_section(),
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
             },
@@ -244,7 +285,8 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
                     .set_plan(chapter_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *chapter_plan.writing_styles])
-                    .set_writing_constraints(chapter_plan.writing_constraints),
+                    .set_writing_constraints(chapter_plan.writing_constraints)
+                    .with_skills_from(ctx),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} chapter(s)")
         await self.draft_chapter_spans(ctx, send_to, **kwargs)
@@ -256,11 +298,12 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
         send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> bool:
-        """Seed the bible into the running prefix and compose every chapter in prefix order.
+        """Seed the run's leading prefix entries and compose every chapter in prefix order.
 
         Returns:
             bool: True when every chapter composed; False on any failure.
         """
+        ctx.seed_skill_prefix()
         ctx.seed_bible_prefix()
         total = len(ctx.child_contexts)
         for i, chapter_ctx in enumerate(ctx.iter_prefixed_contexts(), start=1):

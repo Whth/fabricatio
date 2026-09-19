@@ -83,19 +83,23 @@ class InitNovelContext(StageAction, NovelCompose):
         language: str | None = None,
         constraint: str = "",
         bible_path: Path | None = None,
+        skills: list[str] | None = None,
         send_to: str | None = TASK,
     ) -> NovelContext:
         """Build the root from the run's settings and fire the before hook on it.
 
-        The hook's return replaces the root — it is where a RAG run seals the
-        context class itself and fetches the references the planning prompts
-        render — so the caller snapshots exactly what the hook handed back.
+        The user's skills are resolved by name onto the root before the hook runs,
+        so the hook — and every stage after it — sees a complete root; the hook's
+        return replaces it, which is where a RAG run seals the context class
+        itself and fetches the references the planning prompts render.
         """
         ctx = NovelContext.create(outline, language=language)
         if constraint:
             ctx.set_writing_constraints([constraint])
         if bible_path is not None:
             ctx.set_series_bible(SeriesBible.model_validate_json(bible_path.read_text(encoding="utf-8")))
+        if skills:
+            ctx = self.apply_skills(ctx, skills)
         ctx.seed_bible_prefix()
         return await self.before_compose_novel_context(ctx, send_to=send_to)
 
@@ -105,6 +109,7 @@ class InitNovelContext(StageAction, NovelCompose):
             language=cxt.get("novel_language"),
             constraint=cxt.get("writing_constraint") or "",
             bible_path=cxt.get("bible_path"),
+            skills=cxt.get("skills"),
             send_to=cxt.get("send_to", TASK),
         )
         await self.snapshot(ctx, cxt)

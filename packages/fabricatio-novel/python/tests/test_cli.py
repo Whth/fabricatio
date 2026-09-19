@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 from _support import SceneSpec, StorySpec, benchmark_run
+from fabricatio_novel.commands._helpers import _split_skills
 from fabricatio_novel.commands.writing import _stamped_run_dir, app
 from typer.testing import CliRunner
 
@@ -110,3 +111,8 @@ def test_bench_scan_measures_a_plain_manuscript(tmp_path: Path) -> None:
     assert "FAIL" in result.output
     assert "gated" in result.output
     assert "Gullsx1" in result.output
+
+
+def test_split_skills_flattens_comma_specs_and_dedupes() -> None:
+    """`--skill` specs split on commas, trim, dedupe, and keep the requested order."""
+    assert _split_skills(["b, a", "c", "b", " "]) == ["b", "a", "c"]

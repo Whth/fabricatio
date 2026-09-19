@@ -78,6 +78,7 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
                 "expected_word_count": ctx.expected_word_count,
                 "writing_styles": ctx.writing_styles,
                 "writing_constraints": ctx.writing_constraints,
+                "skills": ctx.skill_section(),
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
                 "cast": ctx.cast,
@@ -170,7 +171,8 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
                     .set_plan(story_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *story_plan.writing_styles])
-                    .set_writing_constraints(story_plan.writing_constraints),
+                    .set_writing_constraints(story_plan.writing_constraints)
+                    .with_skills_from(ctx),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} story(s) for chapter '{ctx.title}'")
         await self.draft_story_spans(ctx, send_to, **kwargs)

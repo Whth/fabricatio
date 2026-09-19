@@ -48,13 +48,12 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
         """Fetch one level's style references through decomposed multi-head queries.
 
         The level's own text (plus the optional query guideline) is decomposed into
-        as many sub-queries as the model proposes; every head is searched
-        independently and the store fuses the per-head rankings with a round-robin
-        fair share, so no single phrasing can dominate the candidate set. Heads
-        beyond the level's limit are dropped — the budget caps documents, so no
-        head past it can earn a slot. Nothing reranks the fused set: fusion already
-        balances the heads, and reranking a set that has already been truncated to
-        the limit could only permute it.
+        as many sub-queries as the model proposes. Every head is searched independently
+        and the store fuses the per-head rankings with a round-robin fair share, so no
+        single phrasing can dominate the candidate set. Heads beyond the level's limit
+        are dropped — the budget caps documents, so no head past it can earn a slot.
+        Nothing reranks the fused set: fusion already balances the heads, and reranking
+        a set that has already been truncated to the limit could only permute it.
 
         An answer with fewer than two heads is not a decomposition, so it is
         discarded for the raw question: the model either restated the input or
@@ -108,7 +107,8 @@ class RAGNovelCompose(NovelCompose, RAGStyleFetch, ABC):
         run retrieves.
         """
         sealed = RagNovelContext.seal(ctx, RagRetrieval(query=self.rag_query, limit=self.rag_limit))
-        docs = await self._fetch_style_docs(sealed.outline, sealed.rag, "the novel", send_to=send_to, **kwargs)
+        source = "\n\n".join(part for part in (sealed.skill_section(), sealed.outline) if part)
+        docs = await self._fetch_style_docs(source, sealed.rag, "the novel", send_to=send_to, **kwargs)
         sealed.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for the novel root")
         return sealed
@@ -199,12 +199,7 @@ class RAGChapterCompose[CTX: ChapterContext](
         await super().prepare_story(ctx, send_to, **kwargs)
         if not isinstance(ctx, RagStoryContext):
             return
-        docs = await self._fetch_style_docs(
-            ctx.description,
-            ctx.rag,
-            f"story '{ctx.title}'",
-            send_to=send_to,
-            **kwargs,
-        )
+        source = "\n\n".join(part for part in (ctx.skill_section(), ctx.description) if part)
+        docs = await self._fetch_style_docs(source, ctx.rag, f"story '{ctx.title}'", send_to=send_to, **kwargs)
         ctx.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")

@@ -23,6 +23,7 @@ dependencies = [
     "fabricatio-improve",
     "fabricatio-judge",
     "fabricatio-rule",
+    "fabricatio-skill",
     "pydantic>=2.11.9",
 ]
 

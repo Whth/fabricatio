@@ -9,6 +9,9 @@ from fabricatio_character.models.character import CharacterCard, CharacterSpan
 from fabricatio_core import logger
 from fabricatio_core.models.generic import Described, JSONList, Titled
 from fabricatio_core.rust import detect_language
+from fabricatio_core.utils import wrap_in_block
+from fabricatio_skill import get_skill_registry
+from fabricatio_skill.config import skill_config
 from pydantic import Field, SerializeAsAny
 
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
@@ -68,6 +71,10 @@ class ContextBase[P: WeightedPlan](
     """The raw novel outline; run-wide constant, copied down every creation chain so each
     planning prompt grounds on the full source text instead of compressed parent descriptions."""
 
+    skill_names: list[str] = Field(default_factory=list)
+    """Names of the skills the user selected for this run; run-wide constant, copied down
+    every creation chain so each element renders the same skills."""
+
     writing_styles: list[str] = Field(default_factory=list)
     """Writing style directives accumulated down the tree: inherited guidance first, this
     element's own plan entry last; RAG reference texts join the same list when enabled.
@@ -126,6 +133,53 @@ class ContextBase[P: WeightedPlan](
         """Set the raw novel outline carried into this element's planning prompts and return self."""
         self.outline = outline
         return self
+
+    def with_skills(self, names: list[str]) -> Self:
+        """Bind the run's selected skill names — resolved through the library's own roots — and return self."""
+        self.skill_names = list(names)
+        return self
+
+    def with_skills_from[Q: WeightedPlan](self, parent: "ContextBase[Q]") -> Self:
+        """Carry the run's skill selection off the parent context so this element renders the same skills."""
+        return self.with_skills(parent.skill_names)
+
+    def skill_references(self) -> list[str]:
+        """The run's selected skills, fetched by name through the process-wide skill library.
+
+        Only the names travel on the context; the bodies stay in the library, which
+        parses a skill once per process and hands the same text to every walk, so a run
+        renders byte-identical prompts and a tree rebuilt in a fresh process re-reads
+        exactly the files the run named. A name that no longer resolves is reported by
+        the library and dropped from the section instead of crashing the walk that
+        renders it. The references come back in name order rather than the order the
+        user assigned the skills, so spelling the selection ``-s b -s a`` renders the
+        same bytes as ``-s a -s b`` and the provider's prefix cache holds across either
+        spelling.
+        """
+        if not self.skill_names:
+            return []
+        library = get_skill_registry()
+        # Roots are the library's own: the cross-client dirs plus ``[ext.skill] extra_skill_dirs``.
+        # The library reports the names it could not resolve; the run carries on with the rest.
+        library.load_by_name(self.skill_names, None, skill_config.extra_skill_dirs)
+        skills = sorted(library.get_many(self.skill_names), key=lambda skill: skill.name)
+        return [skill.content.strip() for skill in skills]
+
+    def skill_section(self) -> str:
+        """The run's selected skills as the one byte-stable section every prompt that shows them renders.
+
+        The running prefix and the planning and retrieval prompts build the section from these
+        same bytes, so a run's calls to one model lead with an identical head and the provider's
+        prefix cache carries over from one call to the next. An empty selection renders an empty
+        string, which callers guard on.
+        """
+        references = self.skill_references()
+        if not references:
+            return ""
+        return wrap_in_block(
+            "The user selected the skills below for this novel; follow them throughout.\n\n" + "\n\n".join(references),
+            title="Novel Skills",
+        )
 
     def set_writing_styles(self, writing_styles: list[str]) -> Self:
         """Replace this element's accumulated writing style entries and return self."""

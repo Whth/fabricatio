@@ -73,6 +73,7 @@ class StoryCompose[CTX: StoryContext](SceneCompose[SceneContext], ABC):
                 "expected_word_count": ctx.expected_word_count,
                 "writing_styles": ctx.writing_styles,
                 "writing_constraints": ctx.writing_constraints,
+                "skills": ctx.skill_section(),
                 "language": ctx.language,
                 "characters": ctx.dump_characters(),
                 "cast": ctx.cast,
@@ -109,7 +110,8 @@ class StoryCompose[CTX: StoryContext](SceneCompose[SceneContext], ABC):
                     .set_plan(scene_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *scene_plan.writing_styles])
-                    .set_writing_constraints(scene_plan.writing_constraints),
+                    .set_writing_constraints(scene_plan.writing_constraints)
+                    .with_skills_from(ctx),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} scene(s) for story '{ctx.title}'")
         return True

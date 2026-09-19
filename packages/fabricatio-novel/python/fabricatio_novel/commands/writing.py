@@ -19,7 +19,7 @@ from fabricatio_novel.benchmark import (
     score_run,
 )
 from fabricatio_novel.cli import app
-from fabricatio_novel.commands._helpers import _resolve_outline
+from fabricatio_novel.commands._helpers import _resolve_outline, _split_skills
 from fabricatio_novel.workflows.novel import (
     DebugNovelWorkflow,
     RagDebugNovelWorkflow,
@@ -121,6 +121,15 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
     ),
+    skills: list[str] = typer.Option(
+        [],
+        "--skill",
+        "-s",
+        help=(
+            "Skill name from the fabricatio-skill library to use for this novel; repeat the option or pass a "
+            "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
+        ),
+    ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
     font: Path | None = typer.Option(
         None,
@@ -163,6 +172,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         format=export_format.value,
         font=font,
         cover=cover,
+        skills=_split_skills(skills),
         send_to=send_to,
     )
     artifact = _run_workflow(task, DebugNovelWorkflow, "write")
@@ -199,6 +209,15 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         False,
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    skills: list[str] = typer.Option(
+        [],
+        "--skill",
+        "-s",
+        help=(
+            "Skill name from the fabricatio-skill library to use for this novel; repeat the option or pass a "
+            "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
+        ),
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
     rag_query: str | None = typer.Option(
@@ -259,6 +278,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         format=export_format.value,
         font=font,
         cover=cover,
+        skills=_split_skills(skills),
         send_to=send_to,
     )
     artifact = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
@@ -295,6 +315,15 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         False,
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    skills: list[str] = typer.Option(
+        [],
+        "--skill",
+        "-s",
+        help=(
+            "Skill name from the fabricatio-skill library to use for this novel; repeat the option or pass a "
+            "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
+        ),
     ),
     send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
     rag_query: str | None = typer.Option(
@@ -370,6 +399,7 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         format=export_format.value,
         font=font,
         cover=cover,
+        skills=_split_skills(skills),
         send_to=send_to,
         illustration_choose_loras=True if choose_loras else None,
         illustration_judge=True if judge else None,
