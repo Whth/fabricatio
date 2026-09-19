@@ -441,53 +441,46 @@ class TestUseSkill:
         result = await role.consult_skills("q", names=["gathered"], select=False, distill=False)
         assert result == "# Gathered\nreal body."
 
-    def test_gather_skills_uses_the_cross_client_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
-        """Without dirs, by-name gathering resolves through the cross-client roots (`~` expanded)."""
+    def test_gather_skills_uses_the_project_local_root(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
+        """Without dirs, by-name gathering resolves through the project-local `.agents/skills` root."""
         from pathlib import Path
 
         base = Path(str(tmp_path))
-        home, workdir = base / "home", base / "workdir"
-        home.mkdir()
-        workdir.mkdir()
-        skill_dir = home / ".agents" / "skills" / "tilde_one"
+        workdir = base / "workdir"
+        skill_dir = workdir / ".agents" / "skills" / "local_one"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: tilde_one\ndescription: two\n---\n# Two\ntwo.",
+            "---\nname: local_one\ndescription: one\n---\n# One\none.",
             encoding="utf-8",
             newline="\n",
         )
-        monkeypatch.setenv("USERPROFILE", str(home))
-        monkeypatch.setenv("HOME", str(home))
         monkeypatch.chdir(workdir)
 
         role = SkillRole(name="skill")
-        role.gather_skills(["tilde_one"])
+        role.gather_skills(["local_one"])
 
-        assert [s.name for s in role.skills] == ["tilde_one"]
+        assert [s.name for s in role.skills] == ["local_one"]
 
-    @pytest.mark.parametrize("root", [".agents/skills", "~/.agents/skills"])
-    def test_cross_client_dirs_are_loaded(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object, root: str) -> None:
-        """Both cross-client roots load: the project dir from the cwd, `~` from the home."""
+    def test_project_local_root_is_loaded(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
+        """The project-local `.agents/skills` root is searched from the working directory.
+
+        The user-level `~/.agents/skills` root is resolved by the platform, so it
+        cannot be pointed at a fixture; the Rust `expand_home` test pins that join.
+        """
         from pathlib import Path
 
         base = Path(str(tmp_path))
-        home, workdir = base / "home", base / "workdir"
-        home.mkdir()
-        workdir.mkdir()
-        owner = home if root.startswith("~") else workdir
-        skill_dir = owner / root.removeprefix("~").removeprefix("/") / "conv"
+        workdir = base / "workdir"
+        skill_dir = workdir / ".agents" / "skills" / "conv"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
             "---\nname: conv\ndescription: C\n---\n# Conv\nbody.",
             encoding="utf-8",
             newline="\n",
         )
-        monkeypatch.setenv("USERPROFILE", str(home))
-        monkeypatch.setenv("HOME", str(home))
         monkeypatch.chdir(workdir)
 
-        registry = SkillRegistry()
-        assert registry.load_skill_dirs() == ["conv"]
+        assert "conv" in SkillRegistry().load_skill_dirs()
 
     def test_client_specific_dirs_stay_out_of_the_library(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: object
@@ -496,8 +489,7 @@ class TestUseSkill:
         from pathlib import Path
 
         base = Path(str(tmp_path))
-        home, workdir = base / "home", base / "workdir"
-        home.mkdir()
+        workdir = base / "workdir"
         workdir.mkdir()
         for root, name in [
             (".agents/skills", "conv"),
@@ -511,12 +503,13 @@ class TestUseSkill:
                 encoding="utf-8",
                 newline="\n",
             )
-        monkeypatch.setenv("USERPROFILE", str(home))
-        monkeypatch.setenv("HOME", str(home))
         monkeypatch.chdir(workdir)
 
-        registry = SkillRegistry()
-        assert registry.load_skill_dirs() == ["conv"]
+        loaded = SkillRegistry().load_skill_dirs()
+
+        assert "conv" in loaded
+        assert "claude_only" not in loaded
+        assert "plain_only" not in loaded
 
     def test_extra_skill_dirs_load_after_the_cross_client_roots(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: object
@@ -525,8 +518,7 @@ class TestUseSkill:
         from pathlib import Path
 
         base = Path(str(tmp_path))
-        home, workdir, extra = base / "home", base / "workdir", base / "extra"
-        home.mkdir()
+        workdir, extra = base / "workdir", base / "extra"
         workdir.mkdir()
         extra.mkdir()
         for root, name, body in [
@@ -540,14 +532,12 @@ class TestUseSkill:
                 encoding="utf-8",
                 newline="\n",
             )
-        monkeypatch.setenv("USERPROFILE", str(home))
-        monkeypatch.setenv("HOME", str(home))
         monkeypatch.chdir(workdir)
 
         registry = SkillRegistry()
         loaded = registry.load_skill_dirs([str(extra / "standard_conv")])
 
-        assert loaded == ["standard_conv"]
+        assert "standard_conv" in loaded
         skill = registry.get("standard_conv")
         assert skill is not None
         assert skill.content == "from the standard dir"

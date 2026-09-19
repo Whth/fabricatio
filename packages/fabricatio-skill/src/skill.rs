@@ -1,3 +1,4 @@
+use directories_next::BaseDirs;
 use fabricatio_logger::{info, warn};
 use parking_lot::Mutex;
 use pyo3::exceptions::PyFileNotFoundError;
@@ -264,32 +265,21 @@ const CROSS_CLIENT_SKILL_DIRS: [&str; 2] = [".agents/skills", "~/.agents/skills"
 
 /// Expand a leading `~` to the current user's home directory.
 ///
-/// Mirrors `pathlib`'s expansion so a configured root means the same thing on
-/// both sides of the boundary: `USERPROFILE` wins, then `HOME`, then the
-/// `HOMEDRIVE` + `HOMEPATH` pair Windows shells export. `None` when `raw` has
-/// no leading `~`, names another user (`~other`), or no home is known.
+/// The home comes from the platform ([`BaseDirs::home_dir`]) — the same lookup
+/// the configuration side resolves the roaming profile with — so `~` means one
+/// thing across the workspace: the profile folder on Windows, `$HOME`
+/// elsewhere. `None` when `raw` has no leading `~` (nothing to expand), names
+/// another user (`~other`), or the platform reports no home directory.
 fn expand_home(raw: &str) -> Option<PathBuf> {
     let rest = raw.strip_prefix('~')?;
     if !rest.is_empty() && !rest.starts_with(['/', '\\']) {
         return None;
     }
-    let home = ["USERPROFILE", "HOME"]
-        .into_iter()
-        .find_map(|var| {
-            std::env::var_os(var)
-                .filter(|value| !value.is_empty())
-                .map(PathBuf::from)
-        })
-        .or_else(|| {
-            let drive = std::env::var_os("HOMEDRIVE").filter(|value| !value.is_empty())?;
-            let path = std::env::var_os("HOMEPATH").filter(|value| !value.is_empty())?;
-            let mut home = PathBuf::from(drive);
-            home.push(path);
-            Some(home)
-        })?;
+    let base = BaseDirs::new()?;
+    let home = base.home_dir();
     let rest = rest.trim_start_matches(['/', '\\']);
     Some(if rest.is_empty() {
-        home
+        home.to_path_buf()
     } else {
         home.join(rest)
     })
@@ -845,6 +835,20 @@ mod tests {
         for raw in [".agents/skills", "skills", "/abs/skills", "~other/skills"] {
             assert!(expand_home(raw).is_none(), "raw: {raw}");
         }
+    }
+
+    #[test]
+    fn expand_home_joins_onto_the_platform_home_directory() {
+        let base = BaseDirs::new().expect("the platform reports base dirs");
+        let home = base.home_dir();
+
+        assert_eq!(expand_home("~"), Some(home.to_path_buf()));
+        assert_eq!(expand_home("~/"), Some(home.to_path_buf()));
+        assert_eq!(
+            expand_home("~/.agents/skills"),
+            Some(home.join(".agents/skills"))
+        );
+        assert_eq!(expand_home("~\\skills"), Some(home.join("skills")));
     }
 
     #[test]
