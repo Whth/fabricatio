@@ -6,9 +6,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from fabricatio_character.models.character import CharacterCard
-from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog
-from fabricatio_novel.models.context.novel import NovelContext
+from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -97,13 +97,15 @@ def benchmark_run(
     *,
     name: str = "20260101-000000",
     chapter_file: bool = True,
+    novel_docs: tuple[str, ...] = (),
 ) -> Path:
     """Persist a synthetic staged run for the benchmark tests and return its directory.
 
     The plan stage carries planned styles only — no retrieved documents, no
     composed prose — like the real planning snapshot. The prose stage carries
-    the documents on each story's ``retrieved_styles`` behind a RAG seal, and
-    the scorecard restores the seal by reloading the snapshot as ``RagNovelContext``.
+    the documents on each story's ``retrieved_styles`` behind a RAG seal, plus
+    the novel's own ``novel_docs`` on the sealed root, and the scorecard
+    restores the seals by reloading the snapshot as ``RagNovelContext``.
     """
     run_dir = root / name
     plan_stage = run_dir / "stage_06_story_plans"
@@ -119,7 +121,14 @@ def benchmark_run(
         )
         for spec in specs:
             chapter.add_context(_story_context(spec, with_docs=with_docs, with_content=with_content))
-        novel.add_context(chapter)
+        if novel_docs and with_docs:
+            # Seal the root with its chapter already in place, then promote the
+            # chapter — the order the staged pipeline seals at, which leaves the
+            # snapshot reloading as RagNovelContext.
+            novel = RagNovelContext.seal(novel, RagRetrieval()).add_retrieved_styles(list(novel_docs))
+            novel.add_context(RagChapterContext.model_validate(vars(chapter)))
+        else:
+            novel.add_context(chapter)
         novel.persist(stage)
     # Fixed mtimes keep the measured duration stable: run-to-run timing noise would
     # otherwise show up as a regression in every scorecard comparison.

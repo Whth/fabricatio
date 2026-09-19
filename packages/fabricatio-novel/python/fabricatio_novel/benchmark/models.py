@@ -471,19 +471,26 @@ class ProseScore(BaseModel):
 
 
 class ChannelScore(BaseModel):
-    """The RAG reference channel of the run: the documents each story retrieved, read from the stories' retrieved styles."""
+    """The RAG reference channel of the run: the documents each level retrieved, read from the retrieved styles."""
 
     model_config = ConfigDict(frozen=True)
 
+    novel_docs: int = 0
+    """Documents the novel retrieved from its outline; ``0`` outside a RAG run."""
+    novel_doc_chars: int = 0
+    """Total size of the novel's retrieved documents."""
     docs_per_story: list[int] = Field(default_factory=list)
     doc_chars: int = 0
 
     @classmethod
     def of(cls, novel: NovelContext) -> Self:
-        """Measure the reference channel: how many documents each story got, and their total size."""
+        """Measure the reference channel: the novel's own documents, then how many each story got."""
+        novel_documents = list(novel.retrieved_styles) if isinstance(novel, RagNovelContext) else []
         stories = [story for chapter in novel.child_contexts for story in chapter.child_contexts]
         documents = [list(story.retrieved_styles) if isinstance(story, RagStoryContext) else [] for story in stories]
         return cls(
+            novel_docs=len(novel_documents),
+            novel_doc_chars=sum(len(doc) for doc in novel_documents),
             docs_per_story=[len(docs) for docs in documents],
             doc_chars=sum(len(doc) for docs in documents for doc in docs),
         )

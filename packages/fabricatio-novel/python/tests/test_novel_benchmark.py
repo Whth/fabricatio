@@ -186,6 +186,18 @@ def test_reference_documents_are_counted(tmp_path: Path) -> None:
     assert card.passed
 
 
+def test_novel_reference_documents_are_counted(tmp_path: Path) -> None:
+    """The channel row reports the novel's own documents before the per-story tally, and hides them without any."""
+    document = "The lighthouse ledger lists every ship that passed the point."
+    card = score_run(benchmark_run(tmp_path, _story(), novel_docs=(document,)))
+    plain = score_run(benchmark_run(tmp_path, _story(), name="20260101-111111"))
+
+    assert (card.channel.novel_docs, card.channel.novel_doc_chars) == (1, len(document))
+    assert card.channel.docs_per_story == [0]
+    assert f"channel novel 1 doc(s) {len(document)} chars, [0] docs/story, 0 chars" in render_scorecard(card)
+    assert "channel [0] docs/story, 0 chars" in render_scorecard(plain)
+
+
 def test_snapshot_reload_dispatches_by_data_shape(tmp_path: Path) -> None:
     """Snapshots whose stories carry retrieval settings reload rag-typed; plain snapshots stay plain."""
     run_dir = benchmark_run(tmp_path, _story())
