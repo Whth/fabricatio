@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from fabricatio import Action, Event, Role, Task, WorkFlow, logger
-from fabricatio_skill import UseSkill, scan_skills
+from fabricatio_skill import UseSkill
 
 QUESTION = "How do I spawn concurrent tasks in tokio?"
 
@@ -49,7 +49,7 @@ class ConsultSkills(Action, UseSkill):
     skill_dir: str  # gather from here; without an explicit gather, ./skills and ./extra/skills auto-load
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        self.add_skills(scan_skills(self.skill_dir))  # idempotent registry fill
+        self.scan_skills(self.skill_dir)  # one in-memory copy per skill; idempotent
         question = task_input.briefing
         knowledge = await self.consult_skills(question)  # select (briefings only) -> distill (picked bodies)
         if not knowledge:

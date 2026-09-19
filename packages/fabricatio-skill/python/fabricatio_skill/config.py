@@ -17,11 +17,11 @@ class SkillConfig:
 
     prefilter_threshold: int = 100
     """Pool size above which ``select_skills`` keyword-prefilters the pool with the
-    Rust ``search_skills`` before the LLM stage (0 disables the prefilter)."""
+    library's ``SkillRegistry.search`` before the LLM stage (0 disables the prefilter)."""
 
     default_skill_dirs: list[str] = field(default_factory=lambda: ["skills", "extra/skills", "~/.agents/skills"])
     """Default directories scanned on first consult, and the roots used to
-    resolve by-name gathering (``gather_skills``/``fetch_skills``). ``~`` is
+    resolve by-name gathering (``gather_skills``/``scan_skills``). ``~`` is
     expanded at use time; the last entry is the user-level agent-skills
     library (``<name>/SKILL.md`` convention)."""
 

@@ -1337,11 +1337,11 @@ fabricatio-skill
    * - ``prefilter_threshold``
      - integer
      - ``100``
-     - Pool size above which selection keyword-prefilters with the Rust ``search_skills`` before the LLM stage (0 disables).
+     - Pool size above which selection keyword-prefilters with ``SkillRegistry.search`` before the LLM stage (0 disables).
    * - ``default_skill_dirs``
      - list
-     - ``["skills", "extra/skills"]``
-     - Directories scanned for skill files.
+     - ``["skills", "extra/skills", "~/.agents/skills"]``
+     - Default directories auto-scanned on first consult, and the lookup roots for by-name gathering (``~`` is expanded at use time).
 
 fabricatio-tagging
 ^^^^^^^^^^^^^^^^^^

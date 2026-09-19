@@ -7,10 +7,6 @@ __all__ = [
     "Skill",
     "SkillMeta",
     "SkillRegistry",
-    "fetch_skill",
-    "get_skill",
-    "scan_skills",
-    "search_skills",
 ]
 
 @typing.final
@@ -59,78 +55,98 @@ class SkillMeta:
 
 @typing.final
 class SkillRegistry:
-    r"""Process-wide registry that owns all loaded ``Skill`` objects.
+    r"""The process-wide skill library: one in-memory copy of every loaded skill.
 
     Python roles store skill **names** (plain ``str``) and resolve real
-    ``Skill`` objects through this registry at runtime.
+    ``Skill`` objects through this library at runtime. ``instance()`` hands out
+    the library itself — every handle shares the same store, so a skill file is
+    parsed once per process — and the loaders return the names they made
+    available (a cached name is reported, never read again).
     """
-    def __new__(cls) -> SkillRegistry: ...
-    def register(self, skills: typing.Sequence[Skill]) -> builtins.int:
-        r"""Register skills. Returns count of newly added entries."""
-    def unregister(self, names: typing.Sequence[builtins.str]) -> builtins.int:
-        r"""Remove skills by name. Returns count removed."""
-    def clear(self) -> None:
-        r"""Remove all registered skills."""
+    @staticmethod
+    def instance() -> SkillRegistry:
+        r"""The process-wide library. Every handle shares the same in-memory skills."""
+    def load_scanned(self, roots: typing.Sequence[builtins.str]) -> builtins.list[builtins.str]:
+        r"""Load every `.md` file found under each root into the library.
+
+        Walks each root recursively and parses YAML frontmatter plus markdown
+        body (`<root>/<name>/SKILL.md` and flat `<root>/<name>.md` both match);
+        a name already in the library keeps its first copy.
+
+        Args:
+            roots: Directories to scan.
+
+        Returns:
+            The names those roots provide, ordered. A name already in the library
+            is reported too, without its file being read again.
+
+        Raises:
+            FileNotFoundError: One of the roots is not an existing directory
+                (nothing is loaded in that case).
+        """
+    def load_by_name(
+        self, names: typing.Sequence[builtins.str], roots: typing.Sequence[builtins.str]
+    ) -> builtins.list[builtins.str]:
+        r"""Resolve each name through `roots` and load the hits into the library.
+
+        Tries each root in order — `<root>/<name>/SKILL.md` first, then
+        `<root>/<name>.md` (direct path reads, no directory walk). Names already
+        in the library keep their first copy and are not read again; names no
+        root resolves are skipped.
+
+        Args:
+            names: Skill names to resolve; duplicates collapse.
+            roots: Lookup roots, tried in order.
+
+        Returns:
+            The names that are now in the library, in argument order. A name
+            already in the library is reported too, without being read again.
+        """
+    def add(self, skills: typing.Sequence[Skill]) -> SkillRegistry:
+        r"""Merge already-parsed skills into the library; the first copy of a name wins.
+
+        Args:
+            skills: Skill objects to add.
+
+        Returns:
+            The library, for chaining.
+        """
+    def remove(self, names: typing.Sequence[builtins.str]) -> SkillRegistry:
+        r"""Drop the named skills, so their files are read again on the next load.
+
+        Args:
+            names: Skill names to drop.
+
+        Returns:
+            The library, for chaining.
+        """
+    def clear(self) -> SkillRegistry:
+        r"""Drop every loaded skill.
+
+        Returns:
+            The library, for chaining.
+        """
     def get(self, name: builtins.str) -> Skill | None:
         r"""Return a skill by exact name, or ``None``."""
     def get_many(self, names: typing.Sequence[builtins.str]) -> builtins.list[Skill]:
-        r"""Return skills for the given names, silently skipping missing."""
+        r"""Return skills for the given names, silently skipping missing ones."""
     def all(self) -> builtins.list[Skill]:
-        r"""Return every registered skill."""
+        r"""Return every loaded skill, ordered by name."""
     def names(self) -> builtins.list[builtins.str]:
-        r"""Return every registered skill name."""
+        r"""Return every loaded skill name, ordered."""
+    def search(
+        self, query: builtins.str, names: typing.Sequence[builtins.str] | None = None, in_content: builtins.bool = False
+    ) -> builtins.list[Skill]:
+        r"""Search the library by keyword against name, tags, description, and content.
+
+        Args:
+            query: Search term (case-insensitive).
+            names: Restrict the search to these skill names. None searches every
+                loaded skill.
+            in_content: Whether to also search within the skill content body.
+
+        Returns:
+            Matching skills, ordered by relevance (name/tag match first).
+        """
     def __contains__(self, name: builtins.str) -> builtins.bool: ...
     def __len__(self) -> builtins.int: ...
-
-def fetch_skill(root: builtins.str, name: builtins.str) -> Skill | None:
-    r"""Fetch a single skill by name from a skill directory without scanning.
-
-    Tries the agent-skills convention `<root>/<name>/SKILL.md` first, then the
-    flat convention `<root>/<name>.md`. Direct path reads only — no directory walk.
-
-    Args:
-        root: Skill directory root to resolve the name against.
-        name: Skill name to fetch (a plain name; path separators are rejected).
-
-    Returns:
-        The parsed Skill, or None when no convention path holds a readable
-        `.md` file for this name.
-    """
-
-def get_skill(name: builtins.str, skills: typing.Sequence[Skill]) -> Skill | None:
-    r"""Get a skill by exact name.
-
-    Args:
-        name: Exact skill name to look up.
-        skills: List of skills to search.
-
-    Returns:
-        The matching Skill, or None if not found.
-    """
-
-def scan_skills(path: builtins.str) -> builtins.list[Skill]:
-    r"""Scan a directory for `.md` skill files and return parsed Skill objects.
-
-    Walks the directory recursively, reads every `.md` file, parses YAML
-    frontmatter for metadata, and collects the markdown body as content.
-
-    Args:
-        path: Root directory to scan.
-
-    Returns:
-        List of Skill objects discovered from the directory.
-    """
-
-def search_skills(
-    query: builtins.str, skills: typing.Sequence[Skill], in_content: builtins.bool = False
-) -> builtins.list[Skill]:
-    r"""Search skills by keyword matching against name, description, tags, and content.
-
-    Args:
-        query: Search term (case-insensitive).
-        skills: List of skills to search through.
-        in_content: Whether to also search within the skill content body.
-
-    Returns:
-        Skills matching the query, ordered by relevance (name/tag match first).
-    """

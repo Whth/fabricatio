@@ -53,10 +53,10 @@ later prompt.
 
 - **Markdown-native skills** — author skills as `.md` files with YAML frontmatter; no schema lock-in beyond three metadata keys.
 - **Two library layouts** — per root, skills resolve either by the agent-skills convention (`<name>/SKILL.md`) or as flat files (`<name>.md`); the default roots include the user-level `~/.agents/skills` library.
-- **By-name gathering** — `gather_skills(names)` resolves skills straight from the lookup roots by name (direct path reads, no corpus scan) and registers them for consultation.
-- **Progressive pipeline** — Level 0 (Rust): file scanning (`scan_skills`), by-name resolution (`fetch_skill`), keyword search (`search_skills`, also the deterministic pre-filter for huge libraries); Level 1 (Python): LLM-powered relevance selection (`select_skills`, delegated to the framework `UseLLM.achoose` chooser over skill briefings — set-validated, auto-retried, SMOL tier, capped) and essence distillation (`distill_skills`); Level 2: the composed `consult_skills` pipeline (select -> distill -> consulted knowledge). Consultation only — answering stays in your Action.
+- **By-name gathering** — `gather_skills(names, dirs=None)` resolves skills straight from the lookup roots by name (direct path reads, no corpus scan), loads them into the library, and tracks them on the role.
+- **Progressive pipeline** — Level 0 (library): the process-wide `SkillRegistry` — recursive scanning (`load_scanned`), by-name resolution (`load_by_name`), keyword search (`SkillRegistry.search`, also the deterministic pre-filter for huge libraries); Level 1 (Python): LLM-powered relevance selection (`select_skills`, delegated to the framework `UseLLM.achoose` chooser over skill briefings — set-validated, auto-retried, SMOL tier, capped) and essence distillation (`distill_skills`); Level 2: the composed `consult_skills` pipeline (select -> distill -> consulted knowledge). Consultation only — answering stays in your Action.
 - **Progressive disclosure dial** — every call trades fidelity for tokens via `select=` / `distill=` / forced `names=`.
-- **Lightweight composition** — heavy `Skill` objects live in a process-wide `SkillRegistry`; your roles/actions carry only a list of name handles.
+- **Lightweight composition** — heavy `Skill` objects live in the process-wide library (`SkillRegistry.instance()`, reachable from a role as `role.skill_library`); your roles/actions carry only a list of name handles, and the loaders (`scan_skills`, `gather_skills`, `add_skills`) chain on the role.
 - **Rust-backed performance** — parsing, lookup, and keyword matching are PyO3 (`fabricatio_skill.rust`).
 
 ## Usage
@@ -160,21 +160,24 @@ else:
   its **briefing** (`name: description`; bodies never enter this prompt) and
   asks for a JSON array of catalog names. The reply is parsed as a set:
   unknown names are ignored, duplicates collapse, unparseable replies are
-  retried automatically (up to 3 attempts). A deterministic Rust keyword
-  search (`search_skills`) pre-filters the pool first when it exceeds
-  `prefilter_threshold`, and the result is trimmed to `max_selected_skills` (or the per-call `k`).
+  retried automatically (up to 3 attempts). A deterministic keyword search
+  (`SkillRegistry.search(..., names=<the role's pool>)`) pre-filters the pool
+  first when it exceeds `prefilter_threshold`, and the result is trimmed to
+  `max_selected_skills` (or the per-call `k`).
 - *DISTILL* — only the selected skills' **bodies** enter this prompt, with the
   instruction to extract just the parts relevant to the question and discard
   everything else.
 
 ### 4. Explicit loading — custom directories & the registry
 
-Skip the auto-load by registering skills yourself; `add_skills` is idempotent,
-so calling it at the top of `_execute` against a custom directory is safe:
+Skip the auto-load by loading skills yourself. The loaders chain, and re-running
+one is safe: a name already in the library keeps its first copy, and the loader
+reports it again rather than re-reading the file, so the role tracks it either
+way:
 
 ```python
 from fabricatio import Action, Task
-from fabricatio_skill import UseSkill, scan_skills
+from fabricatio_skill import UseSkill
 
 
 class AnswerWithTeamSkills(Action, UseSkill):
@@ -183,10 +186,13 @@ class AnswerWithTeamSkills(Action, UseSkill):
     output_key: str = "task_output"
 
     async def _execute(self, task_input: Task[str], **_) -> str:
-        self.add_skills(scan_skills("team-skills"))      # explicit library; idempotent
+        # scan the custom root, then resolve two names against it
+        self.scan_skills("team-skills").gather_skills(["security", "review"], dirs=["team-skills"])
         knowledge = await self.consult_skills(task_input.briefing)
         ...
 ```
+
+`add_skills(skills)` registers `Skill` objects you parsed yourself.
 
 ### 5. Gather directly by name
 
@@ -215,20 +221,33 @@ class AnswerWithNamedSkills(Action, UseSkill):
 ```
 
 Pass `dirs=[...]` to resolve against custom libraries instead of the configured
-roots (`~` is expanded); `fetch_skills(names, dirs=...)` returns the resolved
-`Skill` objects without touching a role.
+roots (`~` is expanded). Without a role, the same resolution goes straight
+through the library: `load_by_name` returns the names it made available.
 
-The low-level pieces are also exposed for custom pipelines:
+On a role or action, the library is the `skill_library` property, so
+`role.skill_library.search("async", names=role.skill_names)` searches exactly
+the pool the role consults.
+
+The library is also exposed for framework-free pipelines — get the singleton
+via `SkillRegistry.instance()` (the constructor raises `TypeError`):
 
 ```python
-from fabricatio_skill import fetch_skill, get_skill_registry, scan_skills, search_skills
+from fabricatio_skill import SkillRegistry
 
-skills = scan_skills("skills")            # Rust: parse all .md files -> [Skill]
-skill = fetch_skill("skills", "rust-async")  # Rust: resolve one name (no walk)
-registry = get_skill_registry()           # process-wide store (Rust)
-registry.register(skills)
-hits = search_skills("async", skills)     # Rust: keyword search over metadata
+library = SkillRegistry.instance()                       # process-wide: one copy per name
+scanned = library.load_scanned(["skills"])               # parse every .md file under a root
+wanted = library.load_by_name(["rust-async"], ["skills"])  # resolve by name (no walk)
+library.search("async", names=wanted, in_content=True)   # keyword search over that pool
+library.get("rust-async")                                # one loaded skill, or None
+library.remove(["rust-async"])                           # free the name; next load re-reads it
 ```
+
+Both loaders return the names they made available — a name already in the
+library is reported too, never read a second time — which is how the role-level
+`scan_skills`/`gather_skills` track what they loaded. `load_scanned` is strict
+(a missing root raises `FileNotFoundError`), while `load_by_name` is lenient
+(unresolved names are skipped); `add`, `remove`, and `clear` return the library
+for chaining.
 
 ## Configuration
 
@@ -251,7 +270,7 @@ default_skill_dirs = ["skills", "extra/skills", "~/.agents/skills"]
 |---|---|---|---|
 | `distill_skills_template` | `str` | `"built-in/distill_skills"` | Template name for the LLM prompt that distills skill content to its essence. |
 | `max_selected_skills` | `int` | `8` | Maximum number of skills the LLM may select per call (`0` = unlimited). Caps how many bodies reach distillation. |
-| `prefilter_threshold` | `int` | `100` | Pool size above which selection keyword-prefilters with the Rust `search_skills` before the LLM stage (`0` disables the prefilter). |
+| `prefilter_threshold` | `int` | `100` | Pool size above which selection keyword-prefilters with the library's `SkillRegistry.search` before the LLM stage (`0` disables the prefilter). |
 | `default_skill_dirs` | `List[str]` | `["skills", "extra/skills", "~/.agents/skills"]` | Default directories auto-scanned on first consult, and the lookup roots for by-name gathering (`~` is expanded at use time). |
 
 Access at runtime: `from fabricatio_skill.config import skill_config`.

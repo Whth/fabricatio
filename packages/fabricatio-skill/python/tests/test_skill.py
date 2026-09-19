@@ -1,18 +1,27 @@
 """Tests for the skill system."""
 
+from collections.abc import Iterator
 from dataclasses import replace
 
 import fabricatio_skill.capabilities.skill as skill_module
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
-from fabricatio_skill.capabilities.skill import UseSkill, fetch_skills
+from fabricatio_skill.capabilities.skill import UseSkill
 from fabricatio_skill.config import SkillConfig
-from fabricatio_skill.models.skill import get_skill_registry
-from fabricatio_skill.rust import Skill, SkillMeta, fetch_skill, get_skill, scan_skills, search_skills
+from fabricatio_skill.rust import Skill, SkillMeta, SkillRegistry
 
 
 class SkillRole(LLMTestRole, UseSkill):
     """Test role that combines LLMTestRole with UseSkill for testing."""
+
+
+@pytest.fixture(autouse=True)
+def _clean_library() -> Iterator[None]:
+    """Run every test against an empty process-wide library."""
+    library = SkillRegistry.instance()
+    library.clear()
+    yield
+    library.clear()
 
 
 # ── Rust-level tests ─────────────────────────────────────────────────
@@ -56,8 +65,8 @@ class TestSkillRust:
         skill = Skill(name="test", description="", tags=[], content="x", path="t.md")
         assert "test" in repr(skill)
 
-    def test_scan_skills(self, tmp_path: object) -> None:
-        """Test scanning a directory for skill files."""
+    def test_load_scanned_reads_markdown_files(self, tmp_path: object) -> None:
+        """Recursive scan parses frontmatter and skips non-markdown files."""
         from pathlib import Path
 
         skill_dir = Path(str(tmp_path)) / "skills"
@@ -74,78 +83,79 @@ class TestSkillRust:
         (skill_dir / "plain.md").write_text("# Plain\nJust content.", encoding="utf-8")
         (skill_dir / "notes.txt").write_text("ignored", encoding="utf-8")
 
-        skills = scan_skills(str(skill_dir))
-        assert len(skills) == 3
+        loaded = SkillRegistry.instance().load_scanned([str(skill_dir)])
 
-        names = {s.name for s in skills}
-        assert "code_review" in names
-        assert "security" in names
-        assert "plain" in names
+        assert set(loaded) == {"code_review", "security", "plain"}
 
-    def test_scan_skills_not_found(self) -> None:
-        """Test scanning a non-existent directory raises error."""
+    def test_load_scanned_missing_root_raises(self) -> None:
+        """A missing root raises and loads nothing."""
         with pytest.raises(FileNotFoundError):
-            scan_skills("/nonexistent/path")
+            SkillRegistry.instance().load_scanned(["/nonexistent/path"])
 
-    def test_search_skills(self) -> None:
-        """Test keyword-based skill search."""
-        skills = [
-            Skill(
-                name="code_review",
-                description="Review code quality",
-                tags=["code", "review"],
-                content="Check.",
-                path="a.md",
-            ),
-            Skill(
-                name="security",
-                description="Security audit",
-                tags=["security", "audit"],
-                content="Vulns.",
-                path="b.md",
-            ),
-            Skill(
-                name="performance",
-                description="Performance optimization",
-                tags=["perf"],
-                content="Speed.",
-                path="c.md",
-            ),
-        ]
+    def test_search_ranks_name_match_first(self) -> None:
+        """Keyword search over loaded skills; a name hit outranks a description hit."""
+        library = SkillRegistry.instance().add(
+            [
+                Skill(
+                    name="code_review",
+                    description="Review code quality",
+                    tags=["code", "review"],
+                    content="Check.",
+                    path="a.md",
+                ),
+                Skill(
+                    name="security",
+                    description="Security audit",
+                    tags=["security", "audit"],
+                    content="Vulns.",
+                    path="b.md",
+                ),
+                Skill(
+                    name="performance",
+                    description="Performance optimization",
+                    tags=["perf"],
+                    content="Speed.",
+                    path="c.md",
+                ),
+            ]
+        )
 
-        results = search_skills("security", skills)
-        assert len(results) >= 1
+        results = library.search("security")
         assert results[0].name == "security"
 
-        results = search_skills("quality", skills)
+        results = library.search("quality")
         assert any(s.name == "code_review" for s in results)
 
-    def test_search_skills_in_content(self) -> None:
-        """Test content-level search."""
-        skills = [
-            Skill(name="a", description="", tags=[], content="SQL injection prevention guide", path="a.md"),
-            Skill(name="b", description="", tags=[], content="Performance tuning tips", path="b.md"),
-        ]
+    def test_search_in_content_gate(self) -> None:
+        """``in_content`` decides whether skill bodies are searched."""
+        library = SkillRegistry.instance().add(
+            [
+                Skill(name="a", description="", tags=[], content="SQL injection prevention guide", path="a.md"),
+                Skill(name="b", description="", tags=[], content="Performance tuning tips", path="b.md"),
+            ]
+        )
 
-        results = search_skills("injection", skills, in_content=True)
-        assert len(results) == 1
-        assert results[0].name == "a"
+        results = library.search("injection", in_content=True)
+        assert [s.name for s in results] == ["a"]
 
-        results = search_skills("injection", skills, in_content=False)
-        assert len(results) == 0
+        assert library.search("injection", in_content=False) == []
 
-    def test_get_skill(self) -> None:
-        """Test exact name lookup."""
-        skills = [
-            Skill(name="foo", description="", tags=[], content="", path="a.md"),
-            Skill(name="bar", description="", tags=[], content="", path="b.md"),
-        ]
+    def test_get_by_exact_name(self) -> None:
+        """Exact-name lookup; a name that is not loaded resolves to None."""
+        library = SkillRegistry.instance().add(
+            [
+                Skill(name="foo", description="", tags=[], content="", path="a.md"),
+                Skill(name="bar", description="", tags=[], content="", path="b.md"),
+            ]
+        )
 
-        assert get_skill("foo", skills) is not None
-        assert get_skill("foo", skills).name == "foo"
-        assert get_skill("baz", skills) is None
+        skill = library.get("foo")
+        assert skill is not None
+        assert skill.name == "foo"
+        assert library.get("baz") is None
+        assert "bar" in library
 
-    def test_fetch_skill_dir_layout(self, tmp_path: object) -> None:
+    def test_load_by_name_dir_layout(self, tmp_path: object) -> None:
         """Agent-skills convention: <root>/<name>/SKILL.md resolves by name."""
         from pathlib import Path
 
@@ -158,7 +168,10 @@ class TestSkillRust:
             newline="\n",
         )
 
-        skill = fetch_skill(str(root), "herdr")
+        registry = SkillRegistry.instance()
+        assert registry.load_by_name(["herdr"], [str(root)]) == ["herdr"]
+
+        skill = registry.get("herdr")
         assert skill is not None
         assert skill.name == "herdr"
         assert skill.description == "Terminal mux"
@@ -166,7 +179,7 @@ class TestSkillRust:
         assert skill.content == "# Herdr\nbody"
         assert skill.path == "herdr/SKILL.md"
 
-    def test_fetch_skill_flat_layout(self, tmp_path: object) -> None:
+    def test_load_by_name_flat_layout(self, tmp_path: object) -> None:
         """Flat convention: <root>/<name>.md resolves by name."""
         from pathlib import Path
 
@@ -178,12 +191,15 @@ class TestSkillRust:
             newline="\n",
         )
 
-        skill = fetch_skill(str(root), "code_review")
+        registry = SkillRegistry.instance()
+        assert registry.load_by_name(["code_review"], [str(root)]) == ["code_review"]
+
+        skill = registry.get("code_review")
         assert skill is not None
         assert skill.name == "code_review"
         assert skill.path == "code_review.md"
 
-    def test_fetch_skill_dir_layout_wins_over_flat(self, tmp_path: object) -> None:
+    def test_load_by_name_dir_layout_wins_over_flat(self, tmp_path: object) -> None:
         """When both conventions exist, <name>/SKILL.md takes precedence."""
         from pathlib import Path
 
@@ -200,28 +216,67 @@ class TestSkillRust:
             newline="\n",
         )
 
-        skill = fetch_skill(str(root), "dual")
+        registry = SkillRegistry.instance()
+        assert registry.load_by_name(["dual"], [str(root)]) == ["dual"]
+
+        skill = registry.get("dual")
         assert skill is not None
         assert skill.description == "from dir"
 
-    def test_fetch_skill_missing_returns_none(self, tmp_path: object) -> None:
-        """Names with no convention file resolve to None."""
+    def test_load_by_name_skips_missing_name(self, tmp_path: object) -> None:
+        """A name no root resolves is skipped instead of raising."""
         from pathlib import Path
 
         root = Path(str(tmp_path)) / "lib"
         root.mkdir()
 
-        assert fetch_skill(str(root), "nope") is None
+        assert SkillRegistry.instance().load_by_name(["nope"], [str(root)]) == []
 
-    def test_fetch_skill_rejects_path_like_names(self, tmp_path: object) -> None:
+    def test_load_by_name_rejects_path_like_names(self, tmp_path: object) -> None:
         """Separators, dot components, and empty names are rejected."""
         from pathlib import Path
 
         root = Path(str(tmp_path)) / "lib"
         root.mkdir()
 
-        for name in ["", ".", "..", "a/b", "a\\b", "../../evil"]:
-            assert fetch_skill(str(root), name) is None, name
+        assert SkillRegistry.instance().load_by_name(["", ".", "..", "a/b", "a\\b", "../../evil"], [str(root)]) == []
+
+    def test_library_keeps_one_copy_until_removed(self, tmp_path: object) -> None:
+        """A loaded skill is not re-read while it stays in the library; remove() frees it."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "lib"
+        root.mkdir()
+        skill_file = root / "cached.md"
+        skill_file.write_text(
+            "---\nname: cached\ndescription: first\n---\nbody",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        library = SkillRegistry.instance()
+        assert library.load_scanned([str(root)]) == ["cached"]
+        first = library.get("cached")
+        assert first is not None
+        assert first.description == "first"
+
+        # The file changes on disk, but the library keeps the copy it already parsed -
+        # and still reports the name as available.
+        skill_file.write_text(
+            "---\nname: cached\ndescription: second\n---\nbody",
+            encoding="utf-8",
+            newline="\n",
+        )
+        assert library.load_scanned([str(root)]) == ["cached"]
+        still_first = library.get("cached")
+        assert still_first is not None
+        assert still_first.description == "first"
+
+        # remove() drops the copy, so the next load reads the file again.
+        assert library.remove(["cached"]).load_scanned([str(root)]) == ["cached"]
+        reloaded = library.get("cached")
+        assert reloaded is not None
+        assert reloaded.description == "second"
 
 
 # ── Python-level tests ───────────────────────────────────────────────
@@ -229,13 +284,6 @@ class TestSkillRust:
 
 class TestUseSkill:
     """Tests for the UseSkill capability mixin."""
-
-    @pytest.fixture(autouse=True)
-    def _clear_registry(self) -> None:
-        """Ensure the global registry is clean for each test."""
-        get_skill_registry().clear()
-        yield
-        get_skill_registry().clear()
 
     def test_add_skills(self) -> None:
         """Test adding skills to the role."""
@@ -268,6 +316,42 @@ class TestUseSkill:
         assert result is role
         assert len(role.skills) == 2
 
+    def test_library_is_shared_across_roles(self) -> None:
+        """A skill loaded through one role is visible to every other role."""
+        loader = SkillRole(name="loader")
+        loader.add_skills([Skill(name="shared", description="S", tags=[], content="shared body", path="s.md")])
+
+        reader = SkillRole(name="reader", skill_names=["shared"])
+
+        assert "shared" in reader.skill_library
+        assert [s.content for s in reader.skills] == ["shared body"]
+
+    def test_scan_skills_tracks_new_names_and_chains(self, tmp_path: object) -> None:
+        """The role loader scans a tree, tracks what it loaded, chains, and is idempotent."""
+        from pathlib import Path
+
+        root = Path(str(tmp_path)) / "team"
+        (root / "one").mkdir(parents=True)
+        (root / "one" / "SKILL.md").write_text(
+            "---\nname: one\ndescription: One\n---\nbody one",
+            encoding="utf-8",
+            newline="\n",
+        )
+        (root / "two.md").write_text(
+            "---\nname: two\ndescription: Two\n---\nbody two",
+            encoding="utf-8",
+            newline="\n",
+        )
+
+        role = SkillRole(name="skill")
+        assert role.scan_skills(root) is role
+        assert role.skill_names == ["one", "two"]
+        assert [s.name for s in role.skills] == ["one", "two"]
+
+        # Idempotent: scanning again adds no duplicate names.
+        role.scan_skills(root)
+        assert role.skill_names == ["one", "two"]
+
     def test_gather_skills_by_name(self, tmp_path: object) -> None:
         """Gather both layouts by name: registered, tracked in order, chained; missing skipped."""
         from pathlib import Path
@@ -290,11 +374,12 @@ class TestUseSkill:
 
         assert result is role
         assert role.skill_names == ["dir_skill", "flat_skill"]
-        assert get_skill_registry().get("dir_skill") is not None
-        assert get_skill_registry().get("flat_skill") is not None
+        assert "dir_skill" in role.skill_library
+        assert "flat_skill" in role.skill_library
 
-        # Duplicate names collapse to a single resolution.
-        assert len(fetch_skills(["dir_skill", "dir_skill"], dirs=[str(root)])) == 1
+        # Duplicate names collapse to a single library entry.
+        deduped = SkillRegistry.instance().clear().load_by_name(["dir_skill", "dir_skill"], [str(root)])
+        assert deduped == ["dir_skill"]
 
     def test_gather_skills_first_root_wins(self, tmp_path: object) -> None:
         """The first lookup root that resolves a name supplies the skill."""
@@ -310,8 +395,17 @@ class TestUseSkill:
                 newline="\n",
             )
 
-        assert fetch_skills(["dual"], dirs=[str(root_a), str(root_b)])[0].description == "from a"
-        assert fetch_skills(["dual"], dirs=[str(root_b), str(root_a)])[0].description == "from b"
+        library = SkillRegistry.instance()
+        assert library.load_by_name(["dual"], [str(root_a), str(root_b)]) == ["dual"]
+        first = library.get("dual")
+        assert first is not None
+        assert first.description == "from a"
+
+        # The library holds one copy per name, so re-resolve from an empty library.
+        assert library.clear().load_by_name(["dual"], [str(root_b), str(root_a)]) == ["dual"]
+        second = library.get("dual")
+        assert second is not None
+        assert second.description == "from b"
 
     @pytest.mark.asyncio
     async def test_gather_skills_feeds_consult(self, tmp_path: object) -> None:
@@ -332,7 +426,7 @@ class TestUseSkill:
         result = await role.consult_skills("q", names=["gathered"], select=False, distill=False)
         assert result == "# Gathered\nreal body."
 
-    def test_fetch_skills_expands_default_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
+    def test_gather_skills_expands_default_dirs(self, monkeypatch: pytest.MonkeyPatch, tmp_path: object) -> None:
         """dirs=None reads default_skill_dirs and expands `~` against the user home."""
         from pathlib import Path
         from unittest.mock import patch
@@ -348,14 +442,15 @@ class TestUseSkill:
         monkeypatch.setenv("USERPROFILE", str(home))
         monkeypatch.setenv("HOME", str(home))
 
+        role = SkillRole(name="skill")
         with patch.object(
             skill_module,
             "skill_config",
             replace(skill_module.skill_config, default_skill_dirs=["~/.agents/skills"]),
         ):
-            got = fetch_skills(["tilde_one"])
+            role.gather_skills(["tilde_one"])
 
-        assert [s.name for s in got] == ["tilde_one"]
+        assert [s.name for s in role.skills] == ["tilde_one"]
 
     def test_default_dirs_include_agents_skills(self) -> None:
         """The declared default lookup roots include the user-level agent-skills library."""

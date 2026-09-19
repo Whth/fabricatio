@@ -1,7 +1,7 @@
 """Module-level one-shot functions for fabricatio-comfyui.
 
-Following the flat function surface of :mod:`fabricatio_skill` (e.g.
-``scan_skills``, ``get_skill``), these helpers hide the client entirely:
+Following the plain module-level function style fabricatio exposes elsewhere
+(rather than Roles or client objects), these helpers hide the client entirely:
 each call runs against the shared pooled client
 (:func:`fabricatio_comfyui.http_client.get_comfyui_client`) — no Role, no
 client construction, no workflow — and shares the exact keyword surface

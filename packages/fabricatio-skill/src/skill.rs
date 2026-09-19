@@ -1,10 +1,11 @@
+use parking_lot::Mutex;
 use pyo3::exceptions::PyFileNotFoundError;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::LazyLock;
 use walkdir::WalkDir;
 
 #[cfg(feature = "stubgen")]
@@ -249,46 +250,6 @@ fn is_markdown(path: &Path) -> bool {
         .is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
 }
 
-/// Scan a directory for `.md` skill files and return parsed Skill objects.
-///
-/// Walks the directory recursively, reads every `.md` file, parses YAML
-/// frontmatter for metadata, and collects the markdown body as content.
-///
-/// Args:
-///     path: Root directory to scan.
-///
-/// Returns:
-///     List of Skill objects discovered from the directory.
-#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
-#[pyfunction]
-pub fn scan_skills(path: &str) -> PyResult<Vec<Skill>> {
-    let dir = SkillDir::new(path);
-    if !dir.is_dir() {
-        return Err(PyFileNotFoundError::new_err(format!(
-            "Skill directory not found: {path}"
-        )));
-    }
-    Ok(dir.scan())
-}
-
-/// Fetch a single skill by name from a skill directory without scanning.
-///
-/// Tries the agent-skills convention `<root>/<name>/SKILL.md` first, then the
-/// flat convention `<root>/<name>.md`. Direct path reads only — no directory walk.
-///
-/// Args:
-///     root: Skill directory root to resolve the name against.
-///     name: Skill name to fetch (a plain name; path separators are rejected).
-///
-/// Returns:
-///     The parsed Skill, or None when no convention path holds a readable
-///     `.md` file for this name.
-#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
-#[pyfunction]
-pub fn fetch_skill(root: &str, name: &str) -> Option<Skill> {
-    SkillDir::new(root).fetch(name)
-}
-
 /// A searchable field of a [`Skill`], checked for every query term.
 #[derive(Clone, Copy)]
 enum SkillField {
@@ -410,108 +371,209 @@ impl SkillQuery {
     }
 }
 
-/// Search skills by keyword matching against name, description, tags, and content.
+/// The process-wide skill store: one in-memory copy per skill name.
 ///
-/// Args:
-///     query: Search term (case-insensitive).
-///     skills: List of skills to search through.
-///     in_content: Whether to also search within the skill content body.
+/// Lives outside any instance, so every [`SkillRegistry`] handle — and
+/// therefore every role in the process — shares the same parsed skills.
+static STORE: LazyLock<Mutex<BTreeMap<String, Skill>>> =
+    LazyLock::new(|| Mutex::new(BTreeMap::new()));
+
+/// Insert `skills` into `store` (the first copy of a name wins) and return those names.
 ///
-/// Returns:
-///     Skills matching the query, ordered by relevance (name/tag match first).
-#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
-#[pyfunction]
-#[pyo3(signature = (query, skills, in_content=false))]
-pub fn search_skills(query: &str, skills: Vec<Skill>, in_content: bool) -> Vec<Skill> {
-    SkillQuery::parse(query, in_content).search(skills)
+/// A name already in `store` is reported without being replaced or re-read, so
+/// callers can tell which skills a load made available; duplicates collapse.
+fn canonical_names(skills: Vec<Skill>, store: &mut BTreeMap<String, Skill>) -> Vec<String> {
+    let mut names = Vec::new();
+    for skill in skills {
+        let name = skill.name.clone();
+        store.entry(name.clone()).or_insert(skill);
+        push_unique(&mut names, name);
+    }
+    names
 }
 
-/// Get a skill by exact name.
-///
-/// Args:
-///     name: Exact skill name to look up.
-///     skills: List of skills to search.
-///
-/// Returns:
-///     The matching Skill, or None if not found.
-#[cfg_attr(feature = "stubgen", gen_stub_pyfunction)]
-#[pyfunction]
-pub fn get_skill(name: &str, skills: Vec<Skill>) -> Option<Skill> {
-    skills.into_iter().find(|s| s.name == name)
+/// Append `name` to `names` unless it is already there; the first occurrence wins.
+fn push_unique(names: &mut Vec<String>, name: String) {
+    if !names.contains(&name) {
+        names.push(name);
+    }
 }
 
-/// Process-wide registry that owns all loaded ``Skill`` objects.
+/// The process-wide skill library: one in-memory copy of every loaded skill.
 ///
 /// Python roles store skill **names** (plain ``str``) and resolve real
-/// ``Skill`` objects through this registry at runtime.
+/// ``Skill`` objects through this library at runtime. ``instance()`` hands out
+/// the library itself — every handle shares the same store, so a skill file is
+/// parsed once per process — and the loaders return the names they made
+/// available (a cached name is reported, never read again).
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass]
-pub struct SkillRegistry {
-    store: Mutex<HashMap<String, Skill>>,
-}
+pub struct SkillRegistry;
 
 #[cfg_attr(feature = "stubgen", gen_stub_pymethods)]
 #[pymethods]
 impl SkillRegistry {
-    #[new]
-    fn new() -> Self {
-        Self {
-            store: Mutex::new(HashMap::new()),
+    /// The process-wide library. Every handle shares the same in-memory skills.
+    #[staticmethod]
+    fn instance() -> Self {
+        Self
+    }
+
+    /// Load every `.md` file found under each root into the library.
+    ///
+    /// Walks each root recursively and parses YAML frontmatter plus markdown
+    /// body (`<root>/<name>/SKILL.md` and flat `<root>/<name>.md` both match);
+    /// a name already in the library keeps its first copy.
+    ///
+    /// Args:
+    ///     roots: Directories to scan.
+    ///
+    /// Returns:
+    ///     The names those roots provide, ordered. A name already in the library
+    ///     is reported too, without its file being read again.
+    ///
+    /// Raises:
+    ///     FileNotFoundError: One of the roots is not an existing directory
+    ///         (nothing is loaded in that case).
+    fn load_scanned(&self, roots: Vec<String>) -> PyResult<Vec<String>> {
+        let missing: Vec<&str> = roots
+            .iter()
+            .filter(|root| !SkillDir::new(*root).is_dir())
+            .map(String::as_str)
+            .collect();
+        if !missing.is_empty() {
+            return Err(PyFileNotFoundError::new_err(format!(
+                "Skill directory not found: {}",
+                missing.join(", ")
+            )));
         }
-    }
-
-    /// Register skills. Returns count of newly added entries.
-    fn register(&self, skills: Vec<Skill>) -> usize {
-        let mut store = self.store.lock().unwrap();
-        let before = store.len();
-        for s in skills {
-            store.entry(s.name.clone()).or_insert(s);
+        let mut found = Vec::new();
+        for root in &roots {
+            found.extend(SkillDir::new(root).scan());
         }
-        store.len() - before
+        Ok(canonical_names(found, &mut STORE.lock()))
     }
 
-    /// Remove skills by name. Returns count removed.
-    fn unregister(&self, names: Vec<String>) -> usize {
-        let mut store = self.store.lock().unwrap();
-        names.iter().filter(|n| store.remove(*n).is_some()).count()
+    /// Resolve each name through `roots` and load the hits into the library.
+    ///
+    /// Tries each root in order — `<root>/<name>/SKILL.md` first, then
+    /// `<root>/<name>.md` (direct path reads, no directory walk). Names already
+    /// in the library keep their first copy and are not read again; names no
+    /// root resolves are skipped.
+    ///
+    /// Args:
+    ///     names: Skill names to resolve; duplicates collapse.
+    ///     roots: Lookup roots, tried in order.
+    ///
+    /// Returns:
+    ///     The names that are now in the library, in argument order. A name
+    ///     already in the library is reported too, without being read again.
+    fn load_by_name(&self, names: Vec<String>, roots: Vec<String>) -> Vec<String> {
+        let dirs: Vec<SkillDir> = roots.iter().map(SkillDir::new).collect();
+        let mut store = STORE.lock();
+        let mut loaded = Vec::new();
+        for name in names {
+            if loaded.contains(&name) {
+                continue;
+            }
+            if store.contains_key(&name) {
+                push_unique(&mut loaded, name);
+                continue;
+            }
+            if let Some(skill) = dirs.iter().find_map(|dir| dir.fetch(&name)) {
+                store.entry(name.clone()).or_insert(skill);
+                push_unique(&mut loaded, name);
+            }
+        }
+        loaded
     }
 
-    /// Remove all registered skills.
-    fn clear(&self) {
-        self.store.lock().unwrap().clear();
+    /// Merge already-parsed skills into the library; the first copy of a name wins.
+    ///
+    /// Args:
+    ///     skills: Skill objects to add.
+    ///
+    /// Returns:
+    ///     The library, for chaining.
+    fn add(&self, skills: Vec<Skill>) -> Self {
+        canonical_names(skills, &mut STORE.lock());
+        Self
+    }
+
+    /// Drop the named skills, so their files are read again on the next load.
+    ///
+    /// Args:
+    ///     names: Skill names to drop.
+    ///
+    /// Returns:
+    ///     The library, for chaining.
+    fn remove(&self, names: Vec<String>) -> Self {
+        let mut store = STORE.lock();
+        for name in &names {
+            store.remove(name);
+        }
+        Self
+    }
+
+    /// Drop every loaded skill.
+    ///
+    /// Returns:
+    ///     The library, for chaining.
+    fn clear(&self) -> Self {
+        STORE.lock().clear();
+        Self
     }
 
     /// Return a skill by exact name, or ``None``.
     fn get(&self, name: &str) -> Option<Skill> {
-        self.store.lock().unwrap().get(name).cloned()
+        STORE.lock().get(name).cloned()
     }
 
-    /// Return skills for the given names, silently skipping missing.
+    /// Return skills for the given names, silently skipping missing ones.
     fn get_many(&self, names: Vec<String>) -> Vec<Skill> {
-        let store = self.store.lock().unwrap();
+        let store = STORE.lock();
         names.iter().filter_map(|n| store.get(n).cloned()).collect()
     }
 
-    /// Return every registered skill.
+    /// Return every loaded skill, ordered by name.
     fn all(&self) -> Vec<Skill> {
-        self.store.lock().unwrap().values().cloned().collect()
+        STORE.lock().values().cloned().collect()
     }
 
-    /// Return every registered skill name.
+    /// Return every loaded skill name, ordered.
     fn names(&self) -> Vec<String> {
-        self.store.lock().unwrap().keys().cloned().collect()
+        STORE.lock().keys().cloned().collect()
+    }
+
+    /// Search the library by keyword against name, tags, description, and content.
+    ///
+    /// Args:
+    ///     query: Search term (case-insensitive).
+    ///     names: Restrict the search to these skill names. None searches every
+    ///         loaded skill.
+    ///     in_content: Whether to also search within the skill content body.
+    ///
+    /// Returns:
+    ///     Matching skills, ordered by relevance (name/tag match first).
+    #[pyo3(signature = (query, names=None, in_content=false))]
+    fn search(&self, query: &str, names: Option<Vec<String>>, in_content: bool) -> Vec<Skill> {
+        let candidates = match names {
+            Some(names) => self.get_many(names),
+            None => self.all(),
+        };
+        SkillQuery::parse(query, in_content).search(candidates)
     }
 
     fn __contains__(&self, name: &str) -> bool {
-        self.store.lock().unwrap().contains_key(name)
+        STORE.lock().contains_key(name)
     }
 
     fn __len__(&self) -> usize {
-        self.store.lock().unwrap().len()
+        STORE.lock().len()
     }
 
     fn __repr__(&self) -> String {
-        format!("SkillRegistry({} skills)", self.store.lock().unwrap().len())
+        format!("SkillRegistry({} skills)", STORE.lock().len())
     }
 }
 
@@ -519,10 +581,6 @@ pub(crate) fn register(_: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Skill>()?;
     m.add_class::<SkillMeta>()?;
     m.add_class::<SkillRegistry>()?;
-    m.add_function(wrap_pyfunction!(scan_skills, m)?)?;
-    m.add_function(wrap_pyfunction!(fetch_skill, m)?)?;
-    m.add_function(wrap_pyfunction!(search_skills, m)?)?;
-    m.add_function(wrap_pyfunction!(get_skill, m)?)?;
     Ok(())
 }
 
@@ -538,7 +596,7 @@ mod tests {
     }
 
     #[test]
-    fn fetch_skill_dir_layout() {
+    fn dir_fetch_resolves_dir_layout() {
         let root = std::env::temp_dir().join("fabricatio_skill_test_dir_layout");
         let _ = std::fs::remove_dir_all(&root);
         write(
@@ -546,7 +604,9 @@ mod tests {
             "---\nname: herdr\ndescription: \"Terminal mux\"\ntags: [cli]\n---\n# Herdr\nbody",
         );
 
-        let skill = fetch_skill(root.to_str().unwrap(), "herdr").expect("dir layout resolves");
+        let skill = SkillDir::new(&root)
+            .fetch("herdr")
+            .expect("dir layout resolves");
         assert_eq!(skill.name, "herdr");
         assert_eq!(skill.description, "Terminal mux");
         assert_eq!(skill.tags, vec!["cli"]);
@@ -557,7 +617,7 @@ mod tests {
     }
 
     #[test]
-    fn fetch_skill_flat_layout() {
+    fn dir_fetch_resolves_flat_layout() {
         let root = std::env::temp_dir().join("fabricatio_skill_test_flat_layout");
         let _ = std::fs::remove_dir_all(&root);
         write(
@@ -565,8 +625,9 @@ mod tests {
             "---\nname: code_review\ndescription: Review code\n---\n# Review\nbody",
         );
 
-        let skill =
-            fetch_skill(root.to_str().unwrap(), "code_review").expect("flat layout resolves");
+        let skill = SkillDir::new(&root)
+            .fetch("code_review")
+            .expect("flat layout resolves");
         assert_eq!(skill.name, "code_review");
         assert_eq!(skill.path, "code_review.md");
 
@@ -574,7 +635,7 @@ mod tests {
     }
 
     #[test]
-    fn fetch_skill_dir_layout_wins_over_flat() {
+    fn dir_fetch_dir_layout_wins_over_flat() {
         let root = std::env::temp_dir().join("fabricatio_skill_test_precedence");
         let _ = std::fs::remove_dir_all(&root);
         write(
@@ -586,37 +647,59 @@ mod tests {
             "---\nname: dual\ndescription: from flat\n---\nflat body",
         );
 
-        let skill = fetch_skill(root.to_str().unwrap(), "dual").expect("resolves");
+        let skill = SkillDir::new(&root).fetch("dual").expect("resolves");
         assert_eq!(skill.description, "from dir");
 
         std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
-    fn fetch_skill_missing_returns_none() {
+    fn dir_fetch_missing_returns_none() {
         let root = std::env::temp_dir().join("fabricatio_skill_test_missing");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
 
-        assert!(fetch_skill(root.to_str().unwrap(), "nope").is_none());
+        assert!(SkillDir::new(&root).fetch("nope").is_none());
 
         std::fs::remove_dir_all(&root).unwrap();
     }
 
     #[test]
-    fn fetch_skill_rejects_path_like_names() {
+    fn dir_fetch_rejects_path_like_names() {
         let root = std::env::temp_dir().join("fabricatio_skill_test_traversal");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
 
         for name in ["", ".", "..", "a/b", "a\\b", "../../evil"] {
-            assert!(
-                fetch_skill(root.to_str().unwrap(), name).is_none(),
-                "name: {name}"
-            );
+            assert!(SkillDir::new(&root).fetch(name).is_none(), "name: {name}");
         }
 
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn canonical_names_keep_the_first_copy_of_a_name() {
+        let mut store = BTreeMap::new();
+
+        assert_eq!(
+            canonical_names(vec![skill("a", "first", &[], "")], &mut store),
+            ["a"]
+        );
+        assert_eq!(
+            canonical_names(
+                vec![
+                    skill("a", "second", &[], ""),
+                    skill("b", "other", &[], ""),
+                    skill("a", "third", &[], ""),
+                ],
+                &mut store
+            ),
+            ["a", "b"]
+        );
+
+        assert_eq!(store.len(), 2);
+        assert_eq!(store["a"].description, "first");
+        assert_eq!(store["b"].description, "other");
     }
 
     /// Build a skill from plain parts; search tests place the term in one field each.
@@ -631,7 +714,7 @@ mod tests {
     }
 
     #[test]
-    fn search_skills_ranks_name_then_tags_then_description_then_content() {
+    fn skill_query_ranks_name_then_tags_then_description_then_content() {
         let skills = vec![
             skill("content_hit", "", &[], "needle in the body"),
             skill("description_hit", "needle in the description", &[], ""),
@@ -639,7 +722,7 @@ mod tests {
             skill("needle", "", &[], ""),
         ];
 
-        let hits = search_skills("needle", skills, true);
+        let hits = SkillQuery::parse("needle", true).search(skills);
         let names: Vec<&str> = hits.iter().map(|s| s.name.as_str()).collect();
 
         assert_eq!(
@@ -649,9 +732,9 @@ mod tests {
     }
 
     #[test]
-    fn search_skills_blank_query_returns_all_untouched() {
+    fn skill_query_blank_query_returns_all_untouched() {
         let skills = vec![skill("a", "", &[], ""), skill("b", "", &[], "")];
 
-        assert_eq!(search_skills("   ", skills, false).len(), 2);
+        assert_eq!(SkillQuery::parse("   ", false).search(skills).len(), 2);
     }
 }

@@ -20,9 +20,10 @@ parameterises the built-in template internally. There is no `dict[str, Any]`
 workflow injection anywhere in the public signatures.
 
 Naming follows `fabricatio-skill`: one `Use*` capability mixin
-(`UseComfyUI`), a module-level one-shot function (`generate_image`), and
-bare-noun response models (`ExecutionResult`, `QueueInfo`, …).
-`workflows/` stays a docstring-only namespace, as in `fabricatio-skill`.
+(`UseComfyUI`) plus bare-noun response models (`ExecutionResult`,
+`QueueInfo`, …); the one-shot functions in `api.py` follow the plain
+module-level style fabricatio uses elsewhere. `workflows/` stays a
+docstring-only namespace.
 
 ## Architecture
 

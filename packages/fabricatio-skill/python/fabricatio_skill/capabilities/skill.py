@@ -11,53 +11,28 @@ from fabricatio_core.rust import SMOL
 from pydantic import Field, PrivateAttr
 
 from fabricatio_skill.config import skill_config
-from fabricatio_skill.models.skill import get_skill_registry
-from fabricatio_skill.rust import Skill, fetch_skill, scan_skills, search_skills
+from fabricatio_skill.rust import Skill, SkillRegistry
 
 if TYPE_CHECKING:
     from fabricatio_core.models.generic import WithBriefing
-
-
-def fetch_skills(names: list[str], dirs: list[str | Path] | None = None) -> list[Skill]:
-    """Fetch skills directly by name from skill directories.
-
-    Resolves each name against the lookup roots without scanning: tries the
-    agent-skills convention ``<dir>/<name>/SKILL.md`` first, then the flat
-    convention ``<dir>/<name>.md``. The first directory that resolves a name
-    wins; names that resolve to nothing are logged and skipped.
-
-    Args:
-        names: Skill names to fetch.
-        dirs: Lookup roots (``~`` is expanded). ``None`` →
-            ``skill_config.default_skill_dirs``.
-
-    Returns:
-        Resolved skills in the order of ``names`` (duplicates collapse).
-    """
-    roots = [Path(d).expanduser() for d in (dirs if dirs is not None else skill_config.default_skill_dirs)]
-    found: dict[str, Skill] = {}
-    for name in dict.fromkeys(names):
-        for root in roots:
-            if (skill := fetch_skill(str(root), name)) is not None:
-                found[name] = skill
-                break
-        else:
-            logger.warn(f"Skill '{name}' not found in any lookup dir: {[str(r) for r in roots]}")
-    return list(found.values())
 
 
 class UseSkill(UseLLM, ABC):
     """Mixin that provides progressive skill consultation.
 
     Skills are text-based instruction files (markdown) that provide context
-    to LLM agents.  Skill objects live in the global ``SkillRegistry``;
-    this class stores only their **names** as lightweight handles.
+    to LLM agents. Every loaded skill lives in the process-wide
+    ``SkillRegistry`` library — **one in-memory copy per skill name** — and
+    this class stores only their **names** as lightweight handles. The loaders
+    chain::
+
+        role.scan_skills("team-skills").gather_skills(["security", "review"])
 
     Pipeline levels:
 
-    Level 0 (Rust):   scan / search / get — file discovery + keyword matching.
-                      ``search_skills`` doubles as a deterministic pre-filter for
-                      large pools (see ``prefilter_threshold``).
+    Level 0 (Rust):   ``SkillRegistry`` — scan / search / get: file discovery +
+                      keyword matching. ``search`` doubles as a deterministic
+                      pre-filter for large pools (see ``prefilter_threshold``).
     Level 1 (Python): select / distill — LLM-powered relevance + extraction.
                       Selection is a framework ``achoose`` round-trip over skill
                       briefings: the JSON reply is set-validated against the
@@ -73,21 +48,40 @@ class UseSkill(UseLLM, ABC):
     """
 
     skill_names: list[str] = Field(default_factory=list)
-    """Names of loaded skills available for this role/action (resolved via registry)."""
+    """Names of loaded skills available for this role/action (resolved via the library)."""
 
     _default_dirs_scanned: bool = PrivateAttr(default=False)
     """Whether the default skill dirs were already probed for this instance."""
 
     # ── helpers ───────────────────────────────────────────────────────
 
+    @property
+    def skill_library(self) -> SkillRegistry:
+        """The process-wide skill library: one in-memory copy of every loaded skill."""
+        return SkillRegistry.instance()
+
     def _resolve_skills(self, names: list[str] | None = None) -> list[Skill]:
-        """Return Skill objects from the registry.
+        """Return Skill objects from the library.
 
         Args:
             names: Specific names to resolve. ``None`` → ``self.skill_names``.
         """
         target = names if names is not None else self.skill_names
-        return get_skill_registry().get_many(target)
+        return self.skill_library.get_many(target)
+
+    def _track(self, names: list[str]) -> Self:
+        """Track freshly loaded skill names on this role, without duplicating.
+
+        Args:
+            names: Names that were just loaded into the library.
+
+        Returns:
+            Self for method chaining.
+        """
+        new_names = list(dict.fromkeys(n for n in names if n not in self.skill_names))
+        self.skill_names.extend(new_names)
+        logger.info(f"Registered {len(new_names)} skill(s): {new_names}")
+        return self
 
     @property
     def skills(self) -> list[Skill]:
@@ -97,7 +91,7 @@ class UseSkill(UseLLM, ABC):
     # ── Level 1: Register ─────────────────────────────────────────────
 
     def add_skills(self, skills: list[Skill], names: list[str] | None = None) -> Self:
-        """Register skills in the global registry and track their names here.
+        """Register already-loaded skills in the library and track their names here.
 
         Args:
             skills: Skill objects to register.
@@ -107,20 +101,35 @@ class UseSkill(UseLLM, ABC):
             Self for method chaining.
         """
         selected = [s for s in skills if s.name in names] if names else list(skills)
-        get_skill_registry().register(selected)
-        new_names = [s.name for s in selected if s.name not in self.skill_names]
-        self.skill_names.extend(new_names)
-        logger.info(f"Registered {len(new_names)} skill(s): {new_names}")
-        return self
+        self.skill_library.add(selected)
+        return self._track([s.name for s in selected])
+
+    def scan_skills(self, root: str | Path) -> Self:
+        """Load every skill file under ``root`` into the library and track them.
+
+        The bulk loader: walks ``root`` recursively (``<dir>/<name>/SKILL.md``
+        and flat ``<dir>/<name>.md`` both parse). Skills already in the library
+        keep their first copy, but are still tracked here.
+
+        Args:
+            root: Directory to scan recursively (``~`` is expanded).
+
+        Returns:
+            Self for method chaining.
+
+        Raises:
+            FileNotFoundError: ``root`` is not an existing directory.
+        """
+        return self._track(self.skill_library.load_scanned([str(Path(root).expanduser())]))
 
     def gather_skills(self, names: list[str], dirs: list[str | Path] | None = None) -> Self:
         """Gather skills directly by name and track them on this role.
 
-        Resolves each name via :func:`fetch_skills` (``<dir>/<name>/SKILL.md``
-        then ``<dir>/<name>.md`` per lookup root — direct path reads, no
-        directory scan), registers the hits in the global registry, and
-        extends ``skill_names``. Missing names are logged and skipped;
-        already-tracked names are not duplicated.
+        Resolves each name through the lookup roots (``<dir>/<name>/SKILL.md``
+        then ``<dir>/<name>.md`` per root — direct path reads, no directory
+        scan), loads the hits into the process-wide library, and extends
+        ``skill_names``. Missing names are logged and skipped; names already in
+        the library keep their first copy and are not read again.
 
         Args:
             names: Skill names to gather.
@@ -130,15 +139,20 @@ class UseSkill(UseLLM, ABC):
         Returns:
             Self for method chaining.
         """
-        self.add_skills(fetch_skills(names, dirs))
-        return self
+        roots = [str(Path(d).expanduser()) for d in (dirs if dirs is not None else skill_config.default_skill_dirs)]
+        wanted = list(dict.fromkeys(names))
+        found = self.skill_library.load_by_name(wanted, roots)
+        for name in wanted:
+            if name not in found:
+                logger.warn(f"Skill '{name}' not found in any lookup dir: {roots}")
+        return self._track(found)
 
     def _ensure_default_skills(self) -> None:
         """Auto-load ``default_skill_dirs`` once, when this role has no skills yet.
 
         Lets ``consult_skills`` work out of the box: drop skill files into the
-        default dirs and call it — no explicit ``scan_skills``/``add_skills``.
-        Idempotent per instance; explicit ``add_skills`` calls take precedence.
+        default dirs and call it — no explicit loading needed. Idempotent per
+        instance; explicit ``scan_skills``/``gather_skills`` take precedence.
         """
         if self._default_dirs_scanned or self.skill_names:
             return
@@ -147,9 +161,9 @@ class UseSkill(UseLLM, ABC):
             root = Path(skill_dir).expanduser()
             if not root.is_dir():
                 continue
-            found = scan_skills(str(root))
+            found = self.skill_library.load_scanned([str(root)])
             if found:
-                self.add_skills(found)
+                self._track(found)
                 logger.info(f"Auto-loaded {len(found)} skill(s) from default dir '{skill_dir}'")
 
     # ── Level 2: Select ──────────────────────────────────────────────
@@ -168,7 +182,7 @@ class UseSkill(UseLLM, ABC):
         ``briefing`` (name + description, never the body), the reply must be a
         JSON array of catalog names, and the framework validates it as a set —
         unknown names are ignored, duplicates collapse, and unparseable
-        replies are retried automatically. A deterministic Rust keyword
+        replies are retried automatically. The library's deterministic keyword
         pre-filter thins the pool first when it exceeds ``prefilter_threshold``,
         and the final selection is trimmed to ``max_selected_skills`` (or ``k``).
 
@@ -191,14 +205,14 @@ class UseSkill(UseLLM, ABC):
         """
         self._ensure_default_skills()
         pool_names = available if available is not None else self.skill_names
-        pool = get_skill_registry().get_many(pool_names)
+        pool = self.skill_library.get_many(pool_names)
         if not pool:
             logger.warn("No skills available for selection.")
             return []
 
         threshold = skill_config.prefilter_threshold
         if threshold > 0 and len(pool) > threshold:
-            pool = search_skills(question, pool, in_content=True)[:threshold]
+            pool = self.skill_library.search(question, names=pool_names, in_content=True)[:threshold]
             logger.info(f"Keyword pre-filter (pool above threshold {threshold}): {len(pool)} candidate(s) remain.")
             if not pool:
                 logger.warn("No keyword matches; nothing to select from.")
