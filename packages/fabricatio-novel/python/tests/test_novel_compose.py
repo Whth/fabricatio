@@ -6,6 +6,7 @@ import pytest
 from _support import card, prefix_log
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.models.kwargs_types import LLMKwargs
+from fabricatio_core.rust import TASK
 from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
@@ -520,19 +521,27 @@ class TestPrefixAccumulation:
 class _HookMutating(NovelCompose):
     """Mixin whose after-compose hooks rename every level's context before assembly."""
 
-    async def after_compose_novel_context(self, ctx: NovelContext, **kwargs: Unpack[LLMKwargs]) -> NovelContext:
+    async def after_compose_novel_context(
+        self, ctx: NovelContext, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> NovelContext:
         ctx.title = "Hooked Novel"
         return ctx
 
-    async def after_compose_chapter_context(self, ctx: ChapterContext, **kwargs: Unpack[LLMKwargs]) -> ChapterContext:
+    async def after_compose_chapter_context(
+        self, ctx: ChapterContext, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> ChapterContext:
         ctx.title = "Hooked Chapter"
         return ctx
 
-    async def after_compose_story_context(self, ctx: StoryContext, **kwargs: Unpack[LLMKwargs]) -> StoryContext:
+    async def after_compose_story_context(
+        self, ctx: StoryContext, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> StoryContext:
         ctx.title = "Hooked Story"
         return ctx
 
-    async def after_compose_scene_context(self, ctx: SceneContext, **kwargs: Unpack[LLMKwargs]) -> SceneContext:
+    async def after_compose_scene_context(
+        self, ctx: SceneContext, send_to: str | None = TASK, **kwargs: Unpack[LLMKwargs]
+    ) -> SceneContext:
         ctx.title = "Hooked Scene"
         return ctx
 

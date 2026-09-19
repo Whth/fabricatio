@@ -28,17 +28,27 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
     async def before_compose_novel_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked before composing a novel; may mutate the context."""
+        """Identity hook invoked before composing a novel; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def after_compose_novel_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked after generating a novel; may mutate the context."""
+        """Identity hook invoked after generating a novel; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def post_process_novel(self, ctx: NovelContext, novel: Novel, **kwargs: Unpack[LLMKwargs]) -> Novel:
@@ -292,12 +302,12 @@ class NovelCompose[CTX: NovelContext](ChapterCompose[ChapterContext[StoryContext
         **kwargs: Unpack[LLMKwargs],
     ) -> Novel | None:
         """Compose a novel end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_novel_context(ctx, **kwargs)
+        ctx = await self.before_compose_novel_context(ctx, send_to=send_to, **kwargs)
         ctx_res = await self.generate_novel_context(ctx, send_to, **kwargs)
         if ctx_res is None:
             return None
         ctx = ctx_res
-        ctx = await self.after_compose_novel_context(ctx, **kwargs)
+        ctx = await self.after_compose_novel_context(ctx, send_to=send_to, **kwargs)
 
         novel = self.assemble_novel(ctx)
 

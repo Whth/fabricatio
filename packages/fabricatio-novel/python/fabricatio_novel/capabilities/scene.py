@@ -21,17 +21,27 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
     async def before_compose_scene_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked before composing a scene; may mutate the context."""
+        """Identity hook invoked before composing a scene; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def after_compose_scene_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked after generating a scene; may mutate the context."""
+        """Identity hook invoked after generating a scene; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def post_process_scene(self, ctx: SceneContext, scene: Scene, **kwargs: Unpack[LLMKwargs]) -> Scene:
@@ -125,9 +135,9 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
         **kwargs: Unpack[LLMKwargs],
     ) -> Scene | None:
         """Compose a scene end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_scene_context(ctx, **kwargs)
+        ctx = await self.before_compose_scene_context(ctx, send_to=send_to, **kwargs)
         ctx = await self.generate_scene_context(ctx, send_to, **kwargs)
-        ctx = await self.after_compose_scene_context(ctx, **kwargs)
+        ctx = await self.after_compose_scene_context(ctx, send_to=send_to, **kwargs)
 
         scene = Scene.from_context(ctx)
         logger.info(

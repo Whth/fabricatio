@@ -26,17 +26,27 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
     async def before_compose_chapter_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked before composing a chapter; may mutate the context."""
+        """Identity hook invoked before composing a chapter; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def after_compose_chapter_context(
         self,
         ctx: CTX,
+        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> CTX:
-        """Identity hook invoked after generating a chapter; may mutate the context."""
+        """Identity hook invoked after generating a chapter; may mutate the context.
+
+        ``send_to`` is the routing group the run's calls use, so a hook that reaches
+        the model on its own routes it like the rest of the run.
+        """
         return ctx
 
     async def post_process_chapter(self, ctx: ChapterContext, chapter: Chapter, **kwargs: Unpack[LLMKwargs]) -> Chapter:
@@ -211,12 +221,12 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
         **kwargs: Unpack[LLMKwargs],
     ) -> Chapter | None:
         """Compose a chapter end to end: before, generate, after, then post-process; returns None when generation fails."""
-        ctx = await self.before_compose_chapter_context(ctx, **kwargs)
+        ctx = await self.before_compose_chapter_context(ctx, send_to=send_to, **kwargs)
         ctx_res = await self.generate_chapter_context(ctx, send_to, **kwargs)
         if ctx_res is None:
             return None
         ctx = ctx_res
-        ctx = await self.after_compose_chapter_context(ctx, **kwargs)
+        ctx = await self.after_compose_chapter_context(ctx, send_to=send_to, **kwargs)
 
         chapter = Chapter.from_context(ctx)
         logger.info(

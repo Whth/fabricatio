@@ -81,7 +81,7 @@ class InitNovelContext(StageAction, NovelCompose):
         if bible_path := cxt.get("bible_path"):
             ctx.set_series_bible(SeriesBible.model_validate_json(Path(bible_path).read_text(encoding="utf-8")))
         ctx.seed_bible_prefix()
-        ctx = await self.before_compose_novel_context(ctx)
+        ctx = await self.before_compose_novel_context(ctx, send_to=cxt.get("send_to", TASK))
         await self.snapshot(ctx, cxt)
         return ctx
 
@@ -157,7 +157,7 @@ class PlanStoriesStage(StageAction, ChapterCompose):
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
         for chapter in novel_ctx.iter_prefixed_contexts():
-            chapter_ctx = await self.before_compose_chapter_context(chapter)
+            chapter_ctx = await self.before_compose_chapter_context(chapter, send_to=send_to)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
                 await self.snapshot(novel_ctx, cxt)
                 return False
@@ -181,7 +181,7 @@ class RagPlanStoriesStage(PlanStoriesStage, RAGCompose):
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
         send_to = cxt.get("send_to", TASK)
         for index, chapter in enumerate(novel_ctx.child_contexts):
-            chapter_ctx = await self.before_compose_chapter_context(chapter)
+            chapter_ctx = await self.before_compose_chapter_context(chapter, send_to=send_to)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
                 await self.snapshot(novel_ctx, cxt)
                 return False
@@ -200,7 +200,7 @@ class PlanScenesStage(StageAction, StoryCompose):
         send_to = cxt.get("send_to", TASK)
         for chapter in novel_ctx.iter_prefixed_contexts():
             for story in chapter.iter_prefixed_contexts():
-                story_ctx = await self.before_compose_story_context(story)
+                story_ctx = await self.before_compose_story_context(story, send_to=send_to)
                 if not await self.plan_scenes_phase(story_ctx, send_to=send_to):
                     await self.snapshot(novel_ctx, cxt)
                     return False
@@ -230,7 +230,7 @@ class ComposeScenesStage(StageAction, ChapterCompose):
                 if not await self.compose_scenes_phase(story, send_to=send_to):
                     await self.snapshot(novel_ctx, cxt)
                     return False
-                story_ctx = await self.after_compose_story_context(story)
+                story_ctx = await self.after_compose_story_context(story, send_to=send_to)
                 story_artifact = Story.from_context(story_ctx)
                 logger.info(
                     f"Story '{story_artifact.title}' composed ({len(story_artifact.scenes)} scene(s),"
@@ -239,7 +239,7 @@ class ComposeScenesStage(StageAction, ChapterCompose):
                 if await self.post_process_story(story_ctx, story_artifact) is None:
                     await self.snapshot(novel_ctx, cxt)
                     return False
-            chapter_ctx = await self.after_compose_chapter_context(chapter)
+            chapter_ctx = await self.after_compose_chapter_context(chapter, send_to=send_to)
             chapter_artifact = Chapter.from_context(chapter_ctx)
             logger.info(
                 f"Chapter '{chapter_artifact.title}' composed ({len(chapter_artifact.story)} story(s),"
@@ -259,7 +259,8 @@ class AssembleNovelStage(StageAction, NovelCompose):
     stage: ClassVar[str] = "09_novel"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> Novel:
-        ctx = await self.after_compose_novel_context(novel_ctx)
+        send_to = cxt.get("send_to", TASK)
+        ctx = await self.after_compose_novel_context(novel_ctx, send_to=send_to)
         novel = self.assemble_novel(ctx)
         await self.snapshot(ctx, cxt)
         return novel
