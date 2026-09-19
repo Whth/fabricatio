@@ -12,8 +12,8 @@ digraph dataflow {
           fontname="serif", fontsize=13, margin="0.16,0.09"];
     edge [color="black", arrowsize=0.75, fontname="serif", fontsize=11];
 
-    novel   [label="NovelContext\loutline · language · NovelPlan\lroster spans · seeded series bible\l"];
-    chapter [label="ChapterContext[]\ltitle · description · weight\lword budget · own constraints\l"];
+    novel   [label="NovelContext · RagNovelContext\loutline · language · NovelPlan\lroster spans · seeded series bible\lrag + refs from the outline (RAG run)\l"];
+    chapter [label="ChapterContext[] · RagChapterContext\ltitle · description · weight\lword budget · own constraints\l"];
     story   [label="StoryContext[] · RagStoryContext\lwriting styles — RAG refs merged in;\lrag sealed on the story (query, limit)\l"];
     scene   [label="SceneContext[]\lcast · span list (prompt-only)\lcontent — the composed prose\l"];
 

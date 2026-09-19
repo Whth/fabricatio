@@ -61,9 +61,12 @@ whole-tree JSON snapshot after every stage so any wrong result is traceable:
 ```
 
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
-entries from LanceDB once per story, renders them raw into that story's scene
-prompts, and stops rendering them into later prefix walks once every scene of the
-story carries content (the raw texts stay on the context for scoring and audit).
+entries from LanceDB at two levels. The **novel** level searches the outline in the
+init stage's before-hook and renders the documents into the metadata and
+chapter-planning prompts. The **chapter** level retrieves once per story, renders the
+documents raw into that story's scene prompts, and stops rendering them into later
+prefix walks once every scene of the story carries content (the raw texts stay on the
+context for scoring and audit).
 
 The `wri` variant (`RagIllustrationDebugNovelWorkflow`) appends one final post-process
 stage that illustrates every scene of the finished context before export; its stage
@@ -213,7 +216,9 @@ its probe file. Without a table the corpus-independent metrics still run, and th
 | Class | Role |
 |---|---|
 | `NovelContext` | Root channel: outline, language, roster `charactor_span`, `chapter_context` |
+| `RagNovelContext` | `NovelContext` subclass carrying the novel-level `RagRetrieval` settings and the documents fetched from the outline; renders them into the metadata and chapter-planning prompts |
 | `ChapterContext` | Chapter channel: `charactor_span`, `story_context`, heading block |
+| `RagChapterContext` | `ChapterContext` subclass whose stories are `RagStoryContext`s; the RAG chapter stage promotes what it plans, so a reloaded snapshot keeps the sealed types |
 | `StoryContext` | Story channel: `charactor_span`, `scene_context`, accumulated `writing_styles` |
 | `RagStoryContext` | `StoryContext` subclass sealed with `RagRetrieval` settings; the RAG pipeline swaps it in before scene planning and stops rendering its references once every scene of the story carries content |
 | `SceneContext` | Leaf channel: broadcast `charactor_span`, `content` (the only composed prose) |
@@ -246,7 +251,9 @@ history stays intact.
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N-1 boundary cards) |
-| `RAGCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
+| `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit` settings plus the decomposed multi-head search |
+| `RAGNovelCompose` | Seals the root with the retrieval settings in `before_compose_novel_context`, searches the outline, and renders the documents into the metadata and chapter-planning prompts |
+| `RAGChapterCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
 | `BibleCompose` | Composes the setting bible from the outline once; immutable for the run |
 | `IllustrateScenes` | Post-process illustration: batch-proposes one complete generation instruction (`SketchSpec`: prompt, negative prompt, LLM-chosen `mp`/`prop`) per pending scene (honoring `illustration_constraint`), renders them concurrently via ComfyUI into the run's `images/` directory, and attaches `IllustratedScene` outputs |
 
@@ -254,11 +261,11 @@ history stays intact.
 
 | Action | Stage |
 |---|---|
-| `InitNovelContext` | `01_init` — build context from outline/language/constraint/bible, then fire `before_compose_novel_context` |
+| `InitNovelContext` / `RagInitNovelContext` | `01_init` — build context from outline/language/constraint/bible, then fire `before_compose_novel_context` (the RAG variant's hook seals the root and searches the outline) |
 | `ProposeNovelMetadataStage` | `02_metadata` — `propose_novel_metadata` |
 | `ProposeSettingBibleStage` | `03_bible` — `compose_setting_bible`, then seed the bible prefix; skipped when a bible is already present |
 | `PrepareCharacterSpanStage` | `04_characters` — `prepare_character_span` (roster) |
-| `PlanChaptersStage` | `05_chapter_plans` — `plan_chapters_phase` + boundary drafting |
+| `PlanChaptersStage` / `RagPlanChaptersStage` | `05_chapter_plans` — `plan_chapters_phase` + boundary drafting (the RAG variant renders the novel's references and promotes the chapters to `RagChapterContext`) |
 | `PlanStoriesStage` / `RagPlanStoriesStage` | `06_story_plans` — fires `before_compose_chapter_context` per chapter, then `plan_stories_phase` + boundary drafting (RAG seals each chapter's stories) |
 | `PlanScenesStage` / `RagPlanScenesStage` | `07_scene_plans` — fires `before_compose_story_context` per story, then `plan_scenes_phase` (with RAG) |
 | `ComposeScenesStage` / `RagComposeScenesStage` | `08_scenes` — writes scene prose, then closes each story (`after_compose_story_context` + `post_process_story`) and each chapter (`after_compose_chapter_context` + `post_process_chapter`) |
@@ -273,7 +280,7 @@ Every stage wraps one `compose_novel` chain segment and fires the chain's lifecy
 | Workflow | Description |
 |---|---|
 | `DebugNovelWorkflow` | Outline → exported novel (`--format epub\|txt\|both`), one stage per action with per-stage snapshots |
-| `RagDebugNovelWorkflow` | Same, with writing-style RAG per story |
+| `RagDebugNovelWorkflow` | Same, with writing-style RAG at the novel (outline) and story levels |
 | `RagIllustrationDebugNovelWorkflow` | Same, plus a single post-process pass that renders a ComfyUI illustration for every scene into the EPUB |
 
 ### Rust / PyO3

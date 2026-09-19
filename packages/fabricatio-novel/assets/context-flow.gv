@@ -16,26 +16,34 @@ digraph context_flow {
 
     // ---- left column: stage chain ----
     task   [label="task init context\l rag_query · rag_limit\l writing_constraint · bible_path\l outline · language\l", shape=note, fillcolor="#F2F2F2"];
-    st05   [label="05 RagPlanStoriesStage\l ctx_override = True\l rag_query/rag_limit → self fields\l plan_stories_phase per chapter\l"];
-    st06   [label="06 PlanScenesStage\l iter_prefixed_contexts walk\l prepare_story consumes sealed stories\l"];
-    st07   [label="07 ComposeScenesStage\l scene prose, serial per scene\l iter_prefixed_contexts seeds each scene\l"];
-    asm    [label="08–09 Assemble & Dump\l EPUB / TXT export\l", fillcolor="#E8E8E8"];
+    st01   [label="01 RagInitNovelContext\l ctx_override = True\l before-hook seals the root\l and searches the outline\l"];
+    st05   [label="05 RagPlanChaptersStage\l novel refs → plan prompt\l promotes chapters to RAG type\l"];
+    st06   [label="06 RagPlanStoriesStage\l plan_stories_phase per chapter\l seals each chapter's stories\l"];
+    st07   [label="07 RagPlanScenesStage\l iter_prefixed_contexts walk\l prepare_story consumes sealed stories\l"];
+    st08   [label="08 RagComposeScenesStage\l scene prose, serial per scene\l iter_prefixed_contexts seeds each scene\l"];
+    asm    [label="09 Assemble & Dump\l EPUB / TXT export\l", fillcolor="#E8E8E8"];
 
-    task -> st05 [label=" ctx_override\l action.py:154 setattr\l"];
+    task -> st01 [label=" ctx_override\l"];
+    st01 -> st05;
     st05 -> st06;
     st06 -> st07;
-    st07 -> asm;
+    st07 -> st08;
+    st08 -> asm;
 
     // ---- right column: context tree ----
     novel [label="NovelContext\l outline · language · plan\l prefix_log seed = [bible]\l"];
-    ch1   [label="ChapterContext ×C\l prefix_log = all so far\l"];
+    nvrag [label="RagNovelContext\l rag = RagRetrieval (query, limit)\l retrieved_styles = docs from the outline\l"];
+    ch0   [label="ChapterContext ×C\l prefix_log = all so far\l"];
+    chrag [label="RagChapterContext\l stories are RagStoryContexts\l"];
     s11   [label="RagStoryContext\l rag = RagRetrieval\l (query, limit)\l writing_styles += retrieved refs\l"];
     s12   [label="StoryContext, no RAG\l writing_styles = inherited chain\l"];
     sc    [label="SceneContext ×N\l content = the prose\l prefix_log = everything so far, prior scenes included\l"];
 
-    novel -> ch1  [label=" iter_prefixed_contexts()\l set_prefix_log(seed)\l"];
-    ch1  -> s11;
-    ch1  -> s12   [label=" elder sibling feeds the seed\l"];
+    novel -> nvrag [label=" seal(novel, rag)\l"];
+    novel -> ch0  [label=" iter_prefixed_contexts()\l set_prefix_log(seed)\l"];
+    nvrag -> chrag;
+    chrag -> s11;
+    ch0  -> s12   [label=" plain run: no seal\l"];
     s11  -> sc;
     s12  -> sc    [style=dotted, arrowsize=0.55, constraint=false];
 
@@ -43,10 +51,16 @@ digraph context_flow {
     node [style="filled, dashed", fillcolor="#F5F5F5", fontsize=11, margin="0.14,0.11"];
     edge [style=dotted, arrowsize=0.55, fontname="serif", fontsize=9];
 
-    seal [label="RagStoryContext.seal(story, rag)\l idempotent model_dump rebind\l"];
-    fetch [label="_fetch_style_docs\l refine → multi-head search\l fused fair share, no rerank\l"];
-    st05 -> seal;
-    seal -> s11;
-    st06 -> fetch;
-    fetch -> s11;
+    seal_n  [label="RagNovelContext.seal(novel, rag)\l idempotent model_validate rebind\l"];
+    fetch_n [label="_fetch_style_docs(outline)\l refine → multi-head search\l fused fair share, no rerank\l"];
+    seal_s  [label="RagStoryContext.seal(story, rag)\l idempotent model_validate rebind\l"];
+    fetch_s [label="_fetch_style_docs(story description)\l refine → multi-head search\l fused fair share, no rerank\l"];
+    st01  -> seal_n;
+    seal_n -> nvrag;
+    st01  -> fetch_n;
+    fetch_n -> nvrag;
+    st06  -> seal_s;
+    seal_s -> s11;
+    st07  -> fetch_s;
+    fetch_s -> s11;
 }

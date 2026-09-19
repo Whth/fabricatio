@@ -205,13 +205,16 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         None,
         "--rag-query",
         "-rq",
-        help="Custom query guideline for writing style retrieval; defaults to the story description.",
+        help=(
+            "Custom query guideline appended to every RAG level's own search text (the novel's outline, "
+            "a story's description); empty searches that text alone."
+        ),
     ),
     retrieve_limit: int = typer.Option(
         0,
         "--retrieve-limit",
         "-rl",
-        help="Reference documents kept per story (0 = default 15).",
+        help="Reference documents kept per retrieval level (0 = default 15).",
     ),
     font: Path | None = typer.Option(
         None,
@@ -298,13 +301,16 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         None,
         "--rag-query",
         "-rq",
-        help="Custom query guideline for writing style retrieval; defaults to the story description.",
+        help=(
+            "Custom query guideline appended to every RAG level's own search text (the novel's outline, "
+            "a story's description); empty searches that text alone."
+        ),
     ),
     retrieve_limit: int = typer.Option(
         0,
         "--retrieve-limit",
         "-rl",
-        help="Reference documents kept per story (0 = default 15).",
+        help="Reference documents kept per retrieval level (0 = default 15).",
     ),
     font: Path | None = typer.Option(
         None,

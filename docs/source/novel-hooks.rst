@@ -21,28 +21,29 @@ Every level exposes the same three hooks with identity defaults. They live on th
      - Post-process artifact
    * - Novel
      - ``NovelCompose``
-     - ``before_compose_novel_context(ctx)``
-     - ``after_compose_novel_context(ctx)``
+     - ``before_compose_novel_context(ctx, send_to)``
+     - ``after_compose_novel_context(ctx, send_to)``
      - ``post_process_novel(ctx, novel)``
    * - Chapter
      - ``ChapterCompose``
-     - ``before_compose_chapter_context(ctx)``
-     - ``after_compose_chapter_context(ctx)``
+     - ``before_compose_chapter_context(ctx, send_to)``
+     - ``after_compose_chapter_context(ctx, send_to)``
      - ``post_process_chapter(ctx, chapter)``
    * - Story
      - ``StoryCompose``
-     - ``before_compose_story_context(ctx)``
-     - ``after_compose_story_context(ctx)``
+     - ``before_compose_story_context(ctx, send_to)``
+     - ``after_compose_story_context(ctx, send_to)``
      - ``post_process_story(ctx, story)``
    * - Scene
      - ``SceneCompose``
-     - ``before_compose_scene_context(ctx)``
-     - ``after_compose_scene_context(ctx)``
+     - ``before_compose_scene_context(ctx, send_to)``
+     - ``after_compose_scene_context(ctx, send_to)``
      - ``post_process_scene(ctx, scene)``
 
 Contract:
 
 * Before/after hooks receive and return the level's context; they may mutate it in place (e.g. enrich prompt channels). The after-compose hook runs **before** the artifact is assembled, so its mutations flow into the composed output.
+* Before/after hooks also receive ``send_to`` — the routing group the run's calls use — so a hook that reaches the model on its own routes it like the rest of the run.
 * Post-process hooks receive the composed artifact plus its context and return the (possibly transformed) artifact.
 * All hooks receive the caller's LLM ``**kwargs`` pass-through.
 * Every default implementation is an identity function; overriding any of them is optional.
@@ -52,11 +53,11 @@ The same shape at all four levels (the scene chain has no failure branch, so it 
 .. code-block:: python
 
     async def compose_level(self, ctx, send_to=None, **kwargs):
-        ctx = await self.before_compose_level_context(ctx, **kwargs)
+        ctx = await self.before_compose_level_context(ctx, send_to=send_to, **kwargs)
         ctx_res = await self.generate_level_context(ctx, send_to, **kwargs)
         if ctx_res is None:
             return None
-        ctx = await self.after_compose_level_context(ctx_res, **kwargs)
+        ctx = await self.after_compose_level_context(ctx_res, send_to=send_to, **kwargs)
         artifact = Level.from_context(ctx)
         return await self.post_process_level(ctx, artifact, **kwargs)
 
@@ -143,7 +144,8 @@ Production Overrides
 Two capabilities override seams without touching lifecycle hooks:
 
 * ``BibleCompose`` (settings bible): overrides ``prepare_scene_requirement`` to merge ``render_bible_context`` output into every scene prompt.
-* ``RAGCompose`` (writing-style RAG): overrides ``prepare_story`` to fetch ``WritingStyleDocument`` entries once per story; retrieved styles ride the context's writing-styles channel into scene prompts.
+* ``RAGNovelCompose`` (writing-style RAG, novel level): overrides ``before_compose_novel_context`` to seal the root with the retrieval settings and fetch ``WritingStyleDocument`` entries from the **outline**; the documents ride the novel context's style references into the metadata proposal and the chapter-planning prompt.
+* ``RAGChapterCompose`` (writing-style RAG, chapter level): overrides ``prepare_story`` to fetch ``WritingStyleDocument`` entries once per story; retrieved styles ride the context's writing-styles channel into scene prompts.
 
 This is the intended extension pattern: subclass the level mixin whose seam you need, override only that seam, and leave the twelve lifecycle hooks at their defaults.
 
@@ -160,11 +162,14 @@ their chain positions, so the staged run walks the same hook sequence the progra
    * - Stage
      - Chain segment
      - Hooks fired
-   * - ``InitNovelContext``
+   * - ``InitNovelContext`` / ``RagInitNovelContext``
      - Context entry
      - ``before_compose_novel_context``
-   * - ``ProposeNovelMetadataStage`` / ``PrepareCharacterSpanStage`` / ``PlanChaptersStage``
+   * - ``ProposeNovelMetadataStage`` / ``PrepareCharacterSpanStage``
      - ``generate_novel_context`` planning phases
+     - —
+   * - ``PlanChaptersStage`` / ``RagPlanChaptersStage``
+     - ``plan_chapters_phase``
      - —
    * - ``PlanStoriesStage``
      - ``plan_stories_phase`` per chapter
@@ -186,6 +191,12 @@ One deliberate divergence from the chain: the staged flow plans every story's sc
 scene prose is written (that is the snapshot boundary between ``PlanScenesStage`` and
 ``ComposeScenesStage``), so the story before-hooks all fire during planning while the after and
 post-process hooks fire during writing. Within one story the hook order is unchanged.
+
+The RAG variants (``RagInitNovelContext``, ``RagPlanChaptersStage``, ``RagPlanStoriesStage``,
+``RagPlanScenesStage``, ``RagComposeScenesStage``) keep every hook at the chain position above; they
+add retrieval on top: the init stage's novel before-hook seals the root with the retrieval settings
+and searches the outline, and the chapter stage promotes the chapters it plans to
+``RagChapterContext`` so the sealed root survives the snapshot round trip.
 
 Overriding a hook on a stage subclass customizes the staged run exactly like a role-level override
 customizes ``compose_novel``: stage actions mix the same capability classes, so the hooks resolve

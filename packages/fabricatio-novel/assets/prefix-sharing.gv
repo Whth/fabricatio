@@ -19,7 +19,7 @@ digraph prefix_sharing {
     ch1   [label="ChapterContext 1\l prefix_log = [bible]\l outgoing = [chapter_header, scenes]\l"];
     ch2   [label="ChapterContext 2\l prefix_log = [bible, Ch1 outgoing]\l"];
     s11   [label="RagStoryContext S1.1\l prefix_log = [bible, Ch1 header]\l"];
-    s12   [label="StoryContext S1.2\l prefix_log = [bible, Ch1 header, S1.1 outgoing]\l"];
+    s12   [label="StoryContext S1.2\l (plain run, no RAG)\l prefix_log = [bible, Ch1 header, S1.1 outgoing]\l"];
     sc1   [label="SceneContext S1.1.1\l prefix_log = story.prefix_log, same bytes\l"];
     sc2   [label="SceneContext S1.1.2\l prefix_log = [bible, Ch1 header, S1.1.1 outgoing]\l"];
 
