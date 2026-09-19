@@ -28,7 +28,7 @@ GUIDELINE: {{guideline}}
 MIN: {{min_size}}  MAX: {{max_size}}
 SEGMENTS:
 {{#each mini_chunks}}
-[{{@index}}] {{{this}}}
+[{{@index}}] {{this}}
 {{/each}}
 """
 
