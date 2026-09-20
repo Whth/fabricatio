@@ -17,7 +17,7 @@ class TestNovelPlan:
     async def test_compose_novel_plans_empty_tree(self) -> None:
         """Assert compose_novel plans an empty context tree down to scenes and writes content."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
@@ -79,7 +79,7 @@ class TestNovelPlan:
     async def test_compose_novel_allocates_writing_constraint_down_tree(self) -> None:
         """Assert every level carries its own constraints and reaches the scene requirement that way."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
             title="The Search",
@@ -146,7 +146,7 @@ class TestNovelPlan:
     async def test_propose_novel_metadata_keeps_intent_when_plan_constraint_empty(self) -> None:
         """Assert the author's stated constraint survives a plan that allocates none."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero., metadata intent salt.", language="English")
+        ctx = NovelContext.create("The hero..", language="English")
         ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
             title="The Search",
@@ -162,7 +162,7 @@ class TestNovelPlan:
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
         """Assert compose_novel returns None when chapter plan generation fails."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero., planning v2 salt.", language="English")
+        ctx = NovelContext.create("The hero..", language="English")
         meta = NovelPlan(title="T", description="D", expected_word_count=10, writing_styles=[], writing_constraints=[])
         with MockScript.from_values(
             Value.from_model(meta, name="novel metadata"),
@@ -176,7 +176,7 @@ class TestNovelPlan:
     async def test_compose_novel_expands_stories_for_prefilled_chapter(self) -> None:
         """Assert compose_novel plans stories and scenes under a prefilled chapter context."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.add_context(ChapterContext(title="Ch1", description="The hero sets out.").set_language("English"))
 
         meta = NovelPlan(
@@ -230,7 +230,7 @@ class TestWordCountAllocation:
     async def test_allocates_word_counts_by_plan_weights(self) -> None:
         """Assert plan weights drive the allocated word counts down the whole tree."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         meta = NovelPlan(
             title="The Search",
             description="A hero searching.",
@@ -311,7 +311,7 @@ class TestPlanningOutlineGrounding:
 
         monkeypatch.setattr(type(role), "propose", staticmethod(fake_propose))
 
-        novel = NovelContext.create("The hero seeks his father., planning v2 salt.", language="English")
+        novel = NovelContext.create("The hero seeks his father..", language="English")
         await role.plan_chapters_phase(novel)
         chapter = ChapterContext(title="Ch1", description="The start.").set_outline(novel.outline)
         await role.plan_stories_phase(chapter)

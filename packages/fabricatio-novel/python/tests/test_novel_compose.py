@@ -23,7 +23,7 @@ class TestCharacterSpans:
     async def test_compose_novel_stitches_chapter_boundaries_to_roster_ends(self) -> None:
         """Assert N chapters need N-1 boundary cards; chapter 1 starts at the novel start and the last ends at the novel end."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
         meta = NovelPlan(
@@ -113,7 +113,7 @@ class TestCharacterSpans:
     async def test_draft_chapter_spans_single_chapter_inherits_roster(self) -> None:
         """Assert a single chapter gets the roster spans directly without an LLM call."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero..", language="English")
         span = CharacterSpan(start=card(), end=card())
         ctx.set_charactor_spans([span])
         ctx.add_context(ChapterContext(title="Ch1", description="The start."))
@@ -190,7 +190,7 @@ class TestNovelCompose:
     async def test_compose_novel_end_to_end(self) -> None:
         """Assert a full composition fills content and prefixes across a prefilled tree."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_1 = SceneContext(title="S1", description="Leaving home.", expected_word_count=20)
@@ -230,7 +230,7 @@ class TestNovelCompose:
     async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
         """Assert composition emits per-level progress and completion log lines."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
         scene_1 = SceneContext(title="S1", description="Leaving home.", expected_word_count=20)
@@ -268,7 +268,7 @@ class TestNovelCompose:
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         """Assert compose_novel returns None when metadata generation fails."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero..", language="English")
         with MockScript.from_values(
             Value.from_text("not valid json", name="invalid metadata response"),
             Value.from_text("", name="empty response 2"),
@@ -461,7 +461,7 @@ class TestPrefixAccumulation:
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         """Assert chapter and story prefixed_content chain across the whole composed novel."""
         role = make_test_role(NovelCompose, name="novel_role")
-        ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.title = "The Search"
         ctx.description = "A hero searching."
         ctx.expected_word_count = 80
@@ -552,7 +552,7 @@ class TestComposeHookOrdering:
     async def test_after_compose_hooks_land_in_assembled_outputs(self) -> None:
         """Assert after-compose context mutations reach the assembled tree; assembly used to run first."""
         role = make_test_role(_HookMutating, name="hook_role")
-        ctx = NovelContext.create("The hero seeks his father., compose v2 salt.", language="English")
+        ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
         story_ctx.child_contexts.append(SceneContext(title="S1", description="Leaving home.", expected_word_count=20))
