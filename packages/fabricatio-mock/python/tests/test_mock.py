@@ -5,6 +5,8 @@ including Value serialization, router response helpers, role defaults,
 and integration with the dummy router.
 """
 
+from uuid import uuid4
+
 import orjson
 import pytest
 from fabricatio_core import Role
@@ -321,16 +323,48 @@ class TestMockRoleDefaults:
         role = LLMTestRole.with_bio(name="llm-test-no-cache")
         assert role.llm_no_cache is True
 
+    def test_llm_test_role_no_store(self) -> None:
+        """Verify LLMTestRole defaults llm_no_store to True."""
+        role = LLMTestRole.with_bio(name="llm-test-no-store")
+        assert role.llm_no_store is True
+
     def test_propose_test_role_inherits_defaults(self) -> None:
-        """Verify ProposeTestRole inherits llm_send_to and llm_no_cache defaults."""
+        """Verify ProposeTestRole inherits llm_send_to, llm_no_cache and llm_no_store defaults."""
         role = ProposeTestRole.with_bio(name="propose-test-defaults")
         assert role.llm_send_to == DUMMY_LLM_GROUP
         assert role.llm_no_cache is True
+        assert role.llm_no_store is True
 
     def test_propose_test_role_is_role(self) -> None:
         """Verify ProposeTestRole is an instance of Role."""
         role = ProposeTestRole.with_bio(name="propose-test-is-role")
         assert isinstance(role, Role)
+
+
+# =============================================================================
+# Mock Role: no_store behaviour
+# =============================================================================
+
+
+class TestMockRoleNoStore:
+    """A test role must never leave its canned responses in the shared cache."""
+
+    async def test_no_store_response_is_not_persisted(self) -> None:
+        """A no_store call must not become a cache hit for a later call.
+
+        The completion cache key is content-only, so a persisted dummy response
+        would be served to any later request sharing the prompt bytes — a live
+        role included. Two sequential no_store calls on the same prompt must
+        therefore consume two canned responses.
+        """
+        role = LLMTestRole.with_bio(name="llm-test-no-store-io")
+        prompt = f"[no-store:{uuid4().hex}] ping"
+        role.mock_llm_response("first-response", "second-response")
+
+        first = await role.aask(prompt, no_cache=False, no_store=True)
+        second = await role.aask(prompt, no_cache=False, no_store=True)
+
+        assert {first, second} == {"first-response", "second-response"}
 
 
 # =============================================================================

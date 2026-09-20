@@ -21,6 +21,10 @@ class LLMTestRole(Role, UseLLM):
 
     llm_send_to: str | None = DUMMY_LLM_GROUP
     llm_no_cache: bool | None = True
+    llm_no_store: bool | None = True
+    """Canned responses must never enter the shared completion cache: a dummy's
+    text stored under the content-only cache key would be served to a live
+    request with the same prompt bytes."""
 
     def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
         """Pin LLM routing to the dummy group, ignoring any explicit ``send_to``.
