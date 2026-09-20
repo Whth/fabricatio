@@ -331,7 +331,7 @@ class EmbeddingScopedConfig(ScopedConfig):
     embedding_send_to: str | None = None
     """The LLM model name."""
 
-    embedding_no_cache: bool = False
+    embedding_no_cache: bool | None = None
     """Whether to bypass the cache read for embeddings."""
 
     embedding_no_store: bool | None = None
