@@ -20,7 +20,7 @@ use thryd::{
 
 mod image;
 
-pub use thryd::{CompletionRequest, ImageAttachment, ProviderType, RouteGroupName};
+pub use thryd::{CachePolicy, CompletionRequest, ImageAttachment, ProviderType, RouteGroupName};
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object)]
 #[derive(Default, Clone)]
@@ -47,18 +47,18 @@ impl Router {
         self,
         send_to: RouteGroupName,
         req: EmbeddingRequest,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> PyResult<Vec<Embedding>> {
-        Self::embedding_inner(send_to, req, self.embedding_router.clone(), no_cache).await
+        Self::embedding_inner(send_to, req, self.embedding_router.clone(), policy).await
     }
 
     pub async fn embedding_inner(
         send_to: RouteGroupName,
         req: EmbeddingRequest,
         r: Arc<ThrydRouter<EmbeddingTag>>,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> PyResult<Vec<Embedding>> {
-        r.invoke(send_to.clone(), req, no_cache)
+        r.invoke(send_to.clone(), req, policy)
             .await
             .into_pyresult()
             .map(|e| e.embeddings)
@@ -67,9 +67,9 @@ impl Router {
         send_to: RouteGroupName,
         req: RerankerRequest,
         r: Arc<ThrydRouter<RerankerTag>>,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> PyResult<RankedDocuments> {
-        r.invoke(send_to.clone(), req, no_cache)
+        r.invoke(send_to.clone(), req, policy)
             .await
             .into_pyresult()
             .map(|r| r.rankings)
@@ -78,20 +78,20 @@ impl Router {
         &self,
         send_to: RouteGroupName,
         reqs: Vec<CompletionRequest>,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> Vec<Option<String>> {
-        Self::completion_batch_inner(send_to, reqs, self.completion_router.clone(), no_cache).await
+        Self::completion_batch_inner(send_to, reqs, self.completion_router.clone(), policy).await
     }
 
     pub async fn completion_batch_inner(
         send_to: RouteGroupName,
         reqs: Vec<CompletionRequest>,
         r: Arc<ThrydRouter<CompletionTag>>,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> Vec<Option<String>> {
         join_all(
             reqs.into_iter()
-                .map(|req| r.invoke(send_to.clone(), req, no_cache)),
+                .map(|req| r.invoke(send_to.clone(), req, policy)),
         )
         .map(|results| {
             results
@@ -114,15 +114,15 @@ impl Router {
         send_to: RouteGroupName,
         req: CompletionRequest,
     ) -> PyResult<String> {
-        Self::completion_inner(send_to, req, self.completion_router.clone(), false).await
+        Self::completion_inner(send_to, req, self.completion_router.clone(), CachePolicy::CACHED).await
     }
     pub async fn completion_inner(
         send_to: RouteGroupName,
         req: CompletionRequest,
         r: Arc<ThrydRouter<CompletionTag>>,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> PyResult<String> {
-        r.invoke(send_to, req, no_cache)
+        r.invoke(send_to, req, policy)
             .await
             .into_pyresult()
             .map(|c| c.content)
@@ -137,7 +137,7 @@ impl Router {
     #[gen_stub(
         override_return_type(type_repr = "typing.Awaitable[str]", imports = ("typing",))
     )]
-    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, images = None)
+    #[pyo3(signature = (send_to, message, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, no_store = false, images = None)
     )]
     /// Sends a completion request to the specified group and returns the full response.
     ///
@@ -157,7 +157,8 @@ impl Router {
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
     ///     effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
-    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+    ///     no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+    ///     no_store (bool): Whether to skip persisting the response. Defaults to False.
     ///     images (List[bytes]): Optional raw image bytes for multimodal requests. Defaults to empty.
     ///
     /// Returns:
@@ -175,6 +176,7 @@ impl Router {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         #[gen_stub(override_type(type_repr = "list[bytes] | None"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let req = CompletionRequest {
@@ -196,10 +198,10 @@ impl Router {
         let r = self.completion_router.clone();
 
         future_into_py(python, async move {
-            Self::completion_inner(send_to, req, r, no_cache).await
+            Self::completion_inner(send_to, req, r, CachePolicy::new(no_cache, no_store)).await
         })
     }
-    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, images = None)
+    #[pyo3(signature = (send_to, messages, stream = false, top_p=None, temperature=None, max_completion_tokens = None, presence_penalty = None, frequency_penalty = None, effort = None, no_cache = false, no_store = false, images = None)
     )]
     /// Sends a batch of completion requests to the specified group and returns all responses.
     ///
@@ -217,7 +219,8 @@ impl Router {
     ///     presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
     ///     frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
     ///     effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
-    ///     no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
+    ///     no_cache (bool): Whether to bypass the cache read for each request. Defaults to False.
+    ///     no_store (bool): Whether to skip persisting each response. Defaults to False.
     ///     images (List[bytes]): Optional raw image bytes broadcast to all messages. Defaults to empty.
     ///
     /// Returns:
@@ -235,6 +238,7 @@ impl Router {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         #[gen_stub(override_type(type_repr = "list[bytes] | None"))] images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let attachments: Vec<ImageAttachment> = images
@@ -276,7 +280,7 @@ impl Router {
         };
         let r = self.completion_router.clone();
         future_into_py(python, async move {
-            Ok(Self::completion_batch_inner(send_to, reqs, r, no_cache).await)
+            Ok(Self::completion_batch_inner(send_to, reqs, r, CachePolicy::new(no_cache, no_store)).await)
         })
     }
 
@@ -292,11 +296,12 @@ impl Router {
     ///     ndim (int): The dimensionality of the output embeddings. Must match between search and store.
     ///     max_batch_emb_size (Optional[int]): Maximum texts per API call. When exceeded, the batch is
     ///         split into chunks and fanned out in parallel. Defaults to None (no chunking).
-    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+    ///     no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+    ///     no_store (bool): Whether to skip persisting the response. Defaults to False.
     ///
     /// Returns:
     ///     List[List[float]]: A list of embedding vectors corresponding to the input texts.
-    #[pyo3(signature = (send_to, texts, ndim, no_cache = false, max_batch_emb_size = None))]
+    #[pyo3(signature = (send_to, texts, ndim, no_cache = false, no_store = false, max_batch_emb_size = None))]
     pub fn embedding<'a>(
         &self,
         python: Python<'a>,
@@ -304,6 +309,7 @@ impl Router {
         texts: Vec<String>,
         ndim: u32,
         no_cache: bool,
+        no_store: bool,
         max_batch_emb_size: Option<usize>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let r = self.embedding_router.clone();
@@ -317,7 +323,7 @@ impl Router {
                     max_batch_emb_size,
                 },
                 r,
-                no_cache,
+                CachePolicy::new(no_cache, no_store),
             )
             .await
         })
@@ -332,11 +338,12 @@ impl Router {
     ///     send_to (str): The router group name to route the reranking request.
     ///     query (str): The query text to rank documents against.
     ///     documents (List[str]): A list of document texts to rerank.
-    ///     no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+    ///     no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+    ///     no_store (bool): Whether to skip persisting the response. Defaults to False.
     ///
     /// Returns:
     ///     List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
-    #[pyo3(signature = (send_to, query, documents, no_cache = false))]
+    #[pyo3(signature = (send_to, query, documents, no_cache = false, no_store = false))]
     pub fn rerank<'a>(
         &self,
         python: Python<'a>,
@@ -344,11 +351,12 @@ impl Router {
         query: String,
         documents: Vec<String>,
         no_cache: bool,
+        no_store: bool,
     ) -> PyResult<Bound<'a, PyAny>> {
         let r = self.reranker_router.clone();
         let req = RerankerRequest { query, documents };
         future_into_py(python, async move {
-            Self::rerank_inner(send_to, req, r, no_cache).await
+            Self::rerank_inner(send_to, req, r, CachePolicy::new(no_cache, no_store)).await
         })
     }
 
