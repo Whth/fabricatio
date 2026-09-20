@@ -7,7 +7,7 @@ use cfg_if::cfg_if;
 use error_mapping::AsPyErr;
 use fabricatio_config::CONFIG;
 use fabricatio_logger::*;
-use fabricatio_router::{CompletionRequest, RouteGroupName, Router, attach};
+use fabricatio_router::{CachePolicy, CompletionRequest, RouteGroupName, Router, attach};
 use futures::StreamExt;
 use futures::future::join_all;
 use pyo3::BoundObject;
@@ -33,6 +33,7 @@ pub struct CompletionParams {
     frequency_penalty: Option<f32>,
     effort: Option<String>,
     no_cache: bool,
+    no_store: bool,
     images: Option<Vec<Vec<u8>>>,
 }
 
@@ -92,6 +93,11 @@ where
     })
 }
 impl CompletionParams {
+    /// Cache policy of this request: `no_cache` skips the read, `no_store` the write.
+    fn cache_policy(&self) -> CachePolicy {
+        CachePolicy::new(self.no_cache, self.no_store)
+    }
+
     fn to_request(&self, message: String) -> CompletionRequest {
         CompletionRequest {
             message,
@@ -187,7 +193,7 @@ impl RouterUsage {
             })
             .map(async move |(i, sd, rq, rtr, vali)| {
                 trace!("Validate the {}th time.", i);
-                match rtr.invoke(sd, rq, params.no_cache).await {
+                match rtr.invoke(sd, rq, params.cache_policy()).await {
                     Ok(completion) => {
                         let outcome = vali(completion.content.as_str());
                         if outcome.is_none() {
@@ -426,6 +432,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let params = CompletionParams {
@@ -438,6 +445,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         let question = extract_batch(&question)?;
@@ -454,6 +462,7 @@ impl RouterUsage {
                 params.frequency_penalty,
                 params.effort.clone(),
                 params.no_cache,
+                params.no_store,
                 params.images,
             ),
             Batch::Batch(msg_seq) => self.router.completion_batch(
@@ -468,6 +477,7 @@ impl RouterUsage {
                 params.frequency_penalty,
                 params.effort.clone(),
                 params.no_cache,
+                params.no_store,
                 params.images,
             ),
         }
@@ -507,6 +517,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -522,6 +533,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
 
@@ -571,6 +583,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -585,6 +598,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         let default = default.map(|d| d.unbind());
@@ -626,6 +640,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -640,6 +655,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         future_into_py(python, async move {
@@ -670,6 +686,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -684,6 +701,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         future_into_py(python, async move {
@@ -714,6 +732,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -728,6 +747,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         future_into_py(python, async move {
@@ -759,6 +779,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -773,6 +794,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         future_into_py(python, async move {
@@ -806,6 +828,7 @@ impl RouterUsage {
         frequency_penalty: Option<f32>,
         effort: Option<String>,
         no_cache: bool,
+        no_store: bool,
         images: Option<Vec<Vec<u8>>>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let requirement = extract_batch(&requirement)?;
@@ -820,6 +843,7 @@ impl RouterUsage {
             frequency_penalty,
             effort,
             no_cache,
+            no_store,
             images,
         };
         future_into_py(python, async move {
@@ -843,53 +867,53 @@ pyo3_stub_gen::inventory::submit! {
         r#"
         class RouterUsage:
             @overload
-            def ask(self, question: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[str]: ...
+            def ask(self, question: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[str]: ...
             @overload
-            def ask(self, question: typing.List[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[str]]: ...
+            def ask(self, question: typing.List[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[str]]: ...
             @overload
-            def ask(self, question: typing.Union[str, typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
+            def ask(self, question: typing.Union[str, typing.List[str]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[str, typing.List[str]]]: ...
             @overload
-            def mapping_kv(self, requirement: str, key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
+            def mapping_kv(self, requirement: str, key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.Dict[_K, _V]]]: ...
             @overload
-            def mapping_kv(self, requirement: typing.List[str], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
+            def mapping_kv(self, requirement: typing.List[str], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.Dict[_K, _V]]]]: ...
             @overload
-            def mapping_kv(self, requirement: typing.Union[str, typing.List[str]], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[_K, _V]], typing.List[typing.Optional[typing.Dict[_K, _V]]]]]: ...
+            def mapping_kv(self, requirement: typing.Union[str, typing.List[str]], key_type: typing.Type[_K], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.Dict[_K, _V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.Dict[_K, _V]], typing.List[typing.Optional[typing.Dict[_K, _V]]]]]: ...
             @overload
-            def listing_v(self, requirement: str, value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
+            def listing_v(self, requirement: str, value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[_V]]]: ...
             @overload
-            def listing_v(self, requirement: typing.List[str], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
+            def listing_v(self, requirement: typing.List[str], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[_V]]]]: ...
             @overload
-            def listing_v(self, requirement: typing.Union[str, typing.List[str]], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[_V]], typing.List[typing.Optional[typing.List[_V]]]]]: ...
+            def listing_v(self, requirement: typing.Union[str, typing.List[str]], value_type: typing.Type[_V], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[_V]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[_V]], typing.List[typing.Optional[typing.List[_V]]]]]: ...
             @overload
-            def generic_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[str]]: ...
+            def generic_string(self, requirement: str, max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[str]]: ...
             @overload
-            def generic_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+            def generic_string(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
             @overload
-            def generic_string(self, requirement: typing.Union[str, typing.List[str]], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
+            def generic_string(self, requirement: typing.Union[str, typing.List[str]], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
             @overload
-            def code_string(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[str]]: ...
+            def code_string(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[str]]: ...
             @overload
-            def code_string(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
+            def code_string(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[str]]]: ...
             @overload
-            def code_string(self, requirement: typing.Union[str, typing.List[str]], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
+            def code_string(self, requirement: typing.Union[str, typing.List[str]], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[str], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[str], typing.List[typing.Optional[str]]]]: ...
             @overload
-            def code_snippets(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
+            def code_snippets(self, requirement: str, code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[CodeSnippet]]]: ...
             @overload
-            def code_snippets(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
+            def code_snippets(self, requirement: typing.List[str], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[CodeSnippet]]]]: ...
             @overload
-            def code_snippets(self, requirement: typing.Union[str, typing.List[str]], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[CodeSnippet]], typing.List[typing.Optional[typing.List[CodeSnippet]]]]]: ...
+            def code_snippets(self, requirement: typing.Union[str, typing.List[str]], code_language: typing.Optional[str], max_validations: int, default: typing.Optional[typing.List[CodeSnippet]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[CodeSnippet]], typing.List[typing.Optional[typing.List[CodeSnippet]]]]]: ...
             @overload
-            def judging(self, requirement: str, max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[bool]]: ...
+            def judging(self, requirement: str, max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[bool]]: ...
             @overload
-            def judging(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
+            def judging(self, requirement: typing.List[str], max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[bool]]]: ...
             @overload
-            def judging(self, requirement: typing.Union[str, typing.List[str]], max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
+            def judging(self, requirement: typing.Union[str, typing.List[str]], max_validations: int, default: typing.Optional[bool], affirm_case: str, deny_case: str, send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[bool], typing.List[typing.Optional[bool]]]]: ...
             @overload
-            def choosing(self, requirement: str, valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
+            def choosing(self, requirement: str, valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Optional[typing.List[int]]]: ...
             @overload
-            def choosing(self, requirement: typing.List[str], valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
+            def choosing(self, requirement: typing.List[str], valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.List[typing.Optional[typing.List[int]]]]: ...
             @overload
-            def choosing(self, requirement: typing.Union[str, typing.List[str]], valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[int]], typing.List[typing.Optional[typing.List[int]]]]]: ...
+            def choosing(self, requirement: typing.Union[str, typing.List[str]], valid_names: typing.List[str], k: typing.Optional[int], max_validations: int, default: typing.Optional[typing.List[int]], send_to: str, stream: bool, top_p: typing.Optional[float], temperature: typing.Optional[float], max_completion_tokens: typing.Optional[int], presence_penalty: typing.Optional[float], frequency_penalty: typing.Optional[float], effort: typing.Optional[str], no_cache: bool, no_store: bool, images: typing.Optional[typing.Sequence[bytes]] = None) -> typing.Awaitable[typing.Union[typing.Optional[typing.List[int]], typing.List[typing.Optional[typing.List[int]]]]]: ...
         "#
     }
 }

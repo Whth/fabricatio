@@ -332,7 +332,10 @@ class EmbeddingScopedConfig(ScopedConfig):
     """The LLM model name."""
 
     embedding_no_cache: bool = False
-    """Whether to disable caching for embeddings."""
+    """Whether to bypass the cache read for embeddings."""
+
+    embedding_no_store: bool | None = None
+    """Whether to skip persisting embedding responses in the cache."""
 
     embedding_ndim: int | None = None
     """The dimensionality of the output embeddings. Must match between search and store."""
@@ -346,6 +349,7 @@ class EmbeddingScopedConfig(ScopedConfig):
         send_to: str | None = None,
         ndim: int | None = None,
         no_cache: bool | None = None,
+        no_store: bool | None = None,
         max_batch_emb_size: int | None = None,
         **_,
     ) -> EmbeddingKwargs:
@@ -357,6 +361,11 @@ class EmbeddingScopedConfig(ScopedConfig):
             ndim=first_available((ndim, self.embedding_ndim, CONFIG.embedding.ndim)),
             no_cache=first_available(
                 (no_cache, self.embedding_no_cache, CONFIG.embedding.no_cache),
+                raise_exception=False,
+            )
+            or False,
+            no_store=first_available(
+                (no_store, self.embedding_no_store, CONFIG.embedding.no_store),
                 raise_exception=False,
             )
             or False,
@@ -374,9 +383,18 @@ class RerankerScopedConfig(ScopedConfig):
     """The group name of which the requests will be sent."""
 
     reranker_no_cache: bool | None = None
-    """Whether to disable caching for the reranker."""
+    """Whether to bypass the cache read for the reranker."""
 
-    def _resolve_reranker_params(self, send_to: str | None = None, no_cache: bool | None = None, **_) -> RerankerKwargs:
+    reranker_no_store: bool | None = None
+    """Whether to skip persisting reranker responses in the cache."""
+
+    def _resolve_reranker_params(
+        self,
+        send_to: str | None = None,
+        no_cache: bool | None = None,
+        no_store: bool | None = None,
+        **_,
+    ) -> RerankerKwargs:
         return RerankerKwargs(
             send_to=ok(
                 send_to or self.reranker_send_to or CONFIG.reranker.send_to,
@@ -384,6 +402,11 @@ class RerankerScopedConfig(ScopedConfig):
             ),
             no_cache=first_available(
                 (no_cache, self.reranker_no_cache, CONFIG.reranker.no_cache),
+                raise_exception=False,
+            )
+            or False,
+            no_store=first_available(
+                (no_store, self.reranker_no_store, CONFIG.reranker.no_store),
                 raise_exception=False,
             )
             or False,
@@ -415,7 +438,10 @@ class LLMScopedConfig(ScopedConfig):
     """The frequency penalty of the LLM model."""
 
     llm_no_cache: bool | None = None
-    """Whether to disable caching for the LLM model."""
+    """Whether to bypass the cache read for the LLM model."""
+
+    llm_no_store: bool | None = None
+    """Whether to skip persisting LLM responses in the cache."""
 
     llm_effort: str | None = None
     """The reasoning effort level for models that support it (e.g. o1, o3)."""
@@ -450,6 +476,7 @@ class LLMScopedConfig(ScopedConfig):
         frequency_penalty: float | None = None,
         effort: str | None = None,
         no_cache: bool | None = None,
+        no_store: bool | None = None,
         images: list[bytes] | None = None,
         **_,
     ) -> LLMKwargs:
@@ -475,6 +502,8 @@ class LLMScopedConfig(ScopedConfig):
             ),
             effort=first_available((effort, self.llm_effort, CONFIG.llm.effort), raise_exception=False),
             no_cache=first_available((no_cache, self.llm_no_cache, CONFIG.llm.no_cache), raise_exception=False)
+            or False,
+            no_store=first_available((no_store, self.llm_no_store, CONFIG.llm.no_store), raise_exception=False)
             or False,
             images=images,
         )

@@ -11,6 +11,9 @@ class RouteKwargs(TypedDict, total=False):
     """
 
     no_cache: bool
+    """Whether to bypass the response cache read."""
+    no_store: bool
+    """Whether to skip persisting the response in the cache."""
 
 
 class EmbeddingKwargs(RouteKwargs, total=False):

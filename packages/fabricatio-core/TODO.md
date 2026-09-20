@@ -26,3 +26,9 @@
           `capabilities/usages.py` deliberately uses that write-back to overwrite a stale entry;
           (b) keep core as-is and set `llm_no_cache=True` wherever the dummy is used;
           (c) put the deployment in the cache key so dummy and live entries can never collide.
+    - [x] Chosen: a separate `no_store` flag (option (a)'s spirit, without overloading `no_cache`).
+          `CachePolicy { no_cache, no_store }` in thryd now gates read and write independently;
+          `no_store` is plumbed like `no_cache` (Router kwargs, `[llm]`/`[embedding]`/`[reranker]`
+          config, `LLMScopedConfig.llm_no_store` etc.) and `LLMTestRole` sets `llm_no_store = True`
+          so its canned completions never enter the shared store. Embedding/reranker traffic of
+          composed test roles still writes (they set only the llm flags).

@@ -344,6 +344,8 @@ class EmbeddingConfig:
     @property
     def no_cache(self) -> builtins.bool | None: ...
     @property
+    def no_store(self) -> builtins.bool | None: ...
+    @property
     def ndim(self) -> builtins.int | None: ...
     @property
     def max_batch_emb_size(self) -> builtins.int | None: ...
@@ -710,6 +712,8 @@ class LLMConfig:
     @property
     def no_cache(self) -> builtins.bool | None: ...
     @property
+    def no_store(self) -> builtins.bool | None: ...
+    @property
     def temperature(self) -> builtins.float | None: ...
     @property
     def top_p(self) -> builtins.float | None: ...
@@ -764,6 +768,8 @@ class RerankerConfig:
     def send_to(self) -> builtins.str | None: ...
     @property
     def no_cache(self) -> builtins.bool | None: ...
+    @property
+    def no_store(self) -> builtins.bool | None: ...
 
 @typing.final
 class Router:
@@ -779,6 +785,7 @@ class Router:
         frequency_penalty: builtins.float | None = None,
         effort: builtins.str | None = None,
         no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
         images: list[bytes] | None = None,
     ) -> typing.Awaitable[str]:
         r"""Sends a completion request to the specified group and returns the full response.
@@ -799,7 +806,8 @@ class Router:
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
             effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
-            no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
             images (List[bytes]): Optional raw image bytes for multimodal requests. Defaults to empty.
 
         Returns:
@@ -818,6 +826,7 @@ class Router:
         frequency_penalty: builtins.float | None = None,
         effort: builtins.str | None = None,
         no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
         images: list[bytes] | None = None,
     ) -> typing.Any:
         r"""Sends a batch of completion requests to the specified group and returns all responses.
@@ -836,7 +845,8 @@ class Router:
             presence_penalty (Optional[float]): Penalizes new tokens based on presence. Defaults to 0.0 if None.
             frequency_penalty (Optional[float]): Penalizes new tokens based on frequency. Defaults to 0.0 if None.
             effort (Optional[str]): Reasoning effort for models that support it (e.g. "low", "medium", "high"). Defaults to None.
-            no_cache (bool): Whether to bypass the cache for each request. Defaults to False.
+            no_cache (bool): Whether to bypass the cache read for each request. Defaults to False.
+            no_store (bool): Whether to skip persisting each response. Defaults to False.
             images (List[bytes]): Optional raw image bytes broadcast to all messages. Defaults to empty.
 
         Returns:
@@ -849,6 +859,7 @@ class Router:
         texts: typing.Sequence[builtins.str],
         ndim: builtins.int,
         no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
         max_batch_emb_size: builtins.int | None = None,
     ) -> typing.Awaitable[list[list[float]]]:
         r"""Sends an embedding request to the specified group.
@@ -859,7 +870,8 @@ class Router:
             ndim (int): The dimensionality of the output embeddings. Must match between search and store.
             max_batch_emb_size (Optional[int]): Maximum texts per API call. When exceeded, the batch is
                 split into chunks and fanned out in parallel. Defaults to None (no chunking).
-            no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
 
         Returns:
             List[List[float]]: A list of embedding vectors corresponding to the input texts.
@@ -871,6 +883,7 @@ class Router:
         query: builtins.str,
         documents: typing.Sequence[builtins.str],
         no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
     ) -> typing.Awaitable[list[tuple[int, float]]]:
         r"""Sends a reranking request to the specified group.
 
@@ -878,7 +891,8 @@ class Router:
             send_to (str): The router group name to route the reranking request.
             query (str): The query text to rank documents against.
             documents (List[str]): A list of document texts to rerank.
-            no_cache (bool): Whether to bypass the cache for this request. Defaults to False.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
 
         Returns:
             List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
@@ -1017,6 +1031,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str]: ...
     @typing.overload
@@ -1032,6 +1047,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[str]]: ...
     @typing.overload
@@ -1047,6 +1063,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str | list[str]]: ...
     @typing.overload
@@ -1067,6 +1084,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[dict[_K, _V] | None]: ...
     @typing.overload
@@ -1087,6 +1105,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[dict[_K, _V] | None]]: ...
     @typing.overload
@@ -1107,6 +1126,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[dict[_K, _V] | list[dict[_K, _V] | None] | None]: ...
     @typing.overload
@@ -1126,6 +1146,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[_V] | None]: ...
     @typing.overload
@@ -1145,6 +1166,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[list[_V] | None]]: ...
     @typing.overload
@@ -1164,6 +1186,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[_V] | list[list[_V] | None] | None]: ...
     @typing.overload
@@ -1181,6 +1204,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str | None]: ...
     @typing.overload
@@ -1198,6 +1222,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[str | None]]: ...
     @typing.overload
@@ -1215,6 +1240,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str | list[str | None] | None]: ...
     @typing.overload
@@ -1233,6 +1259,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str | None]: ...
     @typing.overload
@@ -1251,6 +1278,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[str | None]]: ...
     @typing.overload
@@ -1269,6 +1297,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[str | list[str | None] | None]: ...
     @typing.overload
@@ -1287,6 +1316,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[CodeSnippet] | None]: ...
     @typing.overload
@@ -1305,6 +1335,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[list[CodeSnippet] | None]]: ...
     @typing.overload
@@ -1323,6 +1354,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[CodeSnippet] | list[list[CodeSnippet] | None] | None]: ...
     @typing.overload
@@ -1342,6 +1374,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[bool | None]: ...
     @typing.overload
@@ -1361,6 +1394,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[bool | None]]: ...
     @typing.overload
@@ -1380,6 +1414,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[bool | list[bool | None] | None]: ...
     @typing.overload
@@ -1399,6 +1434,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[int] | None]: ...
     @typing.overload
@@ -1418,6 +1454,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[list[int] | None]]: ...
     @typing.overload
@@ -1437,6 +1474,7 @@ class RouterUsage:
         frequency_penalty: float | None,
         effort: str | None,
         no_cache: bool,
+        no_store: bool,
         images: typing.Sequence[bytes] | None = None,
     ) -> typing.Awaitable[list[int] | list[list[int] | None] | None]: ...
 
