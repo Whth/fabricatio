@@ -76,7 +76,8 @@ Config {
 ```rust
 LLMConfig {
     send_to: Option<String>,               // Default routing group or agent variant
-    no_cache: Option<bool>,                // Bypass the response cache
+    no_cache: Option<bool>,                // Bypass the response cache (read)
+    no_store: Option<bool>,                // Skip persisting responses (write)
     temperature: Option<f32>,              // Range 0.0-2.0
     top_p: Option<f32>,                    // Range 0.0-1.0
     stream: bool,                          // Streaming responses (default false)
@@ -108,7 +109,8 @@ Agent {
 ```rust
 EmbeddingConfig {
     send_to: Option<String>,           // Default routing group for embedding requests
-    no_cache: Option<bool>,            // Disable response caching for embeddings
+    no_cache: Option<bool>,            // Disable response cache reads for embeddings
+    no_store: Option<bool>,            // Skip persisting embedding responses
     ndim: Option<u32>,                 // Dimensionality of output embedding vectors
     max_batch_emb_size: Option<usize>, // Split larger batches into parallel API calls
 }
@@ -119,7 +121,8 @@ EmbeddingConfig {
 ```rust
 RerankerConfig {
     send_to: Option<String>,          // Default routing group for reranker requests
-    no_cache: Option<bool>,           // Disable response caching for reranker
+    no_cache: Option<bool>,           // Disable response cache reads for reranker
+    no_store: Option<bool>,           // Skip persisting reranker responses
 }
 ```
 

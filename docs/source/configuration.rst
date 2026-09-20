@@ -186,7 +186,11 @@ per call.
    * - ``no_cache``
      - bool
      - *(unset)*
-     - Bypass the response cache for completions.
+     - Bypass the response cache read for completions.
+   * - ``no_store``
+     - bool
+     - *(unset)*
+     - Return completion responses without persisting them (dummy/volatile responses).
    * - ``temperature``
      - float
      - *(unset)*
@@ -286,7 +290,11 @@ Default parameters for embedding requests.
    * - ``no_cache``
      - bool
      - *(unset)*
-     - Disable response caching for embeddings.
+     - Bypass the response cache read for embeddings.
+   * - ``no_store``
+     - bool
+     - *(unset)*
+     - Return embedding responses without persisting them.
    * - ``ndim``
      - int
      - *(unset)*
@@ -317,7 +325,11 @@ Default parameters for reranking requests.
    * - ``no_cache``
      - bool
      - *(unset)*
-     - Disable response caching for reranking.
+     - Bypass the response cache read for reranking.
+   * - ``no_store``
+     - bool
+     - *(unset)*
+     - Return reranker responses without persisting them.
 
 [routing]
 ~~~~~~~~~

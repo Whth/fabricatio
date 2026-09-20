@@ -88,7 +88,11 @@ impl Default for ImageCompressionConfig {
 pub struct LLMConfig {
     pub send_to: Option<String>,
 
+    /// Skip the cache read: the request always executes on a deployment.
     pub no_cache: Option<bool>,
+
+    /// Skip the cache write: responses are returned but never persisted.
+    pub no_store: Option<bool>,
 
     #[validate(range(
         min = 0.0,
@@ -123,7 +127,10 @@ pub struct LLMConfig {
 #[pyclass(from_py_object, get_all)]
 pub struct EmbeddingConfig {
     pub send_to: Option<String>,
+    /// Skip the cache read for embedding requests.
     pub no_cache: Option<bool>,
+    /// Skip the cache write for embedding requests.
+    pub no_store: Option<bool>,
     pub ndim: Option<u32>,
     pub max_batch_emb_size: Option<usize>,
 }
@@ -134,7 +141,10 @@ pub struct EmbeddingConfig {
 #[pyclass(from_py_object, get_all)]
 pub struct RerankerConfig {
     pub send_to: Option<String>,
+    /// Skip the cache read for reranking requests.
     pub no_cache: Option<bool>,
+    /// Skip the cache write for reranking requests.
+    pub no_store: Option<bool>,
 }
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
