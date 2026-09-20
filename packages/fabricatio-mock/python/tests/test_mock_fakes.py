@@ -1,7 +1,6 @@
 """Tests for the deterministic embedding and reranker fakes."""
 
 import math
-from uuid import uuid4
 
 import pytest
 from fabricatio_core import rust
@@ -65,13 +64,13 @@ class TestInstallFakeEmbeddings:
     async def test_batch_call_returns_declared_vectors(self) -> None:
         """A batch call receives one hash vector per text.
 
-        The texts carry a run-unique token: the router caches embeddings per
-        text hash in a store shared with production runs.
+        ``no_cache``/``no_store`` keep the dummy vectors out of the cache shared
+        with production runs, which is keyed by the text alone.
         """
-        texts = [f"alpha-{uuid4().hex}", f"beta-{uuid4().hex}"]
+        texts = ["alpha", "beta"]
 
         with install_fake_embeddings(texts, ndim=4):
-            vectors = await rust.ROUTER.embedding("embedding", texts, 4)
+            vectors = await rust.ROUTER.embedding("embedding", texts, 4, no_cache=True, no_store=True)
 
         assert len(vectors) == 2
         assert vectors[0] == pytest.approx(hash_embedding(texts[0], ndim=4), rel=1e-6)
@@ -79,19 +78,19 @@ class TestInstallFakeEmbeddings:
 
     async def test_single_text_call(self) -> None:
         """A string argument describes a single-text call."""
-        text = f"solo-{uuid4().hex}"
+        text = "solo"
 
         with install_fake_embeddings(text, ndim=4):
-            vectors = await rust.ROUTER.embedding("embedding", [text], 4)
+            vectors = await rust.ROUTER.embedding("embedding", [text], 4, no_cache=True, no_store=True)
 
         assert vectors[0] == pytest.approx(hash_embedding(text, ndim=4), rel=1e-6)
 
     async def test_salt_changes_the_vector(self) -> None:
         """The salt participates in the digest, so vectors differ per namespace."""
-        text = f"salted-{uuid4().hex}"
+        text = "salted"
 
         with install_fake_embeddings([text], ndim=4, salt="one"):
-            first = (await rust.ROUTER.embedding("embedding", [text], 4))[0]
+            first = (await rust.ROUTER.embedding("embedding", [text], 4, no_cache=True, no_store=True))[0]
 
         assert first == pytest.approx(hash_embedding(text, ndim=4, salt="one"), rel=1e-6)
         assert first != pytest.approx(hash_embedding(text, ndim=4, salt="two"), rel=1e-6)
@@ -102,12 +101,11 @@ class TestInstallFakeReranks:
 
     async def test_ranking_follows_overlap(self) -> None:
         """The document containing the query token ranks first."""
-        token = uuid4().hex
-        query = f"rust {token}"
-        documents = [f"python guide {token}", f"rust handbook {token}"]
+        query = "rust handbook"
+        documents = ["python guide", "rust handbook"]
 
         with install_fake_reranks((query, documents)):
-            ranking = await rust.ROUTER.rerank("reranker", query, documents)
+            ranking = await rust.ROUTER.rerank("reranker", query, documents, no_cache=True, no_store=True)
 
         assert [index for index, _ in ranking] == [1, 0]
         assert ranking[0][1] == pytest.approx(1.0)

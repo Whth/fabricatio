@@ -10,6 +10,7 @@ from uuid import uuid4
 import orjson
 import pytest
 from fabricatio_core import Role
+from fabricatio_core.capabilities.usages import UseEmbedding, UseReranker
 from fabricatio_mock import DUMMY_LLM_GROUP
 from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 from fabricatio_mock.models.mock_router import (
@@ -31,6 +32,7 @@ from fabricatio_mock.utils import (
     generic_block,
     make_n_roles,
     make_roles,
+    make_test_role,
 )
 from pydantic import BaseModel
 
@@ -327,6 +329,34 @@ class TestMockRoleDefaults:
         """Verify LLMTestRole defaults llm_no_store to True."""
         role = LLMTestRole.with_bio(name="llm-test-no-store")
         assert role.llm_no_store is True
+
+    def test_composed_role_keeps_the_vector_cache_flags(self) -> None:
+        """Verify a composed role resolves the embedding/reranker cache flags to True.
+
+        ``UseEmbedding`` and ``UseReranker`` declare their own ``None`` defaults, so a
+        composed class must take ``LLMTestRole``'s ``True`` — otherwise a dummy
+        vector or ranking could be read from, or written to, the shared cache.
+        """
+        role = make_test_role(UseEmbedding, UseReranker, name="mock-vector-cache-flags")
+
+        assert role.embedding_no_cache is True
+        assert role.embedding_no_store is True
+        assert role.reranker_no_cache is True
+        assert role.reranker_no_store is True
+
+    def test_cache_flags_propagate_to_a_composed_step(self) -> None:
+        """Verify ``hold_to`` hands the role's cache flags to a step that declares them.
+
+        ``Role.resolve_configuration`` runs this on every workflow step at dispatch,
+        which is how a staged test workflow keeps its stages off the shared cache.
+        """
+        role = make_test_role(name="mock-flag-propagation")
+        step = UseEmbedding(name="propagation-step")
+
+        role.hold_to([step])
+
+        assert step.embedding_no_cache is True
+        assert step.embedding_no_store is True
 
     def test_propose_test_role_inherits_defaults(self) -> None:
         """Verify ProposeTestRole inherits llm_send_to, llm_no_cache and llm_no_store defaults."""

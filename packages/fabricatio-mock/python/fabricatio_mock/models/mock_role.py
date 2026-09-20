@@ -22,9 +22,16 @@ class LLMTestRole(Role, UseLLM):
     llm_send_to: str | None = DUMMY_LLM_GROUP
     llm_no_cache: bool | None = True
     llm_no_store: bool | None = True
-    """Canned responses must never enter the shared completion cache: a dummy's
-    text stored under the content-only cache key would be served to a live
-    request with the same prompt bytes."""
+
+    embedding_no_cache: bool | None = True
+    embedding_no_store: bool | None = True
+    reranker_no_cache: bool | None = True
+    reranker_no_store: bool | None = True
+    """Dummy traffic must never touch the shared cache: a canned response or a
+    dummy vector stored under the content-only cache key would be served to a
+    live request with the same prompt bytes. ``resolve_configuration``
+    propagates these to every composed step declaring them, so a test role
+    isolates embeddings and reranks as well as completions."""
 
     def _resolve_completion_send_to(self, send_to: str | None = None) -> str:
         """Pin LLM routing to the dummy group, ignoring any explicit ``send_to``.

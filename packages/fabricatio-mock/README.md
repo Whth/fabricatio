@@ -100,9 +100,10 @@ async def test_greeting() -> None:
         assert await role.aask(question="farewell") == "World"
 ```
 
-`make_test_role` routes to the dummy group and sets `llm_no_cache=True`, so a script pops its queue even
-when the same question was asked by an earlier run. The answers are still *written* to the shared cache;
-the embedding and rerank calls below, which do read it, therefore carry a run-unique token.
+`make_test_role` routes to the dummy group and sets `llm_no_cache=True` together with `llm_no_store=True`
+(and their embedding/reranker twins), so a script pops its queue even when the same question was asked by
+an earlier run — and no canned answer or dummy vector enters the shared cache for a later live request to
+pick up.
 
 ### 2. Fail loudly on a miscounted script
 
@@ -167,33 +168,32 @@ Models proposed through fabricatio derive from `SketchedAble`, which supplies th
 No hand-written vectors or index tuples; derive them from the inputs:
 
 ```python
-from uuid import uuid4
-
 import pytest
 from fabricatio_core import rust
 from fabricatio_mock import hash_embedding, install_fake_embeddings, install_fake_reranks
 
 
 async def test_vector_calls() -> None:
-    texts = [f"rust book {uuid4().hex}", f"python book {uuid4().hex}"]
+    texts = ["rust book", "python book"]
 
     with install_fake_embeddings(texts, ndim=4):
-        vectors = await rust.ROUTER.embedding("embedding", texts, 4)
+        vectors = await rust.ROUTER.embedding("embedding", texts, 4, no_cache=True, no_store=True)
 
     assert vectors[0] == pytest.approx(hash_embedding(texts[0], ndim=4), rel=1e-6)
 
-    query = f"rust {uuid4().hex}"
+    query = "rust handbook"
     documents = ["python guide", "rust handbook"]
 
     with install_fake_reranks((query, documents)):
-        ranking = await rust.ROUTER.rerank("reranker", query, documents)
+        ranking = await rust.ROUTER.rerank("reranker", query, documents, no_cache=True, no_store=True)
 
     assert ranking[0][0] == 1  # "rust handbook" covers the query token
 ```
 
-The `uuid4()` tokens keep requests out of the persistent cache, and vectors round-trip as `f32`, hence
-`pytest.approx`. Through a capability instead of the router, the same seeds serve
-`role.vectorize(texts, send_to="embedding", ndim=4)` and `role.arank(query, documents, send_to="reranker")`.
+`no_cache`/`no_store` keep requests out of the persistent cache (a `make_test_role` role sets them for
+you), and vectors round-trip as `f32`, hence `pytest.approx`. Through a capability instead of the router,
+the same seeds serve `role.vectorize(texts, send_to="embedding", ndim=4)` and
+`role.arank(query, documents, send_to="reranker")`.
 
 ### 5. Stub templates and config copies
 
@@ -353,12 +353,12 @@ from fabricatio_mock.models.mock_role import LLMTestRole, ProposeTestRole
 
 role = LLMTestRole.with_bio(name="tester")
 # llm_send_to defaults to "llm" (fabricatio_mock.DUMMY_LLM_GROUP)
-# llm_no_cache defaults to True
+# llm_no_cache and llm_no_store default to True, as do the embedding_/reranker_ twins
 ```
 
 | Class | Bases | Purpose |
 :|---|---|---|
-| `LLMTestRole` | `Role`, `UseLLM` | Role with LLM calling capability; `llm_send_to` targets the dummy LLM group. |
+| `LLMTestRole` | `Role`, `UseLLM` | Role with LLM calling capability; `llm_send_to` targets the dummy LLM group, and the `*_no_cache`/`*_no_store` flags default to `True` so no dummy answer or vector enters the shared cache. |
 | `ProposeTestRole` | `LLMTestRole`, `Propose` | Extends `LLMTestRole` with the `Propose` capability. |
 
 ### Composed test roles
@@ -494,8 +494,9 @@ with install_fake_reranks(("rust", ["python guide", "rust handbook"])):   # one 
 `install_fake_embeddings` takes one argument per embedding call — a string is a single-text call, a
 sequence is a batch call. `install_fake_reranks` takes `(query, documents)` pairs. The Rust side stores
 vectors as `f32`, so compare returned values with `pytest.approx`. Embeddings and reranks share the same
-persistent cache as completions (keyed by text and by query+documents), so a test that must actually
-exercise the queue gives its texts or queries a run-unique token.
+persistent cache as completions (keyed by text and by query+documents); pass `no_cache=True, no_store=True`
+on a direct `ROUTER` call — a `make_test_role` role sets the same flags for its capability calls — so the
+seeded queue answers and no dummy vector is left behind for a live request.
 
 ---
 

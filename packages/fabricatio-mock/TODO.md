@@ -47,10 +47,14 @@ Audit 2026-09-13: evidence is a scan of the 98 test files under `packages/*/pyth
       script responses.
 - [ ] Error injection: expose `DummyModel::with_completion_errors` (exists at
       `crates/thryd/src/models/dummy.rs:123`) as `install_dummy_errors(group, ...)`.
-- [ ] Cache isolation for dummy traffic (`disable_cache_writes` or a per-group namespace): `no_cache` is a
-      read-bypass only, so mock answers are written into the shared production cache (`.cache.db.heed`),
-      whose completion key is `blake3(message)` alone; a warm entry also serves mock tests without
-      consuming the queue. Root cause of the manual `uuid4` prompt salting.
+- [x] Cache isolation for dummy traffic: `no_cache` only bypasses the read, so mock answers used to be
+      written into the shared production cache (`.cache.db.heed`), whose completion key is `blake3(message)`
+      alone; a warm entry also served mock tests without consuming the queue. Root cause of the manual
+      `uuid4` prompt salting. Landed as the separate `no_store` flag (write-side twin of `no_cache`) on the
+      four router entry points, plumbed through `[llm]`/`[embedding]`/`[reranker]` config and the scoped
+      `*_no_store` fields. `LLMTestRole` now sets both flags for LLM, embedding and reranker traffic, so the
+      suites carry no prompt salt or run token; `EmbeddingScopedConfig.embedding_no_cache` also defaulted to
+      `False`, blocking the CONFIG fallback and `hold_to` propagation, and is now `None` like its siblings.
 - [ ] Variant pinning: `CONFIG.pin_llm_variants(DUMMY_LLM_GROUP)` with save/restore. Removes the
       hand-copied `_resolve_completion_send_to` overrides and import-time global config mutation.
 - [ ] Predicate-matched responses `(matcher, response)` in `DummyModel` so response order stops

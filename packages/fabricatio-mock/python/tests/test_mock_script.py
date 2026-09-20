@@ -1,7 +1,5 @@
 """Tests for MockScript: ordered responses, strict exhaustion, reset-on-exit."""
 
-from uuid import uuid4
-
 import orjson
 import pytest
 from fabricatio_mock.models.mock_role import LLMTestRole
@@ -10,10 +8,11 @@ from fabricatio_mock.models.mock_script import MockScript, ScriptExhaustedError
 
 
 def _question(label: str) -> str:
-    """Build a cache-unique question so scripted calls always reach the dummy queue.
+    """Build a distinct, readable question per scripted call.
 
-    The router caches completions by prompt hash in a store shared with
-    production runs, so every scripted call needs a fresh prompt.
+    The roles here are ``LLMTestRole`` instances, whose ``no_cache``/``no_store``
+    flags keep the shared completion cache out of the picture, so the label alone
+    is enough to tell the calls apart.
 
     Args:
         label: Test-specific prefix.
@@ -21,7 +20,7 @@ def _question(label: str) -> str:
     Returns:
         str: The question string.
     """
-    return f"mock-script-{label}-{uuid4().hex}"
+    return f"mock-script-{label}"
 
 
 class TestMockScriptOrdering:
