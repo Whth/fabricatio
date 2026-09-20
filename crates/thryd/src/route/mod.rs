@@ -45,7 +45,7 @@
 //!         top_p: None, temperature: None,
 //!         max_completion_tokens: Some(100),
 //!         presence_penalty: None, frequency_penalty: None,
-//!     }).await?;
+//!     }, CachePolicy::default()).await?;
 //!     println!("{}", response);
 //!     Ok(())
 //! }
@@ -61,7 +61,7 @@
 //!
 //! let embeddings = router.invoke("embed".into(), EmbeddingRequest {
 //!     texts: vec!["hello world".into(), "goodbye world".into()]
-//! }).await?;
+//! }, CachePolicy::default()).await?;
 //! ```
 
 mod retry;
@@ -98,6 +98,64 @@ pub type ModelName = String;
 
 /// Shared reference to a deployment with a specific model type.
 pub type DeploymentEntry<Model> = Arc<Deployment<Model>>;
+
+/// Persistent-cache policy for one [`Router::invoke`] call.
+///
+/// The two flags are independent: a request can serve cache hits without
+/// persisting its own result, or bypass the cache entirely.
+///
+/// | `no_cache` | `no_store` | read | write |
+/// |---|---|---|---|
+/// | `false` | `false` | yes | yes |
+/// | `true`  | `false` | no  | yes — refresh a stale entry |
+/// | `false` | `true`  | yes | no — never persist the response |
+/// | `true`  | `true`  | no  | no — full bypass |
+///
+/// `no_cache` alone is what a validation retry wants: re-ask the deployment and
+/// overwrite the entry that just failed validation. `no_store` is what a mock or
+/// any other volatile response wants: canned output must never become a cache
+/// hit for later live requests. The cache key is content-only
+/// ([`ModelTypeTag::cache_key`] does not include the deployment), so a dummy
+/// response stored under it would be served to a live call with the same prompt
+/// bytes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CachePolicy {
+    /// Skip the cache read; the request always executes on a deployment.
+    pub no_cache: bool,
+    /// Skip the cache write; the response is returned but never persisted.
+    pub no_store: bool,
+}
+
+impl CachePolicy {
+    /// Read and write — the default policy.
+    pub const CACHED: Self = Self {
+        no_cache: false,
+        no_store: false,
+    };
+
+    /// Bypass the read, keep the write-back: refresh a stale entry.
+    pub const REFRESH: Self = Self {
+        no_cache: true,
+        no_store: false,
+    };
+
+    /// Serve cache hits, never persist the response.
+    pub const NO_STORE: Self = Self {
+        no_cache: false,
+        no_store: true,
+    };
+
+    /// Skip both reads and writes.
+    pub const BYPASS: Self = Self {
+        no_cache: true,
+        no_store: true,
+    };
+
+    /// Build a policy from its two flags.
+    pub const fn new(no_cache: bool, no_store: bool) -> Self {
+        Self { no_cache, no_store }
+    }
+}
 
 /// Request router with caching and multi-provider support.
 ///
@@ -454,12 +512,26 @@ impl<Tag: ModelTypeTag> Router<Tag> {
     }
 
     /// Invoke a request bypassing the cache read.
+    ///
     /// Always calls the LLM directly and writes the result back to cache,
     /// overriding any stale entry so future cached calls get the fresh response.
+    /// Shorthand for [`Router::invoke`] with [`CachePolicy::REFRESH`].
     pub async fn invoke_fresh(
         &self,
         send_to: RouteGroupName,
         request: Tag::Request,
+    ) -> Result<Tag::Response> {
+        self.invoke_fresh_with(send_to, request, CachePolicy::REFRESH)
+            .await
+    }
+
+    /// [`Self::invoke_fresh`] with an explicit policy: the write-back is skipped
+    /// when `policy.no_store` is set.
+    async fn invoke_fresh_with(
+        &self,
+        send_to: RouteGroupName,
+        request: Tag::Request,
+        policy: CachePolicy,
     ) -> Result<Tag::Response> {
         debug!("Invoke (no-cache read) → group `{send_to}`");
         let d = self
@@ -477,15 +549,19 @@ impl<Tag: ModelTypeTag> Router<Tag> {
         };
         d.record_usage(Tag::total_response_tokens(&res)).await;
         if let Some(cache) = &self.cache {
-            debug!("Overriding cache for: {key}");
-            match &key {
-                CacheKey::Single(k) => {
-                    cache.set_ser(k.as_str(), &res)?;
-                }
-                CacheKey::Batch(ks) => {
-                    let vals = Tag::breakdown_batch_response(res.clone());
-                    for (k, val) in ks.iter().zip(vals) {
-                        cache.set_ser(k.as_str(), &val)?;
+            if policy.no_store {
+                debug!("no_store is set; not caching: {key}");
+            } else {
+                debug!("Overriding cache for: {key}");
+                match &key {
+                    CacheKey::Single(k) => {
+                        cache.set_ser(k.as_str(), &res)?;
+                    }
+                    CacheKey::Batch(ks) => {
+                        let vals = Tag::breakdown_batch_response(res.clone());
+                        for (k, val) in ks.iter().zip(vals) {
+                            cache.set_ser(k.as_str(), &val)?;
+                        }
                     }
                 }
             }
@@ -495,24 +571,45 @@ impl<Tag: ModelTypeTag> Router<Tag> {
 }
 
 impl<Tag: ModelTypeTag + Send> Router<Tag> {
+    /// Invoke a request, honouring `policy` for both the cache read and the cache write.
+    ///
+    /// See [`CachePolicy`] for the four combinations of the two flags.
     pub async fn invoke(
         &self,
         send_to: RouteGroupName,
         request: Tag::Request,
-        no_cache: bool,
+        policy: CachePolicy,
     ) -> Result<Tag::Response> {
-        debug!("Invoke dispatch: group=`{send_to}`, no_cache={no_cache}");
-        if no_cache {
-            self.invoke_fresh(send_to, request).await
+        debug!(
+            "Invoke dispatch: group=`{send_to}`, no_cache={}, no_store={}",
+            policy.no_cache, policy.no_store
+        );
+        if policy.no_cache {
+            self.invoke_fresh_with(send_to, request, policy).await
         } else {
-            self.invoke_cached(send_to, request).await
+            self.invoke_cached_with(send_to, request, policy).await
         }
     }
 
+    /// Read through the cache and write the result back on a miss.
+    ///
+    /// Shorthand for [`Self::invoke`] with [`CachePolicy::CACHED`].
     pub async fn invoke_cached(
         &self,
         send_to: RouteGroupName,
         request: Tag::Request,
+    ) -> Result<Tag::Response> {
+        self.invoke_cached_with(send_to, request, CachePolicy::CACHED)
+            .await
+    }
+
+    /// [`Self::invoke_cached`] with an explicit policy: the write-back of missed
+    /// values is skipped when `policy.no_store` is set. Cache hits are still served.
+    async fn invoke_cached_with(
+        &self,
+        send_to: RouteGroupName,
+        request: Tag::Request,
+        policy: CachePolicy,
     ) -> Result<Tag::Response> {
         debug!("Invoke (cached) → group `{send_to}`");
         let d = self
@@ -524,9 +621,12 @@ impl<Tag: ModelTypeTag + Send> Router<Tag> {
             let cache = &self.cache;
             let d2 = d.clone();
             let r2 = request.clone();
-            retry_on_transient(&rc, || Tag::cache_resolve(cache, d2.clone(), r2.clone())).await
+            retry_on_transient(&rc, || {
+                Tag::cache_resolve(cache, d2.clone(), r2.clone(), policy)
+            })
+            .await
         } else {
-            Tag::cache_resolve(&self.cache, d.clone(), request).await
+            Tag::cache_resolve(&self.cache, d.clone(), request, policy).await
         };
         if let Ok(r) = res.as_ref() {
             d.record_usage(Tag::total_response_tokens(r)).await;
@@ -794,7 +894,7 @@ mod tests {
                     ndim: 3,
                     max_batch_emb_size: None,
                 },
-                true,
+                CachePolicy::REFRESH,
             )
             .await
             .unwrap();
@@ -809,11 +909,91 @@ mod tests {
                     ndim: 3,
                     max_batch_emb_size: None,
                 },
-                false,
+                CachePolicy::CACHED,
             )
             .await
             .unwrap();
         assert_eq!(second.embeddings, vec![vec![0.1, 0.2, 0.3]]);
+    }
+
+    #[tokio::test]
+    async fn test_invoke_no_store_skips_write() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("nostore-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // Two responses: DummyModel pops LIFO, so last element is returned first
+        let model = DummyModel::new("embed".to_string(), provider)
+            .with_embedding_responses(vec![vec![vec![0.7, 0.8, 0.9]], vec![vec![0.1, 0.2, 0.3]]]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        let request = || EmbeddingRequest {
+            texts: vec!["volatile".into()],
+            ndim: 3,
+            max_batch_emb_size: None,
+        };
+
+        // no_store → returned to the caller, never persisted
+        let first = router
+            .invoke("embed".into(), request(), CachePolicy::NO_STORE)
+            .await
+            .unwrap();
+        assert_eq!(first.embeddings, vec![vec![0.1, 0.2, 0.3]]);
+
+        // A later cached call must MISS (nothing was written) and consume the next response.
+        // Had no_store persisted it, this would be a hit returning [0.1, 0.2, 0.3].
+        let second = router
+            .invoke("embed".into(), request(), CachePolicy::CACHED)
+            .await
+            .unwrap();
+        assert_eq!(second.embeddings, vec![vec![0.7, 0.8, 0.9]]);
+    }
+
+    #[tokio::test]
+    async fn test_invoke_no_store_still_serves_hits_and_bypass_skips_them() {
+        let cache_dir = tempfile::tempdir().unwrap();
+        let db_path = cache_dir.path().join("nostore-hit-cache.db");
+        let router = Router::<EmbeddingTag>::with_cache(&db_path).unwrap();
+
+        let provider = Arc::new(DummyProvider::default());
+        router.add_or_update_provider(provider.clone());
+
+        // A single response: the only way to answer a second call is a cache hit
+        let model = DummyModel::new("embed".to_string(), provider)
+            .with_embedding_responses(vec![vec![vec![0.1, 0.2, 0.3]]]);
+
+        let deployment = Deployment::new(Box::new(model) as Box<dyn EmbeddingModel>);
+        router.add_deployment("embed".into(), deployment).unwrap();
+
+        let request = || EmbeddingRequest {
+            texts: vec!["seed".into()],
+            ndim: 3,
+            max_batch_emb_size: None,
+        };
+
+        let seeded = router
+            .invoke("embed".into(), request(), CachePolicy::CACHED)
+            .await
+            .unwrap();
+        assert_eq!(seeded.embeddings, vec![vec![0.1, 0.2, 0.3]]);
+
+        // NO_STORE still reads: the queue is drained, so only the stored entry can answer
+        let hit = router
+            .invoke("embed".into(), request(), CachePolicy::NO_STORE)
+            .await
+            .unwrap();
+        assert_eq!(hit.embeddings, vec![vec![0.1, 0.2, 0.3]]);
+
+        // BYPASS skips the read: an exhausted dummy must surface as an error, never the entry
+        let bypassed = router
+            .invoke("embed".into(), request(), CachePolicy::BYPASS)
+            .await;
+        assert!(bypassed.is_err(), "BYPASS must not serve the cached entry");
     }
     #[test]
     fn test_build_missed_batch_request_preserves_max_batch_emb_size() {

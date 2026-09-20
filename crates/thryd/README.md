@@ -83,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         frequency_penalty: 0.0,
     };
     
-    let response = router.invoke("default".to_string(), request).await?;
+    let response = router.invoke("default".to_string(), request, CachePolicy::default()).await?;
     println!("Response: {}", response);
     
     Ok(())
@@ -109,16 +109,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     // First call hits the API
-    let response1 = router.invoke("default".to_string(), request.clone(), false).await?;
+    let response1 = router.invoke("default".to_string(), request.clone(), CachePolicy::default()).await?;
     
     // Second identical call returns cached result
-    let response2 = router.invoke("default".to_string(), request, false).await?;
+    let response2 = router.invoke("default".to_string(), request, CachePolicy::default()).await?;
     
     assert_eq!(response1, response2);
     
     Ok(())
 }
 ```
+
+Every `invoke` takes a [`CachePolicy`], which gates the two sides of the cache
+independently:
+
+| Policy | read | write |
+|---|---|---|
+| `CachePolicy::CACHED` (the default) | yes | yes |
+| `CachePolicy::REFRESH` | no | yes — overwrites a stale entry |
+| `CachePolicy::NO_STORE` | yes | no |
+| `CachePolicy::BYPASS` | no | no |
+
+Use `NO_STORE` for responses that must never be served to anyone else. The cache
+key is content-only — it does not include the deployment — so a dummy or mock
+deployment's canned output would otherwise occupy the key of the very prompt it
+answered, and a later live request with those prompt bytes would receive it.
 
 ## Core Concepts
 
@@ -324,7 +339,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ndim: 1536,
     };
     
-    let embeddings = router.invoke("embeddings".to_string(), request).await?;
+    let embeddings = router.invoke("embeddings".to_string(), request, CachePolicy::default()).await?;
     println!("Generated {} embeddings", embeddings.len());
     
     Ok(())
@@ -352,7 +367,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         frequency_penalty: 0.0,
     };
     
-    match router.invoke("nonexistent".to_string(), request).await {
+    match router.invoke("nonexistent".to_string(), request, CachePolicy::default()).await {
         Ok(response) => println!("Got response: {}", response),
         Err(ThrydError::Router(msg)) => {
             println!("Router error: {}", msg);
@@ -429,7 +444,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Execute requests concurrently
     let futures = requests.into_iter().map(|req| {
-        router.invoke("chat".to_string(), req)
+        router.invoke("chat".to_string(), req, CachePolicy::default())
     });
     
     let results = join_all(futures).await;

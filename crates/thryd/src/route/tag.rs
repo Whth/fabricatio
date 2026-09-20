@@ -27,7 +27,7 @@ use serde::de::DeserializeOwned;
 use std::sync::Arc;
 use strum_macros::Display;
 
-use super::ModelName;
+use super::{CachePolicy, ModelName};
 
 #[derive(Debug, Clone, Display)]
 pub enum CacheKey {
@@ -161,6 +161,7 @@ pub trait ModelTypeTag {
         key: &str,
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
+        policy: CachePolicy,
     ) -> Result<Self::Response> {
         if let Some(val) = cache
             .get_de::<Self::Response>(key)
@@ -170,10 +171,12 @@ pub trait ModelTypeTag {
         } else {
             let res = Self::execute_request(deployment, request.clone()).await;
             if let Ok(val) = res.as_ref() {
-                if Self::cache_worthy(val) {
-                    cache.set_ser(key, val)?;
-                } else {
+                if !Self::cache_worthy(val) {
                     tracing::warn!("Empty response content; not caching key: {key}");
+                } else if policy.no_store {
+                    tracing::debug!("no_store is set; not caching key: {key}");
+                } else {
+                    cache.set_ser(key, val)?;
                 }
             };
             res
@@ -190,6 +193,7 @@ pub trait ModelTypeTag {
         keys: &[String],
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
+        policy: CachePolicy,
     ) -> Result<Self::Response> {
         let indexed_vals = keys
             .iter()
@@ -211,10 +215,17 @@ pub trait ModelTypeTag {
 
         let new_vals = Self::breakdown_batch_response(resp);
 
-        missed_indices
-            .iter()
-            .zip(new_vals.iter())
-            .try_for_each(|(&i, val)| cache.set_ser(keys[i.to_owned()].as_str(), val))?;
+        if policy.no_store {
+            tracing::debug!(
+                "no_store is set; not caching {} missed value(s)",
+                missed_indices.len()
+            );
+        } else {
+            missed_indices
+                .iter()
+                .zip(new_vals.iter())
+                .try_for_each(|(&i, val)| cache.set_ser(keys[i.to_owned()].as_str(), val))?;
+        }
 
         let mut total_vals = new_vals
             .into_iter()
@@ -232,19 +243,23 @@ pub trait ModelTypeTag {
 
     /// Each tag defines its own caching strategy. Default: batch-level.
     /// Override for per-item sparse caching.
+    ///
+    /// `policy` gates the write side: reads are always attempted when a cache
+    /// is present, writes are skipped when [`CachePolicy::no_store`] is set.
     async fn cache_resolve(
         cache: &Option<PersistentCache>,
         deployment: Arc<Deployment<Self::Model>>,
         request: Self::Request,
+        policy: CachePolicy,
     ) -> Result<Self::Response> {
         if let Some(cache) = cache {
             let key = Self::cache_key(&request);
             match &key {
                 CacheKey::Single(k) => {
-                    Self::single_cached(cache, k.as_str(), deployment, request).await
+                    Self::single_cached(cache, k.as_str(), deployment, request, policy).await
                 }
                 CacheKey::Batch(ks) => {
-                    Self::batch_cached(cache, ks.as_slice(), deployment, request).await
+                    Self::batch_cached(cache, ks.as_slice(), deployment, request, policy).await
                 }
             }
         } else {
@@ -286,7 +301,7 @@ pub trait ModelTypeTag {
 ///     top_p: None, temperature: None,
 ///     max_completion_tokens: Some(100),
 ///     presence_penalty: None, frequency_penalty: None,
-/// }).await?;
+/// }, CachePolicy::default()).await?;
 /// ```
 #[derive(Default)]
 pub struct CompletionTag;
@@ -305,7 +320,7 @@ pub struct CompletionTag;
 ///
 /// let embeddings = router.invoke("embed".into(), EmbeddingRequest {
 ///     texts: vec!["hello world".into()],
-/// }).await?;
+/// }, CachePolicy::default()).await?;
 /// ```
 #[derive(Default)]
 pub struct EmbeddingTag;
@@ -328,7 +343,7 @@ pub struct EmbeddingTag;
 ///         "Rust is a programming language".into(),
 ///         "Python is great".into(),
 ///     ],
-/// }).await?;
+/// }, CachePolicy::default()).await?;
 /// // Returns: [(0, 0.95), (1, 0.30)] - document indices sorted by score
 /// ```
 #[derive(Default)]

@@ -72,7 +72,7 @@
 //!     };
 //!
 //!     // First request hits the API (subsequent identical requests are served from cache)
-//!     let response = router.invoke("default".to_string(), request, false).await?;
+//!     let response = router.invoke("default".to_string(), request, CachePolicy::default()).await?;
 //!     println!("Response: {}", response);
 //!
 //!     // Subsequent identical requests are served from cache
