@@ -114,7 +114,13 @@ impl Router {
         send_to: RouteGroupName,
         req: CompletionRequest,
     ) -> PyResult<String> {
-        Self::completion_inner(send_to, req, self.completion_router.clone(), CachePolicy::CACHED).await
+        Self::completion_inner(
+            send_to,
+            req,
+            self.completion_router.clone(),
+            CachePolicy::CACHED,
+        )
+        .await
     }
     pub async fn completion_inner(
         send_to: RouteGroupName,
@@ -280,7 +286,15 @@ impl Router {
         };
         let r = self.completion_router.clone();
         future_into_py(python, async move {
-            Ok(Self::completion_batch_inner(send_to, reqs, r, CachePolicy::new(no_cache, no_store)).await)
+            Ok(
+                Self::completion_batch_inner(
+                    send_to,
+                    reqs,
+                    r,
+                    CachePolicy::new(no_cache, no_store),
+                )
+                .await,
+            )
         })
     }
 
