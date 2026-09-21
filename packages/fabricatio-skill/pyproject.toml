@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-skill"
-version = "0.4.2"
+version = "0.4.3"
 description = "Markdown skill library for Fabricatio agents: scan, search, and progressive skill consultation."
 readme = "README.md"
 license = "MIT"
