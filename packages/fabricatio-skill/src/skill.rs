@@ -70,6 +70,11 @@ impl Skill {
         }
     }
 
+    /// Render the skill as ``<name>content</name>``: the body wrapped in a tag named after it.
+    fn render(&self) -> String {
+        format!("<{}>{}</{}>", self.name, self.content, self.name)
+    }
+
     /// Lightweight representation: name + description + tags (no content).
     fn meta(&self) -> SkillMeta {
         SkillMeta {

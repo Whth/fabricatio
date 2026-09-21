@@ -38,6 +38,8 @@ class Skill:
         content: builtins.str,
         path: builtins.str,
     ) -> Skill: ...
+    def render(self) -> builtins.str:
+        r"""Render the skill as ``<name>content</name>``: the body wrapped in a tag named after it."""
     def meta(self) -> SkillMeta:
         r"""Lightweight representation: name + description + tags (no content)."""
 
