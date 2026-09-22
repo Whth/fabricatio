@@ -163,7 +163,7 @@ class ContextBase[P: WeightedPlan](
         # The library reports the names it could not resolve; the run carries on with the rest.
         library.load_by_name(self.skill_names, None, skill_config.extra_skill_dirs)
         skills = sorted(library.get_many(self.skill_names), key=lambda skill: skill.name)
-        return [skill.content.strip() for skill in skills]
+        return [skill.render() for skill in skills]
 
     def skill_section(self) -> str:
         """The run's selected skills as the one byte-stable section every prompt that shows them renders.
