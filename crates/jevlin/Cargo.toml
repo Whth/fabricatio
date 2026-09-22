@@ -1,0 +1,27 @@
+[package]
+name = "jevlin"
+version = "0.1.0"
+edition = "2024"
+description = "A typed Rust client for TypeSafe's Jev (System One) evaluation API."
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+jevlin-derive = { version = "0.1.0", path = "../jevlin-derive" }
+reqwest = { version = "0.13.4", features = ["json", "rustls"] }
+secrecy = "0.10.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["time"] }
+
+[dev-dependencies]
+criterion = "0.8.2"
+parking_lot = "0.12"
+serde_json = "1.0.151"
+tokio = { version = "1.53.1", features = ["io-util", "macros", "net", "rt-multi-thread"] }
+
+[[bench]]
+name = "client"
+harness = false
