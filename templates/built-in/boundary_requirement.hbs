@@ -10,6 +10,9 @@ Propose the character states at the boundaries BETWEEN consecutive {{ unit_plura
 {{ls spans}}
 
 ## Requirements
+{{#if skills}}
+- The Skill Documents at the top are the grounding truth of these boundary cards: follow them as authoritative instructions, not as background reading.
+{{/if}}
 - Output a JSON array with one inner array per roster character, in the order the characters appear in the {{ spans_title }} above.
 - Each inner array carries exactly {{ boundary_letter }}-1 CharacterCard objects, where {{ boundary_letter }} is the number of {{ unit_plural }}: the character's state at the end of every {{ unit_singular }} except the last (equivalently, at the start of every {{ unit_singular }} except the first).
 - Do not propose the first {{ unit_singular }}'s start (it is the {{ card_prefix }} start card) nor the last {{ unit_singular }}'s end (it is the {{ card_prefix }} end card).

@@ -16,6 +16,9 @@ Description: {{ desc }}
 {{ bible }}
 
 ## Requirements
+{{#if skills}}
+- The Skill Documents at the top are the grounding truth of these spans: follow them as authoritative instructions, not as background reading.
+{{/if}}
 - Output a JSON array of CharacterSpan objects, one per roster character in the order they appear above.
 - Every CharacterSpan carries two non-null CharacterCard fields: ``start`` (initial state before any plot event) and ``end`` (final state after the whole novel).
 - Ground both cards in the outline: the ``end`` card is where the outline's story actually leaves the character — never a genre-typical ending the outline does not stage.
