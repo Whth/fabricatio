@@ -279,7 +279,7 @@ history stays intact.
 | `IllustrateNovelStage` | `DumpNovelStage` of the illustrated pipeline: `post_process_novel` resolves to `IllustrateScenes`', whose interface declares `persist_dir`, `send_to` and the illustration knobs, so this action declares and passes them; adds no snapshot dir |
 | `DumpNovelStage` | fires `post_process_novel(ctx, novel)` — exactly the arguments the novel capability declares — then exports: JSON always, EPUB and/or `chapters/NN.txt` per the unpacked `export_format` (`ExportFormat`) plus `output_path`/`font`/`cover` |
 
-The plan stages (`05`–`07`) fall back to the `PLAN` agent variant: a run whose context names no routing group plans through the `[agent] plan` slot, while an explicit `--send-to` still governs them like every other stage. Leave `--send-to` unset to plan on the plan model and keep the rest of the run on its `TASK` default.
+The structured stages (`02`–`07`: metadata, setting bible, roster spans, and the three plan levels) fall back to the `PLAN` agent variant: a run whose context names no routing group proposes and plans through the `[agent] plan` slot, while the scene write (`08`) and assembly (`09`) keep their `TASK` default. An explicit `--send-to` still governs every stage alike. Leave `--send-to` unset to plan on the plan model and keep the prose on the `TASK` model.
 
 Every stage wraps one `compose_novel` chain segment and fires the chain's lifecycle hooks at their chain positions, so a hook override on a stage customizes the staged run exactly like it customizes the programmatic chain; the scene-level hooks fire inside `compose_scenes_phase`, exactly as they do in the chain.
 

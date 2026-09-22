@@ -96,24 +96,34 @@ class InitNovelContext(StageAction, NovelCompose):
 
 
 class ProposeNovelMetadataStage(StageAction, NovelCompose):
-    """Propose the novel metadata plan and adopt it onto the context."""
+    """Propose the novel metadata plan and adopt it onto the context.
+
+    Calls ride the run's ``send_to`` group when the context names one and fall back to the
+    ``PLAN`` agent variant otherwise, so the structured proposal follows the plan model
+    unless the run routes it elsewhere.
+    """
 
     output_key: str = "metadata_ok"
     stage: ClassVar[str] = "02_metadata"
 
-    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = TASK, **cxt: Any) -> bool:
+    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
         planned = await self.propose_novel_metadata(novel_ctx, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return planned
 
 
 class ProposeSettingBibleStage(StageAction, BibleCompose):
-    """Propose the setting bible from the outline; skipped when the context already holds one."""
+    """Propose the setting bible from the outline; skipped when the context already holds one.
+
+    Calls ride the run's ``send_to`` group when the context names one and fall back to the
+    ``PLAN`` agent variant otherwise, so the structured proposal follows the plan model
+    unless the run routes it elsewhere.
+    """
 
     output_key: str = "bible_ok"
     stage: ClassVar[str] = "03_bible"
 
-    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = TASK, **cxt: Any) -> bool:
+    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
         bible = novel_ctx.series_bible
         if bible is not None and not bible.is_empty():
             logger.debug("Setting bible already present; skipping proposal")
@@ -136,12 +146,17 @@ class ProposeSettingBibleStage(StageAction, BibleCompose):
 
 
 class PrepareCharacterSpanStage(StageAction, NovelCompose):
-    """Propose the novel roster character spans from the bible; skipped when the bible is empty."""
+    """Propose the novel roster character spans from the bible; skipped when the bible is empty.
+
+    Calls ride the run's ``send_to`` group when the context names one and fall back to the
+    ``PLAN`` agent variant otherwise, so the structured proposal follows the plan model
+    unless the run routes it elsewhere.
+    """
 
     output_key: str = "characters_ok"
     stage: ClassVar[str] = "04_characters"
 
-    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = TASK, **cxt: Any) -> bool:
+    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
         await self.prepare_character_span(novel_ctx, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return True

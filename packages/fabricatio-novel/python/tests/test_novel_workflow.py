@@ -9,12 +9,14 @@ from fabricatio_core.rust import CONFIG, PLAN, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP, MockScript, Value, make_test_role
 from fabricatio_novel.models.novel import ExportFormat
 from fabricatio_novel.models.plan import NovelPlan
+from fabricatio_novel.models.series_book import SeriesBible
 
 # Workflow tests subscribe ``make_test_role`` roles: llm_no_cache/llm_no_store (and the
 # embedding/reranker twins) keep every dummy call out of the shared cache, so the
 # ``MockScript`` stack pops in seeded order. The stages resolve their own routing through
-# the variant slots — ``TASK`` for a run that names no group, ``PLAN`` for the plan stages'
-# fallback — so route both variants to the dummy group.
+# the variant slots — ``TASK`` for a run that names no group, ``PLAN`` for the structured
+# stages' (metadata, bible, roster, chapter/story/scene plans) fallback — so route both
+# variants to the dummy group.
 CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
 CONFIG.configure_llm_variant(PLAN, DUMMY_LLM_GROUP)
 
@@ -62,6 +64,113 @@ async def _planned_titles(send_to: str | None = None) -> list[str]:
     finally:
         CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
     return [chapter.title for chapter in novel.child_contexts]
+
+
+async def _metadata_title(send_to: str | None = None) -> str:
+    """Propose novel metadata once and return the title it adopted, naming the group the call rode.
+
+    The run group holds metadata titled ``TASK-TIER`` and the plan slot one titled ``PLAN-TIER``,
+    so the adopted title reports which of the two the proposal used. Both dummy groups share one
+    model id, so the stage's own ``llm_no_cache``/``llm_no_store`` keep the shared completion cache
+    from serving either metadata regardless of routing.
+
+    Args:
+        send_to: Routing group to propose with, or ``None`` for a run whose context names none.
+    """
+    from fabricatio_novel.actions.novel import ProposeNovelMetadataStage
+    from fabricatio_novel.models.context.novel import NovelContext
+
+    def metadata(title: str) -> NovelPlan:
+        return NovelPlan(
+            title=title,
+            description="The hero sets out.",
+            expected_word_count=100,
+            writing_styles=[],
+            writing_constraints=[],
+        )
+
+    novel = NovelContext.create("The hero seeks his father over the pass..", language="English")
+    CONFIG.configure_llm_variant(TASK, PLAN_PROBE_GROUP)
+    try:
+        with (
+            MockScript.from_values(Value.from_model(metadata("PLAN-TIER"), name="plan tier metadata")),
+            MockScript.from_values(
+                Value.from_model(metadata("TASK-TIER"), name="run tier metadata"), group=PLAN_PROBE_GROUP
+            ),
+        ):
+            stage = ProposeNovelMetadataStage(llm_no_cache=True, llm_no_store=True)
+            cxt: dict[str, str] = {} if send_to is None else {"send_to": send_to}
+            assert await stage._execute(novel, **cxt) is True
+    finally:
+        CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
+    return novel.title
+
+
+async def _bible_characters(send_to: str | None = None) -> list[str]:
+    """Propose the setting bible once and return its roster, naming the group the calls rode.
+
+    Both bible sections carry the tier in their text, so the adopted roster reports which of the
+    two groups proposed it.
+
+    Args:
+        send_to: Routing group to propose with, or ``None`` for a run whose context names none.
+    """
+    from fabricatio_novel.actions.novel import ProposeSettingBibleStage
+    from fabricatio_novel.models.context.novel import NovelContext
+
+    novel = NovelContext.create("The hero seeks his father over the pass..", language="English")
+    CONFIG.configure_llm_variant(TASK, PLAN_PROBE_GROUP)
+    try:
+        with (
+            MockScript.from_values(
+                Value.from_json(["PLAN-TIER protagonist."], name="plan tier bible characters"),
+                Value.from_json(["A river runs through the pass."], name="plan tier bible background"),
+            ),
+            MockScript.from_values(
+                Value.from_json(["TASK-TIER protagonist."], name="run tier bible characters"),
+                Value.from_json(["A road runs through the pass."], name="run tier bible background"),
+                group=PLAN_PROBE_GROUP,
+            ),
+        ):
+            stage = ProposeSettingBibleStage(llm_no_cache=True, llm_no_store=True)
+            cxt: dict[str, str] = {} if send_to is None else {"send_to": send_to}
+            assert await stage._execute(novel, **cxt) is True
+    finally:
+        CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
+    bible = novel.series_bible
+    assert bible is not None
+    return bible.characters
+
+
+async def _roster_names(send_to: str | None = None) -> list[str]:
+    """Propose the novel roster once and return its character names, naming the group the call rode.
+
+    The bible is preset because the roster proposal reads it, and both span payloads carry the tier
+    in the character's name so the materialized roster reports which group proposed it.
+
+    Args:
+        send_to: Routing group to propose with, or ``None`` for a run whose context names none.
+    """
+    from fabricatio_novel.actions.novel import PrepareCharacterSpanStage
+    from fabricatio_novel.models.context.novel import NovelContext
+
+    def spans(name: str) -> list[dict[str, object]]:
+        return [CharacterSpan(start=card(name), end=card(name, look="weary")).model_dump()]
+
+    novel = NovelContext.create("The hero seeks his father over the pass..", language="English")
+    novel.set_series_bible(SeriesBible(characters=["Hero — brave protagonist."]))
+    CONFIG.configure_llm_variant(TASK, PLAN_PROBE_GROUP)
+    try:
+        with (
+            MockScript.from_values(Value.from_json(spans("PLAN-TIER"), name="plan tier spans")),
+            MockScript.from_values(Value.from_json(spans("TASK-TIER"), name="run tier spans"), group=PLAN_PROBE_GROUP),
+        ):
+            stage = PrepareCharacterSpanStage(llm_no_cache=True, llm_no_store=True)
+            cxt: dict[str, str] = {} if send_to is None else {"send_to": send_to}
+            assert await stage._execute(novel, **cxt) is True
+    finally:
+        CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
+    return [span.start.name for span in novel.charactor_span]
 
 
 class TestNovelWorkflow:
@@ -151,6 +260,21 @@ class TestNovelWorkflow:
     async def test_explicit_send_to_outranks_the_plan_fallback(self) -> None:
         """Assert an explicit run group still governs planning, so PLAN stays a fallback and not a must."""
         assert await _planned_titles(PLAN_PROBE_GROUP) == ["TASK-TIER"]
+
+    async def test_metadata_stage_falls_back_to_the_plan_variant(self) -> None:
+        """Assert the metadata proposal rides the PLAN slot unrouted, and an explicit group outranks it."""
+        assert await _metadata_title() == "PLAN-TIER"
+        assert await _metadata_title(PLAN_PROBE_GROUP) == "TASK-TIER"
+
+    async def test_bible_stage_falls_back_to_the_plan_variant(self) -> None:
+        """Assert the bible proposal rides the PLAN slot unrouted, and an explicit group outranks it."""
+        assert await _bible_characters() == ["PLAN-TIER protagonist."]
+        assert await _bible_characters(PLAN_PROBE_GROUP) == ["TASK-TIER protagonist."]
+
+    async def test_roster_stage_falls_back_to_the_plan_variant(self) -> None:
+        """Assert the roster proposal rides the PLAN slot unrouted, and an explicit group outranks it."""
+        assert await _roster_names() == ["PLAN-TIER"]
+        assert await _roster_names(PLAN_PROBE_GROUP) == ["TASK-TIER"]
 
     async def test_debug_workflow_txt_format_exports_chapter_texts(self, tmp_path: Path) -> None:
         """Assert ``export_format='txt'`` skips the EPUB and returns the per-chapter text directory."""
