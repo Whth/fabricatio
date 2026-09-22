@@ -6,7 +6,7 @@ from typing import Unpack
 from fabricatio_core import logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK
+from fabricatio_core.rust import SMOL, TASK
 from fabricatio_core.utils import cfg, wrap_in_block
 
 cfg(["lancedb"])
@@ -42,7 +42,7 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
         source: str,
         rag: RagRetrieval,
         label: str,
-        send_to: str | None = TASK,
+        send_to: str | None = SMOL,
         **kwargs: Unpack[LLMKwargs],
     ) -> list[WritingStyleDocument]:
         """Fetch one level's style references through decomposed multi-head queries.
@@ -54,6 +54,13 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
         are dropped — the budget caps documents, so no head past it can earn a slot.
         Nothing reranks the fused set: fusion already balances the heads, and reranking
         a set that has already been truncated to the limit could only permute it.
+
+        The decomposition rides the ``SMOL`` agent variant, :meth:`arefined_query`'s
+        own default: turning a level's text into search heads is mechanical work that
+        need not follow the run's writing group, and no other call here reaches a
+        completion model — the search is embedding plus fused ranking. A caller that
+        wants the refinement elsewhere passes the group it wants; the pipeline's own
+        levels leave the default be, so the run's ``send_to`` never reaches it.
 
         An answer with fewer than two heads is not a decomposition, so it is
         discarded for the raw question: the model either restated the input or
@@ -97,7 +104,6 @@ class RAGNovelCompose(NovelCompose, RAGStyleFetch, ABC):
     async def retrieve_novel_styles(
         self,
         ctx: NovelContext,
-        send_to: str | None = TASK,
         **kwargs: Unpack[LLMKwargs],
     ) -> RagNovelContext:
         """Seal the root with the retrieval settings and fetch the references its planning prompts render.
@@ -112,7 +118,7 @@ class RAGNovelCompose(NovelCompose, RAGStyleFetch, ABC):
         source = "\n\n".join(
             part for part in (sealed.skill_section(), wrap_in_block(sealed.outline, title="Novel Outline")) if part
         )
-        docs = await self._fetch_style_docs(source, sealed.rag, "the novel", send_to=send_to, **kwargs)
+        docs = await self._fetch_style_docs(source, sealed.rag, "the novel", **kwargs)
         sealed.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for the novel root")
         return sealed
@@ -130,7 +136,7 @@ class RAGNovelCompose(NovelCompose, RAGStyleFetch, ABC):
                 RAG run carries, so the planning prompts and every snapshot see
                 its references.
         """
-        return await self.retrieve_novel_styles(ctx, send_to=send_to, **kwargs)
+        return await self.retrieve_novel_styles(ctx, **kwargs)
 
     async def plan_chapters_phase(
         self,
@@ -204,6 +210,6 @@ class RAGChapterCompose[CTX: ChapterContext](
         if not isinstance(ctx, RagStoryContext):
             return
         source = "\n\n".join(part for part in (ctx.skill_section(), ctx.description) if part)
-        docs = await self._fetch_style_docs(source, ctx.rag, f"story '{ctx.title}'", send_to=send_to, **kwargs)
+        docs = await self._fetch_style_docs(source, ctx.rag, f"story '{ctx.title}'", **kwargs)
         ctx.add_retrieved_styles([doc.as_prompt() for doc in docs])
         logger.debug(f"Retrieved {len(docs)} style reference(s) for story '{ctx.title}'")

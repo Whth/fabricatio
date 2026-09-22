@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from _support import card, prefix_log
 from fabricatio_character.models.character import CharacterSpan
+from fabricatio_core import Role
+from fabricatio_core.rust import CONFIG, SMOL, TASK
 from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGChapterCompose, RAGNovelCompose
@@ -18,6 +20,31 @@ from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import ChapterPlan, ScenePlan, ScenePlans, StoryPlan
 from fabricatio_novel.models.rag import WritingStyleDocument, WritingStyleFetchConfig
 from fabricatio_novel.models.series_book import SeriesBible
+
+SMOL_PROBE_GROUP = "rag_smol_probe_run"
+"""Routing group the refinement-routing test deploys the ``SMOL`` slot to."""
+
+RUN_PROBE_GROUP = "rag_run_probe"
+"""Routing group that test gives the story write, standing in for ``--send-to``."""
+
+
+class _VariantProbeRole(Role):
+    """Role base whose completions keep the framework's own variant routing.
+
+    ``make_test_role`` composes an ``LLMTestRole``, which pins every completion to the
+    dummy group and so cannot tell one variant slot from another; a routing test needs
+    the plain resolution ladder instead. ``llm_no_cache``/``llm_no_store`` are set per
+    instance, as the workflow tests do, so neither probe group can leave a canned
+    completion behind in the shared completion cache.
+    """
+
+
+class _NovelProbeRole(_VariantProbeRole, RAGNovelCompose):
+    """Probe role for the novel root's style retrieval."""
+
+
+class _ChapterProbeRole(_VariantProbeRole, RAGChapterCompose[ChapterContext]):
+    """Probe role for the story-level style retrieval."""
 
 
 class TestRAGChapterCompose:
@@ -402,6 +429,95 @@ class TestRAGChapterCompose:
         await role._fetch_style_docs(ctx.description, ctx.rag, "story 'Battle'")
 
         assert captured_queries == [["The hero fights."]]
+
+    async def test_refinement_rides_the_smol_slot(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the run's routing group never reaches the refinement: the search heads come from the SMOL slot.
+
+        ``TASK`` is the group a run whose context names none retrieves through, and the
+        refinement used to ride it; it must take the ``SMOL`` slot instead, whatever the
+        level's own routing. Each group holds a distinguishable decomposition, so the
+        heads the search actually ran report which slot answered.
+        """
+        role = _NovelProbeRole(name="rag_probe", llm_no_cache=True, llm_no_store=True)
+        novel = NovelContext.create("The hero seeks his father over the pass.", language="English")
+        searched: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            searched.append(query)
+            return []
+
+        monkeypatch.setattr(_NovelProbeRole, "afetch_document", staticmethod(fake_fetch))
+        previous = {SMOL: CONFIG.resolve_llm_variant(SMOL), TASK: CONFIG.resolve_llm_variant(TASK)}
+        CONFIG.configure_llm_variant(SMOL, SMOL_PROBE_GROUP)
+        CONFIG.configure_llm_variant(TASK, RUN_PROBE_GROUP)
+        try:
+            with (
+                MockScript.from_values(
+                    Value.from_json(["the smol heads", "the smol turns"], name="smol refined query"),
+                    group=SMOL_PROBE_GROUP,
+                ),
+                MockScript.from_values(
+                    Value.from_json(["the run heads", "the run turns"], name="run refined query"),
+                    group=RUN_PROBE_GROUP,
+                ),
+            ):
+                await role.retrieve_novel_styles(novel)
+        finally:
+            CONFIG.configure_llm_variant(SMOL, previous[SMOL])
+            CONFIG.configure_llm_variant(TASK, previous[TASK])
+
+        assert searched == [["the smol heads", "the smol turns"]]
+
+    async def test_story_refinement_rides_the_smol_slot(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the story level refines on ``SMOL`` while its scene planning stays on the run's group.
+
+        The story write's own routing is the one the refinement must not follow: the
+        planning proposal answers from the run's group and the decomposition from the
+        ``SMOL`` slot, each seeded with its own payload, so both report where they ran.
+        """
+        role = _ChapterProbeRole(name="rag_probe", llm_no_cache=True, llm_no_store=True)
+        story = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
+        searched: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            searched.append(query)
+            return []
+
+        scene_plans = [
+            {
+                "title": "Cut Lines",
+                "description": "The city pulls away from the sea.",
+                "weight": 1.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            }
+        ]
+
+        monkeypatch.setattr(_ChapterProbeRole, "afetch_document", staticmethod(fake_fetch))
+        previous = {SMOL: CONFIG.resolve_llm_variant(SMOL), TASK: CONFIG.resolve_llm_variant(TASK)}
+        CONFIG.configure_llm_variant(SMOL, SMOL_PROBE_GROUP)
+        CONFIG.configure_llm_variant(TASK, RUN_PROBE_GROUP)
+        try:
+            with (
+                MockScript.from_values(
+                    Value.from_json(["the smol heads", "the smol turns"], name="smol refined query"),
+                    group=SMOL_PROBE_GROUP,
+                ),
+                MockScript.from_values(Value.from_json(scene_plans, name="scene plans"), group=RUN_PROBE_GROUP),
+            ):
+                assert await role.plan_scenes_phase(story, send_to=RUN_PROBE_GROUP) is True
+        finally:
+            CONFIG.configure_llm_variant(SMOL, previous[SMOL])
+            CONFIG.configure_llm_variant(TASK, previous[TASK])
+
+        assert searched == [["the smol heads", "the smol turns"]]
+        assert [scene.title for scene in story.child_contexts] == ["Cut Lines"]
 
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
