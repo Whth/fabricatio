@@ -1,0 +1,16 @@
+[package]
+name = "jevlin-derive"
+version = "0.1.0"
+edition = "2024"
+description = "Derive macros for jevlin: turn a struct into a typed System One question set."
+authors.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.106"
+quote = "1.0.47"
+syn = { version = "2.0.118", features = ["full"] }
