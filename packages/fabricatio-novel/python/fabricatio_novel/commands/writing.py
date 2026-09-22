@@ -7,7 +7,6 @@ from pathlib import Path
 import typer
 from fabricatio_core import Event, Role, Task
 from fabricatio_core.models.action import WorkFlow
-from fabricatio_core.rust import TASK
 
 from fabricatio_novel.benchmark import (
     TermProbes,
@@ -85,6 +84,17 @@ def _stamped_run_dir(persist_dir: Path) -> Path:
     return run_dir
 
 
+def _send_to_entry(send_to: str | None) -> dict[str, str]:
+    """Return the ``send_to`` init-context entry for a run, or nothing when the option is unset.
+
+    The plan stages fall back to the ``PLAN`` variant when the context carries no ``send_to``,
+    so an unset option must leave the key out instead of writing ``None``: a present-but-``None``
+    key would resolve every other stage through ``[llm] send_to`` rather than the ``TASK`` group
+    the run defaults to.
+    """
+    return {} if send_to is None else {"send_to": send_to}
+
+
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913 - flat signature required by typer option derivation
     *,
@@ -122,7 +132,12 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
             "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
         ),
     ),
-    send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+    send_to: str | None = typer.Option(
+        None,
+        "--send-to",
+        "-st",
+        help="Routing group for the run's LLM calls; plan stages fall back to the PLAN variant when unset.",
+    ),
     font: Path | None = typer.Option(
         None,
         "--font",
@@ -165,7 +180,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         font=font,
         cover=cover,
         skills=_split_skills(skills),
-        send_to=send_to,
+        **_send_to_entry(send_to),
     )
     artifact = _run_workflow(task, DebugNovelWorkflow, "write")
     if artifact is None:
@@ -211,7 +226,12 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
             "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
         ),
     ),
-    send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+    send_to: str | None = typer.Option(
+        None,
+        "--send-to",
+        "-st",
+        help="Routing group for the run's LLM calls; plan stages fall back to the PLAN variant when unset.",
+    ),
     rag_query: str | None = typer.Option(
         None,
         "--rag-query",
@@ -271,7 +291,7 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         font=font,
         cover=cover,
         skills=_split_skills(skills),
-        send_to=send_to,
+        **_send_to_entry(send_to),
     )
     artifact = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
     if artifact is None:
@@ -317,7 +337,12 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
             "comma-separated list. The skill texts lead every planning prompt and the running manuscript."
         ),
     ),
-    send_to: str = typer.Option(TASK, "--send-to", "-st", help="Routing group for LLM calls."),
+    send_to: str | None = typer.Option(
+        None,
+        "--send-to",
+        "-st",
+        help="Routing group for the run's LLM calls; plan stages fall back to the PLAN variant when unset.",
+    ),
     rag_query: str | None = typer.Option(
         None,
         "--rag-query",
@@ -392,7 +417,7 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         font=font,
         cover=cover,
         skills=_split_skills(skills),
-        send_to=send_to,
+        **_send_to_entry(send_to),
         illustration_choose_loras=True if choose_loras else None,
         illustration_judge=True if judge else None,
         illustration_judge_max_tries=judge_tries or None,

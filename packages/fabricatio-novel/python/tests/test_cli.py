@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 import pytest
 from _support import SceneSpec, StorySpec, benchmark_run
+from fabricatio_core import Task
+from fabricatio_core.models.action import WorkFlow
 from fabricatio_novel.commands._helpers import _split_skills
 from fabricatio_novel.commands.writing import _stamped_run_dir, app
 from typer.testing import CliRunner
@@ -116,3 +118,32 @@ def test_bench_scan_measures_a_plain_manuscript(tmp_path: Path) -> None:
 def test_split_skills_flattens_comma_specs_and_dedupes() -> None:
     """`--skill` specs split on commas, trim, dedupe, and keep the requested order."""
     assert _split_skills(["b, a", "c", "b", " "]) == ["b", "a", "c"]
+
+
+def _write_task(argv: list[str], tmp_path: Path) -> Task:
+    """Invoke `fanvl w` with the workflow dispatch stubbed out and return the task it built."""
+    captured: list[Task] = []
+
+    def capture(task: Task, workflow: WorkFlow, namespace: str) -> Path:
+        captured.append(task)
+        return tmp_path / "novel.epub"
+
+    with (
+        patch("fabricatio_novel.commands.writing._run_workflow", capture),
+        patch("fabricatio_novel.commands.writing._report_generation"),
+    ):
+        result = CliRunner().invoke(app, ["w", *argv])
+    assert result.exit_code == 0, result.output
+    return captured[0]
+
+
+def test_write_command_omits_an_unset_send_to(tmp_path: Path) -> None:
+    """`fanvl w` without `--send-to` leaves the routing key out, so the plan stages keep their PLAN fallback."""
+    task = _write_task(["A lighthouse keeper's daughter charts the reef at low tide."], tmp_path)
+    assert "send_to" not in task.extra_init_context
+
+
+def test_write_command_forwards_an_explicit_send_to(tmp_path: Path) -> None:
+    """`fanvl w --send-to` names the run's routing group in the init context."""
+    task = _write_task(["A lighthouse keeper's daughter charts the reef at low tide.", "--send-to", "glm"], tmp_path)
+    assert task.extra_init_context["send_to"] == "glm"

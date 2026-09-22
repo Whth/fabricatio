@@ -8,7 +8,7 @@ promotes its unit, the sealed context type survives the snapshot round trip.
 
 from typing import Any, ClassVar
 
-from fabricatio_core.rust import TASK
+from fabricatio_core.rust import PLAN
 
 from fabricatio_novel.actions.novel import (
     ComposeScenesStage,
@@ -59,12 +59,15 @@ class RagPlanStoriesStage(PlanStoriesStage, RAGChapterCompose):
     :class:`~fabricatio_novel.models.context.chapter.RagChapterContext`, so the
     snapshot tree type-states that its stories are sealed, and the later scene
     stages only consume sealed story contexts.
+
+    Calls ride the run's ``send_to`` group when the context names one and fall back to the
+    ``PLAN`` agent variant otherwise, so planning follows the plan model unless the run routes
+    it elsewhere.
     """
 
     ctx_override: ClassVar[bool] = True
 
-    async def _execute(self, novel_ctx: NovelContext, *_: Any, **cxt: Any) -> bool:
-        send_to = cxt.get("send_to", TASK)
+    async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
         for index, chapter in enumerate(novel_ctx.child_contexts):
             chapter_ctx = await self.before_compose_chapter_context(chapter, send_to=send_to)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):

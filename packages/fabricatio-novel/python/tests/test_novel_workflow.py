@@ -5,16 +5,63 @@ from pathlib import Path
 import pytest
 from _support import card
 from fabricatio_character.models.character import CharacterSpan
-from fabricatio_core.rust import CONFIG, TASK
+from fabricatio_core.rust import CONFIG, PLAN, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP, MockScript, Value, make_test_role
 from fabricatio_novel.models.novel import ExportFormat
 from fabricatio_novel.models.plan import NovelPlan
 
 # Workflow tests subscribe ``make_test_role`` roles: llm_no_cache/llm_no_store (and the
 # embedding/reranker twins) keep every dummy call out of the shared cache, so the
-# ``MockScript`` stack pops in seeded order. The stages resolve their own explicit
-# ``send_to=TASK`` through the variant slots, so route that variant to the dummy group.
+# ``MockScript`` stack pops in seeded order. The stages resolve their own routing through
+# the variant slots — ``TASK`` for a run that names no group, ``PLAN`` for the plan stages'
+# fallback — so route both variants to the dummy group.
 CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
+CONFIG.configure_llm_variant(PLAN, DUMMY_LLM_GROUP)
+
+
+PLAN_PROBE_GROUP = "wf_plan_probe_run"
+"""Routing group the plan-routing tests deploy the run-tier chapter plan to, standing in for ``--send-to``."""
+
+
+async def _planned_titles(send_to: str | None = None) -> list[str]:
+    """Plan chapters once and return the title that materialized, naming the group the call rode.
+
+    The run group holds a chapter plan titled ``TASK-TIER`` and the plan slot one titled
+    ``PLAN-TIER``, so the materialized title reports which of the two the planning call used.
+    The stage's own ``llm_no_cache``/``llm_no_store`` keep the shared completion cache from
+    serving either plan regardless of routing: both dummy groups share one model id, so an
+    identical prompt would otherwise be a cross-group hit.
+
+    Args:
+        send_to: Routing group to plan with, or ``None`` for a run whose context names none.
+    """
+    from fabricatio_novel.actions.novel import PlanChaptersStage
+    from fabricatio_novel.models.context.novel import NovelContext
+
+    def plans(title: str) -> list[dict[str, object]]:
+        return [
+            {
+                "title": title,
+                "description": "The hero sets out.",
+                "weight": 1.0,
+                "writing_styles": [],
+                "writing_constraints": [],
+            }
+        ]
+
+    novel = NovelContext.create("The hero seeks his father over the pass..", language="English")
+    CONFIG.configure_llm_variant(TASK, PLAN_PROBE_GROUP)
+    try:
+        with (
+            MockScript.from_values(Value.from_json(plans("PLAN-TIER"), name="plan tier plans")),
+            MockScript.from_values(Value.from_json(plans("TASK-TIER"), name="run tier plans"), group=PLAN_PROBE_GROUP),
+        ):
+            stage = PlanChaptersStage(llm_no_cache=True, llm_no_store=True)
+            cxt: dict[str, str] = {} if send_to is None else {"send_to": send_to}
+            assert await stage._execute(novel, **cxt) is True
+    finally:
+        CONFIG.configure_llm_variant(TASK, DUMMY_LLM_GROUP)
+    return [chapter.title for chapter in novel.child_contexts]
 
 
 class TestNovelWorkflow:
@@ -96,6 +143,14 @@ class TestNovelWorkflow:
         for stage_dir in persist_dir.iterdir():
             if stage_dir.is_dir():
                 assert any(stage_dir.glob("*.json")), f"{stage_dir.name} lacks a snapshot"
+
+    async def test_plan_stage_falls_back_to_the_plan_variant(self) -> None:
+        """Assert an unrouted run plans through the PLAN slot."""
+        assert await _planned_titles() == ["PLAN-TIER"]
+
+    async def test_explicit_send_to_outranks_the_plan_fallback(self) -> None:
+        """Assert an explicit run group still governs planning, so PLAN stays a fallback and not a must."""
+        assert await _planned_titles(PLAN_PROBE_GROUP) == ["TASK-TIER"]
 
     async def test_debug_workflow_txt_format_exports_chapter_texts(self, tmp_path: Path) -> None:
         """Assert ``export_format='txt'`` skips the EPUB and returns the per-chapter text directory."""
