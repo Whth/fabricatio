@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fabricatio_character.models.character import CharacterCard
 from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
-from fabricatio_novel.models.context.log import ContextEntry, ContextLog
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog, EntryKind
 from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -33,7 +33,7 @@ def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
 
 def prefix_log(body: str, *, title: str = "S1") -> ContextLog:
     """Build a one-entry scene-content prefix log for tests."""
-    return ContextLog(entries=(ContextEntry(kind="scene_content", title=title, body=body),))
+    return ContextLog(entries=(ContextEntry(kind=EntryKind.SCENE_CONTENT, title=title, body=body),))
 
 
 BENCH_OUTLINE = "A lighthouse keeper chases a storm that never lands."

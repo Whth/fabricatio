@@ -5,7 +5,7 @@ from typing import Self
 from fabricatio_core.utils import wrap_in_block
 from pydantic import BaseModel, Field
 
-from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.log import ContextEntry, EntryKind
 from fabricatio_novel.models.context.story import StoryContext
 
 
@@ -92,7 +92,7 @@ class RagStoryContext(RagBound, StoryContext):
         if not self.style_references() or self.is_fully_written():
             return None
         return ContextEntry(
-            kind="style_references",
+            kind=EntryKind.STYLE_REFERENCES,
             title="Writing Style References",
             body=wrap_in_block(
                 "Before writing this segment(s), i have retrieved some docs below, which you can refer to make the novel better\n"

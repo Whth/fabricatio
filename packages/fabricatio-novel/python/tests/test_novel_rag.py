@@ -12,7 +12,7 @@ from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.capabilities.rag import RAGChapterCompose, RAGNovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
-from fabricatio_novel.models.context.log import ContextEntry, ContextLog
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog, EntryKind
 from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -208,8 +208,11 @@ class TestRAGChapterCompose:
         for _ in range(2):
             scenes = list(story.iter_prefixed_contexts())
 
-        assert [entry.kind for entry in scenes[0].prefix_log.entries] == ["style_references"]
-        assert [entry.kind for entry in scenes[1].prefix_log.entries] == ["style_references", "scene_content"]
+        assert [entry.kind for entry in scenes[0].prefix_log.entries] == [EntryKind.STYLE_REFERENCES]
+        assert [entry.kind for entry in scenes[1].prefix_log.entries] == [
+            EntryKind.STYLE_REFERENCES,
+            EntryKind.SCENE_CONTENT,
+        ]
         for scene in scenes:
             assert "Dark gothic prose with terse action lines." in scene.prefix_log.render()
 
@@ -231,15 +234,18 @@ class TestRAGChapterCompose:
         stories = list(chapter.iter_prefixed_contexts())
         scenes = [list(story.iter_prefixed_contexts()) for story in stories]
 
-        assert [entry.kind for entry in stories[1].prefix_log.entries] == ["chapter_header", "scene_content"]
+        assert [entry.kind for entry in stories[1].prefix_log.entries] == [
+            EntryKind.CHAPTER_HEADER,
+            EntryKind.SCENE_CONTENT,
+        ]
         assert "He left." in stories[1].prefix_log.render()
         assert "Style A." not in stories[1].prefix_log.render()
         for scene in scenes[1]:
-            refs = [entry for entry in scene.prefix_log.entries if entry.kind == "style_references"]
+            refs = [entry for entry in scene.prefix_log.entries if entry.kind.is_style_references()]
             assert len(refs) == 1
             assert "Style B." in refs[0].body
             assert "Style A." not in refs[0].body
-        refs_a = [entry for entry in scenes[0][0].prefix_log.entries if entry.kind == "style_references"]
+        refs_a = [entry for entry in scenes[0][0].prefix_log.entries if entry.kind.is_style_references()]
         assert len(refs_a) == 1
         assert "Style A." in refs_a[0].body
         assert "Style B." not in refs_a[0].body
@@ -650,14 +656,14 @@ class TestRAGChapterCompose:
         story.add_context(unwritten)
 
         while_writing = [entry.kind for scene in story.iter_prefixed_contexts() for entry in scene.prefix_log.entries]
-        assert while_writing == ["style_references", "style_references", "scene_content"]
+        assert while_writing == [EntryKind.STYLE_REFERENCES, EntryKind.STYLE_REFERENCES, EntryKind.SCENE_CONTENT]
 
         unwritten.set_content("He walked.")
         scenes = list(story.iter_prefixed_contexts())
 
         assert story.prefixed_header_entry() is None
         assert [entry.kind for entry in scenes[0].prefix_log.entries] == []
-        assert [entry.kind for entry in scenes[1].prefix_log.entries] == ["scene_content"]
+        assert [entry.kind for entry in scenes[1].prefix_log.entries] == [EntryKind.SCENE_CONTENT]
         assert story.retrieved_styles == ["Dark gothic prose with terse action lines."]
 
     async def test_compose_story_stops_rendering_docs_once_scenes_written(
@@ -700,7 +706,7 @@ class TestRAGChapterCompose:
         assert story.retrieved_styles == [doc.as_prompt()]
         assert story.prefixed_header_entry() is None
         assert all(
-            entry.kind != "style_references"
+            not entry.kind.is_style_references()
             for scene in story.iter_prefixed_contexts()
             for entry in scene.prefix_log.entries
         )
@@ -736,7 +742,7 @@ class TestRAGChapterCompose:
         assert story.retrieved_styles == ["Dark gothic prose with terse action lines."]
         assert story.prefixed_header_entry() is None
         assert all(
-            entry.kind != "style_references"
+            not entry.kind.is_style_references()
             for scene_ctx in story.iter_prefixed_contexts()
             for entry in scene_ctx.prefix_log.entries
         )
@@ -765,7 +771,7 @@ class TestRAGChapterCompose:
 
         assert story.prefixed_header_entry() is not None
         assert any(
-            entry.kind == "style_references"
+            entry.kind.is_style_references()
             for scene_ctx in story.iter_prefixed_contexts()
             for entry in scene_ctx.prefix_log.entries
         )
@@ -789,7 +795,7 @@ class TestRAGChapterCompose:
 
         assert reloaded_story.retrieved_styles == ["Dark gothic prose with terse action lines."]
         assert any(
-            entry.kind == "style_references"
+            entry.kind.is_style_references()
             for scene in reloaded_story.iter_prefixed_contexts()
             for entry in scene.prefix_log.entries
         )
@@ -798,7 +804,7 @@ class TestRAGChapterCompose:
 
         assert reloaded_story.prefixed_header_entry() is None
         assert all(
-            entry.kind != "style_references"
+            not entry.kind.is_style_references()
             for scene in reloaded_story.iter_prefixed_contexts()
             for entry in scene.prefix_log.entries
         )

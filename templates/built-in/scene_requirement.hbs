@@ -1,10 +1,10 @@
 {{#if skills}}{{skills}}
 
 {{/if}}
-{{#if novel_so_far}}
 {{ block novel_so_far "Novel so far" }}
 
-{{/if}}
+Your prose will be appended directly to `Novel so far`.
+
 # Scene Writing
 
 ## Scene
@@ -28,6 +28,9 @@ Description: {{ description }}
 
 {{ls cast}}{{/if}}
 
+{{#if chapter_opening}}
+This scene is the first of its chapter: nothing of the chapter is written yet, and the text above — the chapters already written, ending at this chapter's heading — holds none of it. Write that opening here: start from this scene's own first beat instead of continuing the passage above, and do not recap what came before.
+{{/if}}
 
 ## Goal
 Write a single scene of the novel in full prose, as a seamless continuation of the text above.
@@ -37,7 +40,7 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - The Skill Documents at the top are the grounding truth of this scene: follow them as authoritative instructions, not as background reading.
 {{/if}}
 {{#if writing_styles}}
-- The Writing styles References&Instructions above tell you how this scene must read: follow the diction, rhythm, and imagery they show rather than writing in a neutral default voice.
+- The Writing styles References&Instructions above tell you how this scene must read: follow the diction, rhythm, metaphor, and imagery they show rather than writing in a neutral default voice.
 {{/if}}
 {{#if writing_constraints}}
 - The Writing Constrains above are binding, not advisory: each one must hold across the whole scene — a scene that breaks one is a failed scene, however well written.
@@ -47,7 +50,6 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - Whatever the Description leaves open stays open: an unfinished action stays unfinished — a mouth still full, a hand still held, a question still unanswered — and must not be resolved or completed.
 - When the Description ends in a state or mood, end the prose inside it: your closing paragraph must add no event of its own. Re-read that last paragraph before answering and drop anything that reaches beyond the Description.
 - Keep every character consistent with their established traits, speech patterns, and motivations, and honor the story's start and end states.
-- The novel text above is everything written so far: match its narrative voice, tense, and point of view, continue seamlessly from where it ends, and never repeat or contradict it. Your prose will be appended directly after it.
 - Output ONLY the scene prose as plain paragraphs — no headings, no title, no explanations.
 
 Respond entirely in "{{ language }}".

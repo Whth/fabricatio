@@ -3,7 +3,7 @@
 from typing import Self, final
 
 from fabricatio_novel.models.context.base import ContextBase
-from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.log import ContextEntry, EntryKind
 from fabricatio_novel.models.plan import ScenePlan
 
 
@@ -18,9 +18,27 @@ class SceneContext(ContextBase[ScenePlan]):
         self.content = content
         return self
 
+    def is_chapter_opening(self) -> bool:
+        """Whether this scene starts its chapter, no prose of that chapter existing above it.
+
+        Everything above the scene is the earlier chapters and then this chapter's
+        own heading, with whatever was seeded alongside (the setting bible, retrieved
+        references) carrying no prose of its own. So the chapter has already started
+        exactly when the newest composed block above the scene is prose; when the
+        newest one is the chapter's heading, the prompt has to say that this scene
+        opens the chapter — its instruction to continue the text above would
+        otherwise point at a heading and the chapters before it.
+        """
+        written = [
+            entry.kind
+            for entry in self.prefix_log.entries
+            if entry.kind.is_chapter_header() or entry.kind.is_scene_content()
+        ]
+        return not written or written[-1].is_chapter_header()
+
     @final
     def prefixed_entries(self) -> tuple[ContextEntry, ...]:
         """Contribute the composed content; scene titles and descriptions are not injected."""
         if not self.content:
             return ()
-        return (ContextEntry(kind="scene_content", title=self.title, body=self.content),)
+        return (ContextEntry(kind=EntryKind.SCENE_CONTENT, title=self.title, body=self.content),)

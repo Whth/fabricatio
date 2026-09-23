@@ -48,29 +48,6 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
         """Identity hook invoked on the composed scene; may transform and return the scene."""
         return scene
 
-    def _scene_requirement_vars(self, ctx: CTX) -> dict[str, object]:
-        """Build the scene_requirement template variables for a scene context.
-
-        Overriding capabilities (RAG) reuse these vars and add their own
-        blocks before rendering. The setting bible arrives through the
-        seeded prefix entry, not as a dedicated template variable; the
-        skills section renders as its own head variable — the same bytes
-        every planning prompt opens with, so the provider prefix cache
-        serves the scene writes too.
-        """
-        return {
-            "title": ctx.title,
-            "description": ctx.description,
-            "expected_word_count": ctx.expected_word_count,
-            "writing_styles": ctx.writing_styles,
-            "writing_constraints": ctx.writing_constraints,
-            "characters": ctx.dump_characters(),
-            "cast": ctx.cast,
-            "language": ctx.language,
-            "skills": ctx.skill_section(),
-            "novel_so_far": ctx.prefix_log.render(),
-        }
-
     async def prepare_scene_requirement(
         self,
         ctx: CTX,
@@ -79,11 +56,25 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
         """Render the scene requirement prompt from the scene context.
 
         Overriding capabilities may extend the rendered requirement, for
-        example by appending writing style references.
+        example by appending writing style references. The chapter-opening flag
+        comes off the context's prefix log, so the prompt can say when this
+        scene starts its chapter instead of continuing the text above it.
         """
         return TEMPLATE_MANAGER.render_template(
             novel_config.scene_requirement_template,
-            self._scene_requirement_vars(ctx),
+            {
+                "title": ctx.title,
+                "description": ctx.description,
+                "expected_word_count": ctx.expected_word_count,
+                "writing_styles": ctx.writing_styles,
+                "writing_constraints": ctx.writing_constraints,
+                "characters": ctx.dump_characters(),
+                "cast": ctx.cast,
+                "language": ctx.language,
+                "skills": ctx.skill_section(),
+                "novel_so_far": ctx.prefix_log.render(),
+                "chapter_opening": ctx.is_chapter_opening(),
+            },
         )
 
     async def generate_scene_context(
@@ -107,7 +98,7 @@ class SceneCompose[CTX: SceneContext](CharacterCompose, ABC):
 
         content = await self.aask(requirement, send_to=send_to, **kwargs)
 
-        previous = "\n".join(entry.body for entry in ctx.prefix_log.entries if entry.kind == "scene_content")
+        previous = "\n".join(entry.body for entry in ctx.prefix_log.entries if entry.kind.is_scene_content())
         content = strip_overlapping_prefix(
             content,
             previous,

@@ -1,6 +1,7 @@
 """Staged-workflow tests for fabricatio-novel: DebugNovelWorkflow end to end."""
 
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from _support import card
@@ -498,11 +499,15 @@ class TestNovelWorkflow:
             Event.quick_instantiate(namespace), RagIllustrationDebugNovelWorkflow
         ).dispatch()
         task = Task(name="wf novel illustration").update_init_context(
-            # The test role's no_cache/no_store keep calls off the persistent cache,
-            # so every LLM call pops its seeded Value in order. The illustration
-            # proposal itself is outline-independent; the stack below keeps its value
-            # first so the steady state self-heals.
-            novel_outline="A young tide-cartographer surveys the drowned bells of the Amber Strait.",
+            # A per-run token in the outline keeps this run's planning prompts off the
+            # shared completion cache, so they pop the seeded Values in declaration order
+            # instead of replaying whatever an earlier run left warm under identical bytes
+            # — a prompt edit would otherwise turn one key cold and shift every response
+            # after it. The scene write and the outline-independent illustration proposal
+            # follow them, warm or not.
+            novel_outline=(
+                f"A young tide-cartographer surveys the drowned bells of the Amber Strait. [run:{uuid4().hex[:8]}]"
+            ),
             novel_language="English",
             persist_dir=persist_dir,
         )

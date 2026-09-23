@@ -5,7 +5,7 @@ from itertools import count
 from typing import ClassVar, final
 
 from fabricatio_novel.models.context.base import ParentContextBase
-from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.log import ContextEntry, EntryKind
 from fabricatio_novel.models.context.rag import RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
@@ -44,7 +44,7 @@ class ChapterContext[S: StoryContext, P: ChapterPlan](ParentContextBase[S, P]):
     @final
     def prefixed_header_entry(self) -> ContextEntry:
         """Wrap the heading block as the header entry seeded into children's prefixes."""
-        return ContextEntry(kind="chapter_header", title=self.title, body=self.render_prefixed_header())
+        return ContextEntry(kind=EntryKind.CHAPTER_HEADER, title=self.title, body=self.render_prefixed_header())
 
     @final
     def prefixed_entries(self) -> tuple[ContextEntry, ...]:

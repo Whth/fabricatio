@@ -1,14 +1,12 @@
 """Test module for the append-only context log."""
 
-from typing import Literal
-
 import pytest
-from fabricatio_novel.models.context.log import ContextEntry, ContextLog
+from fabricatio_novel.models.context.log import ContextEntry, ContextLog, EntryKind
 from pydantic import ValidationError
 
 
 def entry(
-    kind: Literal["chapter_header", "scene_content"] = "scene_content",
+    kind: EntryKind = EntryKind.SCENE_CONTENT,
     title: str = "S1",
     body: str = "He left.",
 ) -> ContextEntry:
@@ -25,9 +23,10 @@ class TestContextEntry:
         with pytest.raises(ValidationError):
             e.body = "changed"
 
-    def test_entry_kinds_are_free_form(self) -> None:
-        """Assert kinds accept arbitrary vocabularies; packages narrow them via subclassing."""
-        assert ContextEntry(kind="prose", title="S1", body="text").kind == "prose"
+    def test_entry_kinds_reject_unknown_manuscript_blocks(self) -> None:
+        """Assert a kind outside the manuscript vocabulary fails instead of entering a prefix log."""
+        with pytest.raises(ValidationError):
+            ContextEntry.model_validate({"kind": "prose", "title": "S1", "body": "text"})
 
 
 class TestContextLogAppend:
@@ -125,7 +124,7 @@ class TestContextLogRender:
         bodies = ["# Ch1", "", "He left.", "A stranger appeared."]
         log = ContextLog(
             entries=(
-                entry(kind="chapter_header", title="Ch1", body=bodies[0]),
+                entry(kind=EntryKind.CHAPTER_HEADER, title="Ch1", body=bodies[0]),
                 entry(body=bodies[1]),
                 entry(title="S1", body=bodies[2]),
                 entry(title="S2", body=bodies[3]),
@@ -139,7 +138,7 @@ class TestContextLogSerialization:
 
     def test_round_trip_preserves_entries_and_fork_point(self) -> None:
         """Assert JSON round-trip restores an equal log."""
-        log = ContextLog(entries=(entry(kind="chapter_header", title="Ch1", body="# Ch1"), entry())).branch()
+        log = ContextLog(entries=(entry(kind=EntryKind.CHAPTER_HEADER, title="Ch1", body="# Ch1"), entry())).branch()
         revived = ContextLog.model_validate_json(log.model_dump_json())
         assert revived == log
         assert revived.forked_at == log.forked_at

@@ -7,7 +7,7 @@ from pydantic import Field
 
 from fabricatio_novel.models.context.base import ParentContextBase
 from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
-from fabricatio_novel.models.context.log import ContextEntry
+from fabricatio_novel.models.context.log import ContextEntry, EntryKind
 from fabricatio_novel.models.context.rag import RagBound, RagRetrieval
 from fabricatio_novel.models.plan import NovelPlan
 from fabricatio_novel.models.series_book import SeriesBible
@@ -54,10 +54,12 @@ class NovelContext[C: ChapterContext, P: NovelPlan](ParentContextBase[C, P]):
         """
         if self.series_bible is None or self.series_bible.is_empty():
             return self
-        if any(entry.kind == "setting_bible" for entry in self.prefix_log.entries):
+        if any(entry.kind.is_setting_bible() for entry in self.prefix_log.entries):
             return self
         self.prefix_log = self.prefix_log.with_entry(
-            ContextEntry(kind="setting_bible", title="Setting Bible", body=self.series_bible.as_prompt().strip()),
+            ContextEntry(
+                kind=EntryKind.SETTING_BIBLE, title="Setting Bible", body=self.series_bible.as_prompt().strip()
+            ),
         )
         return self
 

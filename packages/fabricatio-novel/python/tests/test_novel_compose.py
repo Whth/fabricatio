@@ -419,6 +419,45 @@ class TestPrefixAccumulation:
     def _scene_ctx(self, title: str, description: str) -> SceneContext:
         return SceneContext(title=title, description=description, expected_word_count=20)
 
+    def _two_chapter_novel(self) -> NovelContext:
+        """Build a two-chapter novel whose first chapter is written and whose second is not."""
+        novel = NovelContext.create("The hero seeks his father..", language="English")
+        for chapter_title in ("Ch1", "Ch2"):
+            chapter = ChapterContext(title=chapter_title, description="A chapter.")
+            story = StoryContext(title="St1", description="The departure.")
+            story.add_context(self._scene_ctx(f"{chapter_title}S1", "Leaving home.").set_content("He left."))
+            story.add_context(self._scene_ctx(f"{chapter_title}S2", "A stranger appears."))
+            chapter.add_context(story)
+            novel.add_context(chapter)
+        return novel
+
+    def test_chapter_opening_flag_matches_the_scene_index(self) -> None:
+        """Assert a scene reports a chapter opening exactly when it is its chapter's first scene."""
+        novel = self._two_chapter_novel()
+
+        openings = [
+            (chapter.title, index, scene.is_chapter_opening())
+            for chapter in novel.iter_prefixed_contexts()
+            for index, _story, scene in chapter.iter_scenes()
+        ]
+
+        assert openings == [("Ch1", 1, True), ("Ch1", 2, False), ("Ch2", 1, True), ("Ch2", 2, False)]
+
+    async def test_chapter_opener_prompt_announces_the_unwritten_chapter(self) -> None:
+        """Assert a chapter's first scene prompts for the chapter opening while later scenes do not."""
+        role = make_test_role(NovelCompose, name="novel_role")
+        chapter_2 = list(self._two_chapter_novel().iter_prefixed_contexts())[1]
+        opener, later = [scene for _index, _story, scene in chapter_2.iter_scenes()]
+
+        opener_prompt = await role.prepare_scene_requirement(opener)
+        later_prompt = await role.prepare_scene_requirement(later)
+
+        assert "## Chapter Opening" in opener_prompt
+        assert "nothing of the chapter is written yet" in opener_prompt
+        assert opener_prompt.index("## Scene") < opener_prompt.index("## Chapter Opening")
+        assert opener_prompt.index("## Chapter Opening") < opener_prompt.index("## Goal")
+        assert "## Chapter Opening" not in later_prompt
+
     async def test_compose_story_injects_prefix_across_scenes(self) -> None:
         """Assert later scenes accumulate earlier scene content into scenes_so_far."""
         role = make_test_role(NovelCompose, name="novel_role")

@@ -61,7 +61,7 @@ class TestBibleSeeding:
         novel.seed_bible_prefix()
         novel.seed_bible_prefix()
 
-        entries = [entry for entry in novel.prefix_log.entries if entry.kind == "setting_bible"]
+        entries = [entry for entry in novel.prefix_log.entries if entry.kind.is_setting_bible()]
         assert len(entries) == 1
         assert entries[0].body.startswith("## Setting Bible")
         assert "Hero — brave protagonist." in entries[0].body
@@ -144,7 +144,7 @@ class TestBibleConsumption:
         """Assert the seeded entry rides every composition walk into the scene's prefix."""
         scene = self._scene_with_seeded_prefix()
         kinds = [entry.kind for entry in scene.prefix_log.entries]
-        assert kinds[0] == "setting_bible"
+        assert kinds[0].is_setting_bible()
         assert "Hero — brave protagonist" in scene.prefix_log.render()
 
     async def test_seeded_bible_renders_inside_novel_so_far(self) -> None:
@@ -223,7 +223,7 @@ class TestBibleThreading:
         assert novel.series_bible == bible
         scene = ctx.child_contexts[0].child_contexts[0].child_contexts[0]
         kinds = [entry.kind for entry in scene.prefix_log.entries]
-        assert "setting_bible" in kinds
+        assert any(kind.is_setting_bible() for kind in kinds)
         assert "Qi is vital." in scene.prefix_log.render()
 
     async def test_compose_novel_keeps_preset_bible(self) -> None:
@@ -308,5 +308,5 @@ class TestBibleThreading:
 
         assert novel is not None
         kinds = [entry.kind for entry in scene_ctx.prefix_log.entries]
-        assert kinds.count("setting_bible") == 1
+        assert sum(kind.is_setting_bible() for kind in kinds) == 1
         assert novel.series_bible is bible

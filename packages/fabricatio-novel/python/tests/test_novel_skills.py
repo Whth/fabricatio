@@ -14,6 +14,7 @@ from fabricatio_novel.capabilities.rag import RAGChapterCompose, RAGNovelCompose
 from fabricatio_novel.config import novel_config
 from fabricatio_novel.models.context.base import CharacterSpans
 from fabricatio_novel.models.context.chapter import ChapterContext
+from fabricatio_novel.models.context.log import EntryKind
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -247,7 +248,10 @@ class TestSkillPrompts:
 
         requirement = await role.prepare_scene_requirement(second)
 
-        assert [entry.kind for entry in second.prefix_log.entries] == ["chapter_header", "scene_content"]
+        assert [entry.kind for entry in second.prefix_log.entries] == [
+            EntryKind.CHAPTER_HEADER,
+            EntryKind.SCENE_CONTENT,
+        ]
         assert requirement.startswith(novel.skill_section())
         assert requirement.index(SKILL_BODY) < requirement.index("The hero folded the map and left.")
 

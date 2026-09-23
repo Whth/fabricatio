@@ -102,15 +102,11 @@ Beyond the lifecycle trio, each level's ``generate_*_context`` method calls name
    * - ``prepare_scene_write``
      - ``StoryCompose``
      - ``generate_story_context``
-     - Broadcast the story's span list and settings bible to every scene context.
+     - Broadcast the story's character-span list to every scene context.
    * - ``prepare_scene_requirement``
      - ``SceneCompose``
      - ``generate_scene_context``
-     - Render the scene-prompt template variables; BibleCompose adds the bible block.
-   * - ``render_bible_context``
-     - ``BibleCompose``
-     - ``generate_scene_context``
-     - Render the (run-growable) bible section injected into scene prompts.
+     - Render the scene-prompt template variables; the chapter-opening flag read off the context's prefix log tells a chapter's first scene to open the chapter instead of continuing the text above.
 
 .. note::
 
@@ -130,7 +126,7 @@ Execution flow of a full generation:
       PS --> CS["compose_stories_phase"]
       CS --> GS["generate_story_context"]
       GS --> PSC["plan_scenes_phase\nprepare_story"]
-      PSC --> PW["prepare_scene_write\nbroadcast spans + bible"]
+      PSC --> PW["prepare_scene_write\nbroadcast spans"]
       PW --> WCS["compose_scenes_phase"]
       WCS --> GSC["compose_scene\nprepare_scene_requirement"]
 
@@ -141,9 +137,9 @@ assembled after them to ``post_process_*``.
 Production Overrides
 --------------------
 
-Two capabilities override seams without touching lifecycle hooks:
+Three capabilities extend the pipeline without touching lifecycle hooks:
 
-* ``BibleCompose`` (settings bible): overrides ``prepare_scene_requirement`` to merge ``render_bible_context`` output into every scene prompt.
+* ``BibleCompose`` (settings bible): composes the bible from the outline; every scene prompt receives it through the seeded ``setting_bible`` prefix entry rather than a dedicated block or seam override.
 * ``RAGNovelCompose`` (writing-style RAG, novel level): overrides ``before_compose_novel_context`` to seal the root with the retrieval settings and fetch ``WritingStyleDocument`` entries from the **outline**; the documents ride the novel context's style references into the metadata proposal and the chapter-planning prompt.
 * ``RAGChapterCompose`` (writing-style RAG, chapter level): overrides ``prepare_story`` to fetch ``WritingStyleDocument`` entries once per story; retrieved styles ride the context's writing-styles channel into scene prompts.
 
