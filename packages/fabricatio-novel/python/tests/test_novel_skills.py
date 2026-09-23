@@ -48,7 +48,7 @@ class TestSkillInit:
     """Test suite for resolving the user's skills onto the run's root."""
 
     async def test_init_stage_binds_skills_by_name(self, tmp_path: Path) -> None:
-        """Assert the init stage binds the resolved names and renders their bodies by name."""
+        """Assert the init stage binds the resolved names and renders their bodies as tags named after them."""
         name = "novel-lead-prefix"
         _write_skill(tmp_path, name, SKILL_BODY)
         _install_skills(tmp_path)
@@ -61,7 +61,7 @@ class TestSkillInit:
         ctx = await InitNovelContext().init_novel_context(OUTLINE, skills=[name], bible_path=bible_path)
 
         assert ctx.skill_names == [name]
-        assert ctx.skill_references() == [SKILL_BODY.strip()]
+        assert ctx.skill_references() == [f"<{name}>{SKILL_BODY}</{name}>"]
         assert ctx.skill_section().startswith("--- Start of Novel Skills ---")
 
     async def test_unknown_skill_is_skipped_not_fatal(self, tmp_path: Path) -> None:
@@ -72,7 +72,7 @@ class TestSkillInit:
         ctx = await InitNovelContext().init_novel_context(OUTLINE, skills=["style", "no-such-skill"])
 
         assert ctx.skill_names == ["style"]
-        assert ctx.skill_references() == [SKILL_BODY.strip()]
+        assert ctx.skill_references() == [f"<style>{SKILL_BODY}</style>"]
 
     async def test_vanished_skill_drops_out_without_crashing_the_walk(self) -> None:
         """Assert a name that no longer resolves in a rebuilt tree renders nothing instead of raising."""

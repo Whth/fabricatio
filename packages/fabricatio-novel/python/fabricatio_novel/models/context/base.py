@@ -149,8 +149,10 @@ class ContextBase[P: WeightedPlan](
         Only the names travel on the context; the bodies stay in the library, which
         parses a skill once per process and hands the same text to every walk, so a run
         renders byte-identical prompts and a tree rebuilt in a fresh process re-reads
-        exactly the files the run named. A name that no longer resolves is reported by
-        the library and dropped from the section instead of crashing the walk that
+        exactly the files the run named. Each reference is the skill rendered through
+        the library as ``<name>body</name>``, so a prompt separates one skill's
+        instructions from the next by name. A name that no longer resolves is reported
+        by the library and dropped from the section instead of crashing the walk that
         renders it. The references come back in name order rather than the order the
         user assigned the skills, so spelling the selection ``-s b -s a`` renders the
         same bytes as ``-s a -s b`` and the provider's prefix cache holds across either

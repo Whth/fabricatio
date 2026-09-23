@@ -23,7 +23,7 @@ class Skill:
         r"""Tags for search/filtering."""
     @property
     def content(self) -> builtins.str:
-        r"""Markdown body (everything after the frontmatter)."""
+        r"""Markdown body (everything after the frontmatter), trimmed of the blank line around it."""
     @property
     def path(self) -> builtins.str:
         r"""Source file path (relative to scan root)."""

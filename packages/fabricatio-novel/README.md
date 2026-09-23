@@ -402,7 +402,9 @@ The bodies stay in the process-wide `fabricatio-skill` library, which parses a s
 hands the same text to every walk: prompt assembly fetches them by name through
 `ctx.skill_references()`, so a run renders byte-identical text on every walk and a tree
 rebuilt in a fresh process re-reads exactly the files it resolved (a name that no longer
-resolves is logged and dropped rather than crashing the walk that renders it).
+resolves is logged and dropped rather than crashing the walk that renders it). Each
+reference comes back rendered as `<name>body</name>` — the skill's body wrapped in a tag
+named after it — so a prompt separates one skill's instructions from the next.
 
 The resolved text forms one section (`ctx.skill_section()`) whose bytes are identical everywhere
 they appear: the metadata proposal, the setting bible proposals, the roster-span and boundary-card

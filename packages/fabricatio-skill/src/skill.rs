@@ -32,7 +32,7 @@ pub struct Skill {
     /// Tags for search/filtering.
     #[pyo3(get)]
     pub tags: Vec<String>,
-    /// Markdown body (everything after the frontmatter).
+    /// Markdown body (everything after the frontmatter), trimmed of the blank line around it.
     #[pyo3(get)]
     pub content: String,
     /// Source file path (relative to scan root).
@@ -118,23 +118,26 @@ impl SkillMeta {
     }
 }
 
+/// Split raw file content into its YAML frontmatter block and the markdown body after it.
+///
+/// Frontmatter is delimited by `---` on its own line at the start of the file; a file
+/// that opens with no such block has no frontmatter, and the caller then treats the
+/// whole file as the body. Both halves come back trimmed of the whitespace the
+/// delimiters leave around them, so a file authored with CRLF ends parses to the very
+/// same bytes as an LF one.
+fn split_front_matter(raw: &str) -> Option<(&str, &str)> {
+    let rest = raw.strip_prefix("---")?;
+    // The closing delimiter is the first `---` line after the opening one.
+    let end = rest.find("\n---")?;
+    Some((rest[..end].trim(), rest[end + 4..].trim()))
+}
+
 /// Parse YAML frontmatter + markdown body from raw file content.
 /// Frontmatter is delimited by `---` on its own line at the start of the file.
 pub(crate) fn parse_skill_file(raw: &str, relative_path: &str) -> Skill {
-    let (fm, body) = if raw.starts_with("---") {
-        // Find the closing ---
-        let rest = &raw[3..];
-        if let Some(end) = rest.find("\n---") {
-            let yaml_str = &rest[..end];
-            let body_start = end + 4; // skip "\n---"
-            let body = rest[body_start..].trim_start_matches('\n').to_string();
-            let fm: FrontMatter = serde_yaml2::from_str(yaml_str).unwrap_or_default();
-            (fm, body)
-        } else {
-            (FrontMatter::default(), raw.to_string())
-        }
-    } else {
-        (FrontMatter::default(), raw.to_string())
+    let (fm, body) = match split_front_matter(raw) {
+        Some((yaml_str, body)) => (serde_yaml2::from_str(yaml_str).unwrap_or_default(), body),
+        None => (FrontMatter::default(), raw.trim()),
     };
 
     // Derive name from frontmatter or filename stem
@@ -152,7 +155,54 @@ pub(crate) fn parse_skill_file(raw: &str, relative_path: &str) -> Skill {
         name,
         description: fm.description,
         tags: fm.tags,
-        content: body,
+        content: body.to_string(),
         path: relative_path.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_reads_crlf_frontmatter_and_body() {
+        let skill = parse_skill_file(
+            "---\r\nname: lead\r\ndescription: lead house style\r\ntags: [writing]\r\n---\r\n\r\nKeep it short.\r\n",
+            "lead/SKILL.md",
+        );
+
+        assert_eq!(skill.name, "lead");
+        assert_eq!(skill.description, "lead house style");
+        assert_eq!(skill.tags, ["writing"]);
+        assert_eq!(skill.content, "Keep it short.");
+        assert_eq!(skill.render(), "<lead>Keep it short.</lead>");
+    }
+
+    #[test]
+    fn parse_reads_lf_frontmatter_and_body_alike() {
+        let skill = parse_skill_file(
+            "---\nname: lead\ndescription: lead house style\n---\n\nKeep it short.\n",
+            "lead/SKILL.md",
+        );
+
+        assert_eq!(skill.name, "lead");
+        assert_eq!(skill.content, "Keep it short.");
+    }
+
+    #[test]
+    fn parse_without_frontmatter_names_the_skill_after_its_file() {
+        let skill = parse_skill_file("Just a body.\n\n", "plain.md");
+
+        assert_eq!(skill.name, "plain");
+        assert_eq!(skill.description, "");
+        assert_eq!(skill.content, "Just a body.");
+    }
+
+    #[test]
+    fn parse_keeps_an_unclosed_frontmatter_block_as_the_body() {
+        let skill = parse_skill_file("---\nname: lead\n\nNot frontmatter.\n", "lead/SKILL.md");
+
+        assert_eq!(skill.name, "SKILL");
+        assert_eq!(skill.content, "---\nname: lead\n\nNot frontmatter.");
     }
 }

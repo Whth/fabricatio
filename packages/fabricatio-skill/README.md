@@ -274,6 +274,13 @@ library is reported too, never read a second time — which is how the role-leve
 `load_by_name` reports the names nothing resolved in one warning naming the roots
 it searched; `add`, `remove`, and `clear` return the library for chaining.
 
+A loaded `Skill` hands out its parsed parts — `name`, `description`, `tags`,
+`content` (the markdown body, trimmed of the blank line the frontmatter leaves
+around it, so an LF- and a CRLF-authored file parse to the same bytes) and `path`
+— plus a `briefing` (`name: description`) for option lists. `render()` returns the
+body wrapped in a tag named after the skill (`<name>body</name>`) for callers that
+inline it into a prompt.
+
 ## Configuration
 
 All options below are read through the fabricatio configuration chain (see the
