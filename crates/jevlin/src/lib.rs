@@ -91,11 +91,14 @@
 //!
 //! # Calling the API
 //!
-//! [`SystemOne::ask`] runs the set and returns the answers with what they cost; for one-off
-//! questions, [`SystemOne::evaluate`] takes a hand-built [`Request`] and [`SystemOne::ask_one`]
-//! returns the [`Answer`] to a single question.
+//! With the `client` feature on (the default), `SystemOne::ask` runs the set and returns the
+//! answers with what they cost; for one-off questions, `SystemOne::evaluate` takes a hand-built
+//! [`Request`] and `SystemOne::ask_one` returns the [`Answer`] to a single question.
 //!
-//! ```no_run
+//! A client opens its own HTTP connection unless one is handed to `SystemOneBuilder::client`:
+//! pass one to share a connection pool between every client pointed at the same host.
+//!
+//! ```ignore
 //! use jevlin::{Answers, Deserialize, NoulAnswer, SystemOne};
 //!
 //! #[derive(Answers, Deserialize)]
@@ -119,6 +122,17 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! # Feature flags
+//!
+//! - `client` (default) — the HTTP client: `SystemOne`, `SystemOneBuilder`, `RetryConfig`, and the
+//!   transport error variants. It is what a caller without a client of their own wants.
+//!
+//! Turn it off (`default-features = false`) and the crate is the wire contract alone — the
+//! [`Question`]s, the [`Request`], the [`Response`], the [`Answers`] derive, and the errors raised
+//! while building and reading them — with no HTTP stack to depend on. That is how a caller that
+//! already has a client uses it: build the [`Request`], send it yourself, and read the
+//! [`Response`] back.
 //!
 //! # Requests and responses are plain data
 //!
@@ -151,22 +165,25 @@
 //! actually answered.
 //!
 //! Rate limits (`429`) and overloads (`529`) are retried with exponential backoff, honoring a
-//! `Retry-After` header when the API sends one; see [`RetryConfig`]. Evaluations are read-only, so
-//! retrying is always safe.
+//! `Retry-After` header when the API sends one; see `RetryConfig`, which needs the `client`
+//! feature. Evaluations are read-only, so retrying is always safe.
 
 #![warn(missing_docs)]
 
 extern crate self as jevlin;
 
 mod answer;
+#[cfg(feature = "client")]
 mod client;
 mod error;
 mod question;
 mod question_set;
 mod request;
+#[cfg(feature = "client")]
 mod retry;
 
 pub use answer::{Answer, ChoiceAnswer, NoulAnswer, Response, ScoreAnswer, Usage};
+#[cfg(feature = "client")]
 pub use client::{API_KEY_ENV, SystemOne, SystemOneBuilder};
 pub use error::{Error, InvalidRequest};
 pub use jevlin_derive::Answers;
@@ -175,6 +192,11 @@ pub use question::{
 };
 pub use question_set::{Outcome, QuestionSet};
 pub use request::{Model, Request, State};
+/// The HTTP client `SystemOneBuilder::client` takes, re-exported so passing one costs no other
+/// dependency — and so it is the same `reqwest` the client itself uses.
+#[cfg(feature = "client")]
+pub use reqwest::Client;
+#[cfg(feature = "client")]
 pub use retry::RetryConfig;
 
 /// The derive a question set needs, re-exported from `serde`, so deriving one costs no other

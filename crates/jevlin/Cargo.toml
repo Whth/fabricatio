@@ -7,14 +7,20 @@ authors.workspace = true
 license-file.workspace = true
 repository.workspace = true
 
+[features]
+default = ["client"]
+# The HTTP client: `SystemOne` and everything it sends with. Off, `jevlin` is the request and
+# response types alone, with no HTTP stack behind them.
+client = ["dep:reqwest", "dep:secrecy", "dep:tokio"]
+
 [dependencies]
 jevlin-derive = { version = "0.1.0", path = "../jevlin-derive" }
-reqwest = { version = "0.13.4", features = ["json", "rustls"] }
-secrecy = "0.10.3"
+reqwest = { version = "0.13.4", features = ["json", "rustls"], optional = true }
+secrecy = { version = "0.10.3", optional = true }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 thiserror = "2.0.20"
-tokio = { version = "1.53.1", features = ["time"] }
+tokio = { version = "1.53.1", features = ["time"], optional = true }
 
 [dev-dependencies]
 criterion = "0.8.2"
@@ -25,3 +31,4 @@ tokio = { version = "1.53.1", features = ["io-util", "macros", "net", "rt-multi-
 [[bench]]
 name = "client"
 harness = false
+required-features = ["client"]

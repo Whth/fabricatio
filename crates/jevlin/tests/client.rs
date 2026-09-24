@@ -1,10 +1,13 @@
 //! The client over a real HTTP stack: the request it sends, and what it makes of every reply.
 
+#![cfg(feature = "client")]
+
 mod support;
 
 use std::time::{Duration, Instant};
 
-use jevlin::{ChoiceCriteria, Error, Question, Request, RetryConfig, SystemOne};
+use jevlin::{ChoiceCriteria, Client, Error, Question, Request, RetryConfig, SystemOne};
+use reqwest::header::{HeaderMap, HeaderValue};
 
 use support::{FakeApi, Reply, STATE, Triage, answered, header_value, parts, request, triage};
 
@@ -260,6 +263,54 @@ async fn bounds_an_attempt_with_the_configured_timeout() {
         error.is_retryable(),
         "a transport failure is worth another attempt"
     );
+    assert_eq!(api.requests().len(), 1);
+}
+
+#[tokio::test]
+async fn sends_through_a_client_it_was_given() {
+    let api = FakeApi::start(vec![Reply::ok(&answered("is_urgent"))]).await;
+    let mut pooled = HeaderMap::new();
+    pooled.insert("x-pooled", HeaderValue::from_static("yes"));
+    let client = SystemOne::builder("test-key")
+        .base_url(api.base_url.clone())
+        .client(Client::builder().default_headers(pooled).build().unwrap())
+        .build()
+        .unwrap();
+
+    client.evaluate(&request()).await.unwrap();
+
+    let requests = api.requests();
+    assert_eq!(requests.len(), 1);
+    let (head, _) = parts(&requests[0]);
+    assert_eq!(
+        header_value(head, "x-pooled"),
+        Some("yes"),
+        "the request travelled through the client it was given"
+    );
+    assert_eq!(
+        header_value(head, "authorization"),
+        Some("Bearer test-key"),
+        "and still carried the client's own authentication"
+    );
+}
+
+#[tokio::test]
+async fn bounds_an_attempt_with_the_configured_timeout_on_a_client_it_was_given() {
+    let api = FakeApi::start(vec![Reply::hang()]).await;
+    let client = SystemOne::builder("test-key")
+        .base_url(api.base_url.clone())
+        .client(Client::builder().build().unwrap())
+        .timeout(Duration::from_millis(50))
+        .retry(RetryConfig {
+            max_attempts: 1,
+            ..RetryConfig::default()
+        })
+        .build()
+        .unwrap();
+
+    let error = client.evaluate(&request()).await.unwrap_err();
+
+    assert!(matches!(error, Error::Transport(_)), "got {error:?}");
     assert_eq!(api.requests().len(), 1);
 }
 

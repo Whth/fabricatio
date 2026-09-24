@@ -1,7 +1,9 @@
 //! The error taxonomy.
 
+#[cfg(feature = "client")]
 use std::time::Duration;
 
+#[cfg(feature = "client")]
 use reqwest::StatusCode;
 use thiserror::Error;
 
@@ -28,6 +30,11 @@ impl InvalidRequest {
 }
 
 /// Everything that can go wrong while calling System One.
+///
+/// Building a request and reading a response need no HTTP stack: they fail with
+/// [`Invalid`](Self::Invalid), [`MissingAnswer`](Self::MissingAnswer) or [`Decode`](Self::Decode).
+/// The variants describing what the client ran into are compiled in with the `client` feature,
+/// which is on by default.
 #[derive(Debug, Error)]
 pub enum Error {
     /// The request breaks the API's own constraints, so it was not sent.
@@ -35,10 +42,12 @@ pub enum Error {
     Invalid(#[from] InvalidRequest),
 
     /// No API key was available.
+    #[cfg(feature = "client")]
     #[error("no API key: pass one to the client, or set the JEVLIN_API_KEY environment variable")]
     MissingApiKey,
 
     /// The base URL is not a URL.
+    #[cfg(feature = "client")]
     #[error("invalid base URL `{url}`: {reason}")]
     InvalidBaseUrl {
         /// The URL as given.
@@ -48,10 +57,12 @@ pub enum Error {
     },
 
     /// `401 Unauthorized`: the API key is missing or invalid.
+    #[cfg(feature = "client")]
     #[error("authentication failed: check the API key (401)")]
     Unauthorized,
 
     /// `422 Unprocessable Entity`: the API rejected the request body.
+    #[cfg(feature = "client")]
     #[error("the API rejected the request body (422): {detail}")]
     Unprocessable {
         /// The body the API returned, which names the offending field.
@@ -59,6 +70,7 @@ pub enum Error {
     },
 
     /// `429 Too Many Requests`: the rate limit is exhausted.
+    #[cfg(feature = "client")]
     #[error("rate limited by the API (429)")]
     RateLimited {
         /// The delay the API asked for, when it sent one.
@@ -66,6 +78,7 @@ pub enum Error {
     },
 
     /// `529 Overloaded`: the API is temporarily overloaded.
+    #[cfg(feature = "client")]
     #[error("the API is overloaded (529)")]
     Overloaded {
         /// The delay the API asked for, when it sent one.
@@ -73,6 +86,7 @@ pub enum Error {
     },
 
     /// Any other status.
+    #[cfg(feature = "client")]
     #[error("unexpected response ({status}): {body}")]
     Unexpected {
         /// The HTTP status code.
@@ -89,6 +103,7 @@ pub enum Error {
     },
 
     /// The HTTP layer failed: building the client, connecting, TLS, timeouts, or reading the body.
+    #[cfg(feature = "client")]
     #[error(transparent)]
     Transport(#[from] reqwest::Error),
 
@@ -97,6 +112,7 @@ pub enum Error {
     Decode(#[from] serde_json::Error),
 }
 
+#[cfg(feature = "client")]
 impl Error {
     /// Maps a non-success status onto the taxonomy.
     pub(crate) fn from_response(

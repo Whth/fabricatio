@@ -22,12 +22,20 @@ const DEFAULT_BASE_URL: &str = "https://api.typesafe.ai";
 const EVALUATION_PATH: &str = "/v1/systemone";
 
 /// A client for the System One evaluation API.
+///
+/// It makes its calls through an HTTP client of its own, unless one was handed to
+/// [`SystemOneBuilder::client`] — passing one shares its connection pool, which is what several
+/// clients talking to the same host want.
+///
+/// The client is the crate's `client` feature, on by default: with it off, `jevlin` is the request
+/// and response types alone.
 #[derive(Debug, Clone)]
 pub struct SystemOne {
     http: Client,
     api_key: SecretString,
     endpoint: Url,
     retry: RetryConfig,
+    timeout: Option<Duration>,
 }
 
 impl SystemOne {
@@ -48,11 +56,12 @@ impl SystemOne {
         Self::new(api_key)
     }
 
-    /// A client with a custom base URL, retry policy, or timeout.
+    /// A client with a custom base URL, HTTP client, retry policy, or timeout.
     pub fn builder(api_key: impl Into<String>) -> SystemOneBuilder {
         SystemOneBuilder {
             api_key: SecretString::from(api_key.into()),
             base_url: DEFAULT_BASE_URL.to_string(),
+            http: None,
             retry: RetryConfig::default(),
             timeout: None,
         }
@@ -152,13 +161,15 @@ impl SystemOne {
 
     /// Sends one attempt and maps its outcome.
     async fn send(&self, request: &Request) -> Result<Response, Error> {
-        let response = self
+        let mut call = self
             .http
             .post(self.endpoint.clone())
             .bearer_auth(self.api_key.expose_secret())
-            .json(request)
-            .send()
-            .await?;
+            .json(request);
+        if let Some(timeout) = self.timeout {
+            call = call.timeout(timeout);
+        }
+        let response = call.send().await?;
         let status = response.status();
         if status.is_success() {
             return Ok(serde_json::from_str(&response.text().await?)?);
@@ -174,6 +185,7 @@ impl SystemOne {
 pub struct SystemOneBuilder {
     api_key: SecretString,
     base_url: String,
+    http: Option<Client>,
     retry: RetryConfig,
     timeout: Option<Duration>,
 }
@@ -182,6 +194,19 @@ impl SystemOneBuilder {
     /// Points the client at another host: a proxy, a staging deployment, or a test server.
     pub fn base_url(mut self, base_url: impl Into<String>) -> Self {
         self.base_url = base_url.into();
+        self
+    }
+
+    /// Makes requests through an HTTP client you already have.
+    ///
+    /// The client is used as it is, so its connection pool, its proxy, and its TLS configuration
+    /// are shared with everything else that holds it. That is the point of passing one: several
+    /// clients pointed at the same host reuse the same connections instead of each opening its own.
+    ///
+    /// A client's configuration is fixed once it is built, so [`SystemOneBuilder::timeout`] is not
+    /// lost to it: the timeout is applied to each attempt as it is sent.
+    pub fn client(mut self, http: Client) -> Self {
+        self.http = Some(http);
         self
     }
 
@@ -211,15 +236,16 @@ impl SystemOneBuilder {
         let endpoint = base_url
             .join(EVALUATION_PATH)
             .map_err(|error| invalid_base_url(error.to_string()))?;
-        let mut http = Client::builder();
-        if let Some(timeout) = self.timeout {
-            http = http.timeout(timeout);
-        }
+        let http = match self.http {
+            Some(http) => http,
+            None => Client::builder().build()?,
+        };
         Ok(SystemOne {
-            http: http.build()?,
+            http,
             api_key: self.api_key,
             endpoint,
             retry: self.retry,
+            timeout: self.timeout,
         })
     }
 }

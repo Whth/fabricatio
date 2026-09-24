@@ -1,5 +1,7 @@
 //! The retry policy a caller configures, and the delay it asks for after an attempt fails.
 
+#![cfg(feature = "client")]
+
 use std::time::Duration;
 
 use jevlin::RetryConfig;

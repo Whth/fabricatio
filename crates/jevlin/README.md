@@ -48,6 +48,11 @@ costs little more than asking one: batch what you want to know.
   non-empty questions and ids are checked before a round trip is spent
 - **Retries that follow the API's rules**: exponential backoff on `429` and `529`, honoring a
   `Retry-After` header — evaluations are read-only, so retrying is always safe
+- **Connections are shared when you want them**: hand one HTTP client to every client pointed at
+  the same host, and they reuse its connection pool
+- **The client is optional**: the questions, requests and responses are the crate's core — turn the
+  default `client` feature off and they carry no HTTP stack at all, so a caller that already has a
+  client pays for nothing else
 - **Plain data**: requests and responses are ordinary serde types, so they can be built, stored,
   replayed, asserted on, and cached later by a router
 - **Aliases stay observable**: `jev-latest` is convenient, `Model::from("jev-1.13.0")` is
@@ -68,6 +73,19 @@ jevlin = { path = "../jevlin" }
 
 Deriving a question set needs `serde::Deserialize` on the struct; `jevlin` re-exports it, so no
 separate serde dependency is required: `use jevlin::{Answers, Deserialize};`.
+
+The HTTP client (`SystemOne`) is the default `client` feature. A caller that sends requests with a
+client of its own takes the types alone:
+
+```toml
+[dependencies]
+jevlin = { path = "../jevlin", default-features = false }
+```
+
+That leaves `reqwest`, `secrecy` and `tokio` out of the build: what remains is the questions, the
+`Request`, the `Response`, the `Answers` derive, and the errors raised while building and reading
+them. `thryd`'s evaluation modality is wired exactly that way, and hands its own pooled client the
+request the types describe.
 
 ## Quick Start
 
@@ -282,6 +300,17 @@ let client = SystemOne::builder("jev-...")
 The default policy is four attempts, backing off 500 ms, 1 s, 2 s, capped at 8 s — used only when the
 API sends no numeric `Retry-After`.
 
+A client opens its own HTTP connection by default. When several clients talk to the same host, hand
+them one client instead, and they share its connection pool:
+
+```rust
+let pooled = jevlin::Client::builder().build()?;
+let client = SystemOne::builder("jev-...").client(pooled).build()?;
+```
+
+The timeout is applied to each attempt as it is sent, so it holds whether the connection is the
+client's own or one you passed in.
+
 ### API keys
 
 The key is held in a [`secrecy::SecretString`](https://docs.rs/secrecy), so it never shows up in
@@ -305,12 +334,15 @@ The key is held in a [`secrecy::SecretString`](https://docs.rs/secrecy), so it n
 | `Transport` / `Decode` | the HTTP layer failed, or a body did not match the documented shape |
 
 `Error::is_retryable()` reports whether another attempt could succeed, and `Error::retry_after()`
-returns the delay the API asked for.
+returns the delay the API asked for. Those, and the status variants they read, come with the
+`client` feature; `Invalid`, `MissingAnswer` and `Decode` are raised while building requests and
+reading responses, so they exist either way.
 
 ## Testing
 
 ```bash
 cargo test -p jevlin -p jevlin-derive   # integration and doc tests for both crates
+cargo test -p jevlin --no-default-features   # the types alone, with no HTTP stack
 JEVLIN_API_KEY=... cargo test -p jevlin -- --ignored   # one live round trip (bash)
 ```
 
