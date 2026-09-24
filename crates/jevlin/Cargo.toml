@@ -1,6 +1,6 @@
 [package]
 name = "jevlin"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "A typed Rust client for TypeSafe's Jev (System One) evaluation API."
 authors.workspace = true
@@ -14,7 +14,7 @@ default = ["client"]
 client = ["dep:reqwest", "dep:secrecy", "dep:tokio"]
 
 [dependencies]
-jevlin-derive = { version = "0.1.0", path = "../jevlin-derive" }
+jevlin-derive = { version = "0.2.0", path = "../jevlin-derive" }
 reqwest = { version = "0.13.4", features = ["json", "rustls"], optional = true }
 secrecy = { version = "0.10.3", optional = true }
 serde = { version = "1.0.229", features = ["derive"] }
