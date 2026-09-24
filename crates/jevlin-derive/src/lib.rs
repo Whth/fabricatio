@@ -20,9 +20,9 @@ use jev::{JevAttribute, Kind};
 /// name is the question id, and the field type is the answer the question comes back as. The derive
 /// generates:
 ///
-/// - `impl jevlin::QuestionSet for YourStruct`, carrying the ids and the request builder, so
-///   `jevlin::SystemOne::ask::<YourStruct>(state)` can run it and `jevlin::Response::read::<YourStruct>()`
-///   can read it;
+/// - `impl jevlin::QuestionSet for YourStruct`, carrying the ids and the request builder, so the
+///   set travels as a single request and `jevlin::Response::read::<YourStruct>()` reads the answers
+///   back into it;
 /// - an inherent `YourStruct::request(state)` and `YourStruct::IDS`, usable without importing the
 ///   trait;
 /// - a build failure for anything the API would reject: an unknown question kind, an answer type
