@@ -146,6 +146,17 @@ pub struct RerankerConfig {
     /// Skip the cache write for reranking requests.
     pub no_store: Option<bool>,
 }
+/// Evaluation configuration structure.
+#[derive(Debug, Clone, Default, Validate, Deserialize, Serialize)]
+#[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
+#[pyclass(from_py_object, get_all)]
+pub struct EvaluationConfig {
+    pub send_to: Option<String>,
+    /// Skip the cache read for evaluation requests.
+    pub no_cache: Option<bool>,
+    /// Skip the cache write for evaluation requests.
+    pub no_store: Option<bool>,
+}
 #[derive(Debug, Clone, Validate, Deserialize, Serialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[pyclass(from_py_object, get_all)]
@@ -310,6 +321,12 @@ pub struct RoutingConfig {
     /// List of configured completion model deployments associated with the providers.
     pub completion_deployments: Vec<DeploymentConfig>,
 
+    /// List of configured evaluation model deployments associated with the providers.
+    ///
+    /// Evaluation deployments answer typed questions about a state, one call per question set, and
+    /// are retried like the other modalities: a rate limit carries the delay the API asked for.
+    pub evaluation_deployments: Vec<DeploymentConfig>,
+
     /// Path to the cache database file.
     pub cache_database_path: Option<PathBuf>,
 
@@ -378,6 +395,10 @@ pub struct Config {
     /// Reranker configuration parameters.
     #[pyo3(get)]
     pub reranker: RerankerConfig,
+
+    /// Evaluation configuration parameters.
+    #[pyo3(get)]
+    pub evaluation: EvaluationConfig,
 
     /// Language Learning Model settings with validation rules.
     #[pyo3(get)]
