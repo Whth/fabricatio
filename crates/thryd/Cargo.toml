@@ -1,6 +1,6 @@
 [package]
 name = "thryd"
-version = "0.8.4"
+version = "0.9.0"
 edition = "2024"
 description = "A light weight, embeded llm request router, with cache."
 authors.workspace = true
