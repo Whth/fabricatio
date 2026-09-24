@@ -30,6 +30,7 @@ use crate::model::{
     RerankerRequest,
 };
 use crate::provider::Provider;
+use crate::utils::retry_after_ms;
 use async_openai::types::chat::{
     ChatCompletionRequestMessageContentPartImage, ChatCompletionRequestMessageContentPartText,
     ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContentPart,
@@ -248,17 +249,28 @@ impl OpenaiModel {
 /// Parse an HTTP response body as the expected JSON type, logging the raw
 /// body on API errors or deserialization failures.
 ///
-/// Shared by the chat-completions ([`OpenaiModel`]) and Responses
-/// ([`crate::models::responses::OpenaiResponsesModel`]) model implementations.
+/// A `429` comes back as [`ThrydError::RateLimitExceeded`], carrying the delay
+/// the API asked for in a `Retry-After` header, so the router's retry can wait
+/// it out rather than guess; every other status keeps its code and body.
+///
+/// Shared by the chat-completions ([`OpenaiModel`]), Responses
+/// ([`crate::models::responses::OpenaiResponsesModel`]) and evaluation
+/// (`JevProvider`) model implementations.
 pub(crate) async fn parse_json_response<T: serde::de::DeserializeOwned>(
     response: reqwest::Response,
     endpoint: &str,
 ) -> crate::Result<T> {
     let status = response.status();
+    let retry_after_ms = retry_after_ms(response.headers());
     let body = response.text().await.map_err(ThrydError::Reqwest)?;
 
     if !status.is_success() {
         error!("API error [{}] {}: {}", status.as_u16(), endpoint, body);
+        if status.as_u16() == 429 {
+            return Err(ThrydError::RateLimitExceeded {
+                wait_time_ms: retry_after_ms,
+            });
+        }
         return Err(ThrydError::ApiError {
             status: status.as_u16(),
             body,

@@ -26,6 +26,8 @@
 //! [`Router`]: crate::route::Router
 
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+#[cfg(feature = "jev")]
+use crate::model::{EvaluationModel, EvaluationRequest, EvaluationResponse};
 use crate::tracker::count_token;
 use crate::{
     CompletionResponse, EmbeddingResponse, RankingResponse, RerankerModel, RerankerRequest, Result,
@@ -366,6 +368,44 @@ impl<M: ?Sized + Model> Deployment<M> {
         let res = self.model.rerank(request).await;
         debug!(
             "`{}` rerank {}",
+            self.model.identifier(),
+            if res.is_ok() { "succeeded" } else { "failed" }
+        );
+        res
+    }
+
+    /// Makes an evaluation request through the deployment.
+    ///
+    /// Requires the wrapped model to implement [`EvaluationModel`]. If usage
+    /// tracking is configured, the tokens the API reported for the evaluation are recorded.
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - The state to evaluate, and the questions to ask about it
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let request = EvaluationRequest::new("The payouts have been failing for 3 days.")
+    ///     .with_question("is_urgent", Question::noul("Does this convey urgency?"));
+    ///
+    /// let answers = deployment.evaluate(request).await?;
+    /// ```
+    ///
+    /// [`EvaluationModel`]: crate::model::EvaluationModel
+    #[cfg(feature = "jev")]
+    pub async fn evaluate(&self, request: EvaluationRequest) -> Result<EvaluationResponse>
+    where
+        M: EvaluationModel,
+    {
+        debug!(
+            "`{}` evaluation request ({} questions)",
+            self.model.identifier(),
+            request.questions.len()
+        );
+        let res = self.model.evaluate(request).await;
+        debug!(
+            "`{}` evaluation {}",
             self.model.identifier(),
             if res.is_ok() { "succeeded" } else { "failed" }
         );

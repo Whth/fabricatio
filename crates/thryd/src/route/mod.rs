@@ -69,6 +69,8 @@ mod tag;
 
 // Re-export public types from submodules
 pub use retry::RetryConfig;
+#[cfg(feature = "jev")]
+pub use tag::EvaluationTag;
 pub use tag::{CacheKey, CompletionTag, EmbeddingTag, ModelTypeTag, RerankerTag};
 
 use crate::deployment::Deployment;

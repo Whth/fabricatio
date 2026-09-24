@@ -1,3 +1,5 @@
+#[cfg(feature = "jev")]
+use crate::model::EvaluationModel;
 use crate::provider::Provider;
 use crate::utils::build_headers;
 use crate::{CompletionModel, DummyModel, EmbeddingModel, ModelName, RerankerModel};
@@ -90,6 +92,14 @@ impl Provider for DummyProvider {
         self: Arc<Self>,
         model_name: ModelName,
     ) -> crate::Result<Box<dyn RerankerModel>> {
+        Ok(Box::new(DummyModel::new(model_name, self)))
+    }
+
+    #[cfg(feature = "jev")]
+    fn create_evaluation_model(
+        self: Arc<Self>,
+        model_name: ModelName,
+    ) -> crate::Result<Box<dyn EvaluationModel>> {
         Ok(Box::new(DummyModel::new(model_name, self)))
     }
 }

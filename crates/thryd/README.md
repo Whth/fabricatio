@@ -42,6 +42,13 @@ thryd = { version = "0.2", features = ["pyo3"] }
 
 - `pyo3`: Enables Python bindings via PyO3
 - `stubgen`: Generates Python type stubs for better IDE support
+- `jev`: Enables the evaluation modality — one state checked against a set of typed questions in a
+  single call, typed by `jevlin` and sent over the shared connection pool. Off by default:
+
+```toml
+[dependencies]
+thryd = { version = "0.8", features = ["jev"] }
+```
 
 ## Quick Start
 
@@ -143,6 +150,7 @@ Providers represent LLM API services. Thryd includes built-in support for:
 
 - **OpenAICompatible**: Works with OpenAI API and compatible services (Azure OpenAI, LocalAI, etc.)
 - **OpenaiResponses**: Talks to the OpenAI Responses API (`POST /v1/responses`) for gpt-5 and o-series reasoning models
+- **JevProvider**: Talks to TypeSafe's Jev, served over the System One evaluation API, for typed question answering (with the `jev` feature on)
 - **DummyProvider**: For testing and development
 
 Implement the `Provider` trait to add custom providers.
@@ -153,6 +161,7 @@ Models represent specific LLM instances with their capabilities:
 
 - **CompletionModel**: For text generation tasks
 - **EmbeddingModel**: For text embedding tasks
+- **EvaluationModel**: For typed question answering over a state (with the `jev` feature on)
 
 ### Deployments
 
@@ -173,6 +182,7 @@ Routers manage multiple deployments and route requests based on configured strat
 
 - **CompletionTag**: For completion/chat requests
 - **EmbeddingTag**: For embedding requests
+- **EvaluationTag**: For evaluation requests (with the `jev` feature on)
 
 ## Advanced Usage
 

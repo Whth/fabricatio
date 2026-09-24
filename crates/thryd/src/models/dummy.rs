@@ -28,6 +28,8 @@
 //! See individual method docs for LIFO queue behavior.
 
 use crate::model::{CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model};
+#[cfg(feature = "jev")]
+use crate::model::{EvaluationModel, EvaluationRequest, EvaluationResponse};
 use crate::provider::Provider;
 use crate::provider::dummy::DummyProvider;
 use crate::{
@@ -81,6 +83,9 @@ pub struct DummyModel {
     response_q_vec: Mutex<Vec<EmbeddingResponse>>,
     /// Queue for reranker responses, consumed in LIFO order.
     response_q_ranks: Mutex<Vec<RankingResponse>>,
+    /// Queue for evaluation responses, consumed in LIFO order.
+    #[cfg(feature = "jev")]
+    response_q_answers: Mutex<Vec<EvaluationResponse>>,
     /// Queue of errors to return before normal responses (LIFO). For testing retry.
     completion_errors: Mutex<Vec<ThrydError>>,
     provider: Arc<dyn Provider>, // dummy model will not try to use provider to send req.
@@ -111,6 +116,8 @@ impl DummyModel {
             response_q_string: Mutex::new(vec![]),
             response_q_vec: Mutex::new(vec![]),
             response_q_ranks: Mutex::new(vec![]),
+            #[cfg(feature = "jev")]
+            response_q_answers: Mutex::new(vec![]),
             completion_errors: Mutex::new(vec![]),
             provider,
         }
@@ -232,6 +239,31 @@ impl DummyModel {
                 usage: crate::model::Usage::default(),
             })
             .collect();
+        self
+    }
+
+    /// Configures the evaluation response queue.
+    ///
+    /// Sets the answers to return for evaluation calls. Responses are consumed in LIFO order —
+    /// the last element is returned first — and each one is a whole [`EvaluationResponse`], so a
+    /// test scripts the answers, the model that gave them, and what they cost together.
+    ///
+    /// # Arguments
+    ///
+    /// * `responses` - A vector of evaluation responses.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use thryd::DummyModel;
+    /// use std::sync::Arc;
+    ///
+    /// let model = DummyModel::new("test".to_string(), Arc::new(DummyProvider::default()))
+    ///     .with_evaluation_responses(vec![response]);
+    /// ```
+    #[cfg(feature = "jev")]
+    pub fn with_evaluation_responses(self, responses: Vec<EvaluationResponse>) -> Self {
+        *self.response_q_answers.lock().unwrap() = responses;
         self
     }
 }
@@ -362,6 +394,34 @@ impl RerankerModel for DummyModel {
     }
 }
 
+/// Implements [`EvaluationModel`] for `DummyModel`, returning responses from the pre-configured
+/// queue.
+///
+/// Responses are consumed in LIFO order. If the queue is empty, returns
+/// `ThrydError::Internal` with an exhaustion message.
+///
+/// # Error
+///
+/// Returns `ThrydError::Internal("DummyModel exhausted: no more evaluation responses configured.")`
+/// when the response queue is empty.
+///
+/// [`EvaluationModel`]: crate::model::EvaluationModel
+#[cfg(feature = "jev")]
+#[async_trait]
+impl EvaluationModel for DummyModel {
+    async fn evaluate(&self, _request: EvaluationRequest) -> crate::Result<EvaluationResponse> {
+        self.response_q_answers
+            .lock()
+            .map_err(|e| crate::ThrydError::Internal(e.to_string()))?
+            .pop()
+            .ok_or_else(|| {
+                crate::ThrydError::Internal(
+                    "DummyModel exhausted: no more evaluation responses configured.".to_string(),
+                )
+            })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -437,5 +497,53 @@ mod tests {
             vec![(1, 0.8)]
         );
         assert_eq!(model.rerank(req).await.unwrap().rankings, vec![(0, 0.9)]);
+    }
+
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn test_evaluation_returns_configured_response() {
+        let model = DummyModel::default()
+            .with_evaluation_responses(vec![crate::models::jev::test_response(0.95)]);
+
+        let answers = model
+            .evaluate(EvaluationRequest::new("state"))
+            .await
+            .unwrap();
+
+        assert_eq!(answers.noul("is_urgent"), Some(0.95));
+        assert_eq!(answers.model.as_str(), "jev-test");
+    }
+
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn test_evaluation_lifo_order() {
+        let model = DummyModel::default().with_evaluation_responses(vec![
+            crate::models::jev::test_response(0.1),
+            crate::models::jev::test_response(0.9),
+        ]);
+
+        let answers = model
+            .evaluate(EvaluationRequest::new("state"))
+            .await
+            .unwrap();
+
+        assert_eq!(answers.noul("is_urgent"), Some(0.9));
+    }
+
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn test_evaluation_exhausted_error() {
+        let model = DummyModel::default();
+
+        let error = model
+            .evaluate(EvaluationRequest::new("state"))
+            .await
+            .expect_err("an empty queue exhausts");
+
+        assert!(
+            error
+                .to_string()
+                .contains("no more evaluation responses configured")
+        );
     }
 }

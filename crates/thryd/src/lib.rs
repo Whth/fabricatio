@@ -88,6 +88,8 @@
 //! Providers represent LLM API endpoints. The main provider types are:
 //!
 //! - [`OpenaiCompatible`] - Works with OpenAI API and compatible services
+//! - JevProvider - TypeSafe's Jev, served over the System One evaluation API (with the `jev`
+//!   feature on)
 //! - [`DummyProvider`] - For testing without API calls
 //!
 //! ## Models
@@ -96,6 +98,8 @@
 //!
 //! - `CompletionModel` trait - For text generation tasks
 //! - `EmbeddingModel` trait - For text embedding tasks
+//! - `EvaluationModel` trait - For typed question answering over a state (with the `jev` feature
+//!   on)
 //!
 //! ## Deployments
 //!
@@ -107,11 +111,15 @@
 //!
 //! - [`Router<CompletionTag>`] - For completion/chat requests
 //! - [`Router<EmbeddingTag>`] - For embedding requests
+//! - `Router<EvaluationTag>` - For evaluation requests (with the `jev` feature on)
 //!
 //! # Feature Flags
 //!
 //! - `pyo3`: Enables Python bindings via PyO3
 //! - `stubgen`: Generates Python type stubs for better IDE support
+//! - `jev`: Enables the evaluation modality: one state checked against a set of typed questions in
+//!   a single call, in `jevlin`'s types. Off by default; turn it on to route evaluations through
+//!   `ProviderType::Jev`, or through the dummy provider in tests.
 //!
 //! # Rate Limiting
 //!
@@ -154,10 +162,16 @@ pub use error::{Result, ThrydError};
 ///
 /// Re-exports from submodules:
 /// - From `models`: `CompletionModel`, `EmbeddingModel`, `RerankerModel` traits
+/// - From `models`, the evaluation types (with the `jev` feature on): `EvaluationModel` trait,
+///   `EvaluationRequest`, `EvaluationResponse`, `EvaluationQuestion`, `EvaluationState`,
+///   `EvaluationAnswer`
 /// - From `models::dummy`: `DummyModel`
 /// - From `models::openai`: `OpenaiModel`
+/// - From `models::jev` (with the `jev` feature on): `JevModel`
 pub use model::*;
 
+#[cfg(feature = "jev")]
+pub use models::jev::*;
 /// Model definitions for different LLM providers.
 ///
 /// Re-exports:
@@ -165,12 +179,15 @@ pub use model::*;
 /// - `openai` submodule with `OpenaiModel`
 pub use models::{dummy::*, openai::*, responses::*};
 
+#[cfg(feature = "jev")]
+pub use provider::jev::*;
 /// Provider implementations and factory functions.
 ///
 /// Re-exports:
 /// - [`ProviderType`] - Enum of supported provider types
 /// - [`create_provider`] - Factory function for creating providers
 /// - `OpenaiCompatible` - OpenAI-compatible provider
+/// - `JevProvider` - TypeSafe's Jev provider, for evaluations (with the `jev` feature on)
 /// - `DummyProvider` - Dummy provider for testing
 pub use provider::{ProviderType, create_provider, dummy::*, openai::*, responses::*};
 
@@ -180,6 +197,7 @@ pub use provider::{ProviderType, create_provider, dummy::*, openai::*, responses
 /// - [`Router`] - Main router for managing deployments and routing requests
 /// - [`CompletionTag`] - Tag type for completion requests
 /// - [`EmbeddingTag`] - Tag type for embedding requests
+/// - EvaluationTag - Tag type for evaluation requests (with the `jev` feature on)
 /// - [`RetryConfig`] - Configuration for automatic retry on transient failures
 pub use route::*;
 

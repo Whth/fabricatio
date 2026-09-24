@@ -3,6 +3,7 @@
 //! This module re-exports the available model types:
 //! - [`crate::models::openai::OpenaiModel`] - OpenAI API compatible models
 //! - [`crate::models::responses::OpenaiResponsesModel`] - OpenAI Responses API models
+//! - `JevModel` - TypeSafe's Jev, over the System One evaluation API (with the `jev` feature on)
 //! - [`crate::models::dummy::DummyModel`] - Mock models for testing
 //!
 //! # Creating Models
@@ -20,9 +21,13 @@
 //! See individual model modules for details.
 
 pub mod dummy;
+#[cfg(feature = "jev")]
+pub mod jev;
 pub mod openai;
 pub mod responses;
 
 pub use dummy::*;
+#[cfg(feature = "jev")]
+pub use jev::*;
 pub use openai::*;
 pub use responses::*;

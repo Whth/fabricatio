@@ -7,10 +7,11 @@
 //!
 //! - [`current_timestamp()`] - Used by [`crate::tracker`] for sliding window rate limiting
 //! - [`build_headers()`] - Used by providers to construct authenticated HTTP headers
+//! - [`retry_after_ms()`] - Used by the response mapping to honor a `Retry-After` header
 
 use crate::{ModelName, ProviderName, SEPARATE, ThrydError};
 use cached::cached;
-use http::header::AUTHORIZATION;
+use http::header::{AUTHORIZATION, RETRY_AFTER};
 use http::{HeaderMap, HeaderValue};
 use secrecy::{ExposeSecret, SecretString};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -88,6 +89,18 @@ pub(crate) fn build_headers(key: &SecretString) -> crate::Result<HeaderMap> {
 
     h.insert(AUTHORIZATION, auth_header);
     Ok(h)
+}
+
+/// The delay a `Retry-After` header asks for, in milliseconds; `0` when it asks for none.
+///
+/// The header carries either a number of seconds or an HTTP date. Only the numeric form is read,
+/// and a caller that gets `0` falls back to its own backoff schedule.
+pub(crate) fn retry_after_ms(headers: &HeaderMap) -> u64 {
+    headers
+        .get(RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .map_or(0, |seconds| seconds.saturating_mul(1_000))
 }
 
 /// Convert raw image bytes to a base64 data-URI string.

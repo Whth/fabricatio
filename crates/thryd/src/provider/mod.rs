@@ -1,13 +1,19 @@
 pub mod dummy;
+#[cfg(feature = "jev")]
+pub mod jev;
 pub mod openai;
 pub mod responses;
 
 pub use dummy::*;
+#[cfg(feature = "jev")]
+pub use jev::*;
 pub use openai::*;
 pub use responses::*;
 
 use crate::ThrydError::ModelNotSupported;
 use crate::connections::{CONNECTIONS_POOL, ClientEntry};
+#[cfg(feature = "jev")]
+use crate::model::EvaluationModel;
 use crate::model::{CompletionModel, EmbeddingModel};
 use crate::{ModelName, ProviderName, RerankerModel, Result, ThrydError};
 use async_trait::async_trait;
@@ -193,6 +199,30 @@ pub trait Provider: Send + Sync {
             provider: self.provider_name().to_string(),
         })
     }
+
+    /// Creates an evaluation model for checking a state against a set of questions.
+    ///
+    /// # Arguments
+    /// * `model_name` - The name/identifier of the model to create
+    ///
+    /// # Returns
+    ///
+    /// A boxed evaluation model, or an error if the model is not supported.
+    ///
+    /// # Default Implementation
+    ///
+    /// The default implementation returns `ModelNotSupported` error.
+    /// Providers that support evaluation should override this method.
+    #[cfg(feature = "jev")]
+    fn create_evaluation_model(
+        self: Arc<Self>,
+        model_name: ModelName,
+    ) -> Result<Box<dyn EvaluationModel>> {
+        Err(ModelNotSupported {
+            model: model_name,
+            provider: self.provider_name().to_string(),
+        })
+    }
 }
 
 /// Enum representing supported LLM provider types.
@@ -208,6 +238,9 @@ pub trait Provider: Send + Sync {
 ///   LocalAI, custom endpoints). Requires name, API key, and endpoint URL.
 /// * `OpenAIResponses` - OpenAI Responses API provider (`POST /v1/responses`).
 ///   Requires name, API key, and endpoint URL.
+/// * `Jev` - TypeSafe's Jev, served over the System One evaluation API, with the `jev` feature on.
+///   Requires an API key; the endpoint defaults to the public API and the name identifies the
+///   provider.
 /// * `Dummy` - A provider that doesn't make real HTTP calls. Useful for
 ///   testing and development.
 #[derive(EnumString, Debug, Deserialize, Serialize)]
@@ -220,6 +253,9 @@ pub enum ProviderType {
     OpenAICompatible,
     /// OpenAI Responses API provider (`POST /v1/responses`).
     OpenAIResponses,
+    /// TypeSafe's Jev, served over the System One evaluation API.
+    #[cfg(feature = "jev")]
+    Jev,
     /// Dummy provider for testing (does not make real HTTP calls).
     Dummy,
 }
@@ -286,6 +322,10 @@ fn need_all(
 /// * `OpenAIResponses` - Creates an OpenAI Responses API provider.
 ///   All parameters are required.
 ///
+/// * `Jev` - Creates a provider for TypeSafe's Jev, with the `jev` feature on. The `name` and
+///   `api_key` parameters are required; the `endpoint` is optional and defaults to the public
+///   System One API.
+///
 /// * `Dummy` - Creates a dummy provider that doesn't make real HTTP calls.
 ///   All parameters are ignored.
 ///
@@ -335,6 +375,21 @@ pub fn create_provider(
             let (name, api_key, endpoint) = need_all(name, api_key, endpoint)?;
 
             Ok(Arc::new(OpenaiResponses::new(name, api_key, endpoint)))
+        }
+        #[cfg(feature = "jev")]
+        ProviderType::Jev => {
+            let name = name
+                .ok_or_else(|| ThrydError::ProviderCreate("Jev name not provided!".to_string()))?;
+            let api_key = api_key.ok_or_else(|| {
+                ThrydError::ProviderCreate("Jev API key not provided!".to_string())
+            })?;
+
+            match endpoint {
+                Some(endpoint) => Ok(Arc::new(JevProvider::with_endpoint(
+                    name, api_key, &endpoint,
+                )?)),
+                None => Ok(Arc::new(JevProvider::new(name, api_key))),
+            }
         }
         ProviderType::Dummy => Ok(Arc::new(DummyProvider::default())),
     }

@@ -10,18 +10,23 @@
 //! - [`CompletionTag`] — text generation via [`CompletionModel`](crate::model::CompletionModel)
 //! - [`EmbeddingTag`] — text vectorization via [`EmbeddingModel`](crate::model::EmbeddingModel)
 //! - [`RerankerTag`] — document reranking via [`RerankerModel`](crate::RerankerModel)
+//! - `EvaluationTag` — state evaluation, with the `jev` feature on
 
 use crate::Result;
 use crate::deployment::Deployment;
 use crate::model::{
     CompletionModel, CompletionRequest, EmbeddingModel, EmbeddingRequest, Model, WithUsage,
 };
+#[cfg(feature = "jev")]
+use crate::model::{EvaluationModel, EvaluationRequest, EvaluationResponse};
 use crate::provider::Provider;
 use crate::{
     CompletionResponse, Embedding, EmbeddingResponse, PersistentCache, RankingResponse,
     RerankerModel, RerankerRequest,
 };
 use async_trait::async_trait;
+#[cfg(feature = "jev")]
+use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -153,7 +158,7 @@ pub trait ModelTypeTag {
     /// Extract API-reported usage from a response via [`WithUsage`].
     #[inline]
     fn response_usage(response: &Self::Response) -> Option<crate::model::Usage> {
-        response.usage().cloned()
+        response.usage()
     }
 
     async fn single_cached(
@@ -384,6 +389,128 @@ impl ModelTypeTag for RerankerTag {
     }
 }
 
+/// Tag type for evaluation models.
+///
+/// Use with [`Router<EvaluationTag>`](super::Router) to evaluate a state against named questions:
+/// one deployment answers the whole set in one call, and the answers are cached under the state,
+/// the model and the questions that produced them.
+///
+/// # Example
+///
+/// ```ignore
+/// use thryd::{CachePolicy, EvaluationRequest, EvaluationTag, Question};
+///
+/// let mut router = Router::<EvaluationTag>::default();
+/// router.add_or_update_provider(jev);
+/// router.deploy("eval", "typesafe/jev-1.13.0".into(), Some(60), None)?;
+///
+/// let request = EvaluationRequest::new("The payouts have been failing for 3 days.")
+///     .with_question("is_urgent", Question::noul("Does this convey urgency?"));
+/// let answers = router.invoke("eval".into(), request, CachePolicy::default()).await?;
+/// assert!(answers.noul("is_urgent").is_some_and(|urgent| urgent >= 0.9));
+/// ```
+#[cfg(feature = "jev")]
+#[derive(Default)]
+pub struct EvaluationTag;
+
+#[cfg(feature = "jev")]
+#[async_trait]
+impl ModelTypeTag for EvaluationTag {
+    type Model = dyn EvaluationModel;
+    type Request = EvaluationRequest;
+    type CacheVal = EvaluationResponse;
+    type Response = EvaluationResponse;
+
+    fn create_model(
+        provider: Arc<dyn Provider>,
+        model_name: ModelName,
+    ) -> Result<Box<Self::Model>> {
+        provider.create_evaluation_model(model_name)
+    }
+
+    fn cont_tokens(request: &Self::Request) -> u64 {
+        // The state and the questions are the input; the API reports the exact count, so this is
+        // the same text-shaped estimate the other tags work from.
+        crate::count_token(serde_json::to_string(request).unwrap_or_default())
+    }
+
+    fn cache_key(request: &Self::Request) -> CacheKey {
+        // The whole request is the key — state, model and every question — so two callers asking
+        // different questions about one state never share answers, and a pinned model id keeps its
+        // answers apart from the moving alias's.
+        CacheKey::Single(
+            blake3::hash(serde_json::to_vec(request).unwrap_or_default().as_slice()).to_string(),
+        )
+    }
+
+    /// An evaluation that answered nothing is a degenerate result: never persist it.
+    fn cache_worthy(response: &Self::Response) -> bool {
+        !response.answers.is_empty()
+    }
+
+    /// Single-key caching, over the JSON copy of the response the client works in.
+    ///
+    /// Everything here is the trait's own single-key behaviour — read first, write on a miss
+    /// unless [`CachePolicy::no_store`] is set, store nothing `cache_worthy` rejects — except for
+    /// what travels through the cache: postcard cannot read back the tagged answer union the API
+    /// returns, so the response is stored as the JSON it arrived as and decoded on the way out.
+    async fn single_cached(
+        cache: &PersistentCache,
+        key: &str,
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+        policy: CachePolicy,
+    ) -> Result<Self::Response> {
+        if let Some(cached) = cache.get_de::<CachedEvaluation>(key) {
+            tracing::trace!("Cache hit for: {key}");
+            return cached.into_response();
+        }
+
+        let response = Self::execute_request(deployment, request).await;
+        match response.as_ref() {
+            Ok(response) if !Self::cache_worthy(response) => {
+                tracing::warn!("Empty evaluation; not caching key: {key}");
+            }
+            Ok(_) if policy.no_store => {
+                tracing::debug!("no_store is set; not caching key: {key}");
+            }
+            Ok(response) => cache.set_ser(key, &CachedEvaluation::from_response(response)?)?,
+            Err(_) => {}
+        }
+        response
+    }
+
+    async fn execute_request(
+        deployment: Arc<Deployment<Self::Model>>,
+        request: Self::Request,
+    ) -> Result<Self::Response> {
+        deployment.evaluate(request).await
+    }
+}
+
+/// An evaluation as the cache stores it: the client's response, as the JSON it arrived as.
+///
+/// [`EvaluationResponse`] cannot cross the cache's binary codec directly — an internally tagged
+/// answer union is not something postcard can read back — so the response travels as the text the
+/// API sent and is decoded again on the way out. Nothing else about the cache changes: the key is
+/// still the request's content hash, and the value is still one opaque payload.
+#[cfg(feature = "jev")]
+#[derive(Clone, Serialize, Deserialize)]
+struct CachedEvaluation(String);
+
+#[cfg(feature = "jev")]
+impl CachedEvaluation {
+    /// The response, as it will be stored.
+    fn from_response(response: &EvaluationResponse) -> Result<Self> {
+        Ok(Self(serde_json::to_string(response)?))
+    }
+
+    /// The response this was made from.
+    fn into_response(self) -> Result<EvaluationResponse> {
+        Ok(serde_json::from_str(&self.0)?)
+    }
+}
+
 #[async_trait]
 impl ModelTypeTag for CompletionTag {
     type Model = dyn CompletionModel;
@@ -498,6 +625,8 @@ impl ModelTypeTag for EmbeddingTag {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "jev")]
+    use crate::Router;
     use crate::model::{CompletionRequest, ImageAttachment};
 
     /// Two compression settings for the same original image must key the same: the
@@ -527,5 +656,141 @@ mod tests {
             &blake3::hash(b"another image").to_string(),
         ));
         assert_ne!(other, compressed);
+    }
+
+    #[cfg(feature = "jev")]
+    fn evaluation_request() -> EvaluationRequest {
+        EvaluationRequest::new("The payouts have been failing for 3 days.").with_question(
+            "is_urgent",
+            crate::model::EvaluationQuestion::noul("Does this convey urgency?"),
+        )
+    }
+
+    /// A router whose one deployment answers with `answers`, seeded through the dummy model the
+    /// way the seeding helpers do it, so routing, usage recording and caching are what is tested.
+    #[cfg(feature = "jev")]
+    fn evaluation_router(answers: Vec<EvaluationResponse>) -> Router<EvaluationTag> {
+        let model = crate::DummyModel::default().with_evaluation_responses(answers);
+        let router = Router::<EvaluationTag>::default();
+        router
+            .add_deployment("eval".to_string(), Deployment::new(Box::new(model)))
+            .expect("a new group accepts its first deployment");
+        router
+    }
+
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn evaluation_tag_routes_through_a_deployment() {
+        let router = evaluation_router(vec![crate::models::jev::test_response(0.95)]);
+
+        let answers = router
+            .invoke(
+                "eval".to_string(),
+                evaluation_request(),
+                CachePolicy::CACHED,
+            )
+            .await
+            .expect("the dummy model answers");
+
+        assert_eq!(answers.noul("is_urgent"), Some(0.95));
+        assert_eq!(answers.model.as_str(), "jev-test");
+        assert_eq!(answers.usage().unwrap().total_tokens, 15);
+    }
+
+    /// The key covers the state, the model and the questions, and an answer is served from the
+    /// cache: the dummy queue holds one response, so the second call can only come from there.
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn evaluation_answers_are_cached_under_the_request() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let router = Router::<EvaluationTag>::with_cache(dir.path().join("evaluations"))
+            .expect("the cache directory is created");
+        router
+            .add_deployment(
+                "eval".to_string(),
+                Deployment::new(Box::new(
+                    crate::DummyModel::default()
+                        .with_evaluation_responses(vec![crate::models::jev::test_response(0.95)]),
+                )),
+            )
+            .expect("a new group accepts its first deployment");
+
+        let answers = router
+            .invoke(
+                "eval".to_string(),
+                evaluation_request(),
+                CachePolicy::CACHED,
+            )
+            .await
+            .expect("the dummy model answers");
+        let cached = router
+            .invoke(
+                "eval".to_string(),
+                evaluation_request(),
+                CachePolicy::CACHED,
+            )
+            .await
+            .expect("the second request is served from the cache");
+
+        assert_eq!(cached, answers);
+
+        let other_state = EvaluationRequest::new("Another state").with_question(
+            "is_urgent",
+            crate::model::EvaluationQuestion::noul("Does this convey urgency?"),
+        );
+        assert!(
+            router
+                .invoke("eval".to_string(), other_state, CachePolicy::CACHED)
+                .await
+                .is_err(),
+            "a different state must not be served the cached answer"
+        );
+    }
+
+    /// An evaluation the provider answered with nothing must not become the cache's answer.
+    #[cfg(feature = "jev")]
+    #[tokio::test]
+    async fn an_empty_evaluation_is_not_cached() {
+        let dir = tempfile::tempdir().expect("a temporary directory");
+        let empty = EvaluationResponse {
+            model: crate::model::EvaluationModelName::from("jev-test"),
+            answers: std::collections::BTreeMap::new(),
+            usage: jevlin::Usage {
+                input_tokens: 0,
+                output_tokens: 0,
+            },
+        };
+        let router = Router::<EvaluationTag>::with_cache(dir.path().join("evaluations"))
+            .expect("the cache directory is created");
+        router
+            .add_deployment(
+                "eval".to_string(),
+                Deployment::new(Box::new(
+                    crate::DummyModel::default().with_evaluation_responses(vec![empty]),
+                )),
+            )
+            .expect("a new group accepts its first deployment");
+
+        assert!(
+            router
+                .invoke(
+                    "eval".to_string(),
+                    evaluation_request(),
+                    CachePolicy::CACHED
+                )
+                .await
+                .is_ok()
+        );
+        assert!(
+            router
+                .invoke(
+                    "eval".to_string(),
+                    evaluation_request(),
+                    CachePolicy::CACHED
+                )
+                .await
+                .is_err(),
+            "the empty answer must not have been persisted"
+        );
     }
 }

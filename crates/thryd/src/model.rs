@@ -202,11 +202,15 @@ pub struct RerankerRequest {
 }
 /// Trait for response types that carry API-reported token usage.
 ///
-/// Implemented by [`CompletionResponse`], [`EmbeddingResponse`], and [`RankingResponse`].
-/// Enables generic usage extraction without tuple `.1` destructuring.
+/// Implemented by the completion, embedding, ranking, and evaluation responses. Enables generic
+/// usage extraction without tuple `.1` destructuring.
 pub trait WithUsage {
     /// Returns the API-reported usage, if available.
-    fn usage(&self) -> Option<&Usage>;
+    ///
+    /// Owned rather than borrowed: a response may report what it cost in its own shape — the
+    /// evaluation API, for instance, counts input and output tokens in its own type — and the
+    /// router's [`Usage`] is then built on the way out.
+    fn usage(&self) -> Option<Usage>;
 }
 
 /// Type alias for a single embedding vector.
@@ -228,8 +232,8 @@ pub struct CompletionResponse {
 }
 
 impl WithUsage for CompletionResponse {
-    fn usage(&self) -> Option<&Usage> {
-        Some(&self.usage)
+    fn usage(&self) -> Option<Usage> {
+        Some(self.usage.clone())
     }
 }
 
@@ -243,8 +247,8 @@ pub struct EmbeddingResponse {
 }
 
 impl WithUsage for EmbeddingResponse {
-    fn usage(&self) -> Option<&Usage> {
-        Some(&self.usage)
+    fn usage(&self) -> Option<Usage> {
+        Some(self.usage.clone())
     }
 }
 
@@ -258,8 +262,8 @@ pub struct RankingResponse {
 }
 
 impl WithUsage for RankingResponse {
-    fn usage(&self) -> Option<&Usage> {
-        Some(&self.usage)
+    fn usage(&self) -> Option<Usage> {
+        Some(self.usage.clone())
     }
 }
 /// Base trait providing metadata for all model types.
@@ -391,4 +395,77 @@ pub trait RerankerModel: Model {
     /// * On success: A [`RankingResponse`] with ranked indices and usage
     /// * On error: A [`crate::ThrydError`] indicating the failure reason
     async fn rerank(&self, request: RerankerRequest) -> crate::Result<RankingResponse>;
+}
+
+/// Request payload for evaluating a state against named questions.
+///
+/// An evaluation is not a conversation: one state — text, or structured JSON such as a chat log or
+/// a record — is checked against a set of questions in a single call, and every question is
+/// answered with a probability. The types are [`jevlin`]'s, so a caller that declares a question
+/// set once (a struct of answers with `#[derive(Answers)]`) asks the same declaration here, and
+/// reads the answers back into it with [`read`](jevlin::Response::read).
+///
+/// The request carries the model that answers it. A request that still holds the moving
+/// [`jev-latest`](jevlin::Model::LATEST_ALIAS) alias takes the deployment's model name instead, so
+/// the deployment id pins the version for every call that does not pin one itself.
+#[cfg(feature = "jev")]
+pub use jevlin::{
+    Answer as EvaluationAnswer, Model as EvaluationModelName, Question as EvaluationQuestion,
+    Request as EvaluationRequest, Response as EvaluationResponse, State as EvaluationState,
+};
+
+/// Trait for models that evaluate a state against a set of typed questions.
+///
+/// Implement this trait to create custom evaluation backends. Use with
+/// [`crate::route::Router::<EvaluationTag>`], where one deployment answers a whole question set in
+/// one call and the router caches the answers under the state and the questions that produced them.
+///
+/// # Example
+///
+/// ```ignore
+/// #[thryd::async_trait]
+/// impl EvaluationModel for MyEvaluator {
+///     async fn evaluate(&self, request: EvaluationRequest) -> thryd::Result<EvaluationResponse> {
+///         // Custom implementation
+///         unimplemented!()
+///     }
+/// }
+/// ```
+#[cfg(feature = "jev")]
+#[async_trait]
+pub trait EvaluationModel: Model {
+    /// Evaluates every question of `request` against its state, in one call.
+    ///
+    /// # Arguments
+    /// * `request` - The state to evaluate, and the questions to ask about it
+    ///
+    /// # Returns
+    /// * On success: An [`EvaluationResponse`] holding one answer per question, the model that
+    ///   gave them, and what they cost
+    /// * On error: A [`crate::ThrydError`] indicating the failure reason
+    async fn evaluate(&self, request: EvaluationRequest) -> crate::Result<EvaluationResponse>;
+}
+
+/// Maps the evaluation client's token counts onto the router's usage fields.
+///
+/// The API reports the tokens the model read and wrote; the router additionally tracks their sum,
+/// so a response carries everything rate limiting and reporting need.
+#[cfg(feature = "jev")]
+impl From<jevlin::Usage> for Usage {
+    fn from(usage: jevlin::Usage) -> Self {
+        let prompt_tokens = u32::try_from(usage.input_tokens).unwrap_or(u32::MAX);
+        let completion_tokens = u32::try_from(usage.output_tokens).unwrap_or(u32::MAX);
+        Self {
+            prompt_tokens,
+            completion_tokens,
+            total_tokens: prompt_tokens.saturating_add(completion_tokens),
+        }
+    }
+}
+
+#[cfg(feature = "jev")]
+impl WithUsage for EvaluationResponse {
+    fn usage(&self) -> Option<Usage> {
+        Some(self.usage.into())
+    }
 }
