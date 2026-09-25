@@ -21,11 +21,14 @@ from fabricatio_core.rust import ProviderType
 from fabricatio_mock.constants import (
     DUMMY_EMBEDDING_GROUP,
     DUMMY_EMBEDDING_MODEL_ID,
+    DUMMY_EVALUATION_GROUP,
+    DUMMY_EVALUATION_MODEL_ID,
     DUMMY_LLM_GROUP,
     DUMMY_LLM_MODEL_ID,
     DUMMY_RERANKER_GROUP,
     DUMMY_RERANKER_MODEL_ID,
 )
+from fabricatio_mock.models.evaluation import EvaluationResponse
 
 _EMBEDDING_SALT_SEPARATOR = "\x00"
 """Separator between salt and text in the digest input of :func:`hash_embedding`."""
@@ -223,6 +226,44 @@ def install_dummy_reranks(
         model_id: Model identifier string.
     """
     setup_dummy_reranks(*rankings, group=group, model_id=model_id)
+    yield
+
+
+def setup_dummy_evaluations(
+    *responses: EvaluationResponse,
+    group: str = DUMMY_EVALUATION_GROUP,
+    model_id: str = DUMMY_EVALUATION_MODEL_ID,
+) -> None:
+    """Configure the singleton router with dummy evaluation responses for testing.
+
+    Mutates the singleton ROUTER in-place. The DummyModel uses LIFO (Vec::pop),
+    so responses are reversed to preserve FIFO semantics.
+
+    Args:
+        *responses: Whole evaluation responses, one per question the router will ask.
+        group: Route group name. Defaults to DUMMY_EVALUATION_GROUP.
+        model_id: Model identifier string.
+    """
+    rust.ROUTER.add_provider(ProviderType.Dummy)
+    rust.ROUTER.add_or_update_dummy_evaluation_model(
+        group, model_id, [response.model_dump_json() for response in reversed(responses)]
+    )
+
+
+@contextmanager
+def install_dummy_evaluations(
+    *responses: EvaluationResponse,
+    group: str = DUMMY_EVALUATION_GROUP,
+    model_id: str = DUMMY_EVALUATION_MODEL_ID,
+) -> Generator[None, None, None]:
+    """Context manager that configures dummy evaluations for testing.
+
+    Args:
+        *responses: Whole evaluation responses, one per question the router will ask.
+        group: Route group name. Defaults to DUMMY_EVALUATION_GROUP.
+        model_id: Model identifier string.
+    """
+    setup_dummy_evaluations(*responses, group=group, model_id=model_id)
     yield
 
 
