@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-mock"
-version = "0.4.1"
+version = "0.5.0"
 description = "Test utilities for fabricatio: dummy LLM, embedding, and reranker responses driven by a mock router."
 readme = "README.md"
 license = { file = "LICENSE" }
