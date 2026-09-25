@@ -1,13 +1,13 @@
 //! A typed Rust client for TypeSafe's **Jev** model, served over the System One evaluation API.
 //!
-//! One call evaluates a `state` — text, or structured JSON such as a chat log, a record, or the
-//! current state of your application — against a set of typed questions, and answers each of them,
-//! together with the model that answered and the tokens it cost.
+//! One call evaluates a `state` — the material a judgement is made about: a string, a JSON object,
+//! or an array of text — against a set of typed questions, and answers each of them, together with
+//! the model that answered and the tokens it cost.
 //!
 //! The three question types are yes/no ([`Noul`]), pick-one ([`Choice`]) and rating ([`Score`]).
 //! All three answer with probabilities, and pick-one and rating answers also carry a `confidence`.
-//! The API evaluates the questions of one request in parallel, so asking thirteen questions costs
-//! little more than asking one: batch everything you want to know about a state.
+//! Every question of a request sees the same state and is evaluated independently, so the three
+//! types mix freely in one request, and asking thirteen questions costs little more than asking one.
 //!
 //! # Declare what you want to know
 //!

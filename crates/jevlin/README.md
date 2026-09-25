@@ -5,9 +5,9 @@ A typed Rust client for TypeSafe's **Jev** model, served over the System One eva
 ## Overview
 
 Jev is not a chat model: it answers typed questions about a state. `jevlin` mirrors that contract
-one-to-one — a request carries a `state` (text or structured JSON) together with a map of typed
-questions, and the response carries one typed answer per question plus the token usage. No prompt
-template to render, no boolean buried in a JSON code block to parse.
+one-to-one — a request carries a `state` (a string, a JSON object, or an array of text) together
+with a map of typed questions, and the response carries one typed answer per question plus the
+token usage. No prompt template to render, no boolean buried in a JSON code block to parse.
 
 The questions are declared once, as a struct of answers, and the derive wires the request and the
 response to the same fields:
@@ -30,8 +30,9 @@ struct Triage {
 }
 ```
 
-The API evaluates the questions of one request in parallel, so asking thirteen things about a state
-costs little more than asking one: batch what you want to know.
+Every question sees the same state and is evaluated independently, so the three types mix freely in
+one request and asking thirteen things about a state costs little more than asking one: batch what
+you want to know.
 
 ### Key Features
 
@@ -60,9 +61,9 @@ costs little more than asking one: batch what you want to know.
 
 ## Status
 
-Not published to crates.io yet — consume it as a workspace path dependency. The derive lives in the
-sibling crate `jevlin-derive`, which `jevlin` re-exports as `jevlin::Answers`; publishing therefore
-means `jevlin-derive` first, then `jevlin`.
+`jevlin` and its `jevlin-derive` sibling are published on crates.io; inside this workspace they are
+consumed as path dependencies. The derive lives in the sibling crate `jevlin-derive`, which `jevlin`
+re-exports as `jevlin::Answers`, so a release bumps `jevlin-derive` first.
 
 ## Installation
 

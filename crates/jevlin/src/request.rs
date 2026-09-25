@@ -11,11 +11,19 @@ use crate::question::Question;
 
 /// The `state`: the content to evaluate.
 ///
-/// A plain string holds text; structured JSON holds chat logs, records, or the current state of
-/// your application. Questions may point at nested fields by name in backticks.
+/// A state is the material a judgement is made about: a support message, a passage of text, or the
+/// current state of your application. It is text only — a string, a JSON object, or an array of
+/// text — so images, audio, and video are out of scope.
+///
+/// An object suits most requests, because every part of the state gets a name and its relations
+/// stay clear; a string suits a case that turns on one piece of text, and an array a sequence of
+/// messages or records. Questions may point at named fields in backticks, nested ones included.
 pub type State = Value;
 
 /// The model that handles a request.
+///
+/// Jev's primary training language is English; other languages, CJK scripts included, are accepted
+/// but answer with lower accuracy.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Model(String);
@@ -58,9 +66,13 @@ impl Display for Model {
 }
 
 /// A System One request: one `state`, one `model`, and one entry per question.
+///
+/// Every question sees the same state and is evaluated independently of the others, so a request
+/// may mix the three question types freely, and a question added later does not disturb the ones
+/// beside it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Request {
-    /// The content to evaluate.
+    /// The one state every question of this request is asked about.
     pub state: State,
     /// The model that handles the request; defaults to the moving [`Model::LATEST_ALIAS`].
     pub model: Model,
