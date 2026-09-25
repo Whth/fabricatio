@@ -544,6 +544,7 @@ class ImageCompressionConfig:
     @property
     def max_megapixels(self) -> builtins.float | None:
         r"""Optional pixel budget in megapixels; larger images are scaled down to fit.
+
         Vision fees scale with pixel count, so this is the fee knob. `None` keeps the
         original resolution.
         """
@@ -1211,7 +1212,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[dict[_K, _V] | None | list[dict[_K, _V] | None]]: ...
+    ) -> typing.Awaitable[dict[_K, _V] | list[dict[_K, _V] | None] | None]: ...
     @typing.overload
     def listing_v(
         self,
@@ -1271,7 +1272,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[_V] | None | list[list[_V] | None]]: ...
+    ) -> typing.Awaitable[list[_V] | list[list[_V] | None] | None]: ...
     @typing.overload
     def generic_string(
         self,
@@ -1325,7 +1326,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[str | None | list[str | None]]: ...
+    ) -> typing.Awaitable[str | list[str | None] | None]: ...
     @typing.overload
     def code_string(
         self,
@@ -1382,7 +1383,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[str | None | list[str | None]]: ...
+    ) -> typing.Awaitable[str | list[str | None] | None]: ...
     @typing.overload
     def code_snippets(
         self,
@@ -1439,7 +1440,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[CodeSnippet] | None | list[list[CodeSnippet] | None]]: ...
+    ) -> typing.Awaitable[list[CodeSnippet] | list[list[CodeSnippet] | None] | None]: ...
     @typing.overload
     def judging(
         self,
@@ -1499,7 +1500,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[bool | None | list[bool | None]]: ...
+    ) -> typing.Awaitable[bool | list[bool | None] | None]: ...
     @typing.overload
     def choosing(
         self,
@@ -1559,7 +1560,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[int] | None | list[list[int] | None]]: ...
+    ) -> typing.Awaitable[list[int] | list[list[int] | None] | None]: ...
 
 @typing.final
 class RoutingConfig:
