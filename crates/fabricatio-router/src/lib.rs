@@ -907,8 +907,7 @@ impl Router {
         Ok(())
     }
 
-    /// Configures automatic retry for every sub-router: completion, embedding, reranker, and
-    /// evaluation.
+    /// Configures automatic retry for every sub-router: completion, embedding, reranker, and evaluation.
     ///
     /// When set, failed requests (network errors, timeouts, upstream 429/5xx) are retried with
     /// exponential backoff, waiting the delay a rate limit names when it names one.

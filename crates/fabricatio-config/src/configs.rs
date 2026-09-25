@@ -57,6 +57,7 @@ pub struct ImageCompressionConfig {
     pub quality: u8,
 
     /// Optional pixel budget in megapixels; larger images are scaled down to fit.
+    ///
     /// Vision fees scale with pixel count, so this is the fee knob. `None` keeps the
     /// original resolution.
     #[validate(range(
