@@ -53,6 +53,10 @@ impl_as_pyerr!(arrow_schema::ArrowError, PyRuntimeError);
 
 #[cfg(feature = "thryd")]
 impl_as_pyerr!(thryd::ThrydError, PyRuntimeError);
+#[cfg(feature = "jevlin")]
+impl_as_pyerr!(jevlin::Error, PyRuntimeError);
+#[cfg(feature = "jevlin")]
+impl_as_pyerr!(jevlin::InvalidRequest, PyValueError);
 #[cfg(feature = "postcard")]
 impl_as_pyerr!(postcard::Error, PyValueError);
 
