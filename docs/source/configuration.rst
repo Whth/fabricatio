@@ -351,7 +351,11 @@ Providers, deployments, caching, and retry behavior for all model traffic.
        ``OPENAI_API_KEY`` environment variable; ``name``/``base_url`` ignored),
        ``OpenAICompatible`` (any OpenAI-compatible endpoint; requires ``name``, ``key``
        and ``base_url``), ``OpenAIResponses`` (OpenAI Responses API endpoint,
-       ``POST /v1/responses``; requires ``name``, ``key`` and ``base_url``), or
+       ``POST /v1/responses``; requires ``name``, ``key`` and ``base_url``),
+       ``Jev`` (TypeSafe's Jev, served over the System One evaluation API; requires
+       ``name`` and ``key``, ``base_url`` defaults to
+       ``https://api.typesafe.ai/v1/systemone``; built with ``thryd``'s ``jev`` feature,
+       which the Python packages enable), or
        ``Dummy`` (makes no real HTTP calls; everything ignored — useful for tests).
    * - ``name``
      - string
@@ -365,9 +369,10 @@ Providers, deployments, caching, and retry behavior for all model traffic.
      - Endpoint base URL; must be a valid URL (required for ``OpenAICompatible``
        and ``OpenAIResponses``).
 
-**Deployments** — routable models bound to a group. Three independent lists exist:
-``completion_deployments`` (chat/completion models), ``embedding_deployments``, and
-``reranker_deployments``. All share the same schema:
+**Deployments** — routable models bound to a group. Four independent lists exist:
+``completion_deployments`` (chat/completion models), ``embedding_deployments``,
+``reranker_deployments``, and ``evaluation_deployments`` (typed question answering over a
+state). All share the same schema:
 
 .. list-table::
    :header-rows: 1
@@ -406,7 +411,9 @@ Providers, deployments, caching, and retry behavior for all model traffic.
    * - ``retry_max_retries``
      - int
      - *(unset)*
-     - Retry attempts for transient network failures. Unset disables retries.
+     - Retry attempts for transient network failures, applied to completion, embedding,
+       reranker, and evaluation traffic. Unset disables retries. A rate limit is retried after
+       the delay the API asks for in ``Retry-After``, never sooner than the backoff.
    * - ``retry_initial_backoff_ms``
      - int
      - ``1000``
@@ -438,6 +445,7 @@ Example:
        { id = "mm/text-embedding-3-small", group = "embed", tpm = 100_000, rpm = 1000 }
    ]
    reranker_deployments = []
+   evaluation_deployments = []
 
 [template_manager]
 ~~~~~~~~~~~~~~~~~~
@@ -1648,6 +1656,54 @@ Local models
        { id = "ollama/llama3", group = "local" }
    ]
 
+Evaluating states with Jev
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: toml
+
+   [routing]
+   providers = [
+       { ptype = "Jev", name = "jev", key = "sk-your-typesafe-key" }
+   ]
+   evaluation_deployments = [
+       { id = "jev/jev-latest", group = "evaluation" }
+   ]
+
+.. code-block:: python
+
+   from fabricatio_core.capabilities.evaluate import UseEvaluation
+
+   evaluator = UseEvaluation(evaluation_send_to="evaluation")
+   urgent = await evaluator.evaluate_verdict(
+       "The invoices page has been down since 09:00 and support has not replied.",
+       "Does this need an answer within the hour?",
+   )
+   owner = await evaluator.evaluate_choice(
+       "The invoices page has been down since 09:00 and support has not replied.",
+       "Which team owns this?",
+       {"billing": "money is involved", "platform": "the service is unavailable"},
+   )
+   severity = await evaluator.evaluate_rating(
+       "The invoices page has been down since 09:00 and support has not replied.",
+       "How badly is the user blocked?",
+       ["not at all", "somewhat", "completely"],
+   )
+   # urgent is True, owner is "platform", and severity is
+   # {"not at all": 0.05, "somewhat": 0.3, "completely": 0.65}
+
+One question travels with the state in a single call, and the answer comes back as the value that
+was asked for: a verdict as a bool, a pick as the candidate itself, and a rating as what every
+level weighs. No wire shape crosses the boundary, and neither a question nor an answer struct is
+exposed to Python.
+
+Which model answers is the deployment's business, as it is for the other modalities: the id
+``jev/jev-latest`` follows the newest release, and a pinned version such as ``jev/jev-1.13.0``
+keeps a run reproducible. The group that ``evaluation_send_to`` names picks the deployment.
+
+The methods carry the modality in their names (``evaluate_verdict``, ``evaluate_choice``,
+``evaluate_rating``) because the completion mixins already provide ``judging`` and ``choosing``
+over a template. ``UseEvaluation`` composes onto any role, like the other capability mixins.
+
 Testing without network
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1701,7 +1757,7 @@ Troubleshooting
 - ``OpenAICompatible`` and ``OpenAIResponses`` require both ``name`` and
   ``base_url``; ``base_url`` must include the version path (e.g.
   ``https://api.openai.com/v1/``).
-- ``ptype`` accepts only ``OpenAI``, ``OpenAICompatible``, ``OpenAIResponses``
+- ``ptype`` accepts only ``OpenAI``, ``OpenAICompatible``, ``OpenAIResponses``, ``Jev``
   and ``Dummy``.
 
 **Rate limit errors (429)?**
