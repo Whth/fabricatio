@@ -1,17 +1,18 @@
 [package]
 name = "fabricatio-router"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-thryd = { path = "../thryd", features = ["pyo3"] }
+thryd = { path = "../thryd", features = ["pyo3", "jev"] }
+jevlin = { path = "../jevlin", default-features = false }
 fabricatio-config = { path = "../fabricatio-config" }
 fabricatio-logger = { path = "../fabricatio-logger" }
 fabricatio-constants = { path = "../fabricatio-constants" }
-error-mapping = { workspace = true, features = ["thryd", "std"] }
+error-mapping = { workspace = true, features = ["thryd", "jevlin", "std", "serde_json"] }
 pyo3 = { version = "0.29.2" }
 pyo3-async-runtimes = { version = "0.29.0", features = ["tokio-runtime"] }
 pyo3-stub-gen = "0.23.0"
