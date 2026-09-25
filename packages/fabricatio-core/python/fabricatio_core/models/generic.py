@@ -21,6 +21,7 @@ from pydantic.json_schema import GenerateJsonSchema, JsonSchemaValue
 from fabricatio_core.journal import logger
 from fabricatio_core.models.kwargs_types import (
     EmbeddingKwargs,
+    EvaluationKwargs,
     ListValueKwargs,
     LLMKwargs,
     MappingKwargs,
@@ -407,6 +408,43 @@ class RerankerScopedConfig(ScopedConfig):
             or False,
             no_store=first_available(
                 (no_store, self.reranker_no_store, CONFIG.reranker.no_store),
+                raise_exception=False,
+            )
+            or False,
+        )
+
+
+class EvaluationScopedConfig(ScopedConfig):
+    """Configuration for evaluation-related settings."""
+
+    evaluation_send_to: str | None = None
+    """The group name of which the requests will be sent."""
+
+    evaluation_no_cache: bool | None = None
+    """Whether to bypass the cache read for evaluations."""
+
+    evaluation_no_store: bool | None = None
+    """Whether to skip persisting evaluation responses in the cache."""
+
+    def _resolve_evaluation_params(
+        self,
+        send_to: str | None = None,
+        no_cache: bool | None = None,
+        no_store: bool | None = None,
+        **_,
+    ) -> EvaluationKwargs:
+        return EvaluationKwargs(
+            send_to=ok(
+                send_to or self.evaluation_send_to or CONFIG.evaluation.send_to,
+                "send_to is not specified at any where",
+            ),
+            no_cache=first_available(
+                (no_cache, self.evaluation_no_cache, CONFIG.evaluation.no_cache),
+                raise_exception=False,
+            )
+            or False,
+            no_store=first_available(
+                (no_store, self.evaluation_no_store, CONFIG.evaluation.no_store),
                 raise_exception=False,
             )
             or False,

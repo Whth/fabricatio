@@ -30,6 +30,7 @@ __all__ = [
     "DeploymentConfig",
     "EmbeddingConfig",
     "EmitterConfig",
+    "EvaluationConfig",
     "Event",
     "GeneralConfig",
     "GenericBlockParser",
@@ -138,7 +139,6 @@ class CodeBlockParser:
         Returns:
             PyResult<Self>: A new CodeBlockParser instance.
         """
-
     @staticmethod
     def capture_python() -> CodeBlockParser: ...
     def capture(self, text: builtins.str) -> builtins.str | None:
@@ -146,7 +146,6 @@ class CodeBlockParser:
 
         Returns the captured code block content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all code block matches in the text.
 
@@ -159,19 +158,15 @@ class CodeSnippet:
 
     Contains its source code, programming language, and the target file path for writing.
     """
-
     @property
     def source(self) -> builtins.str:
         r"""The source code content of the snippet."""
-
     @property
     def language(self) -> builtins.str:
         r"""The programming language of the snippet."""
-
     @property
     def write_to(self) -> pathlib.Path:
         r"""The file path where the snippet should be written."""
-
     def write(self, parent_dirs: builtins.bool = True) -> None:
         r"""Writes the code snippet to its designated file path.
 
@@ -199,7 +194,6 @@ class CodeSnippetParser:
         Returns:
             PyResult<Self>: A new CodeSnippetParser instance.
         """
-
     @staticmethod
     def default() -> CodeSnippetParser: ...
     def parse(self, text: builtins.str) -> builtins.list[CodeSnippet]:
@@ -216,45 +210,38 @@ class CodeSnippetParser:
 @typing.final
 class Config:
     r"""Configuration structure containing all system components."""
-
     @property
     def embedding(self) -> EmbeddingConfig:
         r"""Embedding configuration parameters."""
-
     @property
     def reranker(self) -> RerankerConfig:
         r"""Reranker configuration parameters."""
-
+    @property
+    def evaluation(self) -> EvaluationConfig:
+        r"""Evaluation configuration parameters."""
     @property
     def llm(self) -> LLMConfig:
         r"""Language Learning Model settings with validation rules."""
-
     @property
     def agent(self) -> Agent: ...
     @property
     def debug(self) -> DebugConfig:
         r"""Debug settings containing log level and verbosity."""
-
     @property
     def templates(self) -> TemplateConfig:
         r"""Template paths/names for various operations."""
-
     @property
     def template_manager(self) -> TemplateManagerConfig:
         r"""Template loading and management settings."""
-
     @property
     def routing(self) -> RoutingConfig:
         r"""Request routing and load balancing settings."""
-
     @property
     def general(self) -> GeneralConfig:
         r"""Global behavior configuration options."""
-
     @property
     def emitter(self) -> EmitterConfig:
         r"""Event emission control settings."""
-
     def resolve_llm_variant(self, preferred: builtins.str | None) -> builtins.str | None:
         r"""Look up the configured model name for the requested agent slot.
 
@@ -263,10 +250,8 @@ class Config:
         has not been configured. No fallback resolution is performed — the caller
         decides what to do when the preferred slot is unset.
         """
-
     def configure_llm_variant(self, kind: builtins.str, target: builtins.str | None = None) -> None:
         r"""Configure the LLM variant to use."""
-
     def load(self, name: str, config_cls: type[_T]) -> _T:
         r"""Load configuration data for a given section name and instantiate a Python class."""
 
@@ -290,13 +275,11 @@ class ContentBlockParser:
         Returns:
             PyResult<Self>: A new ContentBlockParser instance.
         """
-
     def capture(self, text: builtins.str) -> builtins.str | None:
         r"""Capture the first content block match in the text.
 
         Returns the captured content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all content block matches in the text.
 
@@ -318,19 +301,15 @@ class DeploymentConfig:
 
     Defines the identity, grouping, and rate limits for a deployed service instance.
     """
-
     @property
     def id(self) -> builtins.str:
         r"""Unique identifier for the deployment."""
-
     @property
     def group(self) -> builtins.str:
         r"""Name of the route group this deployment belongs to."""
-
     @property
     def tpm(self) -> builtins.int | None:
         r"""Optional quota limit for tokens per minute (TPM)."""
-
     @property
     def rpm(self) -> builtins.int | None:
         r"""Optional quota limit for requests per minute (RPM)."""
@@ -338,13 +317,14 @@ class DeploymentConfig:
 @typing.final
 class EmbeddingConfig:
     r"""Embedding configuration structure."""
-
     @property
     def send_to(self) -> builtins.str | None: ...
     @property
-    def no_cache(self) -> builtins.bool | None: ...
+    def no_cache(self) -> builtins.bool | None:
+        r"""Skip the cache read for embedding requests."""
     @property
-    def no_store(self) -> builtins.bool | None: ...
+    def no_store(self) -> builtins.bool | None:
+        r"""Skip the cache write for embedding requests."""
     @property
     def ndim(self) -> builtins.int | None: ...
     @property
@@ -356,10 +336,21 @@ class EmitterConfig:
 
     Contains settings for controlling event emission and listener behavior
     """
-
     @property
     def delimiter(self) -> builtins.str:
         r"""The delimiter used to separate the event name into segments."""
+
+@typing.final
+class EvaluationConfig:
+    r"""Evaluation configuration structure."""
+    @property
+    def send_to(self) -> builtins.str | None: ...
+    @property
+    def no_cache(self) -> builtins.bool | None:
+        r"""Skip the cache read for evaluation requests."""
+    @property
+    def no_store(self) -> builtins.bool | None:
+        r"""Skip the cache write for evaluation requests."""
 
 @typing.final
 class Event:
@@ -371,7 +362,6 @@ class Event:
         Args:
             segments: Optional list of event segments. Defaults to empty list.
         """
-
     @staticmethod
     def instantiate_from(event: list[str] | str | Event) -> Event:
         r"""Creates an Event from various input types.
@@ -382,7 +372,6 @@ class Event:
         Returns:
             A new Event instance with segments extracted from the input.
         """
-
     @staticmethod
     def quick_instantiate(event: list[str] | str | Event) -> Event:
         r"""Creates an Event with wildcard and pending status appended.
@@ -393,7 +382,6 @@ class Event:
         Returns:
             A new Event instance with "*" and "Pending" segments appended.
         """
-
     def derive(self, event: list[str] | str | Event) -> Event:
         r"""Derives a new event by appending segments from another event.
 
@@ -403,21 +391,18 @@ class Event:
         Returns:
             A new Event with the combined segments.
         """
-
     def collapse(self) -> builtins.str:
         r"""Collapses the event segments into a single delimited string.
 
         Returns:
             A string with segments joined by the configured delimiter.
         """
-
     def fork(self) -> Event:
         r"""Creates a copy of the event.
 
         Returns:
             A clone of this Event instance.
         """
-
     def push(self, segment: TaskStatus | str) -> Event:
         r"""Pushes a segment onto the event.
 
@@ -427,63 +412,54 @@ class Event:
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_wildcard(self) -> Event:
         r"""Appends a wildcard segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_pending(self) -> Event:
         r"""Appends a Pending status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_running(self) -> Event:
         r"""Appends a Running status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_finished(self) -> Event:
         r"""Appends a Finished status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_failed(self) -> Event:
         r"""Appends a Failed status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def push_cancelled(self) -> Event:
         r"""Appends a Cancelled status segment to the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def pop(self) -> builtins.str | None:
         r"""Removes and returns the last segment.
 
         Returns:
             The last segment if present, None otherwise.
         """
-
     def clear(self) -> Event:
         r"""Clears all segments from the event.
 
         Returns:
             A mutable reference to this Event instance.
         """
-
     def concat(self, event: list[str] | str | Event) -> Event:
         r"""Concatenates another event's segments onto this event.
 
@@ -493,14 +469,12 @@ class Event:
         Returns:
             A mutable reference to this Event instance with combined segments.
         """
-
     def __hash__(self) -> builtins.int:
         r"""Computes the hash of the collapsed event string.
 
         Returns:
             The hash value as a u64.
         """
-
     def __richcmp__(self, other: typing.Any, op: int) -> builtins.bool:
         r"""Compares this event with another value for equality.
 
@@ -515,7 +489,6 @@ class Event:
 @typing.final
 class GeneralConfig:
     r"""General configuration structure for application-wide settings."""
-
     @property
     def use_json_repair(self) -> builtins.bool:
         r"""Whether to automatically repair malformed JSON."""
@@ -534,7 +507,6 @@ class GenericBlockParser:
         Returns:
             PyResult<Self>: A new GenericBlockParser instance.
         """
-
     @staticmethod
     def capture_generic_string() -> GenericBlockParser: ...
     def capture(self, text: builtins.str) -> builtins.str | None:
@@ -542,7 +514,6 @@ class GenericBlockParser:
 
         Returns the captured block content or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Capture all generic block matches in the text.
 
@@ -561,22 +532,21 @@ class ImageCompressionConfig:
     it; `None` keeps the original resolution. The completion cache keys on the digest
     of the original bytes, so toggling any of this never changes cache hits.
     """
-
     @property
     def enabled(self) -> builtins.bool:
         r"""Whether to re-encode attached images before sending."""
-
     @property
     def format(self) -> ImageCompressionFormat:
         r"""Container of the re-encode."""
-
     @property
     def quality(self) -> builtins.int:
         r"""Quality of the lossy re-encode. Range: [1, 100]."""
-
     @property
     def max_megapixels(self) -> builtins.float | None:
-        r"""Optional pixel budget in megapixels; larger images are scaled down to fit."""
+        r"""Optional pixel budget in megapixels; larger images are scaled down to fit.
+        Vision fees scale with pixel count, so this is the fee knob. `None` keeps the
+        original resolution.
+        """
 
 @typing.final
 class JsonParser:
@@ -590,7 +560,6 @@ class JsonParser:
         Returns:
             A new JsonParser instance.
         """
-
     @staticmethod
     def with_capturer(capturer: TextCapturer) -> JsonParser:
         r"""Creates a JsonParser with an existing TextCapturer.
@@ -601,7 +570,6 @@ class JsonParser:
         Returns:
             A new JsonParser instance.
         """
-
     @staticmethod
     def capture_json_codeblock() -> JsonParser: ...
     def capture(self, text: builtins.str, fix: builtins.bool = True) -> builtins.str | None:
@@ -614,7 +582,6 @@ class JsonParser:
         Returns:
             The captured text or None if no match is found.
         """
-
     def capture_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[builtins.str]:
         r"""Captures and optionally repairs all JSON matches in text.
 
@@ -625,7 +592,6 @@ class JsonParser:
         Returns:
             A list of captured JSON strings.
         """
-
     def convert(self, text: builtins.str, fix: builtins.bool = True) -> typing.Any | None:
         r"""Converts captured text to a Python object.
 
@@ -636,7 +602,6 @@ class JsonParser:
         Returns:
             The parsed Python object or None if conversion fails.
         """
-
     def convert_all(self, text: builtins.str, fix: builtins.bool = True) -> builtins.list[typing.Any]:
         r"""Converts all captured JSON strings to Python objects.
 
@@ -647,9 +612,12 @@ class JsonParser:
         Returns:
             A list of parsed Python objects.
         """
-
     def validate_list(
-        self, text: builtins.str, elements_type: type[_T], length: builtins.int | None = None, fix: builtins.bool = True
+        self,
+        text: builtins.str,
+        elements_type: type[_T],
+        length: builtins.int | None = None,
+        fix: builtins.bool = True,
     ) -> list[_T] | None:
         r"""Validates that the text parses to a list with optional constraints.
 
@@ -662,9 +630,12 @@ class JsonParser:
         Returns:
             The validated list or None if validation fails.
         """
-
     def validate_set(
-        self, text: builtins.str, elements_type: type[_T], length: builtins.int | None = None, fix: builtins.bool = True
+        self,
+        text: builtins.str,
+        elements_type: type[_T],
+        length: builtins.int | None = None,
+        fix: builtins.bool = True,
     ) -> set[_T] | None:
         r"""Validates that the text parses to a typed set and returns a Python set.
 
@@ -677,7 +648,6 @@ class JsonParser:
         Returns:
             The validated Python set or None if validation fails.
         """
-
     def validate_dict(
         self,
         text: builtins.str,
@@ -706,13 +676,14 @@ class LLMConfig:
     This structure contains all parameters needed to configure and interact with LLM services.
     All fields are optional to allow partial configuration from different sources.
     """
-
     @property
     def send_to(self) -> builtins.str | None: ...
     @property
-    def no_cache(self) -> builtins.bool | None: ...
+    def no_cache(self) -> builtins.bool | None:
+        r"""Skip the cache read: the request always executes on a deployment."""
     @property
-    def no_store(self) -> builtins.bool | None: ...
+    def no_store(self) -> builtins.bool | None:
+        r"""Skip the cache write: responses are returned but never persisted."""
     @property
     def temperature(self) -> builtins.float | None: ...
     @property
@@ -743,19 +714,15 @@ class ProviderConfig:
 
     Contains the necessary details to connect to and authenticate with a service provider.
     """
-
     @property
     def ptype(self) -> ProviderType:
         r"""The type of the provider (e.g., OpenAI, Anthropic)."""
-
     @property
     def name(self) -> builtins.str | None:
         r"""Optional name identifier for the provider instance."""
-
     @property
     def key(self) -> SecretStr | None:
         r"""Optional authentication key for the provider API."""
-
     @property
     def base_url(self) -> builtins.str | None:
         r"""Optional URL endpoint for the provider's API. Must be a valid URL if provided."""
@@ -763,13 +730,14 @@ class ProviderConfig:
 @typing.final
 class RerankerConfig:
     r"""Reranker configuration structure."""
-
     @property
     def send_to(self) -> builtins.str | None: ...
     @property
-    def no_cache(self) -> builtins.bool | None: ...
+    def no_cache(self) -> builtins.bool | None:
+        r"""Skip the cache read for reranking requests."""
     @property
-    def no_store(self) -> builtins.bool | None: ...
+    def no_store(self) -> builtins.bool | None:
+        r"""Skip the cache write for reranking requests."""
 
 @typing.final
 class Router:
@@ -813,7 +781,6 @@ class Router:
         Returns:
             str: The complete aggregated response content.
         """
-
     def completion_batch(
         self,
         send_to: builtins.str,
@@ -852,7 +819,6 @@ class Router:
         Returns:
             List[str | None]: A list of complete aggregated response contents. Failed requests return None.
         """
-
     def embedding(
         self,
         send_to: builtins.str,
@@ -876,7 +842,6 @@ class Router:
         Returns:
             List[List[float]]: A list of embedding vectors corresponding to the input texts.
         """
-
     def rerank(
         self,
         send_to: builtins.str,
@@ -897,7 +862,86 @@ class Router:
         Returns:
             List[Tuple[int, float]]: A list of (document_index, score) pairs sorted by relevance descending.
         """
+    def evaluate_verdict(
+        self,
+        send_to: builtins.str,
+        state: builtins.str,
+        field: builtins.str,
+        affirm_case: builtins.str | None = None,
+        deny_case: builtins.str | None = None,
+        no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
+    ) -> typing.Awaitable[bool]:
+        r"""Judges a state against one yes/no question, and answers it with a verdict.
 
+        A judgement is binary here: a probability of yes at or above one half is a yes, anything
+        below it a no. `affirm_case` and `deny_case` say what each side means when the question
+        alone would be ambiguous.
+
+        Args:
+            send_to (str): The evaluation route group to send the request to.
+            state (str): The text to judge.
+            field (str): The yes/no question to judge the state against.
+            affirm_case (Optional[str]): What a yes means, when that needs saying.
+            deny_case (Optional[str]): What a no means, when that needs saying.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
+
+        Returns:
+            bool: The verdict.
+        """
+    def evaluate_choice(
+        self,
+        send_to: builtins.str,
+        state: builtins.str,
+        field: builtins.str,
+        candidates: typing.Mapping[builtins.str, builtins.str | None],
+        no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
+    ) -> typing.Awaitable[str]:
+        r"""Picks one of `candidates` for a state, and answers it with the one it picked.
+
+        Every candidate carries the rubric that says when it applies, or `None` when its name
+        speaks for itself. The answer is the candidate itself, not the distribution behind it.
+
+        Args:
+            send_to (str): The evaluation route group to send the request to.
+            state (str): The text to pick for.
+            field (str): What the model should decide.
+            candidates (dict[str, str | None]): Every option, mapped to the rubric that describes
+                when it applies, or `None` when it needs no extra detail.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
+
+        Returns:
+            str: The candidate the model picked.
+        """
+    def evaluate_rating(
+        self,
+        send_to: builtins.str,
+        state: builtins.str,
+        field: builtins.str,
+        criteria: typing.Sequence[builtins.str],
+        no_cache: builtins.bool = False,
+        no_store: builtins.bool = False,
+    ) -> typing.Awaitable[dict[str, float]]:
+        r"""Rates a state over an ordered set of levels, and answers with the levels and their weights.
+
+        The levels run from the lowest to the highest, and the answer maps every one of them back
+        to the probability the model gave it, so a rating that lands between two levels shows as
+        weight on both rather than as a single value the caller has to interpret.
+
+        Args:
+            send_to (str): The evaluation route group to send the request to.
+            state (str): The text to rate.
+            field (str): What the model should rate.
+            criteria (List[str]): The levels, lowest first, between two and ten of them.
+            no_cache (bool): Whether to bypass the cache read for this request. Defaults to False.
+            no_store (bool): Whether to skip persisting the response. Defaults to False.
+
+        Returns:
+            dict[str, float]: Every level, mapped to the probability the model gave it.
+        """
     def add_provider(
         self,
         provider_type: ProviderType,
@@ -907,7 +951,8 @@ class Router:
     ) -> None:
         r"""Adds a provider to the router.
 
-        This method registers a new provider with the completion, embedding, and reranker routers.
+        This method registers a new provider with the completion, embedding, reranker, and
+        evaluation routers.
 
         Args:
             provider_type (ProviderType): The type of the provider (e.g., OpenAI, Anthropic).
@@ -918,7 +963,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-
     def add_completion_model(
         self,
         group: builtins.str,
@@ -939,7 +983,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-
     def add_embedding_model(
         self,
         group: builtins.str,
@@ -960,7 +1003,6 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
-
     def add_reranker_model(
         self,
         group: builtins.str,
@@ -981,7 +1023,27 @@ class Router:
         Returns:
             None: This is an asynchronous operation that modifies the router state.
         """
+    def add_evaluation_model(
+        self,
+        group: builtins.str,
+        model_identifier: builtins.str,
+        rpm: builtins.int | None = None,
+        tpm: builtins.int | None = None,
+    ) -> None:
+        r"""Adds an evaluation model to the specified group.
 
+        Registers a new model identifier within a specific routing group for evaluations. The
+        provider that backs it must support evaluations — TypeSafe's Jev does.
+
+        Args:
+            group (str): The target router group name.
+            model_identifier (str): The unique identifier of the model to be added.
+            rpm (Optional[Quota]): Optional requests per minute limit.
+            tpm (Optional[Quota]): Optional tokens per minute limit.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
     def add_or_update_dummy_completion_model(
         self, group: builtins.str, model_identifier: builtins.str, responses: typing.Sequence[builtins.str]
     ) -> None: ...
@@ -997,6 +1059,25 @@ class Router:
         model_identifier: builtins.str,
         rankings: typing.Sequence[typing.Sequence[tuple[builtins.int, builtins.float]]],
     ) -> None: ...
+    def add_or_update_dummy_evaluation_model(
+        self, group: builtins.str, model_identifier: builtins.str, responses: typing.Sequence[builtins.str]
+    ) -> None:
+        r"""Seeds a dummy evaluation model with scripted responses.
+
+        Each response is a whole evaluation response as JSON — the model that answered, the
+        answers under their ids, and the usage — so a test declares what the model says, not just
+        how many answers it gives. The dummy model hands responses back last-in-first-out, as the
+        models of the other modalities do; the Python seeding helpers reverse them so a test reads
+        them in the order it gave them.
+
+        Args:
+            group (str): The target router group name.
+            model_identifier (str): The unique identifier of the model, as `provider/model`.
+            responses (List[str]): The evaluation responses, each a JSON document.
+
+        Returns:
+            None: This is an asynchronous operation that modifies the router state.
+        """
     def set_retry(
         self,
         max_retries: builtins.int,
@@ -1004,10 +1085,12 @@ class Router:
         max_backoff_ms: builtins.int = 30000,
         backoff_multiplier: builtins.float = 2.0,
     ) -> None:
-        r"""Configures automatic retry on transient network failures for all sub-routers.
+        r"""Configures automatic retry for the completion, embedding, and reranker routers.
 
-        When set, failed requests (network errors, timeouts, upstream 429/5xx) are
-        retried with exponential backoff.
+        When set, failed requests (network errors, timeouts, upstream 429/5xx) are retried with
+        exponential backoff. Evaluations are deliberately left out: their client retries on its
+        own schedule, which honors the delay the API asks for, and enabling both would multiply
+        the attempts.
 
         Args:
             max_retries (int): Maximum retry attempts after initial failure. 0 disables retries.
@@ -1128,7 +1211,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[dict[_K, _V] | list[dict[_K, _V] | None] | None]: ...
+    ) -> typing.Awaitable[dict[_K, _V] | None | list[dict[_K, _V] | None]]: ...
     @typing.overload
     def listing_v(
         self,
@@ -1188,7 +1271,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[_V] | list[list[_V] | None] | None]: ...
+    ) -> typing.Awaitable[list[_V] | None | list[list[_V] | None]]: ...
     @typing.overload
     def generic_string(
         self,
@@ -1242,7 +1325,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[str | list[str | None] | None]: ...
+    ) -> typing.Awaitable[str | None | list[str | None]]: ...
     @typing.overload
     def code_string(
         self,
@@ -1299,7 +1382,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[str | list[str | None] | None]: ...
+    ) -> typing.Awaitable[str | None | list[str | None]]: ...
     @typing.overload
     def code_snippets(
         self,
@@ -1356,7 +1439,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[CodeSnippet] | list[list[CodeSnippet] | None] | None]: ...
+    ) -> typing.Awaitable[list[CodeSnippet] | None | list[list[CodeSnippet] | None]]: ...
     @typing.overload
     def judging(
         self,
@@ -1416,7 +1499,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[bool | list[bool | None] | None]: ...
+    ) -> typing.Awaitable[bool | None | list[bool | None]]: ...
     @typing.overload
     def choosing(
         self,
@@ -1476,7 +1559,7 @@ class RouterUsage:
         no_cache: bool,
         no_store: bool,
         images: typing.Sequence[bytes] | None = None,
-    ) -> typing.Awaitable[list[int] | list[list[int] | None] | None]: ...
+    ) -> typing.Awaitable[list[int] | None | list[list[int] | None]]: ...
 
 @typing.final
 class RoutingConfig:
@@ -1485,39 +1568,37 @@ class RoutingConfig:
     Manages the list of available providers and their corresponding deployments
     to handle load balancing and request routing.
     """
-
     @property
     def providers(self) -> builtins.list[ProviderConfig]:
         r"""List of configured providers available for routing."""
-
     @property
     def reranker_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured reranker model deployments associated with the providers."""
-
     @property
     def embedding_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured embedding model deployments associated with the providers."""
-
     @property
     def completion_deployments(self) -> builtins.list[DeploymentConfig]:
         r"""List of configured completion model deployments associated with the providers."""
+    @property
+    def evaluation_deployments(self) -> builtins.list[DeploymentConfig]:
+        r"""List of configured evaluation model deployments associated with the providers.
 
+        Evaluation deployments answer typed questions about a state, one call per question set, and
+        are retried like the other modalities: a rate limit carries the delay the API asked for.
+        """
     @property
     def cache_database_path(self) -> pathlib.Path | None:
         r"""Path to the cache database file."""
-
     @property
     def retry_max_retries(self) -> builtins.int | None:
         r"""Maximum retry attempts for transient network failures. None disables retries."""
-
     @property
     def retry_initial_backoff_ms(self) -> builtins.int | None:
         r"""Initial backoff duration in milliseconds before the first retry. Default: 1000."""
-
     @property
     def retry_max_backoff_ms(self) -> builtins.int | None:
         r"""Maximum backoff duration in milliseconds. Default: 30000."""
-
     @property
     def retry_backoff_multiplier(self) -> builtins.float | None:
         r"""Exponential backoff multiplier. Default: 2.0."""
@@ -1533,53 +1614,41 @@ class SecretStr:
 @typing.final
 class TemplateConfig:
     r"""Template configuration structure."""
-
     @property
     def mapping_template(self) -> builtins.str: ...
     @property
     def task_briefing_template(self) -> builtins.str:
         r"""The name of the task briefing template which will be used to brief a task."""
-
     @property
     def dependencies_template(self) -> builtins.str:
         r"""The name of the dependencies template which will be used to manage dependencies."""
-
     @property
     def make_choice_template(self) -> builtins.str:
         r"""The name of the make choice template which will be used to make a choice."""
-
     @property
     def make_enum_choice_template(self) -> builtins.str:
         r"""The name of the make enum choice template which will be used to make an enum choice."""
-
     @property
     def make_judgment_template(self) -> builtins.str:
         r"""The name of the make judgment template which will be used to make a judgment."""
-
     @property
     def code_string_template(self) -> builtins.str:
         r"""The name of the code string template which will be used to generate a code string."""
-
     @property
     def code_snippet_template(self) -> builtins.str:
         r"""The name of the code snippet template which will be used to generate a code snippet."""
-
     @property
     def generic_string_template(self) -> builtins.str:
         r"""The name of the generic string template which will be used to review a string."""
-
     @property
     def co_validation_template(self) -> builtins.str:
         r"""The name of the co-validation template which will be used to co-validate a string."""
-
     @property
     def liststr_template(self) -> builtins.str:
         r"""The name of the liststr template which will be used to display a list of strings."""
-
     @property
     def pathstr_template(self) -> builtins.str:
         r"""The name of the pathstr template which will be used to acquire a path of strings."""
-
     @property
     def create_json_obj_template(self) -> builtins.str:
         r"""The name of the create json object template which will be used to create a json object."""
@@ -1587,13 +1656,11 @@ class TemplateConfig:
 @typing.final
 class TemplateManager:
     r"""Python bindings for the TemplateManager struct."""
-
     @property
     def templates_stores(self) -> builtins.list[pathlib.Path]: ...
     @property
     def template_count(self) -> builtins.int:
         r"""The count of templates currently registered."""
-
     def add_store(
         self, source: builtins.str | os.PathLike | pathlib.Path, rediscovery: builtins.bool = False
     ) -> TemplateManager:
@@ -1606,7 +1673,6 @@ class TemplateManager:
         Returns:
             A mutable reference to self for method chaining.
         """
-
     def add_stores(
         self, sources: typing.Sequence[builtins.str | os.PathLike | pathlib.Path], rediscovery: builtins.bool = False
     ) -> TemplateManager:
@@ -1619,14 +1685,12 @@ class TemplateManager:
         Returns:
             A mutable reference to self for method chaining.
         """
-
     def discover_templates(self) -> TemplateManager:
         r"""Discovers and registers all templates from the configured directories.
 
         Returns:
             A mutable reference to self for method chaining.
         """
-
     @typing.overload
     def render_template(self, name: str, data: dict[str, typing.Any]) -> str: ...
     @typing.overload
@@ -1641,11 +1705,9 @@ class TemplateManagerConfig:
     @property
     def template_stores(self) -> builtins.list[pathlib.Path]:
         r"""The directory containing the templates."""
-
     @property
     def active_loading(self) -> builtins.bool:
         r"""Whether to enable active loading of templates."""
-
     @property
     def template_suffix(self) -> builtins.str:
         r"""The suffix of the templates."""
@@ -1661,7 +1723,6 @@ class TextCapturer:
         Returns:
             The first captured group if a match is found.
         """
-
     def cap1_all(self, text: builtins.str) -> builtins.list[builtins.str]:
         r"""Captures all matches and extracts group 1 from each.
 
@@ -1671,7 +1732,6 @@ class TextCapturer:
         Returns:
             A list of first captured groups from all matches.
         """
-
     def cap2(self, text: builtins.str) -> tuple[builtins.str, builtins.str] | None:
         r"""Captures the first match and extracts groups 1 and 2.
 
@@ -1681,7 +1741,6 @@ class TextCapturer:
         Returns:
             A tuple of (group1, group2) if a match is found.
         """
-
     def cap2_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str]]:
         r"""Captures all matches and extracts groups 1 and 2 from each.
 
@@ -1691,7 +1750,6 @@ class TextCapturer:
         Returns:
             A list of (group1, group2) tuples from all matches.
         """
-
     def cap3(self, text: builtins.str) -> tuple[builtins.str, builtins.str, builtins.str] | None:
         r"""Captures the first match and extracts groups 1, 2, and 3.
 
@@ -1701,7 +1759,6 @@ class TextCapturer:
         Returns:
             A tuple of (group1, group2, group3) if a match is found.
         """
-
     def cap3_all(self, text: builtins.str) -> builtins.list[tuple[builtins.str, builtins.str, builtins.str]]:
         r"""Captures all matches and extracts groups 1, 2, and 3 from each.
 
@@ -1711,7 +1768,6 @@ class TextCapturer:
         Returns:
             A list of (group1, group2, group3) tuples from all matches.
         """
-
     @staticmethod
     def with_pattern(pattern: builtins.str) -> TextCapturer:
         r"""Creates a TextCapturer with a custom regex pattern.
@@ -1722,7 +1778,6 @@ class TextCapturer:
         Returns:
             A new TextCapturer instance.
         """
-
     @staticmethod
     def capture_snippet(l_sep: builtins.str = ">>>>>", r_sep: builtins.str = "<<<<<") -> TextCapturer:
         r"""Creates a TextCapturer for capturing code snippets with separators.
@@ -1734,7 +1789,6 @@ class TextCapturer:
         Returns:
             A new TextCapturer instance configured for snippets.
         """
-
     @staticmethod
     def capture_code_block(language: builtins.str = ".*?") -> TextCapturer:
         r"""Capture a code block of the given language.
@@ -1746,7 +1800,6 @@ class TextCapturer:
         Returns:
             PyResult<Self>: An instance of TextCapturer configured to capture code blocks.
         """
-
     @staticmethod
     def capture_generic_block(language: builtins.str = "String") -> TextCapturer:
         r"""Capture a generic block of the given language.
@@ -1757,7 +1810,6 @@ class TextCapturer:
         Returns:
             PyResult<Self>: An instance of TextCapturer configured to capture generic blocks.
         """
-
     @staticmethod
     def capture_content(left_delimiter: builtins.str, right_delimiter: builtins.str | None = None) -> TextCapturer:
         r"""Capture content between delimiters.
@@ -1802,6 +1854,9 @@ class ProviderType(enum.Enum):
       LocalAI, custom endpoints). Requires name, API key, and endpoint URL.
     * `OpenAIResponses` - OpenAI Responses API provider (`POST /v1/responses`).
       Requires name, API key, and endpoint URL.
+    * `Jev` - TypeSafe's Jev, served over the System One evaluation API, with the `jev` feature on.
+      Requires an API key; the endpoint defaults to the public API and the name identifies the
+      provider.
     * `Dummy` - A provider that doesn't make real HTTP calls. Useful for
       testing and development.
     """
@@ -1817,6 +1872,10 @@ class ProviderType(enum.Enum):
     OpenAIResponses = ...
     r"""
     OpenAI Responses API provider (`POST /v1/responses`).
+    """
+    Jev = ...
+    r"""
+    TypeSafe's Jev, served over the System One evaluation API.
     """
     Dummy = ...
     r"""

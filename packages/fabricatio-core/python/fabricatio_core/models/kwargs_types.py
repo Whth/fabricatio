@@ -42,6 +42,17 @@ class RerankerKwargs(RouteKwargs, total=False):
     """Router group name used for reranking requests. Free-form string."""
 
 
+class EvaluationKwargs(RouteKwargs, total=False):
+    """Configuration parameters for evaluation operations.
+
+    These arguments control the behavior of evaluation models,
+    such as which router group answers and whether the cache is used.
+    """
+
+    send_to: str
+    """Router group name used for evaluation requests. Free-form string."""
+
+
 class LLMKwargs(RouteKwargs, total=False):
     """Configuration parameters for language model inference.
 
