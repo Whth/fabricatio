@@ -13,7 +13,8 @@ namespace. Node lifecycle events stream from the instrumented actions in
 """
 
 import asyncio
-from collections.abc import Callable
+from collections import deque
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -23,22 +24,22 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.task import Task
 
 import fabricatio_webui.executor as _executor
+from fabricatio_webui.events import emit_event
 from fabricatio_webui.executor import (
     _ERRORS_KEY,
     _EXECUTION_ID_KEY,
     RoleRegistry,
 )
-
-
-def _state_tag(state: str) -> str:
-    """Map worker-internal states onto the wire ExecutionState strings."""
-    return {
-        "queued": "queued",
-        "running": "running",
-        "ok": "completed",
-        "cancelled": "cancelled",
-        "failed": "failed",
-    }[state]
+from fabricatio_webui.models.wire import (
+    ExecState,
+    ExecutionDonePayload,
+    ExecutionStartPayload,
+    HistoryRecord,
+    JSONValue,
+    QueueEntry,
+    StatusPayload,
+    Submission,
+)
 
 
 def _sanitize_result(value: Any, limit: int = 4000, cap: int = 100_000) -> Any:
@@ -85,8 +86,11 @@ class WorkflowWorker:
         history_max: int = 256,
     ) -> None:
         """Create the worker with a bounded queue and a broadcast callback."""
-        self._queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=queue_max)
-        self._history: list[dict[str, Any]] = []
+        self._queue: asyncio.Queue[Submission] = asyncio.Queue(maxsize=queue_max)
+        # Execution ids of submissions still waiting in _queue. Mirrors the
+        # queue without reaching into asyncio.Queue internals for snapshots.
+        self._pending: deque[str] = deque()
+        self._history: list[HistoryRecord] = []
         self._history_max = history_max
         self._current: asyncio.Task | None = None
         self._current_task: Task | None = None
@@ -109,18 +113,16 @@ class WorkflowWorker:
         marshalled onto the event loop (``put_nowait`` is not thread-safe and
         its waiter wake-up would be lost cross-thread).
         """
-        item: dict[str, Any] = {
-            "execution_id": execution_id,
-            "task_json": task_json,
-        }
+        item = Submission(execution_id, task_json)
         if self._queue.full():
             raise asyncio.QueueFull
         self._loop.call_soon_threadsafe(self._enqueue, item)
 
-    def _enqueue(self, item: dict[str, Any]) -> None:
+    def _enqueue(self, item: Submission) -> None:
         """Run on the event loop: push onto the queue and announce."""
         self._queue.put_nowait(item)
-        logger.info(f"Worker: queued execution {item['execution_id']} (depth={self._queue.qsize()})")
+        self._pending.append(item.execution_id)
+        logger.info(f"Worker: queued execution {item.execution_id} (depth={self._queue.qsize()})")
         self._emit_status()
 
     def rebuild_roles(self) -> None:
@@ -137,11 +139,13 @@ class WorkflowWorker:
 
     def queue_snapshot(self) -> str:
         """JSON: ``{"queue": [...], "active": [...]}``."""
-        pending = getattr(self._queue, "_queue", ())
-        queued = [{"execution_id": it["execution_id"], "state": "queued"} for it in list(pending)]
-        active: list[dict[str, Any]] = []
+        pending = list(self._pending)
+        queued: list[QueueEntry] = [
+            {"execution_id": execution_id, "state": ExecState.QUEUED} for execution_id in pending
+        ]
+        active: list[QueueEntry] = []
         if self._current is not None and not self._current.done():
-            active.append({"execution_id": self._current.get_name(), "state": "running"})
+            active.append({"execution_id": self._current.get_name(), "state": ExecState.RUNNING})
         return orjson.dumps({"queue": queued, "active": active}).decode()
 
     def history_snapshot(self) -> str:
@@ -157,27 +161,27 @@ class WorkflowWorker:
         logger.info("Worker: loop started")
         while True:
             item = await self._queue.get()
-            execution_id = item["execution_id"]
+            execution_id = item.execution_id
+            # The submission has left the queue, so it is no longer pending.
+            # Dropped here (not at completion) so a snapshot taken while the
+            # execution runs never reports it as both queued and active.
+            self._pending.popleft()
             self._current = asyncio.create_task(self._execute_one(item), name=execution_id)
             try:
                 await self._current
             except asyncio.CancelledError:
                 logger.info(f"Worker: execution {execution_id} cancelled")
-                self._record(execution_id, "cancelled", None)
-                self._send(
-                    "execution_done",
-                    {"execution_id": execution_id, "cancelled": True, "result": None, "error": None},
-                )
+                self._finish(execution_id, ExecState.CANCELLED)
             finally:
                 self._current = None
                 self._current_task = None
                 self._emit_status()
 
-    async def _execute_one(self, item: dict[str, Any]) -> None:
+    async def _execute_one(self, item: Submission) -> None:
         """Publish the submitted task and await its output."""
-        execution_id = item["execution_id"]
+        execution_id = item.execution_id
         try:
-            raw_task = orjson.loads(item.get("task_json") or "{}")
+            raw_task = orjson.loads(item.task_json or "{}")
             if not isinstance(raw_task, dict):
                 raise ValueError(f"task payload must be a JSON object, got {type(raw_task).__name__}")
             task = Task(
@@ -193,17 +197,13 @@ class WorkflowWorker:
             task.extra_init_context[_EXECUTION_ID_KEY] = execution_id
         except Exception as exc:  # noqa: BLE001
             logger.warn(f"Worker: unparseable task for {execution_id}: {exc}")
-            self._record(execution_id, "failed", str(exc))
-            self._send(
-                "execution_done",
-                {"execution_id": execution_id, "cancelled": False, "result": None, "error": str(exc)},
-            )
+            self._finish(execution_id, ExecState.FAILED, error=str(exc))
             return
 
         namespace = "::".join(task.send_to)
         self._current_task = task
-        self._record(execution_id, "running", None, task_name=task.name, namespace=namespace)
-        self._send("execution_start", {"execution_id": execution_id, "timestamp": None})
+        self._record(execution_id, ExecState.RUNNING, None, task_name=task.name, namespace=namespace)
+        self._send("execution_start", ExecutionStartPayload(execution_id=execution_id, timestamp=None))
 
         try:
             # Pure namespace dispatch: the EMITTER serves every workflow whose
@@ -221,56 +221,72 @@ class WorkflowWorker:
             raise
         except Exception as exc:  # noqa: BLE001
             logger.error(f"Worker: execution {execution_id} failed: {exc!r}")
-            self._record(execution_id, "failed", str(exc), task_name=task.name, namespace=namespace)
-            self._send(
-                "execution_done",
-                {"execution_id": execution_id, "cancelled": False, "result": None, "error": str(exc)},
-            )
+            self._finish(execution_id, ExecState.FAILED, error=str(exc), task_name=task.name, namespace=namespace)
             return
         finally:
             self._current_task = None
 
         if task.is_finished():
-            safe_result = _sanitize_result(result)
-            self._record(execution_id, "ok", None, result=safe_result, task_name=task.name, namespace=namespace)
-            self._send(
-                "execution_done",
-                {"execution_id": execution_id, "cancelled": False, "result": safe_result, "error": None},
+            self._finish(
+                execution_id,
+                ExecState.COMPLETED,
+                result=_sanitize_result(result),
+                task_name=task.name,
+                namespace=namespace,
             )
         elif task.is_cancelled():
-            self._record(execution_id, "cancelled", None, task_name=task.name, namespace=namespace)
-            self._send(
-                "execution_done",
-                {"execution_id": execution_id, "cancelled": True, "result": None, "error": None},
-            )
+            self._finish(execution_id, ExecState.CANCELLED, task_name=task.name, namespace=namespace)
         else:  # failed
             errors = task.extra_init_context.get(_ERRORS_KEY) or []
             message = f"Workflow failed: {'; '.join(str(e) for e in errors[-3:])}" if errors else "Workflow failed"
-            self._record(execution_id, "failed", message, task_name=task.name, namespace=namespace)
-            self._send(
-                "execution_done",
-                {"execution_id": execution_id, "cancelled": False, "result": None, "error": message},
-            )
+            self._finish(execution_id, ExecState.FAILED, error=message, task_name=task.name, namespace=namespace)
+
+    def _finish(
+        self,
+        execution_id: str,
+        outcome: ExecState,
+        *,
+        error: str | None = None,
+        result: JSONValue | None = None,
+        task_name: str = "",
+        namespace: str = "",
+    ) -> None:
+        """Record a terminal execution and broadcast its ``execution_done`` frame.
+
+        The single terminal path for every outcome: cancellation, success, and
+        failure all funnel here so the history row and the wire frame can never
+        drift apart.
+        """
+        self._record(execution_id, outcome, error, result=result, task_name=task_name, namespace=namespace)
+        self._send(
+            "execution_done",
+            ExecutionDonePayload(
+                execution_id=execution_id,
+                cancelled=outcome is ExecState.CANCELLED,
+                result=result,
+                error=error,
+            ),
+        )
 
     def _record(
         self,
         execution_id: str,
-        state: str,
+        state: ExecState,
         error: str | None,
-        result: Any | None = None,
+        result: JSONValue | None = None,
         task_name: str = "",
         namespace: str = "",
     ) -> None:
         self._history.append(
-            {
-                "execution_id": execution_id,
-                "state": _state_tag(state),
-                "current_node": None,
-                "error": error,
-                "result": result,
-                "task_name": task_name,
-                "namespace": namespace,
-            },
+            HistoryRecord(
+                execution_id=execution_id,
+                state=state,
+                current_node=None,
+                error=error,
+                result=result,
+                task_name=task_name,
+                namespace=namespace,
+            ),
         )
         if len(self._history) > self._history_max:
             del self._history[: len(self._history) - self._history_max]
@@ -278,15 +294,12 @@ class WorkflowWorker:
     def _emit_status(self) -> None:
         self._send(
             "status",
-            {
-                "queue_length": self._queue.qsize(),
-                "running_count": 1 if self._current and not self._current.done() else 0,
-            },
+            StatusPayload(
+                queue_length=self._queue.qsize(),
+                running_count=1 if self._current and not self._current.done() else 0,
+            ),
         )
 
-    def _send(self, event_type: str, payload: dict[str, Any]) -> None:
-        msg = {"type": event_type, **payload}
-        try:
-            self._broadcast(orjson.dumps(msg).decode())
-        except Exception:  # noqa: BLE001
-            logger.warn(f"Worker: broadcast failed for {event_type}")
+    def _send(self, event_type: str, payload: Mapping[str, JSONValue]) -> None:
+        """Frame and broadcast one WS event through the injected callback."""
+        emit_event(self._broadcast, event_type, payload)

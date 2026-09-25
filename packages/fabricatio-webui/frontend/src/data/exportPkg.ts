@@ -31,6 +31,84 @@ export type ExportScope = 'role' | 'workflow'
 /** Artifact flavor of the export zip. */
 export type ExportFormat = 'script' | 'cli' | 'package' | 'pypi'
 
+/**
+ * Per-format capabilities. Every format-conditional branch — pyproject
+ * sections, README instructions, member selection, download name — reads from
+ * this record, so a new flavor is one table entry instead of a hunt for
+ * `format ===` checks.
+ */
+interface Builder {
+  /** Installable `src/<pkg>` layout with a hatchling pyproject. */
+  packageLayout: boolean
+  /** Ship the PEP 723 standalone `main.py`. */
+  standaloneScript: boolean
+  /** `[project.scripts]` console entry point and its README docs. */
+  consoleScript: boolean
+  /** Publish-ready extras: license, readme, classifiers, dev deps, ruff. */
+  publishable: boolean
+  /** Ship `src/<pkg>/py.typed`. */
+  typed: boolean
+  /** README documents `uv tool install .`. */
+  uvTool: boolean
+  /** Suffix the download filename with the format name. */
+  nameSuffix: boolean
+}
+
+/** Exhaustive flavor table: one entry per {@link ExportFormat}. */
+const FORMAT_BUILDERS = {
+  script: {
+    packageLayout: false,
+    standaloneScript: true,
+    consoleScript: false,
+    publishable: false,
+    typed: false,
+    uvTool: false,
+    nameSuffix: false,
+  },
+  cli: {
+    packageLayout: true,
+    standaloneScript: true,
+    consoleScript: true,
+    publishable: false,
+    typed: false,
+    uvTool: true,
+    nameSuffix: true,
+  },
+  package: {
+    packageLayout: true,
+    standaloneScript: false,
+    consoleScript: false,
+    publishable: false,
+    typed: true,
+    uvTool: false,
+    nameSuffix: true,
+  },
+  pypi: {
+    packageLayout: true,
+    standaloneScript: false,
+    consoleScript: true,
+    publishable: true,
+    typed: true,
+    uvTool: false,
+    nameSuffix: true,
+  },
+} satisfies Record<ExportFormat, Builder>
+
+/** Exhaustive flavor dispatch through {@link FORMAT_BUILDERS}. */
+function formatBuilder(format: ExportFormat): Builder {
+  switch (format) {
+    case 'script':
+    case 'cli':
+    case 'package':
+    case 'pypi':
+      return FORMAT_BUILDERS[format]
+    default: {
+      const unhandled: never = format
+      throw new Error(`unsupported export format: ${unhandled}`)
+    }
+  }
+}
+
 /** Filesystem/pyproject-safe slug for a role name. */
 export function slugify(name: string): string {
   return (
@@ -60,11 +138,7 @@ function pyprojectToml(role: RoleJSON, deps: string[]): string {
 }
 
 /** pyproject.toml for the installable formats: hatchling build + optional console script. */
-function pyprojectPackageToml(
-  role: RoleJSON,
-  deps: string[],
-  format: 'cli' | 'package' | 'pypi',
-): string {
+function pyprojectPackageToml(role: RoleJSON, deps: string[], builder: Builder): string {
   const slug = slugify(role.name)
   const pkg = pyPackageName(role)
   const lines = [
@@ -81,7 +155,7 @@ function pyprojectPackageToml(
     ...deps.map((d) => `    ${tomlString(d)},`),
     ']',
   ]
-  if (format === 'pypi') {
+  if (builder.publishable) {
     lines.push(
       'license = { text = "MIT" }',
       'readme = "README.md"',
@@ -91,11 +165,11 @@ function pyprojectPackageToml(
       ']',
     )
   }
-  if (format !== 'package') {
+  if (builder.consoleScript) {
     lines.push('', '[project.scripts]', `${slug} = "${pkg}.cli:main"`)
   }
   lines.push('', '[tool.hatch.build.targets.wheel]', `packages = ["src/${pkg}"]`)
-  if (format === 'pypi') {
+  if (builder.publishable) {
     lines.push(
       '',
       '[dependency-groups]',
@@ -111,7 +185,11 @@ function pyprojectPackageToml(
   return lines.join('\n') + '\n'
 }
 
-function readmeMd(role: RoleJSON, deps: string[], format: ExportFormat = 'script'): string {
+function readmeMd(
+  role: RoleJSON,
+  deps: string[],
+  builder: Builder = FORMAT_BUILDERS.script,
+): string {
   const pkg = pyPackageName(role)
   const slug = slugify(role.name)
   const lines = [
@@ -120,7 +198,7 @@ function readmeMd(role: RoleJSON, deps: string[], format: ExportFormat = 'script
     role.description || 'Runnable fabricatio workflow tool, exported from fabricatio-webui.',
     '',
   ]
-  if (format === 'script') {
+  if (!builder.packageLayout) {
     lines.push(
       '## Run with uv (zero setup)',
       '',
@@ -138,14 +216,14 @@ function readmeMd(role: RoleJSON, deps: string[], format: ExportFormat = 'script
     )
   } else {
     lines.push('## Install', '', '    pip install .')
-    if (format === 'cli') {
+    if (builder.uvTool) {
       lines.push('', 'Or as an isolated tool (installs the command):', '', '    uv tool install .')
     }
     lines.push('', '## Run')
-    if (format !== 'package') {
+    if (builder.consoleScript) {
       lines.push('', `    ${slug} --text "hello fabricatio"   # installed command`)
     }
-    if (format === 'cli') {
+    if (builder.uvTool) {
       lines.push('    uv run main.py --text "hello fabricatio"   # zero-setup script (PEP 723)')
     }
     lines.push(
@@ -285,13 +363,14 @@ export function scopedRole(role: RoleJSON, scope: ExportScope, workflowIndex = 0
 /** The export members as plain text files, for the selected scope and format. */
 export function buildExportFiles(options: ExportOptions): Record<string, string> {
   const { role, actions, catalog, scope, workflowIndex = 0, format } = options
+  const builder = formatBuilder(format)
   const target = scopedRole(role, scope, workflowIndex)
   const deps = roleDependencies(target, catalog)
   const pkg = pyPackageName(role)
   const boardJson = `${JSON.stringify(boardDocument(target, actions), null, 2)}\n`
-  const readme = readmeMd(role, deps, format)
+  const readme = readmeMd(role, deps, builder)
 
-  if (format === 'script') {
+  if (!builder.packageLayout) {
     return {
       'main.py': generateRoleModule(target, actions, catalog),
       'pyproject.toml': pyprojectToml(target, deps),
@@ -301,16 +380,16 @@ export function buildExportFiles(options: ExportOptions): Record<string, string>
   }
 
   const files: Record<string, string> = {
-    'pyproject.toml': pyprojectPackageToml(role, deps, format),
+    'pyproject.toml': pyprojectPackageToml(role, deps, builder),
     [`src/${pkg}/__init__.py`]: generatePkgInitModule(target),
     [`src/${pkg}/workflows.py`]: generatePkgWorkflowsModule(target, actions, catalog),
     'workflow.json': boardJson,
     'README.md': readme,
   }
-  if (format !== 'package') files[`src/${pkg}/cli.py`] = generatePkgCliModule(target)
-  if (format === 'cli') files['main.py'] = generateRoleModule(target, actions, catalog)
-  if (format === 'package' || format === 'pypi') files[`src/${pkg}/py.typed`] = ''
-  if (format === 'pypi') {
+  if (builder.consoleScript) files[`src/${pkg}/cli.py`] = generatePkgCliModule(target)
+  if (builder.standaloneScript) files['main.py'] = generateRoleModule(target, actions, catalog)
+  if (builder.typed) files[`src/${pkg}/py.typed`] = ''
+  if (builder.publishable) {
     files['LICENSE'] = licenseText(role)
     files['tests/test_smoke.py'] = testSmokePy(role)
     files['.github/workflows/release.yml'] = RELEASE_WORKFLOW_YML
@@ -334,7 +413,7 @@ export function exportFileName(options: ExportOptions): string {
     const wf = scopedRole(role, scope, workflowIndex).workflows[0]
     parts.push(slugify(wf?.name || 'workflow'))
   }
-  if (format !== 'script') parts.push(format)
+  if (formatBuilder(format).nameSuffix) parts.push(format)
   return `${parts.join('-')}.zip`
 }
 

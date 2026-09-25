@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Handle, Position } from '@vue-flow/core'
-import type { RoleJSON } from '@/types/api'
+import { Handle, Position, type NodeProps } from '@vue-flow/core'
 import { useBoardStore, WF_REORDER_MIME } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { BLUEPRINT_MIME } from '@/data/blueprints'
+import type { RoleNodeData } from '@/types/editor'
+import { readReorderPayload, setReorderPayload } from '@/utils/dnd'
 import { Plus, Trash2, Code2, Copy, ClipboardPaste, Play } from '@lucide/vue'
 
-const props = defineProps<{ id: string; data: { roleIndex?: number; role?: RoleJSON } }>()
+const props = defineProps<NodeProps<RoleNodeData>>()
 
 /** Board index of this role. */
-const index = computed(() => props.data.roleIndex ?? -1)
+const index = computed(() => props.data.roleIndex)
 /** Role payload rendered by this node. */
-const role = computed(() => props.data.role as RoleJSON)
+const role = computed(() => props.data.role)
 
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
@@ -82,7 +83,7 @@ function onReorderStart(ev: DragEvent, i: number) {
   }
   const dt = ev.dataTransfer
   if (!dt) return
-  dt.setData(WF_REORDER_MIME, `${index.value}:${i}`)
+  setReorderPayload(dt, index.value, i)
   dt.effectAllowed = 'move'
   dragFrom.value = i
 }
@@ -108,15 +109,15 @@ function onReorderLeave(ev: DragEvent) {
 }
 
 function onReorderDrop(ev: DragEvent, target: number) {
-  const data = ev.dataTransfer?.getData(WF_REORDER_MIME)
-  if (!data) return // not a reorder drag — let it bubble (e.g. blueprint drop)
+  const payload = ev.dataTransfer ? readReorderPayload(ev.dataTransfer) : null
+  if (!payload) return // not a reorder drag — let it bubble (e.g. blueprint drop)
   ev.stopPropagation()
   ev.preventDefault()
-  const from = Number(data.split(':')[1])
+  const from = payload.from
   reorderTarget.value = null
   dragTail.value = false
   dragFrom.value = null
-  if (Number.isFinite(from) && from !== target) boardStore.moveWorkflow(index.value, from, target)
+  if (from !== target) boardStore.moveWorkflow(index.value, from, target)
 }
 
 function onReorderEnd() {
@@ -127,15 +128,15 @@ function onReorderEnd() {
 
 /** Drop at the tail: append the dragged workflow to the end of the list. */
 function onTailDrop(ev: DragEvent) {
-  const data = ev.dataTransfer?.getData(WF_REORDER_MIME)
-  if (!data) return
+  const payload = ev.dataTransfer ? readReorderPayload(ev.dataTransfer) : null
+  if (!payload) return
   ev.stopPropagation()
   ev.preventDefault()
-  const from = Number(data.split(':')[1])
+  const from = payload.from
   dragTail.value = false
   dragFrom.value = null
   const len = role.value.workflows?.length ?? 0
-  if (Number.isFinite(from) && from !== len - 1) boardStore.moveWorkflow(index.value, from, len - 1)
+  if (from !== len - 1) boardStore.moveWorkflow(index.value, from, len - 1)
 }
 
 function onTailEnter(ev: DragEvent) {
@@ -242,7 +243,7 @@ onMounted(() => document.addEventListener('click', onDocClick))
 onUnmounted(() => document.removeEventListener('click', onDocClick))
 
 function showCode() {
-  boardStore.codegenRoleIndex = index.value
+  boardStore.openCodegen(index.value)
 }
 
 function remove() {

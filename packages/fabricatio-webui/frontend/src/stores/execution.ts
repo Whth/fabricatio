@@ -1,17 +1,20 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { TaskJSON, WSMessage } from '@/types/api'
+import type { NodeStatus } from '@/types/editor'
 import { useWorkflowStore } from './workflow'
 import { useNotificationsStore } from './notifications'
 import { api } from '@/api/client'
+import { errorMessage } from '@/utils/errors'
 import { i18n } from '@/i18n'
 
-export type NodeStatus = 'idle' | 'queued' | 'running' | 'done' | 'error'
-export type ExecutionState = 'idle' | 'running' | 'completed' | 'failed'
+/** Local run-phase of the execution store (distinct from the wire
+ *  `ExecutionState` in `@/types/api`, which the /api/history payload uses). */
+export type ExecutionPhase = 'idle' | 'running' | 'completed' | 'failed'
 
 export const useExecutionStore = defineStore('execution', () => {
   const executionId = ref<string | null>(null)
-  const executionState = ref<ExecutionState>('idle')
+  const executionState = ref<ExecutionPhase>('idle')
   const executingNodeId = ref<string | null>(null)
   const nodeStatuses = ref<Record<string, NodeStatus>>({})
   const errors = ref<Array<{ nodeId: string; error: string; traceback?: string }>>([])
@@ -31,14 +34,9 @@ export const useExecutionStore = defineStore('execution', () => {
     return running.find((id) => tokenBuffer.value[id] !== undefined) ?? null
   })
 
-  function mirrorNodeStatus(nodeId: string, status: NodeStatus) {
-    const wf = useWorkflowStore()
-    const n = wf.nodes.find((x) => x.id === nodeId)
-    if (n) n.data.status = status
-  }
-
   function handleWSMessage(msg: WSMessage) {
     const notifications = useNotificationsStore()
+    const wf = useWorkflowStore()
 
     switch (msg.type) {
       case 'execution_start':
@@ -48,89 +46,52 @@ export const useExecutionStore = defineStore('execution', () => {
 
       case 'node_start':
         executingNodeId.value = msg.node_id
-        nodeStatuses.value = {
-          ...nodeStatuses.value,
-          [msg.node_id]: 'running',
-        }
-        mirrorNodeStatus(msg.node_id, 'running')
-        nodeTimings.value = {
-          ...nodeTimings.value,
-          [msg.node_id]: { startedAt: Date.now(), endedAt: 0 },
-        }
+        nodeStatuses.value[msg.node_id] = 'running'
+        wf.setNodeStatus(msg.node_id, 'running')
+        nodeTimings.value[msg.node_id] = { startedAt: Date.now(), endedAt: 0 }
         break
 
       case 'node_done':
-        nodeStatuses.value = {
-          ...nodeStatuses.value,
-          [msg.node_id]: 'done',
-        }
-        mirrorNodeStatus(msg.node_id, 'done')
+        nodeStatuses.value[msg.node_id] = 'done'
+        wf.setNodeStatus(msg.node_id, 'done')
         if (msg.output !== undefined) {
-          nodeOutputs.value = {
-            ...nodeOutputs.value,
-            [msg.node_id]: {
-              ...(nodeOutputs.value[msg.node_id] || {}),
-              _result: msg.output,
-            },
-          }
+          const outputs = (nodeOutputs.value[msg.node_id] ??= {})
+          outputs._result = msg.output
         }
-        if (nodeTimings.value[msg.node_id]) {
-          nodeTimings.value = {
-            ...nodeTimings.value,
-            [msg.node_id]: {
-              ...nodeTimings.value[msg.node_id],
-              endedAt: Date.now(),
-            },
-          }
+        {
+          const timing = nodeTimings.value[msg.node_id]
+          if (timing) timing.endedAt = Date.now()
         }
         executingNodeId.value = null
         break
 
       case 'node_error':
-        nodeStatuses.value = {
-          ...nodeStatuses.value,
-          [msg.node_id]: 'error',
-        }
-        mirrorNodeStatus(msg.node_id, 'error')
-        errors.value = [
-          ...errors.value,
-          {
-            nodeId: msg.node_id,
-            error: msg.error,
-            traceback: msg.traceback,
-          },
-        ]
-        if (nodeTimings.value[msg.node_id]) {
-          nodeTimings.value = {
-            ...nodeTimings.value,
-            [msg.node_id]: {
-              ...nodeTimings.value[msg.node_id],
-              endedAt: Date.now(),
-            },
-          }
+        nodeStatuses.value[msg.node_id] = 'error'
+        wf.setNodeStatus(msg.node_id, 'error')
+        errors.value.push({
+          nodeId: msg.node_id,
+          error: msg.error,
+          traceback: msg.traceback,
+        })
+        {
+          const timing = nodeTimings.value[msg.node_id]
+          if (timing) timing.endedAt = Date.now()
         }
         executingNodeId.value = null
         notifications.error(i18n.global.t('shell.nodeError', { id: msg.node_id }), msg.error.slice(0, 100))
         break
 
-      case 'node_output':
-        nodeOutputs.value = {
-          ...nodeOutputs.value,
-          [msg.node_id]: {
-            ...(nodeOutputs.value[msg.node_id] || {}),
-            [msg.output_key]: msg.data,
-          },
-        }
+      case 'node_output': {
+        const outputs = (nodeOutputs.value[msg.node_id] ??= {})
+        outputs[msg.output_key] = msg.output
         break
+      }
 
       case 'llm_token':
-        tokenBuffer.value = {
-          ...tokenBuffer.value,
-          [msg.node_id]: (tokenBuffer.value[msg.node_id] || '') + msg.token,
-        }
+        tokenBuffer.value[msg.node_id] = (tokenBuffer.value[msg.node_id] ?? '') + msg.token
         break
 
-      case 'execution_done':
+      case 'execution_done': {
         executionState.value = msg.error ? 'failed' : msg.cancelled ? 'idle' : 'completed'
         if (msg.result) result.value = msg.result
         if (msg.error) {
@@ -138,19 +99,17 @@ export const useExecutionStore = defineStore('execution', () => {
         }
         executingNodeId.value = null
         // A terminal event invalidates nodes still marked running (cancelled/failed mid-flight).
-        const staleRunning = Object.entries(nodeStatuses.value)
-          .filter(([, s]) => s === 'running')
-          .map(([id]) => id)
+        const staleRunning = Object.keys(nodeStatuses.value).filter(
+          (id) => nodeStatuses.value[id] === 'running',
+        )
+        for (const id of staleRunning) delete nodeStatuses.value[id]
         if (staleRunning.length > 0) {
-          const next = { ...nodeStatuses.value }
-          for (const id of staleRunning) delete next[id]
-          nodeStatuses.value = next
-          const wf = useWorkflowStore()
           for (const n of wf.nodes) {
-            if (n.data.status === 'running') delete n.data.status
+            if (n.data?.status === 'running') wf.setNodeStatus(n.id)
           }
         }
         break
+      }
 
       case 'status':
         queueLength.value = msg.queue_length
@@ -168,8 +127,7 @@ export const useExecutionStore = defineStore('execution', () => {
       executionId.value = execution_id
       executionState.value = 'running'
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.queueFailed'), message)
+      notifications.error(i18n.global.t('shell.queueFailed'), errorMessage(err))
       throw err
     }
   }
@@ -183,8 +141,7 @@ export const useExecutionStore = defineStore('execution', () => {
       executingNodeId.value = null
       notifications.info(i18n.global.t('shell.interrupted'))
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.interruptFailed'), message)
+      notifications.error(i18n.global.t('shell.interruptFailed'), errorMessage(err))
       throw err
     }
   }
@@ -200,7 +157,9 @@ export const useExecutionStore = defineStore('execution', () => {
     nodeTimings.value = {}
     tokenBuffer.value = {}
     const wf = useWorkflowStore()
-    for (const n of wf.nodes) delete n.data.status
+    for (const n of wf.nodes) {
+      if (n.data?.status) wf.setNodeStatus(n.id)
+    }
   }
 
   const isRunning = computed(() => executionState.value === 'running')

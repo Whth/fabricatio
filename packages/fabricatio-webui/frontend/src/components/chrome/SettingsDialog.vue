@@ -2,27 +2,19 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
-import { useHotkeys } from '@/composables/useHotkeys'
-import { onUnmounted } from 'vue'
 import { LOCALE_NAMES, type Locale } from '@/i18n'
-import { X, Settings2, Palette, SlidersHorizontal, Wrench, Keyboard } from '@lucide/vue'
+import { Settings2, Palette, SlidersHorizontal, Wrench, Keyboard } from '@lucide/vue'
+import AppModal from '@/components/chrome/AppModal.vue'
+import FormRow from '@/components/chrome/FormRow.vue'
 
 /**
  * Frontend settings as a centered modal in the ComfyUI style: a window with
- * a left category rail and a right content pane. Teleported to <body> so it
- * overlays every layer. Backdrop click, the X button, and Esc close it.
+ * a left category rail and a right content pane. The open flag lives in the ui
+ * store; AppModal supplies the teleport/backdrop/X/Esc scaffold, so backdrop
+ * click, the X and Esc all close it through `ui.closeSettings()`.
  */
 const ui = useUiStore()
 const { t } = useI18n()
-const emit = defineEmits<{ close: [] }>()
-
-// Esc closes the dialog when open (registered only while mounted; the
-// global escape in NodeCanvas deselects nodes and must not fight this).
-const { register } = useHotkeys()
-const offEsc = register('escape', () => {
-  if (ui.settingsOpen) emit('close')
-})
-onUnmounted(offEsc)
 
 /** Left-rail categories, in display order. */
 const CATEGORIES = [
@@ -47,185 +39,124 @@ const SHORTCUTS: Array<{ keys: string; actionKey: string }> = [
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="fade">
-      <div v-if="ui.settingsOpen" class="dialog-backdrop" @mousedown.self="emit('close')">
-        <div class="settings-dialog" role="dialog" :aria-label="t('settings.title')">
-          <div class="dialog-header">
-            <Settings2 :size="15" />
-            <span>{{ t('settings.title') }}</span>
-            <button class="dialog-close" :title="t('settings.closeTitle')" @click="emit('close')">
-              <X :size="14" />
-            </button>
-          </div>
+  <AppModal
+    :open="ui.settingsOpen"
+    title-key="settings.title"
+    width="640px"
+    height="440px"
+    @close="ui.closeSettings()"
+  >
+    <template #header>
+      <Settings2 :size="15" />
+      <span>{{ t('settings.title') }}</span>
+    </template>
 
-          <div class="dialog-layout">
-            <!-- Category rail -->
-            <nav class="settings-nav">
+    <div class="dialog-layout">
+      <!-- Category rail -->
+      <nav class="settings-nav">
+        <button
+          v-for="c in CATEGORIES"
+          :key="c.name"
+          class="nav-item"
+          :class="{ active: active === c.name }"
+          @click="active = c.name"
+        >
+          <component :is="c.icon" :size="15" class="nav-icon" />
+          <span>{{ t(c.labelKey) }}</span>
+        </button>
+      </nav>
+
+      <!-- Active category pane -->
+      <div class="dialog-pane">
+        <section v-show="active === 'Appearance'" class="pane-section">
+          <div class="section-title">{{ t('settings.cat.appearance') }}</div>
+          <FormRow class="setting-row" :label="t('settings.theme')">
+            <div class="seg">
               <button
-                v-for="c in CATEGORIES"
-                :key="c.name"
-                class="nav-item"
-                :class="{ active: active === c.name }"
-                @click="active = c.name"
-              >
-                <component :is="c.icon" :size="15" class="nav-icon" />
-                <span>{{ t(c.labelKey) }}</span>
-              </button>
-            </nav>
-
-            <!-- Active category pane -->
-            <div class="dialog-pane">
-              <section v-show="active === 'Appearance'" class="pane-section">
-                <div class="section-title">{{ t('settings.cat.appearance') }}</div>
-                <div class="setting-row">
-                  <span class="setting-label">{{ t('settings.theme') }}</span>
-                  <div class="seg">
-                    <button
-                      :class="{ active: ui.settings.theme === 'dark' }"
-                      :title="t('settings.theme.darkTitle')"
-                      @click="ui.setSetting('theme', 'dark')"
-                    >{{ t('settings.theme.dark') }}</button>
-                    <button
-                      :class="{ active: ui.settings.theme === 'light' }"
-                      :title="t('settings.theme.lightTitle')"
-                      @click="ui.setSetting('theme', 'light')"
-                    >{{ t('settings.theme.light') }}</button>
-                  </div>
-                </div>
-                <div class="setting-row">
-                  <span class="setting-label">{{ t('settings.language') }}</span>
-                  <div class="seg">
-                    <button
-                      v-for="(name, code) in LOCALE_NAMES"
-                      :key="code"
-                      :class="{ active: ui.settings.locale === code }"
-                      @click="ui.setSetting('locale', code as Locale)"
-                    >{{ name }}</button>
-                  </div>
-                </div>
-              </section>
-
-              <section v-show="active === 'Editor'" class="pane-section">
-                <div class="section-title">{{ t('settings.cat.editor') }}</div>
-                <label class="setting-row">
-                  <span class="setting-label">{{ t('settings.snapToGrid') }}</span>
-                  <span class="toggle-switch">
-                    <input v-model="ui.settings.snapToGrid" type="checkbox" class="toggle-input" />
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </span>
-                </label>
-                <label class="setting-row" :class="{ disabled: !ui.settings.snapToGrid }">
-                  <span class="setting-label">{{ t('settings.gridSize') }}</span>
-                  <input
-                    v-model.number="ui.settings.gridSize"
-                    type="number"
-                    class="setting-number"
-                    min="4"
-                    max="64"
-                    step="4"
-                    :disabled="!ui.settings.snapToGrid"
-                  />
-                </label>
-                <label class="setting-row">
-                  <span class="setting-label">{{ t('settings.minimap') }}</span>
-                  <span class="toggle-switch">
-                    <input v-model="ui.settings.showMinimap" type="checkbox" class="toggle-input" />
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </span>
-                </label>
-              </section>
-
-              <section v-show="active === 'General'" class="pane-section">
-                <div class="section-title">{{ t('settings.cat.general') }}</div>
-                <label class="setting-row">
-                  <span class="setting-label">{{ t('settings.autosave') }}</span>
-                  <span class="toggle-switch">
-                    <input v-model="ui.settings.autosave" type="checkbox" class="toggle-input" />
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </span>
-                </label>
-                <label class="setting-row">
-                  <span class="setting-label">{{ t('settings.consoleStartup') }}</span>
-                  <span class="toggle-switch">
-                    <input v-model="ui.settings.consoleDefaultOpen" type="checkbox" class="toggle-input" />
-                    <span class="toggle-track"><span class="toggle-thumb"></span></span>
-                  </span>
-                </label>
-              </section>
-
-              <section v-show="active === 'Shortcuts'" class="pane-section">
-                <div class="section-title">{{ t('settings.cat.shortcuts') }}</div>
-                <div v-for="s in SHORTCUTS" :key="s.keys" class="shortcut-row">
-                  <kbd class="shortcut-keys">{{ s.keys }}</kbd>
-                  <span class="shortcut-action">{{ t(s.actionKey) }}</span>
-                </div>
-              </section>
+                :class="{ active: ui.settings.theme === 'dark' }"
+                :title="t('settings.theme.darkTitle')"
+                @click="ui.setSetting('theme', 'dark')"
+              >{{ t('settings.theme.dark') }}</button>
+              <button
+                :class="{ active: ui.settings.theme === 'light' }"
+                :title="t('settings.theme.lightTitle')"
+                @click="ui.setSetting('theme', 'light')"
+              >{{ t('settings.theme.light') }}</button>
             </div>
+          </FormRow>
+          <FormRow class="setting-row" :label="t('settings.language')">
+            <div class="seg">
+              <button
+                v-for="(name, code) in LOCALE_NAMES"
+                :key="code"
+                :class="{ active: ui.settings.locale === code }"
+                @click="ui.setSetting('locale', code as Locale)"
+              >{{ name }}</button>
+            </div>
+          </FormRow>
+        </section>
+
+        <section v-show="active === 'Editor'" class="pane-section">
+          <div class="section-title">{{ t('settings.cat.editor') }}</div>
+          <FormRow class="setting-row" :label="t('settings.snapToGrid')" as="label">
+            <span class="toggle-switch">
+              <input v-model="ui.settings.snapToGrid" type="checkbox" class="toggle-input" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </FormRow>
+          <FormRow
+            class="setting-row"
+            :label="t('settings.gridSize')"
+            :disabled="!ui.settings.snapToGrid"
+            as="label"
+          >
+            <input
+              v-model.number="ui.settings.gridSize"
+              type="number"
+              class="setting-number"
+              min="4"
+              max="64"
+              step="4"
+              :disabled="!ui.settings.snapToGrid"
+            />
+          </FormRow>
+          <FormRow class="setting-row" :label="t('settings.minimap')" as="label">
+            <span class="toggle-switch">
+              <input v-model="ui.settings.showMinimap" type="checkbox" class="toggle-input" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </FormRow>
+        </section>
+
+        <section v-show="active === 'General'" class="pane-section">
+          <div class="section-title">{{ t('settings.cat.general') }}</div>
+          <FormRow class="setting-row" :label="t('settings.autosave')" as="label">
+            <span class="toggle-switch">
+              <input v-model="ui.settings.autosave" type="checkbox" class="toggle-input" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </FormRow>
+          <FormRow class="setting-row" :label="t('settings.consoleStartup')" as="label">
+            <span class="toggle-switch">
+              <input v-model="ui.settings.consoleDefaultOpen" type="checkbox" class="toggle-input" />
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </FormRow>
+        </section>
+
+        <section v-show="active === 'Shortcuts'" class="pane-section">
+          <div class="section-title">{{ t('settings.cat.shortcuts') }}</div>
+          <div v-for="s in SHORTCUTS" :key="s.keys" class="shortcut-row">
+            <kbd class="shortcut-keys">{{ s.keys }}</kbd>
+            <span class="shortcut-action">{{ t(s.actionKey) }}</span>
           </div>
-        </div>
+        </section>
       </div>
-    </Transition>
-  </Teleport>
+    </div>
+  </AppModal>
 </template>
 
 <style scoped>
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-}
-
-.settings-dialog {
-  width: 640px;
-  height: 440px;
-  max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 96px);
-  background: var(--bg-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  color: var(--fg-0);
-  flex-shrink: 0;
-}
-
-.dialog-close {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: transparent;
-  border: none;
-  color: var(--fg-1);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: var(--transition-colors);
-}
-
-.dialog-close:hover {
-  background: var(--bg-3);
-  color: var(--fg-0);
-}
-
 /* ── Two-column layout: rail + pane ─────────────────────────────────────── */
 .dialog-layout {
   flex: 1;
@@ -295,11 +226,9 @@ const SHORTCUTS: Array<{ keys: string; actionKey: string }> = [
   margin-bottom: var(--sp-2);
 }
 
+/* Row disposition and label element come from FormRow; the divider, padding
+   and label typography are this dialog's own. */
 .setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-2);
   padding: var(--sp-2) 0;
   cursor: pointer;
   border-bottom: 1px solid var(--border-soft);
@@ -309,12 +238,7 @@ const SHORTCUTS: Array<{ keys: string; actionKey: string }> = [
   border-bottom: none;
 }
 
-.setting-row.disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.setting-label {
+.setting-row :deep(.form-row-label) {
   font-size: var(--text-md);
   color: var(--fg-0);
 }
@@ -427,16 +351,5 @@ const SHORTCUTS: Array<{ keys: string; actionKey: string }> = [
 .seg button:hover:not(.active) {
   color: var(--fg-0);
   background: var(--bg-3);
-}
-
-/* ── Transition ── */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--duration-fast) var(--ease-out);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

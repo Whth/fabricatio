@@ -7,34 +7,42 @@ from fabricatio_core.models.action import Action
 from fabricatio_webui.registry._constants import _RUNTIME_PLUMBING
 
 
+def _execute_signature(cls: type[Action]) -> inspect.Signature | None:
+    """The resolved signature of *cls*._execute, or ``None`` when unavailable.
+
+    Builtin/Rust-backed actions have no introspectable signature; every
+    consumer treats that as "no dataflow parameters".
+    """
+    try:
+        return inspect.signature(cls._execute)
+    except (TypeError, ValueError):
+        return None
+
+
 def _execute_params(cls: type[Action]) -> list[str]:
     """Non-plumbing named parameters of *cls*._execute (no **kwargs)."""
-    params: list[str] = []
-    try:
-        sig = inspect.signature(cls._execute)
-    except (TypeError, ValueError):
-        return params
-    for name, param in sig.parameters.items():
-        if name in _RUNTIME_PLUMBING:
-            continue
-        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY):
-            params.append(name)
-    return params
+    sig = _execute_signature(cls)
+    if sig is None:
+        return []
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if name not in _RUNTIME_PLUMBING and param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY)
+    ]
 
 
 def _required_execute_params(cls: type[Action]) -> list[str]:
     """Non-plumbing _execute parameters without a default value."""
-    try:
-        sig = inspect.signature(cls._execute)
-    except (TypeError, ValueError):
+    sig = _execute_signature(cls)
+    if sig is None:
         return []
-    required = []
-    for name, param in sig.parameters.items():
-        if name in _RUNTIME_PLUMBING:
-            continue
-        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY) and param.default is param.empty:
-            required.append(name)
-    return required
+    return [
+        name
+        for name, param in sig.parameters.items()
+        if name not in _RUNTIME_PLUMBING
+        and param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY)
+        and param.default is param.empty
+    ]
 
 
 def _consumes_context(cls: type[Action]) -> bool:
@@ -44,9 +52,8 @@ def _consumes_context(cls: type[Action]) -> bool:
     named context parameter.  Such steps are dataflow-connected to every
     predecessor through the shared context even without a field match.
     """
-    try:
-        sig = inspect.signature(cls._execute)
-    except (TypeError, ValueError):
+    sig = _execute_signature(cls)
+    if sig is None:
         return False
     return any(p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()) or any(
         name in {"cxt", "ctx", "context"} for name in sig.parameters

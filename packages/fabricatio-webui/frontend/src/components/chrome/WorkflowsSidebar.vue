@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useAppActions } from '@/composables/useAppActions'
+import { useHotkeys } from '@/composables/useHotkeys'
 import { X, BookOpen, RefreshCw, Trash2, Download, Upload } from '@lucide/vue'
 
 const ui = useUiStore()
@@ -43,11 +44,12 @@ watch(
   },
 )
 
-function onKeyDown(ev: KeyboardEvent) {
-  if (ev.key === 'Escape' && ui.workflowsOpen) ui.workflowsOpen = false
-}
-onMounted(() => window.addEventListener('keydown', onKeyDown))
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+// Escape closes the panel through the shared hotkey registry.
+const { register } = useHotkeys()
+const offEsc = register('escape', () => {
+  if (ui.workflowsOpen) ui.workflowsOpen = false
+})
+onUnmounted(offEsc)
 
 async function handleLoad(id: string) {
   if (await loadWorkflowById(id)) ui.workflowsOpen = false

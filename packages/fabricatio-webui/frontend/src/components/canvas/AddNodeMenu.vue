@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import type { NodeTypeDefinition } from '@/types/api'
 import { useWorkflowStore } from '@/stores/workflow'
 import { categoryColor } from '@/utils/categoryColors'
+import { groupBy } from '@/utils/groupBy'
 
 defineProps<{ position: { x: number; y: number } }>()
 const emit = defineEmits<{ close: []; closeRight: []; add: [typeDef: NodeTypeDefinition] }>()
@@ -37,11 +38,12 @@ const filtered = computed(() => {
       t.category.toLowerCase().includes(q),
   )
 })
-const grouped = computed(() => {
-  const g: Record<string, NodeTypeDefinition[]> = {}
-  for (const t of filtered.value) (g[t.category] ??= []).push(t)
-  return g
-})
+const grouped = computed(() =>
+  [...groupBy(filtered.value, (t) => t.category)].map(([category, items]) => ({
+    category,
+    items,
+  })),
+)
 
 function pick(t: NodeTypeDefinition) {
   emit('add', t)
@@ -61,10 +63,10 @@ function pick(t: NodeTypeDefinition) {
       @keydown.esc="emit('close')"
     />
     <div class="menu-list">
-      <template v-for="(items, cat) in grouped" :key="cat">
+      <template v-for="{ category, items } in grouped" :key="category">
         <div class="menu-category">
-          <span class="cat-dot" :style="{ background: categoryColor(cat) }"></span>
-          {{ cat }}
+          <span class="cat-dot" :style="{ background: categoryColor(category) }"></span>
+          {{ category }}
         </div>
         <button
           v-for="t in items"

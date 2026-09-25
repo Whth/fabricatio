@@ -10,7 +10,7 @@ import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUiStore } from '@/stores/ui'
 import { useHotkeys } from '@/composables/useHotkeys'
-import type { FabricatioNodeData } from '@/stores/workflow'
+import { nodeTypesObject, type FabricatioNodeData } from '@/types/editor'
 import { Crosshair } from '@lucide/vue'
 import ComfyNode from './ComfyNode.vue'
 import AddNodeMenu from './AddNodeMenu.vue'
@@ -19,6 +19,8 @@ import CommandPalette from '@/components/chrome/CommandPalette.vue'
 import ActionSourceDialog from '@/components/chrome/ActionSourceDialog.vue'
 import { computed } from 'vue'
 import type { NodeTypeDefinition } from '@/types/api'
+import { clampMenuPosition } from '@/utils/menu'
+import { parseNodeTypeDefinition } from '@/utils/dnd'
 
 const wfStore = useWorkflowStore()
 const notifications = useNotificationsStore()
@@ -37,9 +39,12 @@ const lastConnectionError = ref<string | null>(null)
 const sourceViewer = ref<{ nodeType: string } | null>(null)
 // ── Right-side inspector for the selected node ─────────────────────────────
 
+/** VueFlow node-type map; `nodeTypesObject` absorbs the library's wide prop type. */
+const nodeTypes = nodeTypesObject({ fabricatio: markRaw(ComfyNode) })
+
 /** id → title map for wiring-source display in the inspector. */
 const nodeTitles = computed(() =>
-  Object.fromEntries(wfStore.nodes.map((n) => [n.id, (n.data as FabricatioNodeData)?.title ?? n.id])),
+  Object.fromEntries(wfStore.nodes.map((n): [string, string] => [n.id, n.data?.title ?? n.id])),
 )
 
 /** True if wiring source → target would close a cycle (target already reaches source). */
@@ -81,20 +86,22 @@ const {
       lastConnectionError.value = t('canvas.selfLoop')
       return false
     }
-    const sourceNode = findNode(connection.source!)
-    const targetNode = findNode(connection.target!)
+    const sourceNode = findNode<FabricatioNodeData>(connection.source!)
+    const targetNode = findNode<FabricatioNodeData>(connection.target!)
     if (!sourceNode || !targetNode) {
       lastConnectionError.value = null
       return false
     }
-    const sData = sourceNode.data as unknown as FabricatioNodeData
-    const tData = targetNode.data as unknown as FabricatioNodeData
+    // `findNode<FabricatioNodeData>` returns a GraphNode whose `data` is the
+    // typed payload, so the ports below need no per-site assertion.
+    const sData = sourceNode.data
+    const tData = targetNode.data
     // Source side: only action output ports are valid sources; fields are
     // targets only, so a field's value always comes from an action output.
     const srcHandle = connection.sourceHandle ?? ''
-    const out = sData?.outputPorts?.find((p: { name: string }) => p.name === srcHandle)
-    const inp = tData?.inputPorts?.find((p: { name: string }) => p.name === connection.targetHandle)
-    const cfg = tData?.configFields?.find((p: { name: string }) => p.name === connection.targetHandle)
+    const out = sData.outputPorts?.find((p) => p.name === srcHandle)
+    const inp = tData.inputPorts?.find((p) => p.name === connection.targetHandle)
+    const cfg = tData.configFields?.find((p) => p.name === connection.targetHandle)
     if (!out || (!inp && !cfg)) {
       lastConnectionError.value = t('canvas.badTarget')
       return false
@@ -143,8 +150,10 @@ function onNodeClick(ev: NodeMouseEvent) {
   wfStore.selectNode(ev.node.id)
   // Double-click opens the Python source viewer.
   if (ev.event.detail === 2) {
-    const type = (ev.node.data as unknown as FabricatioNodeData)?.nodeType
-    if (type) sourceViewer.value = { nodeType: type }
+    // `NodeMouseEvent.node` is the library's wide `GraphNode`; annotating the
+    // local pins it to the canvas payload without an `as` on the property.
+    const data: FabricatioNodeData | undefined = ev.node.data
+    if (data?.nodeType) sourceViewer.value = { nodeType: data.nodeType }
   }
 }
 
@@ -160,23 +169,14 @@ function onNodeDragStop() {
 // Menu is positioned in canvas-relative screen pixels (left/top CSS), while the
 // node it creates is placed in flow coordinates — they differ under pan/zoom.
 function openMenuAt(event: MouseEvent) {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   menuFlowPos.value = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
-  let x = event.clientX - rect.left
-  let y = event.clientY - rect.top
-  // Keep the 260px-wide menu inside the canvas when clicking near an edge.
-  if (x + 260 > rect.width) x = Math.max(0, rect.width - 260)
-  if (y + 340 > rect.height) y = Math.max(0, rect.height - 340)
-  menuPos.value = { x, y }
+  // 260×340 is the menu's rendered extent; clamping keeps it inside the canvas.
+  menuPos.value = clampMenuPosition(event.currentTarget as HTMLElement, event, { w: 260, h: 340 })
 }
 
 function onPaneContextMenu(event: MouseEvent) {
   event.preventDefault()
   if (Date.now() < suppressContextMenuUntil) return
-  openMenuAt(event)
-}
-
-function onPaneDblClick(event: MouseEvent) {
   openMenuAt(event)
 }
 
@@ -218,7 +218,9 @@ function onDelete() {
 function onDuplicate() {
   const sel = getSelectedNodes.value
   for (const n of sel) {
-    const data = n.data as unknown as FabricatioNodeData
+    // `getSelectedNodes` exposes the library's wide `GraphNode`; annotating
+    // the local reads the payload without an assertion at the property.
+    const data: FabricatioNodeData | undefined = n.data
     if (!data) continue
     const typeDef = wfStore.nodeTypes.find((t) => t.type === data.nodeType)
     if (!typeDef) continue
@@ -263,22 +265,21 @@ onMounted(() => {
 })
 
 // ── Drag & drop from external palette (legacy) ───────────────────────────────
+/** dataTransfer MIME carrying a serialized `NodeTypeDefinition` from the palette. */
+const NODE_TYPE_MIME = 'application/fabricatio-node-type'
+
 function onDragOver(ev: DragEvent) {
   ev.preventDefault()
   if (ev.dataTransfer) {
     ev.dataTransfer.dropEffect = 'copy'
 
     // Try to get the node type for preview
-    const raw = ev.dataTransfer.types.includes('application/fabricatio-node-type')
-      ? ev.dataTransfer.getData('application/fabricatio-node-type')
+    const raw = ev.dataTransfer.types.includes(NODE_TYPE_MIME)
+      ? ev.dataTransfer.getData(NODE_TYPE_MIME)
       : null
 
     if (raw && !dragPreview.value) {
-      try {
-        dragPreview.value = JSON.parse(raw) as NodeTypeDefinition
-      } catch {
-        // ignore
-      }
+      dragPreview.value = parseNodeTypeDefinition(raw)
     }
 
     isDragOver.value = true
@@ -303,15 +304,8 @@ function onDrop(ev: DragEvent) {
 
   if (!ev.dataTransfer) return
 
-  const raw = ev.dataTransfer.getData('application/fabricatio-node-type')
-  if (!raw) return
-
-  let typeDef: NodeTypeDefinition
-  try {
-    typeDef = JSON.parse(raw) as NodeTypeDefinition
-  } catch {
-    return
-  }
+  const typeDef = parseNodeTypeDefinition(ev.dataTransfer.getData(NODE_TYPE_MIME))
+  if (!typeDef) return
 
   const position = screenToFlowCoordinate({
     x: ev.clientX,
@@ -347,14 +341,13 @@ function onDrop(ev: DragEvent) {
     <VueFlow
       v-model:nodes="wfStore.nodes"
       v-model:edges="wfStore.edges"
-      :node-types="{ fabricatio: markRaw(ComfyNode) as any }"
+      :node-types="nodeTypes"
       :default-edge-options="{ type: 'smoothstep', animated: false }"
       :snap-to-grid="uiStore.settings.snapToGrid"
       :snap-grid="[uiStore.settings.gridSize, uiStore.settings.gridSize]"
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
       @pane-context-menu="onPaneContextMenu"
-      @pane-dblclick="onPaneDblClick"
       @node-drag-stop="onNodeDragStop"
     >
       <Background :gap="18" :size="1.5" pattern-color="var(--canvas-dot, #30363d)" />
@@ -366,7 +359,7 @@ function onDrop(ev: DragEvent) {
         :zoomable="true"
         mask-color="var(--bg-3)"
       />
-      <CommandPalette v-if="uiStore.paletteOpen" />
+      <CommandPalette />
     </VueFlow>
 
 
@@ -405,8 +398,8 @@ function onDrop(ev: DragEvent) {
 
     <!-- Read-only Python source viewer -->
     <ActionSourceDialog
-      v-if="sourceViewer"
-      :node-type="sourceViewer.nodeType"
+      :open="sourceViewer !== null"
+      :node-type="sourceViewer?.nodeType"
       @close="sourceViewer = null"
     />
   </div>

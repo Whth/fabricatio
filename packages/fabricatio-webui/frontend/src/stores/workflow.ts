@@ -1,60 +1,101 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Connection } from '@vue-flow/core'
-import type { NodeTypeDefinition, PortDefinition, WorkflowJSON } from '@/types/api'
+import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
+import type {
+  FabricatioNodeData,
+  HistorySnapshot,
+  NodeStatus,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@/types/editor'
 import { api } from '@/api/client'
 import { useUiStore } from '@/stores/ui'
+import { clone } from '@/utils/clone'
 import { autoLayout, collectNodeSizes, type LayoutSize } from '@/utils/autoLayout'
 
-export interface FabricatioNodeData {
-  title: string
-  description: string
-  category: string
-  nodeType: string
-  inputPorts: Array<{ name: string; type: string; optional: boolean }>
-  outputPorts: PortDefinition[]
-  capabilities: string[]
-  configFields: PortDefinition[]
-  inputs: Record<string, unknown>
-  config: Record<string, unknown>
-  nodeId: string
-  /** Numeric wire schema_version; 1 = current generation. */
-  schemaVersion?: number
-  /** Execution status mirror (running/done/error), set by the execution store. */
-  status?: string
+// ── Node-data factories ─────────────────────────────────────────────────────
+
+/** Build a node's data payload from its registry definition. */
+export function nodeDataFromDef(
+  def: NodeTypeDefinition,
+  opts: { id: string; title?: string },
+): FabricatioNodeData {
+  return {
+    title: opts.title ?? def.title,
+    description: def.description,
+    category: def.category,
+    nodeType: def.type,
+    inputPorts: def.input_ports,
+    outputPorts: def.output_ports,
+    capabilities: def.capabilities,
+    configFields: def.config_fields,
+    inputs: {},
+    config: {},
+    nodeId: opts.id,
+    schemaVersion: 1,
+  }
 }
 
-export interface WorkflowNode {
-  id: string
-  type: string
-  position: { x: number; y: number }
-  data: FabricatioNodeData
+/** Refresh a node's registry-derived fields in place of a live definition,
+    preserving the user's title, inputs/config and any execution status. Pure. */
+export function mergeNodeDef(
+  data: FabricatioNodeData,
+  def: NodeTypeDefinition,
+): FabricatioNodeData {
+  return {
+    ...data,
+    title: data.title ?? def.title,
+    description: def.description,
+    category: def.category,
+    inputPorts: def.input_ports,
+    outputPorts: def.output_ports,
+    capabilities: def.capabilities,
+    configFields: def.config_fields,
+  }
 }
 
-export interface WorkflowEdge {
-  id: string
-  source: string
-  target: string
-  sourceHandle?: string | null
-  targetHandle?: string | null
-  type: string
+/** Registry placeholder for a node whose type is missing from the registry. */
+function unknownNodeDef(type: string): NodeTypeDefinition {
+  return {
+    type,
+    title: type,
+    description: '',
+    category: 'unknown',
+    input_ports: [],
+    output_ports: [],
+    capabilities: [],
+    ctx_override: false,
+    config_fields: [],
+  }
 }
 
-// ── Undo / Redo snapshot ────────────────────────────────────────────────────
-interface HistorySnapshot {
-  nodes: WorkflowNode[]
-  edges: WorkflowEdge[]
-  workflowName: string
-  workflowNamespace: string
-  taskOutputKey: string
+// ── Editor document ─────────────────────────────────────────────────────────
+
+/**
+ * The editor document: every field that undo/redo, autosave and draft restore
+ * must round-trip. `HistorySnapshot` is the frozen undo/redo shape (what a
+ * board workflow persists); the id counter is editor-only but rides along so
+ * a restored draft keeps numbering nodes monotonically.
+ */
+interface EditorDoc extends HistorySnapshot {
+  nodeIdCounter: number
 }
 
 const DRAFT_KEY = 'workflow:draft'
 const AUTO_SAVE_DEBOUNCE = 800
+/** Draft document format. Bump whenever `EditorDoc`'s persisted shape changes;
+ *  a draft written by an older frontend is dropped, not blindly hydrated. */
+const DRAFT_VERSION = 2
 
 export const useWorkflowStore = defineStore('workflow', () => {
-  const nodes = ref<WorkflowNode[]>([])
-  const edges = ref<WorkflowEdge[]>([])
+  // `ref<WorkflowNode[]>([])` would make Vue's deep `UnwrapRef` walk VueFlow's
+  // recursive `Node` type (`Node.class`/`style` reference `GraphNode`, which
+  // extends `Node`) until TypeScript gives up with TS2589. Constructing an
+  // untyped `ref` (still deeply reactive) and pinning its element type keeps
+  // the store typed without the runaway instantiation.
+  const nodes = ref([]) as Ref<WorkflowNode[]>
+  const edges = ref([]) as Ref<WorkflowEdge[]>
   const nodeTypes = ref<NodeTypeDefinition[]>([])
   const selectedNodeId = ref<string | null>(null)
   const workflowName = ref('Untitled Workflow')
@@ -64,8 +105,41 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const taskOutputKey = ref('')
   const nodeIdCounter = ref(0)
 
+  // ── Document read / write ───────────────────────────────────────────────────
+  // One shape, one read (`snapshot`), one write (`applyDoc`): adding a document
+  // field touches exactly these two functions, not every history/autosave site.
+
+  /** Read the whole editor document as an independent deep copy. */
+  function snapshot(): EditorDoc {
+    return {
+      nodes: clone(nodes.value),
+      edges: clone(edges.value),
+      workflowName: workflowName.value,
+      workflowNamespace: workflowNamespace.value,
+      taskOutputKey: taskOutputKey.value,
+      nodeIdCounter: nodeIdCounter.value,
+    }
+  }
+
+  /** Write the whole editor document from a snapshot (or a partial one, as
+      read back from the draft). This is the extracted `applySnapshot` shared
+      by undo and redo. */
+  function applyDoc(doc: Partial<EditorDoc>) {
+    nodes.value = clone(doc.nodes ?? [])
+    edges.value = clone(doc.edges ?? [])
+    workflowName.value = doc.workflowName ?? 'Untitled Workflow'
+    workflowNamespace.value = doc.workflowNamespace ?? ''
+    taskOutputKey.value = doc.taskOutputKey ?? ''
+    nodeIdCounter.value = doc.nodeIdCounter ?? 0
+  }
+
   // ── Undo / Redo ────────────────────────────────────────────────────────────
-  const history = ref<HistorySnapshot[]>([])
+  // Invariant: after every push/undo/redo, `historyIndex` is the index of the
+  // snapshot that matches the current document, and `history` is truncated
+  // immediately after it (so everything past the index is redo-able). A push
+  // past `maxHistory` drops the oldest snapshot and re-points the index at the
+  // (new) last element — the index and the array can never drift apart.
+  const history = ref([]) as Ref<EditorDoc[]>
   const historyIndex = ref(-1)
   const maxHistory = 50
 
@@ -74,38 +148,23 @@ export const useWorkflowStore = defineStore('workflow', () => {
     if (historyIndex.value < history.value.length - 1) {
       history.value = history.value.slice(0, historyIndex.value + 1)
     }
-    history.value.push({
-      nodes: JSON.parse(JSON.stringify(nodes.value)),
-      edges: JSON.parse(JSON.stringify(edges.value)),
-      workflowName: workflowName.value,
-      workflowNamespace: workflowNamespace.value,
-      taskOutputKey: taskOutputKey.value,
-    })
+    history.value.push(snapshot())
     if (history.value.length > maxHistory) {
       history.value.shift()
-    } else {
-      historyIndex.value++
     }
+    historyIndex.value = history.value.length - 1
   }
 
   function undo() {
     if (historyIndex.value <= 0) return
     historyIndex.value--
-    const snap = history.value[historyIndex.value]
-    nodes.value = JSON.parse(JSON.stringify(snap.nodes))
-    edges.value = JSON.parse(JSON.stringify(snap.edges))
-    workflowName.value = snap.workflowName
-    workflowNamespace.value = snap.workflowNamespace
-    taskOutputKey.value = snap.taskOutputKey
+    applyDoc(history.value[historyIndex.value])
   }
 
   function redo() {
     if (historyIndex.value >= history.value.length - 1) return
     historyIndex.value++
-    const snap = history.value[historyIndex.value]
-    nodes.value = JSON.parse(JSON.stringify(snap.nodes))
-    edges.value = JSON.parse(JSON.stringify(snap.edges))
-    workflowName.value = snap.workflowName
+    applyDoc(history.value[historyIndex.value])
   }
 
   // ── Autosave ──────────────────────────────────────────────────────────────
@@ -114,15 +173,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   function autosave() {
     if (autosaveTimer) clearTimeout(autosaveTimer)
     autosaveTimer = setTimeout(() => {
-      const data = {
-        nodes: nodes.value,
-        edges: edges.value,
-        workflowName: workflowName.value,
-        workflowNamespace: workflowNamespace.value,
-        taskOutputKey: taskOutputKey.value,
-        nodeIdCounter: nodeIdCounter.value,
-      }
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(data))
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ version: DRAFT_VERSION, ...snapshot() }))
     }, AUTO_SAVE_DEBOUNCE)
   }
 
@@ -130,13 +181,12 @@ export const useWorkflowStore = defineStore('workflow', () => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
       if (!raw) return false
-      const data = JSON.parse(raw)
-      nodes.value = data.nodes || []
-      edges.value = data.edges || []
-      workflowName.value = data.workflowName || 'Untitled Workflow'
-      workflowNamespace.value = data.workflowNamespace || ''
-      taskOutputKey.value = data.taskOutputKey || ''
-      nodeIdCounter.value = data.nodeIdCounter || 0
+      const draft = JSON.parse(raw)
+      if (draft?.version !== DRAFT_VERSION) {
+        localStorage.removeItem(DRAFT_KEY)
+        return false
+      }
+      applyDoc(draft)
       pushSnapshot()
       return true
     } catch {
@@ -168,20 +218,8 @@ export const useWorkflowStore = defineStore('workflow', () => {
     const registry = new Map(nodeTypes.value.map((t) => [t.type, t]))
     nodes.value = nodes.value.map((n) => {
       const def = registry.get(n.data?.nodeType ?? '')
-      if (!def) return n
-      return {
-        ...n,
-        data: {
-          ...n.data,
-          title: n.data?.title ?? def.title,
-          description: def.description,
-          category: def.category,
-          inputPorts: def.input_ports,
-          outputPorts: def.output_ports,
-          capabilities: def.capabilities,
-          configFields: def.config_fields,
-        },
-      }
+      if (!def || !n.data) return n
+      return { ...n, data: mergeNodeDef(n.data, def) }
     })
   }
 
@@ -198,20 +236,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
       id,
       type: 'fabricatio',
       position,
-      data: {
+      data: nodeDataFromDef(typeDef, {
+        id,
         title: typeDef.type.split('.').pop() ?? typeDef.type,
-        description: typeDef.description,
-        category: typeDef.category,
-        nodeType: typeDef.type,
-        inputPorts: typeDef.input_ports,
-        outputPorts: typeDef.output_ports,
-        capabilities: typeDef.capabilities,
-        configFields: typeDef.config_fields,
-        inputs: {},
-        config: {},
-        nodeId: id,
-        schemaVersion: 1,
-      },
+      }),
     }
     pushSnapshot()
     nodes.value = [...nodes.value, node]
@@ -258,6 +286,17 @@ export const useWorkflowStore = defineStore('workflow', () => {
     selectedNodeId.value = id
   }
 
+  /** Set (or, with no status, clear) a node's execution-status mirror. The
+      execution store goes through this, so the editor owns the only write
+      path to `FabricatioNodeData.status`. */
+  function setNodeStatus(id: string, status?: NodeStatus) {
+    const node = nodes.value.find((n) => n.id === id)
+    if (!node?.data) return
+    const data = node.data
+    if (status) data.status = status
+    else delete data.status
+  }
+
   /** Update a node's canvas position (called from @nodes-change events). */
   function moveNode(id: string, position: { x: number; y: number }) {
     const node = nodes.value.find((n) => n.id === id)
@@ -269,9 +308,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
   /** Set a single config field on a node. */
   function setNodeConfig(nodeId: string, key: string, value: unknown) {
     const node = nodes.value.find((n) => n.id === nodeId)
-    if (!node) return
+    if (!node?.data) return
+    const data = node.data
     pushSnapshot()
-    node.data.config = { ...node.data.config, [key]: value }
+    node.data = { ...data, config: { ...data.config, [key]: value } }
   }
 
   /**
@@ -292,9 +332,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
   /** Set a single input value on a node. */
   function setNodeInput(nodeId: string, key: string, value: unknown) {
     const node = nodes.value.find((n) => n.id === nodeId)
-    if (!node) return
+    if (!node?.data) return
+    const data = node.data
     pushSnapshot()
-    node.data.inputs = { ...node.data.inputs, [key]: value }
+    node.data = { ...data, inputs: { ...data.inputs, [key]: value } }
   }
 
   // ── Serialization (workflow-level; the board store owns the document) ───────
@@ -335,23 +376,15 @@ export const useWorkflowStore = defineStore('workflow', () => {
     const registry = new Map(nodeTypes.value.map((t) => [t.type, t]))
 
     nodes.value = wf.nodes.map((n) => {
-      const def = registry.get(n.type)
+      const def = registry.get(n.type) ?? unknownNodeDef(n.type)
       return {
         id: n.id,
         type: 'fabricatio',
         position: n.pos ? { x: n.pos[0], y: n.pos[1] } : { x: 0, y: 0 },
         data: {
-          title: n.title ?? def?.title ?? n.type,
-          description: def?.description ?? '',
-          category: def?.category ?? 'unknown',
-          nodeType: n.type,
-          inputPorts: def?.input_ports ?? [],
-          outputPorts: def?.output_ports ?? [],
-          capabilities: def?.capabilities ?? [],
-          configFields: def?.config_fields ?? [],
+          ...nodeDataFromDef(def, { id: n.id, title: n.title }),
           inputs: n.inputs ?? {},
           config: n.config ?? {},
-          nodeId: n.id,
           schemaVersion: n.schema_version ?? 1,
         },
       }
@@ -415,6 +448,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     addEdge,
     removeEdge,
     selectNode,
+    setNodeStatus,
     moveNode,
     setNodeConfig,
     setNodeInput,

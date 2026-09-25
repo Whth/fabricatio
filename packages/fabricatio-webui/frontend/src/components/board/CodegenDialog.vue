@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -13,18 +13,31 @@ import {
   type ExportScope,
 } from '@/data/exportPkg'
 import { api } from '@/api/client'
-import { X, Copy, Download, Package } from '@lucide/vue'
+import { downloadBlob } from '@/utils/download'
+import AppModal from '@/components/chrome/AppModal.vue'
+import FormRow from '@/components/chrome/FormRow.vue'
+import { Copy, Download, Package } from '@lucide/vue'
 
-const props = defineProps<{ roleIndex: number }>()
-const emit = defineEmits<{ close: [] }>()
-
+/**
+ * Generated-module dialog: preview every export member, copy it, download a
+ * file, or export the artifact. The open flag (and the role it shows) lives in
+ * the board store; AppModal supplies the scaffold.
+ */
 const boardStore = useBoardStore()
 const notifications = useNotificationsStore()
 const { t } = useI18n()
 
+const roleIndex = computed(() => boardStore.codegenRoleIndex)
+const open = computed(() => roleIndex.value !== null)
+
+const role = computed(() =>
+  roleIndex.value === null ? undefined : boardStore.board.roles[roleIndex.value],
+)
+
 /** Node type -> importable module path, for codegen imports and dependency pins. */
 const catalog = ref<NodeCatalog>({})
-onMounted(async () => {
+
+async function loadCatalog() {
   try {
     const nodes = await api.getNodes()
     catalog.value = Object.fromEntries(nodes.map((n) => [n.type, n.module ?? '']))
@@ -32,9 +45,12 @@ onMounted(async () => {
     // Catalog unavailable: the generated module skips imports and annotates
     // the affected node types instead of failing the dialog.
   }
-})
+}
 
-const role = computed(() => boardStore.board.roles[props.roleIndex])
+// Refetch on every open so the export reflects the live registry.
+watch(open, (isOpen) => {
+  if (isOpen) loadCatalog()
+})
 
 /** Selectable artifact flavors, in dialog order. */
 const FORMATS: ExportFormat[] = ['script', 'cli', 'package', 'pypi']
@@ -100,13 +116,7 @@ async function copy() {
 
 function downloadFile() {
   const name = activeFile.value.split('/').pop() || 'main.py'
-  const blob = new Blob([activeContent.value], { type: 'text/x-python' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadBlob(activeContent.value, name, 'text/x-python')
   notifications.success(t('board.downloaded'), name)
 }
 
@@ -129,16 +139,13 @@ function exportPackage() {
   if (!opts) return
   try {
     const zipped = buildExportZip(opts)
-    const blob = new Blob([zipped as BlobPart], { type: 'application/zip' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = exportFileName(opts)
-    a.click()
-    URL.revokeObjectURL(url)
+    const name = exportFileName(opts)
+    // Fresh view so the bytes are ArrayBuffer-backed as BlobPart requires;
+    // fflate's output is ArrayBufferLike-backed.
+    downloadBlob(new Uint8Array(zipped), name, 'application/zip')
     notifications.success(
       t('board.pkgExported'),
-      t('board.exportDoneBody', { name: a.download.replace(/\.zip$/, ''), hint: exportHint() }),
+      t('board.exportDoneBody', { name: name.replace(/\.zip$/, ''), hint: exportHint() }),
     )
   } catch (err) {
     notifications.error(t('board.pkgExportFailed'), err instanceof Error ? err.message : String(err))
@@ -147,125 +154,89 @@ function exportPackage() {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="dialog-backdrop" @mousedown.self="emit('close')">
-      <div class="code-dialog">
-        <div class="dialog-header">
-          <span>{{ t('board.codegenTitle', { name: role?.name }) }}</span>
-          <div class="header-actions">
-            <button class="header-btn" :title="t('board.copyBtn')" @click="copy"><Copy :size="14" /></button>
-            <button
-              v-if="activeIsPython"
-              class="header-btn"
-              :title="t('board.downloadPyBtn')"
-              @click="downloadFile"
-            >
-              <Download :size="14" />
-            </button>
-            <button class="header-btn" :title="t('board.exportBtn')" @click="exportPackage">
-              <Package :size="14" />
-            </button>
-            <button class="header-btn" :title="t('common.close')" @click="emit('close')"><X :size="14" /></button>
-          </div>
-        </div>
+  <AppModal :open="open" width="720px" @close="boardStore.closeCodegen()">
+    <template #header>
+      <span class="code-title">{{ t('board.codegenTitle', { name: role?.name }) }}</span>
+      <div class="header-actions">
+        <button class="header-btn" :title="t('board.copyBtn')" @click="copy"><Copy :size="14" /></button>
+        <button
+          v-if="activeIsPython"
+          class="header-btn"
+          :title="t('board.downloadPyBtn')"
+          @click="downloadFile"
+        >
+          <Download :size="14" />
+        </button>
+        <button class="header-btn" :title="t('board.exportBtn')" @click="exportPackage">
+          <Package :size="14" />
+        </button>
+      </div>
+    </template>
 
-        <div class="export-controls">
-          <div class="control-group">
-            <span class="control-label">{{ t('board.scopeLabel') }}</span>
-            <div class="segmented">
-              <button class="seg-btn" :class="{ active: scope === 'role' }" @click="scope = 'role'">
-                {{ t('board.scopeRole') }}
-              </button>
-              <button
-                v-if="workflowChoices.length"
-                class="seg-btn"
-                :class="{ active: scope === 'workflow' }"
-                @click="scope = 'workflow'"
-              >
-                {{ t('board.scopeWorkflow') }}
-              </button>
-            </div>
-            <select
-              v-if="scope === 'workflow' && workflowChoices.length"
-              v-model.number="workflowIndex"
-              class="wf-select"
-            >
-              <option v-for="wf in workflowChoices" :key="wf.i" :value="wf.i">{{ wf.name }}</option>
-            </select>
-          </div>
-
-          <div class="control-group">
-            <span class="control-label">{{ t('board.formatLabel') }}</span>
-            <div class="segmented">
-              <button
-                v-for="f in FORMATS"
-                :key="f"
-                class="seg-btn"
-                :class="{ active: format === f }"
-                @click="format = f"
-              >
-                {{ t(FORMAT_KEY[f]) }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="file-tabs">
+    <div class="export-controls">
+      <FormRow class="control-group" :label="t('board.scopeLabel')">
+        <div class="segmented">
+          <button class="seg-btn" :class="{ active: scope === 'role' }" @click="scope = 'role'">
+            {{ t('board.scopeRole') }}
+          </button>
           <button
-            v-for="name in Object.keys(files)"
-            :key="name"
-            class="file-tab"
-            :class="{ active: name === activeFile }"
-            @click="activeFile = name"
+            v-if="workflowChoices.length"
+            class="seg-btn"
+            :class="{ active: scope === 'workflow' }"
+            @click="scope = 'workflow'"
           >
-            {{ name }}
+            {{ t('board.scopeWorkflow') }}
           </button>
         </div>
+        <select
+          v-if="scope === 'workflow' && workflowChoices.length"
+          v-model.number="workflowIndex"
+          class="wf-select"
+        >
+          <option v-for="wf in workflowChoices" :key="wf.i" :value="wf.i">{{ wf.name }}</option>
+        </select>
+      </FormRow>
 
-        <pre class="code-view"><code>{{ activeContent }}</code></pre>
-      </div>
+      <FormRow class="control-group" :label="t('board.formatLabel')">
+        <div class="segmented">
+          <button
+            v-for="f in FORMATS"
+            :key="f"
+            class="seg-btn"
+            :class="{ active: format === f }"
+            @click="format = f"
+          >
+            {{ t(FORMAT_KEY[f]) }}
+          </button>
+        </div>
+      </FormRow>
     </div>
-  </Teleport>
+
+    <div class="file-tabs">
+      <button
+        v-for="name in Object.keys(files)"
+        :key="name"
+        class="file-tab"
+        :class="{ active: name === activeFile }"
+        @click="activeFile = name"
+      >
+        {{ name }}
+      </button>
+    </div>
+
+    <pre class="code-view"><code>{{ activeContent }}</code></pre>
+  </AppModal>
 </template>
 
 <style scoped>
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-}
-
-.code-dialog {
-  width: 720px;
-  max-width: calc(100vw - 48px);
-  max-height: calc(100vh - 96px);
-  background: var(--bg-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--border);
+.code-title {
   font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--fg-0);
-  flex-shrink: 0;
 }
 
 .header-actions {
   display: flex;
   gap: var(--sp-1);
+  margin-left: auto;
 }
 
 .header-btn {
@@ -295,14 +266,8 @@ function exportPackage() {
   flex-shrink: 0;
 }
 
-.control-group {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-}
-
-.control-label {
-  font-size: var(--text-xs);
+/* FormRow owns the row disposition; only the label ink is this dialog's. */
+.control-group :deep(.form-row-label) {
   color: var(--fg-2);
 }
 

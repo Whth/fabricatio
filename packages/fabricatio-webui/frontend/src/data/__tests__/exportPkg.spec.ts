@@ -21,7 +21,7 @@ const role: RoleJSON = {
       name: 'main',
       namespace: 'hello-fabricatio',
       task_output_key: 'task_output',
-      nodes: [{ id: 'n1', type: 'TextStats', inputs: {}, config: {} }],
+      nodes: [{ id: 'n1', type: 'TextStats', inputs: {}, config: {}, schema_version: 1 }],
       edges: [],
       init_context: {},
     },
@@ -31,7 +31,7 @@ const role: RoleJSON = {
 const secondWorkflow = {
   name: 'extra',
   namespace: 'bye',
-  nodes: [{ id: 'n1', type: 'TextStats', inputs: {}, config: {} }],
+  nodes: [{ id: 'n1', type: 'TextStats', inputs: {}, config: {}, schema_version: 1 }],
   edges: [],
   init_context: {},
 }
@@ -43,7 +43,7 @@ const twoWfRole: RoleJSON = {
 }
 
 const actions: ActionDefJSON[] = [
-  { name: 'MyAction', fields: [], capabilities: [], output_key: 'out' },
+  { name: 'MyAction', description: '', fields: [], capabilities: [], output_key: 'out', ctx_override: false },
 ]
 
 const catalog = { TextStats: 'fabricatio_webui.actions.demo' }
@@ -69,7 +69,7 @@ describe('scopedRole', () => {
 
   it('clamps out-of-range indices and tolerates workflow-less roles', () => {
     expect(scopedRole(twoWfRole, 'workflow', 99).workflows[0].name).toBe('extra')
-    expect(scopedRole({ name: 'Empty', workflows: [] }, 'workflow', 0).workflows).toHaveLength(0)
+    expect(scopedRole({ name: 'Empty', description: '', workflows: [] }, 'workflow', 0).workflows).toHaveLength(0)
   })
 })
 

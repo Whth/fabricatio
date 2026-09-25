@@ -1,21 +1,46 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { X } from '@lucide/vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useExecutionStore } from '@/stores/execution'
+import { useOutputPreview } from '@/composables/useOutputPreview'
+import { useOutsideDismiss } from '@/composables/useOutsideDismiss'
+import { useHotkeys } from '@/composables/useHotkeys'
 
 const props = defineProps<{ nodeId: string; outputKey: string; anchor: DOMRect }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
 const { t } = useI18n()
+const { hide } = useOutputPreview()
+
+/** Panel element: presses inside it are not "outside" dismissals. */
+const rootEl = ref<HTMLElement | null>(null)
+useOutsideDismiss(rootEl, hide)
+
+// Escape closes the panel; the component only exists while it is open, so the
+// hotkey is registered/unregistered with its lifecycle.
+const { register } = useHotkeys()
+let offEscape: (() => void) | null = null
+onMounted(() => {
+  offEscape = register('escape', hide)
+})
+onUnmounted(() => {
+  offEscape?.()
+})
 
 const preview = computed(() => String(execStore.nodeOutputs[props.nodeId]?.[props.outputKey] ?? t('canvas.noOutput')))
-const title = computed(() => wfStore.nodes.find((n) => n.id === props.nodeId)?.data.title ?? props.nodeId)
+const title = computed(() => wfStore.nodes.find((n) => n.id === props.nodeId)?.data?.title ?? props.nodeId)
 </script>
 
 <template>
-  <div class="output-preview" :style="{ left: anchor.right + 8 + 'px', top: anchor.top + 'px' }">
-    <div class="preview-header">{{ title }} · {{ outputKey }}</div>
+  <div ref="rootEl" class="output-preview" :style="{ left: anchor.right + 8 + 'px', top: anchor.top + 'px' }">
+    <div class="preview-header">
+      <span class="preview-title">{{ title }} · {{ outputKey }}</span>
+      <button class="preview-close" :title="t('common.close')" @click="hide">
+        <X :size="12" />
+      </button>
+    </div>
     <pre class="preview-body">{{ preview }}</pre>
   </div>
 </template>
@@ -45,6 +70,24 @@ const title = computed(() => wfStore.nodes.find((n) => n.id === props.nodeId)?.d
   font-size: var(--text-xs);
   font-weight: var(--weight-medium);
   color: var(--fg-1);
+}
+.preview-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.preview-close {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.preview-close:hover {
+  color: var(--fg-0);
 }
 .preview-body {
   margin: 0;

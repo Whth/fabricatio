@@ -5,6 +5,7 @@ import { useBoardStore } from '@/stores/board'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { ActionDefJSON } from '@/types/api'
+import FormRow from '@/components/chrome/FormRow.vue'
 import { X, Plus, Trash2, Save } from '@lucide/vue'
 
 const boardStore = useBoardStore()
@@ -133,22 +134,18 @@ function close() {
     <div v-else class="editor-body">
       <div class="section">
         <div class="section-title">{{ t('chrome.editor.customTitle') }}</div>
-        <label class="edit-row">
-          <span>{{ t('chrome.editor.name') }}</span>
+        <FormRow class="edit-row" stacked as="label" :label="t('chrome.editor.name')">
           <input v-model="draft.name" class="edit-input" @input="dirty = true" />
-        </label>
-        <label class="edit-row">
-          <span>{{ t('chrome.editor.description') }}</span>
+        </FormRow>
+        <FormRow class="edit-row" stacked as="label" :label="t('chrome.editor.description')">
           <textarea v-model="draft.description" class="edit-input" rows="2" @input="dirty = true"></textarea>
-        </label>
-        <div class="edit-row">
-          <span>output_key</span>
+        </FormRow>
+        <FormRow class="edit-row" stacked label="output_key">
           <input v-model="draft.output_key" class="edit-input mono" :placeholder="t('chrome.editor.outputKeyPlaceholder')" @input="dirty = true" />
-        </div>
-        <label class="edit-row toggle-row">
-          <span>ctx_override</span>
+        </FormRow>
+        <FormRow class="edit-row" as="label" label="ctx_override">
           <input v-model="draft.ctx_override" type="checkbox" @change="dirty = true" />
-        </label>
+        </FormRow>
       </div>
 
       <div class="section">
@@ -299,8 +296,8 @@ function close() {
   border-color: var(--err);
 }
 
-.kv-row,
-.edit-row {
+/* FormRow owns the row disposition; the editor keeps its own metrics and ink. */
+.kv-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -308,6 +305,16 @@ function close() {
   padding: var(--sp-1) 0;
   font-size: var(--text-sm);
   color: var(--fg-1);
+}
+
+.edit-row {
+  padding: var(--sp-1) 0;
+  font-size: var(--text-sm);
+  color: var(--fg-1);
+}
+
+.edit-row :deep(.form-row-label) {
+  font-size: var(--text-sm);
 }
 
 .kv-row code {
@@ -335,17 +342,6 @@ function close() {
 .edit-input:focus {
   outline: none;
   border-color: var(--accent);
-}
-
-.edit-row {
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--sp-1);
-}
-
-.toggle-row {
-  flex-direction: row;
-  justify-content: space-between;
 }
 
 .field-row.readonly {

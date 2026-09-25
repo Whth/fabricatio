@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useUiStore } from '@/stores/ui'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useHotkeys } from '@/composables/useHotkeys'
 import { useI18n } from 'vue-i18n'
 import { useAppActions } from '@/composables/useAppActions'
 import RunDialog from '@/components/chrome/RunDialog.vue'
@@ -95,16 +96,14 @@ function onAutoLayout() {
   wfStore.applyAutoLayout()
 }
 
-function onKeyDown(ev: KeyboardEvent) {
-  if (ev.key === 'Escape') {
-    if (loadOpen.value) loadOpen.value = false
-    if (uiStore.runDialogOpen) uiStore.runDialogOpen = false
-    if (isEditingName.value) cancelEditName()
-  }
-}
-
-onMounted(() => window.addEventListener('keydown', onKeyDown))
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+// Escape dismisses the load menu. The run dialog and the name editor own their
+// own Escape (AppModal's hotkey registration and the input's keydown), so this
+// listener no longer reaches into other components' state.
+const { register } = useHotkeys()
+const offEsc = register('escape', () => {
+  if (loadOpen.value) loadOpen.value = false
+})
+onUnmounted(offEsc)
 </script>
 
 <template>
@@ -187,11 +186,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
           <Play :size="14" /> {{ boardStore.layer === 'board' ? t('chrome.toolbar.publish') : t('chrome.toolbar.runShort') }}
         </button>
 
-        <RunDialog
-          :open="uiStore.runDialogOpen"
-          :mode="uiStore.runDialogMode"
-          @close="uiStore.runDialogOpen = false"
-        />
+        <RunDialog />
 
         <span v-if="execStore.queueLength > 0" class="queue-badge">{{ execStore.queueLength }}</span>
       </div>

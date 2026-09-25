@@ -1,136 +1,51 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Handle, Position } from '@vue-flow/core'
-import type { PortDefinition } from '@/types/api'
-import { useWorkflowStore, type FabricatioNodeData } from '@/stores/workflow'
+import { Handle, Position, type NodeProps } from '@vue-flow/core'
+import type { FabricatioNodeData } from '@/types/editor'
 import { useExecutionStore } from '@/stores/execution'
+import { useWorkflowStore } from '@/stores/workflow'
 import { categoryColor } from '@/utils/categoryColors'
 import { useOutputPreview } from '@/composables/useOutputPreview'
-import { fieldTooltip, groupConfigFields, type ArgGroup } from '@/utils/argGroups'
+import { fieldTooltip } from '@/utils/argGroups'
+import { useNodePorts } from '@/composables/useNodePorts'
 import NodeWidget from './NodeWidget.vue'
 
-const props = defineProps<{ id: string; data: FabricatioNodeData }>()
+const props = defineProps<NodeProps<FabricatioNodeData>>()
 const emit = defineEmits<{ 'open-source': [nodeType: string] }>()
 const wfStore = useWorkflowStore()
 const execStore = useExecutionStore()
 const { t } = useI18n()
 const { show } = useOutputPreview()
 
-const node = computed(() => wfStore.nodes.find((n) => n.id === props.id))
-
-const incomingHandles = computed(() => {
-  const handles = new Set<string>()
-  for (const e of wfStore.edges) if (e.target === props.id && e.targetHandle) handles.add(e.targetHandle)
-  return handles
-})
-
-// The registry emits the same field set for inputPorts and configFields;
-// rendering both loops used to create duplicate Handle ids per field, which
-// made connections land on the wrong widget.  Widget rows below are the
-// single source of input handles; this defensive list covers any future
-// port that is not a config field.
-const extraInputPorts = computed(() =>
-  ((props.data.inputPorts ?? []) as PortDefinition[]).filter(
-    (p) => !((props.data.configFields ?? []) as PortDefinition[]).some((f) => f.name === p.name),
-  ),
-)
-
-/** Full "← source" description for a wired field (node title + port). */
-function wiredSource(field: string): string {
-  const edge = edgeInto(field)
-  if (!edge) return 'unknown'
-  const sourceNode = wfStore.nodes.find((n) => n.id === edge.source)
-  const port =
-    edge.sourceHandle && edge.sourceHandle !== 'default'
-      ? `.${edge.sourceHandle}`
-      : ''
-  return `${sourceNode?.data?.title ?? edge.source}${port}`
-}
-
-/** The edge feeding this field, if any. */
-function edgeInto(field: string) {
-  return wfStore.edges.find(
-    (e) => e.target === props.id && (e.targetHandle ?? 'default') === field,
-  )
-}
-
-/** Short source-port name for the wired chip (e.g. `read_text`). */
-function wiredPort(field: string): string {
-  const edge = edgeInto(field)
-  if (!edge) return '?'
-  return edge.sourceHandle && edge.sourceHandle !== 'default'
-    ? edge.sourceHandle
-    : 'output'
-}
-
-/** Hover text for a wired field row: field doc plus who feeds it. */
-function wiredTip(f: PortDefinition): string {
-  return `${fieldTooltip(f)}\n\n${t('canvas.valueFrom', { source: wiredSource(f.name) })}`
-}
-
-/** Disconnect the edge feeding this field, restoring manual editing. */
-function unwire(field: string) {
-  const edge = edgeInto(field)
-  if (edge) wfStore.removeEdge(edge.id)
-}
-
-function fieldValue(f: PortDefinition): unknown {
-  return (
-    node.value?.data.config?.[f.name] ??
-    f.default ??
-    (f.widget === 'toggle' ? false : f.widget === 'number' ? 0 : '')
-  )
-}
-
-function updateField(f: PortDefinition, value: unknown) {
-  wfStore.setNodeConfig(props.id, f.name, value)
-}
-
-function hasOutput(key: string): boolean {
-  return execStore.nodeOutputs[props.id]?.[key] !== undefined
-}
-
-// ── Arg grouping ────────────────────────────────────────────────────────────────
-
-const argGroups = computed<ArgGroup[]>(() =>
-  groupConfigFields(
-    (props.data.configFields ?? []) as PortDefinition[],
-    (props.data.nodeType as string) ?? '',
-  ),
+const {
+  incomingHandles,
+  extraInputPorts,
+  groups,
+  isGroupExpanded,
+  groupRows,
+  toggleGroup,
+  wiredTip,
+  wiredPort,
+  fieldValue,
+  updateField,
+  unwire,
+} = useNodePorts(
+  computed(() => props.id),
+  // VueFlow always provides `data`; widening to the boundary's optional shape
+  // is what lets the inspector reuse the same composable.
+  computed<FabricatioNodeData | undefined>(() => props.data),
+  {
+    edges: computed(() => wfStore.edges),
+    titleOf: (id) => wfStore.nodes.find((n) => n.id === id)?.data?.title,
+  },
 )
 
 /** Show group headers only when more than one effective group exists. */
-const showGroups = computed(() => argGroups.value.length > 1)
+const showGroups = computed(() => groups.value.length > 1)
 
-/** Groups explicitly expanded by the user. */
-const expandedGroups = ref<Set<string>>(new Set())
-
-/** Is a group currently expanded?
- * Inherited groups default to collapsed unless the user toggled them open.
- * Own group is always expanded.
- * Any group that has a wired field is also effectively expanded (handle must exist). */
-function isGroupExpanded(g: ArgGroup): boolean {
-  if (g.own) return true
-  if (g.fields.some((f) => incomingHandles.value.has(f.name))) return true
-  return expandedGroups.value.has(g.name)
-}
-
-function toggleGroup(g: ArgGroup) {
-  const next = new Set(expandedGroups.value)
-  if (next.has(g.name)) {
-    next.delete(g.name)
-  } else {
-    next.add(g.name)
-  }
-  expandedGroups.value = next
-}
-
-/** Rows to render for a group: all fields when expanded, wired-only when collapsed. */
-function groupRows(g: ArgGroup): PortDefinition[] {
-  return isGroupExpanded(g)
-    ? g.fields
-    : g.fields.filter((f) => incomingHandles.value.has(f.name))
+function hasOutput(key: string): boolean {
+  return execStore.nodeOutputs[props.id]?.[key] !== undefined
 }
 
 // ── Node collapse (whole-node) ─────────────────────────────────────────────────
@@ -189,7 +104,7 @@ const statusLabel = computed(() => {
          stack every handle of a side at the node's vertical center and
          route wires to that point instead of to the row. -->
     <div class="port-col inputs">
-      <template v-for="g in argGroups" :key="'g-' + g.name">
+      <template v-for="g in groups" :key="'g-' + g.name">
         <!-- Group header (only when >1 effective group) -->
         <div
           v-if="showGroups"

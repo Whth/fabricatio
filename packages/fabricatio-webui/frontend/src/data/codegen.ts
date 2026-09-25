@@ -14,7 +14,13 @@
  * optional `[project.scripts]` console entry point.
  */
 
-import type { ActionDefJSON, RoleJSON, WorkflowJSON } from '@/types/api'
+import type {
+  ActionDefJSON,
+  FabricatioEdge,
+  FabricatioNode,
+  RoleJSON,
+  WorkflowJSON,
+} from '@/types/api'
 
 function pyLiteral(value: unknown): string {
   if (value === null || value === undefined) return 'None'
@@ -43,6 +49,12 @@ function pyType(t: string): string {
   return s
 }
 
+/** Prefix every non-empty line with `n` spaces; blank lines stay blank. */
+export function indent(lines: string[], n: number): string[] {
+  const pad = ' '.repeat(n)
+  return lines.map((l) => (l ? `${pad}${l}` : l))
+}
+
 /** Kahn's topological order over the workflow's node ids. */
 function topoOrder(wf: WorkflowJSON): string[] {
   const nodes = wf.nodes.map((n) => n.id)
@@ -66,28 +78,24 @@ function topoOrder(wf: WorkflowJSON): string[] {
   return order
 }
 
-function configArgs(wf: WorkflowJSON, nodeId: string): string {
-  const node = wf.nodes.find((n) => n.id === nodeId)
+function configArgs(node: FabricatioNode | undefined): string {
   if (!node) return ''
   const entries = Object.entries(node.config ?? {}).filter(([, v]) => v !== undefined && v !== '')
   return entries.length ? `(${entries.map(([k, v]) => `${k}=${pyLiteral(v)}`).join(', ')})` : '()'
 }
 
-function wiredNotes(wf: WorkflowJSON): string[] {
-  const notes: string[] = []
-  for (const e of wf.edges) {
-    const tgt = wf.nodes.find((n) => n.id === e.target)
-    if (!tgt) continue
-    const field = tgt.config?.[e.target_handle] !== undefined ? ' (overridden by the edge at runtime)' : ''
-    notes.push(
-      `    # edge: ${e.source}.${e.source_handle} -> ${e.target}.${e.target_handle}${field}`,
-    )
-  }
-  return notes
+function wiredNotes(edges: FabricatioEdge[], nodes: Map<string, FabricatioNode>): string[] {
+  return edges.flatMap((e) => {
+    const tgt = nodes.get(e.target)
+    if (!tgt) return []
+    const field =
+      tgt.config?.[e.target_handle] !== undefined ? ' (overridden by the edge at runtime)' : ''
+    return [`    # edge: ${e.source}.${e.source_handle} -> ${e.target}.${e.target_handle}${field}`]
+  })
 }
 
 /** Emit a custom Action class definition (board-level). */
-function emitAction(def: ActionDefJSON): string {
+function emitAction(def: ActionDefJSON): string[] {
   const lines: string[] = []
   lines.push(`class ${def.name}(Action):`)
   lines.push(`    """${(def.description || 'User-defined action').replace(/"""/g, "\\\"\\\"\\\"")}"""`)
@@ -102,37 +110,37 @@ function emitAction(def: ActionDefJSON): string {
   lines.push('    async def _execute(self, *_: Any, **cxt: Any) -> Any:')
   lines.push('        raise NotImplementedError("implement the body of this action")')
   lines.push('')
-  return lines.join('\n')
+  return lines
 }
 
-function emitWorkflow(wf: WorkflowJSON, index: number): string {
+function emitWorkflow(wf: WorkflowJSON, index: number): string[] {
+  const nodes = new Map(wf.nodes.map((n) => [n.id, n]))
   const order = topoOrder(wf)
-  const steps = order
-    .map((id) => {
-      const node = wf.nodes.find((n) => n.id === id)
-      return `        ${node?.type ?? 'Action'}${configArgs(wf, id)},`
-    })
-    .join('\n')
+  const steps = order.map(
+    (id) => `        ${nodes.get(id)?.type ?? 'Action'}${configArgs(nodes.get(id))},`,
+  )
 
-  const notes = wiredNotes(wf)
-  const outputKey = wf.task_output_key || (order.length ? undefined : undefined)
-  const outKeyLine = outputKey
-    ? `class _Output${index}(WorkFlow):\n    task_output_key = ${JSON.stringify(outputKey)}\n\n`
-    : ''
+  const notes = wiredNotes(wf.edges, nodes)
+  const outKeyLines = wf.task_output_key
+    ? [
+        `class _Output${index}(WorkFlow):`,
+        `    task_output_key = ${JSON.stringify(wf.task_output_key)}`,
+        '',
+        `wf_${index} = _Output${index}(`,
+      ]
+    : [`wf_${index} = WorkFlow(`]
 
   return [
-    outKeyLine
-      ? `${outKeyLine}wf_${index} = _Output${index}(`
-      : `wf_${index} = WorkFlow(`,
+    ...outKeyLines,
     `    name=${JSON.stringify(wf.name || `workflow-${index}`)},`,
     `    steps=[`,
-    steps,
+    ...steps,
     `    ],`,
     `    extra_init_context=${pyLiteral(wf.init_context ?? {})},`,
     `)`,
     '',
     ...notes,
-  ].join('\n')
+  ]
 }
 
 
@@ -179,6 +187,52 @@ function emitImports(role: RoleJSON, actions: ActionDefJSON[], catalog: NodeCata
   return [...imports, ...notes]
 }
 
+/** Custom actions actually referenced by at least one workflow node. */
+function usedCustomActions(role: RoleJSON, actions: ActionDefJSON[]): ActionDefJSON[] {
+  const usedTypes = new Set<string>()
+  for (const wf of role.workflows ?? []) {
+    for (const n of wf.nodes) usedTypes.add(n.type)
+  }
+  return actions.filter((a) => usedTypes.has(a.name))
+}
+
+/** Banner + inline Action class definitions for the given custom actions. */
+function customActionBlock(actions: ActionDefJSON[]): string[] {
+  return actions.length
+    ? [
+        '# ── Custom actions ────────────────────────────────────────────────',
+        '',
+        ...actions.flatMap(emitAction),
+        '',
+      ]
+    : []
+}
+
+/** `"<namespace>::*::Pending": wf_<i>,` subscription lines, indented `indent` spaces. */
+function subscriptionLines(role: RoleJSON, indent: number): string[] {
+  const pad = ' '.repeat(indent)
+  return (role.workflows ?? []).map((wf, i) => {
+    const ns = (wf.namespace ?? wf.name ?? '').trim().replace(/^:+|:+$/g, '')
+    const pattern = ns ? `${ns}::*::Pending` : ''
+    return `${pad}${JSON.stringify(pattern)}: wf_${i},`
+  })
+}
+
+/** The `role = Role.new({...}, name=..., description=...)` construction. */
+function roleInitLines(role: RoleJSON, indent: number): string[] {
+  const pad = ' '.repeat(indent)
+  return [
+    `${pad}role = Role.new({`,
+    ...subscriptionLines(role, indent + 4),
+    `${pad}}, name=${JSON.stringify(role.name)}, description=${JSON.stringify(role.description || '')})`,
+  ]
+}
+
+/** Namespace segments a published task is addressed to. */
+function taskSendTo(role: RoleJSON): string {
+  return JSON.stringify((role.workflows?.[0]?.namespace ?? 'main').split('::'))
+}
+
 export function generateRoleModule(
   role: RoleJSON,
   actions: ActionDefJSON[],
@@ -215,28 +269,11 @@ export function generateRoleModule(
     '',
   ]
 
-  const usedTypes = new Set<string>()
-  for (const wf of role.workflows ?? []) {
-    for (const n of wf.nodes) usedTypes.add(n.type)
-  }
-  const custom = actions.filter((a) => usedTypes.has(a.name))
-  const customBlock = custom.length
-    ? ['# ── Custom actions ────────────────────────────────────────────────', '', ...custom.flatMap((a) => emitAction(a).split('\n')), '']
-    : []
-
-  const subs = (role.workflows ?? [])
-    .map((wf, i) => {
-      const ns = (wf.namespace ?? wf.name ?? '').trim().replace(/^:+|:+$/g, '')
-      const pattern = ns ? `${ns}::*::Pending` : ''
-      return `    ${JSON.stringify(pattern)}: wf_${i},`
-    })
-    .join('\n')
+  const customBlock = customActionBlock(usedCustomActions(role, actions))
 
   const roleBlock = [
     `# ── Role ──────────────────────────────────────────────────────────────`,
-    `role = Role.new({`,
-    ...(subs ? [subs] : []),
-    `}, name=${JSON.stringify(role.name)}, description=${JSON.stringify(role.description || '')})`,
+    ...roleInitLines(role, 0),
     `role.dispatch()  # registered on the EMITTER before any task arrives`,
     '',
   ]
@@ -251,7 +288,7 @@ export function generateRoleModule(
     `# ── Example task ──────────────────────────────────────────────────────`,
     `async def main() -> None:`,
     `    ctx = _parse_args()`,
-    `    task = Task(name="example", send_to=${JSON.stringify((role.workflows?.[0]?.namespace ?? 'main').split('::'))})`,
+    `    task = Task(name="example", send_to=${taskSendTo(role)})`,
     `    if ctx:`,
     `        task.update_init_context(**ctx)`,
     `    task.publish()`,
@@ -267,7 +304,7 @@ export function generateRoleModule(
     '',
     ...header,
     ...customBlock,
-    ...role.workflows.flatMap((wf, i) => emitWorkflow(wf, i).split('\n')),
+    ...role.workflows.flatMap((wf, i) => emitWorkflow(wf, i)),
     '',
     ...roleBlock,
     ...main,
@@ -333,34 +370,13 @@ export function generatePkgWorkflowsModule(
     '',
   ]
 
-  const usedTypes = new Set<string>()
-  for (const wf of role.workflows ?? []) {
-    for (const n of wf.nodes) usedTypes.add(n.type)
-  }
-  const custom = actions.filter((a) => usedTypes.has(a.name))
-  const customBlock = custom.length
-    ? ['# ── Custom actions ────────────────────────────────────────────────', '', ...custom.flatMap((a) => emitAction(a).split('\n')), '']
-    : []
-
-  const subs = (role.workflows ?? [])
-    .map((wf, i) => {
-      const ns = (wf.namespace ?? wf.name ?? '').trim().replace(/^:+|:+$/g, '')
-      const pattern = ns ? `${ns}::*::Pending` : ''
-      return `        ${JSON.stringify(pattern)}: wf_${i},`
-    })
-    .join('\n')
+  const customBlock = customActionBlock(usedCustomActions(role, actions))
 
   const buildRole = [
     'def build_role(*, dispatch: bool = True) -> Role:',
     '    """Construct the role and its workflows; dispatch unless told not to."""',
-    ...(role.workflows ?? []).flatMap((wf, i) =>
-      emitWorkflow(wf, i)
-        .split('\n')
-        .map((l) => (l ? `    ${l}` : l)),
-    ),
-    '    role = Role.new({',
-    ...(subs ? [subs] : []),
-    `    }, name=${JSON.stringify(role.name)}, description=${JSON.stringify(role.description || '')})`,
+    ...(role.workflows ?? []).flatMap((wf, i) => indent(emitWorkflow(wf, i), 4)),
+    ...roleInitLines(role, 4),
     '    if dispatch:',
     '        role.dispatch()',
     '    return role',
@@ -372,7 +388,7 @@ export function generatePkgWorkflowsModule(
     'async def run(context: dict[str, Any] | None = None, *, task_name: str = "example") -> Any:',
     '    """Build the role, publish a task with `context`, and await its output."""',
     '    build_role()',
-    `    task = Task(name=task_name, send_to=${JSON.stringify((role.workflows?.[0]?.namespace ?? 'main').split('::'))})`,
+    `    task = Task(name=task_name, send_to=${taskSendTo(role)})`,
     '    if context:',
     '        task.update_init_context(**context)',
     '    task.publish()',

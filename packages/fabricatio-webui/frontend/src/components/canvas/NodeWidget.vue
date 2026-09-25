@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { PortDefinition } from '@/types/api'
+import type { PortDefinition, WidgetKind } from '@/types/api'
 import { fieldTooltip } from '@/utils/argGroups'
 const props = defineProps<{
   field: PortDefinition
@@ -14,15 +14,28 @@ const widget = computed(() => props.field.widget ?? 'text')
 /** Hover info for the whole field row (label + control). */
 const tip = computed(() => fieldTooltip(props.field))
 
+type WidgetInput = HTMLInputElement | HTMLTextAreaElement
+
+/**
+ * Per-widget-kind coercion of the raw input string. Number is the only kind
+ * that transforms; every string-like kind (text/textarea/combo/json) emits
+ * the value unchanged, so the mapping is the single place coercion lives.
+ */
+const COERCE: Record<WidgetKind, (el: WidgetInput) => unknown> = {
+  toggle: (el) => el.value,
+  number: (el) => (el.value === '' ? null : Number(el.value)),
+  combo: (el) => el.value,
+  text: (el) => el.value,
+  textarea: (el) => el.value,
+  json: (el) => el.value,
+}
+
 function onInput(e: Event) {
-  const el = e.target as HTMLInputElement | HTMLTextAreaElement
-  if (widget.value === 'number') {
-    emit('update:modelValue', el.value === '' ? null : Number(el.value))
-  } else if (widget.value === 'json') {
-    emit('update:modelValue', el.value)
-  } else {
-    emit('update:modelValue', el.value)
-  }
+  const el = e.target as WidgetInput
+  // Fall back to the raw string for any kind without an entry, so an unknown
+  // widget hint cannot throw.
+  const coerce = COERCE[widget.value]
+  emit('update:modelValue', coerce ? coerce(el) : el.value)
 }
 
 function onToggle(e: Event) {

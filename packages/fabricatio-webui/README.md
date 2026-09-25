@@ -241,7 +241,7 @@ Client → server:
 
 | type | payload |
 |------|---------|
-| `submit` | `{ workflow: WorkflowJSON, task_input?: any }` |
+| `submit` | `{ task: TaskJSON }` — identical payload to `POST /api/execute`, so both transports hit the same worker entry point |
 
 Server → client:
 

@@ -1,9 +1,11 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import type { ActionDefJSON, BoardJSON, NodeTypeDefinition, PortDefinition, RoleJSON, WorkflowJSON } from '@/types/api'
+import { api } from '@/api/client'
 import { useWorkflowStore } from '@/stores/workflow'
 import { blueprintFromJSON, type Blueprint } from '@/data/blueprints'
 import { layoutWorkflowJSON } from '@/utils/autoLayout'
+import { clone } from '@/utils/clone'
 
 /**
  * The board document: roles with their workflows, plus board-level custom
@@ -60,6 +62,35 @@ function newWorkflow(name: string, namespace: string): WorkflowJSON {
   }
 }
 
+/** The one board-document factory: the initial ref, `toJSON`, `fromJSON` and
+ *  `clear` all construct through here, so the literal lives once. */
+function newBoard(doc: Partial<BoardJSON> = {}): BoardJSON {
+  return {
+    version: '1.0',
+    format_version: 2,
+    name: doc.name ?? 'Untitled Board',
+    description: doc.description ?? '',
+    roles: doc.roles ?? [],
+    actions: doc.actions ?? [],
+    meta: doc.meta,
+  }
+}
+
+/** Default board skeleton: one role serving a fresh empty Main workflow. */
+function defaultRole(): RoleJSON {
+  return { name: 'Default Role', description: '', workflows: [newWorkflow('Main', 'main')] }
+}
+
+/** Saved board, or a legacy (format_version < 2) bare workflow document
+ *  served by older backends and still accepted by `fromJSON`. */
+export type BoardDocument = BoardJSON | WorkflowJSON
+
+/** True when a saved document is a legacy bare workflow: a node list with no
+ *  role wrapper. Narrows to `WorkflowJSON` for a single destructure. */
+function isLegacyWorkflowDoc(doc: BoardDocument): doc is WorkflowJSON {
+  return 'nodes' in doc && !('roles' in doc)
+}
+
 /** Turn a workflow name into a namespace pattern ('Read a Text File' → 'read-a-text-file'). */
 function slugify(name: string): string {
   return name
@@ -78,14 +109,7 @@ function uniqueName(names: Set<string>, base: string): string {
 }
 
 export const useBoardStore = defineStore('board', () => {
-  const board = ref<BoardJSON>({
-    version: '1.0',
-    format_version: 2,
-    name: 'Untitled Board',
-    description: '',
-    roles: [],
-    actions: [],
-  })
+  const board = ref<BoardJSON>(newBoard())
   const loadedId = ref<string | null>(null)
   const layer = ref<Layer>('board')
   const activeRoleIndex = ref(0)
@@ -102,7 +126,6 @@ export const useBoardStore = defineStore('board', () => {
 
   async function loadBlueprints() {
     try {
-      const { api } = await import('@/api/client')
       const list = await api.getBlueprints()
       blueprints.value = list.map(blueprintFromJSON)
     } catch {
@@ -146,6 +169,20 @@ export const useBoardStore = defineStore('board', () => {
   function enterAction(name: string) {
     actionDefName.value = name
     layer.value = 'action'
+  }
+
+  // ── Codegen dialog ────────────────────────────────────────────────────────
+  // Frozen interface: the codegen/export slice drives the dialog through these
+  // rather than touching the flag; `codegenRoleIndex` stays the single source
+  // of truth for "which role's module is open".
+
+  /** Open the generated-module dialog for a role (the only way in). */
+  function openCodegen(roleIndex: number) {
+    codegenRoleIndex.value = roleIndex
+  }
+
+  function closeCodegen() {
+    codegenRoleIndex.value = null
   }
 
   // ── Role / workflow CRUD ──────────────────────────────────────────────────
@@ -211,9 +248,7 @@ export const useBoardStore = defineStore('board', () => {
     const target = board.value.roles[targetRoleIndex]
     const wf = source?.workflows[workflowIndex]
     if (!source || !target || !wf || sourceRoleIndex === targetRoleIndex) return false
-    // JSON round-trip: the board document is JSON by definition, and
-    // structuredClone cannot clone Vue reactive proxies.
-    const copy: WorkflowJSON = JSON.parse(JSON.stringify(wf))
+    const copy: WorkflowJSON = clone(wf)
     copy.name = uniqueName(new Set(target.workflows.map((w) => w.name ?? '')), copy.name ?? '')
     target.workflows.push(copy)
     return true
@@ -264,9 +299,7 @@ export const useBoardStore = defineStore('board', () => {
       .map((i) => role.workflows[i])
       .filter((w): w is WorkflowJSON => !!w)
     if (wfs.length === 0) return false
-    // JSON round-trip: the board document is JSON by definition, and
-    // structuredClone cannot clone Vue reactive proxies.
-    copiedWorkflows.value = JSON.parse(JSON.stringify(wfs))
+    copiedWorkflows.value = clone(wfs)
     return true
   }
 
@@ -277,7 +310,7 @@ export const useBoardStore = defineStore('board', () => {
   function pasteWorkflows(targetRoleIndex: number): number {
     const role = board.value.roles[targetRoleIndex]
     if (!role || copiedWorkflows.value.length === 0) return 0
-    const copies: WorkflowJSON[] = JSON.parse(JSON.stringify(copiedWorkflows.value))
+    const copies: WorkflowJSON[] = clone(copiedWorkflows.value)
     const names = new Set(role.workflows.map((w) => w.name ?? ''))
     for (const wf of copies) {
       wf.name = uniqueName(names, wf.name ?? '')
@@ -303,9 +336,7 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
   // are estimated from the registry — the canvas is not mounted yet.
   layoutWorkflowJSON(wf, useWorkflowStore().nodeTypes)
   const names = new Set(role.workflows.map((w) => w.name ?? ''))
-  let name = bp.name
-  let n = 2
-  while (names.has(name)) name = `${bp.name}-${n++}`
+  const name = uniqueName(names, bp.name)
   wf.name = name
   wf.namespace = slugify(name)
   const onlyPlaceholder =
@@ -348,39 +379,33 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
 
   function toJSON(): BoardJSON {
     commitActiveWorkflow()
-    return {
-      version: '1.0',
-      format_version: 2,
+    return newBoard({
       name: board.value.name,
       description: board.value.description,
       roles: board.value.roles,
       actions: board.value.actions,
       meta: board.value.meta,
-    }
+    })
   }
 
-  function fromJSON(doc: BoardJSON) {
+  function fromJSON(doc: BoardDocument) {
     // Defensive: legacy docs (a bare workflow) wrap into a board with one role.
-    const roles = doc.roles?.length ? doc.roles : []
-    const actions = doc.actions ?? []
-    if (roles.length === 0 && (doc as unknown as { nodes?: unknown }).nodes) {
+    if (isLegacyWorkflowDoc(doc)) {
+      const { name, nodes, edges, init_context } = doc
       const wf: WorkflowJSON = {
-        name: doc.name ?? 'Main',
-        namespace: doc.name ?? 'main',
-        nodes: (doc as unknown as { nodes: WorkflowJSON['nodes'] }).nodes ?? [],
-        edges: (doc as unknown as { edges: WorkflowJSON['edges'] }).edges ?? [],
-        init_context: (doc as unknown as { init_context: Record<string, unknown> }).init_context ?? {},
+        name: name ?? 'Main',
+        namespace: name ?? 'main',
+        nodes: nodes ?? [],
+        edges: edges ?? [],
+        init_context: init_context ?? {},
       }
-      roles.push({ name: doc.name ?? 'Role', description: doc.description ?? '', workflows: [wf] })
-    }
-    board.value = {
-      version: doc.version ?? '1.0',
-      format_version: 2,
-      name: doc.name ?? 'Untitled Board',
-      description: doc.description ?? '',
-      roles,
-      actions,
-      meta: doc.meta,
+      board.value = newBoard({
+        name,
+        roles: [{ name: name ?? 'Role', description: '', workflows: [wf] }],
+      })
+    } else {
+      const { name, description, roles, actions, meta } = doc
+      board.value = newBoard({ name, description, roles, actions, meta })
     }
     activeRoleIndex.value = 0
     activeWorkflowIndex.value = 0
@@ -391,14 +416,7 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
   }
 
   function clear() {
-    board.value = {
-      version: '1.0',
-      format_version: 2,
-      name: 'Untitled Board',
-      description: '',
-      roles: [{ name: 'Default Role', description: '', workflows: [newWorkflow('Main', 'main')] }],
-      actions: [],
-    }
+    board.value = newBoard({ roles: [defaultRole()] })
     loadedId.value = null
     activeRoleIndex.value = 0
     activeWorkflowIndex.value = 0
@@ -419,7 +437,7 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
     const wf = useWorkflowStore()
     if (wf.nodeTypes.length === 0) await wf.loadNodeTypes()
     if (board.value.roles.length === 0 && board.value.actions.length === 0) {
-      board.value.roles = [{ name: 'Default Role', description: '', workflows: [newWorkflow('Main', 'main')] }]
+      board.value.roles = [defaultRole()]
     }
     syncNodeTypes()
     loadBlueprints()
@@ -441,6 +459,8 @@ function addBlueprintWorkflow(blueprintId: string, roleIndex: number): WorkflowJ
     enterWorkflow,
     syncActiveWorkflow,
     enterAction,
+    openCodegen,
+    closeCodegen,
     addRole,
     removeRole,
     addWorkflow,

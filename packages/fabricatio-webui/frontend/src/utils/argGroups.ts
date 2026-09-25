@@ -49,6 +49,22 @@ export function groupConfigFields(
 }
 
 /**
+ * Input ports that are NOT also config fields.
+ *
+ * The registry emits the same field set for `input_ports` and `config_fields`;
+ * rendering both loops would create duplicate handle ids per field, so the
+ * config-field rows are the single source of input handles and anything else
+ * is an "extra" port. Shared by the node card, the inspector, and the layout
+ * height estimate so all three agree on the row count.
+ */
+export function extraInputPorts(
+  inputPorts: readonly PortDefinition[],
+  configFields: readonly PortDefinition[],
+): PortDefinition[] {
+  return inputPorts.filter((p) => !configFields.some((f) => f.name === p.name))
+}
+
+/**
  * Per-field hover text: name · type, optional marker, registry doc, default.
  * Rendered via the native `title` attribute so it survives the zoomed/
  * transformed VueFlow pane (a CSS tooltip would scale and clip with it).

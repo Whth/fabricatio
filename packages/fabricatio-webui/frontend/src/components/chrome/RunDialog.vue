@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWorkflowStore } from '@/stores/workflow'
 import { useUiStore } from '@/stores/ui'
 import { useAppActions } from '@/composables/useAppActions'
-import { X, Play } from '@lucide/vue'
+import AppModal from '@/components/chrome/AppModal.vue'
+import FormRow from '@/components/chrome/FormRow.vue'
+import { Play } from '@lucide/vue'
 
-const props = defineProps<{
-  open: boolean
-  /** 'workflow' pre-fills from the active workflow; 'publish' is free-form. */
-  mode?: 'workflow' | 'publish'
-}>()
-const emit = defineEmits<{ close: [] }>()
-
+/**
+ * Run/publish task dialog. The open flag and the mode live in the ui store
+ * (the toolbar button, hotkeys and the palette all open it there); AppModal
+ * supplies the scaffold, so Esc/backdrop/X just call `uiStore.closeRunDialog()`.
+ */
 const wfStore = useWorkflowStore()
 const uiStore = useUiStore()
 const { t } = useI18n()
 const { runWorkflow } = useAppActions()
+
+const mode = computed(() => uiStore.runDialogMode)
 
 const name = ref('')
 const namespace = ref('')
@@ -27,7 +29,7 @@ const extraContext = ref('{}')
 const invalid = ref<string | null>(null)
 
 watch(
-  () => props.open,
+  () => uiStore.runDialogOpen,
   (open) => {
     if (!open) return
     invalid.value = null
@@ -38,9 +40,10 @@ watch(
     dependencies.value = ''
     extraContext.value = '{}'
     const prefill = uiStore.runDialogPrefill
-    if (prefill?.name) name.value = prefill.name
-    if (prefill?.namespace) namespace.value = prefill.namespace
-    if (prefill?.initContext && Object.keys(prefill.initContext).length > 0) {
+    if (!prefill) return
+    if (prefill.name) name.value = prefill.name
+    if (prefill.namespace) namespace.value = prefill.namespace
+    if (prefill.initContext && Object.keys(prefill.initContext).length > 0) {
       extraContext.value = JSON.stringify(prefill.initContext, null, 2)
     }
   },
@@ -70,125 +73,59 @@ function publish() {
     send_to: sendTo,
     extra_init_context: extra,
   })
-  emit('close')
+  uiStore.closeRunDialog()
 }
 </script>
 
 <template>
-  <Teleport to="body">
-    <Transition name="fade">
-      <div v-if="open" class="dialog-backdrop" @mousedown.self="emit('close')">
-        <div class="run-dialog">
-          <div class="dialog-header">
-            <Play :size="14" />
-            <span>{{ mode === 'publish' ? t('chrome.run.publishTitle') : t('chrome.run.runTitle') }}</span>
-            <button class="dialog-close" :title="t('common.close')" @click="emit('close')">
-              <X :size="14" />
-            </button>
-          </div>
+  <AppModal :open="uiStore.runDialogOpen" width="480px" @close="uiStore.closeRunDialog()">
+    <template #header>
+      <Play :size="14" />
+      <span>{{ mode === 'publish' ? t('chrome.run.publishTitle') : t('chrome.run.runTitle') }}</span>
+    </template>
 
-          <div class="dialog-body">
-            <label class="field">
-              <span class="field-label">{{ t('chrome.run.nameLabel') }}</span>
-              <input v-model="name" class="field-input" :placeholder="t('chrome.run.namePlaceholder')" />
-            </label>
+    <div class="dialog-body">
+      <FormRow class="field" stacked as="label" :label="t('chrome.run.nameLabel')">
+        <input v-model="name" class="field-input" :placeholder="t('chrome.run.namePlaceholder')" />
+      </FormRow>
 
-            <label class="field">
-              <span class="field-label">{{ t('chrome.run.nsLabel') }}</span>
-              <input v-model="namespace" class="field-input" placeholder="write::book" />
-              <span class="field-hint">{{ t('chrome.run.nsHintA') }} <code>&lt;namespace&gt;::&lt;task&gt;::Pending</code>{{ t('chrome.run.nsHintB') }}</span>
-            </label>
+      <FormRow class="field" stacked as="label" :label="t('chrome.run.nsLabel')">
+        <input v-model="namespace" class="field-input" placeholder="write::book" />
+        <template #hint>
+          <span class="field-hint">{{ t('chrome.run.nsHintA') }} <code>&lt;namespace&gt;::&lt;task&gt;::Pending</code>{{ t('chrome.run.nsHintB') }}</span>
+        </template>
+      </FormRow>
 
-            <label class="field">
-              <span class="field-label">{{ t('chrome.run.descLabel') }}</span>
-              <textarea v-model="description" class="field-input" rows="2" :placeholder="t('chrome.run.descPlaceholder')"></textarea>
-            </label>
+      <FormRow class="field" stacked as="label" :label="t('chrome.run.descLabel')">
+        <textarea v-model="description" class="field-input" rows="2" :placeholder="t('chrome.run.descPlaceholder')"></textarea>
+      </FormRow>
 
-            <div class="field-row">
-              <label class="field">
-                <span class="field-label">{{ t('chrome.run.goalsLabel') }}</span>
-                <textarea v-model="goals" class="field-input" rows="3"></textarea>
-              </label>
-              <label class="field">
-                <span class="field-label">{{ t('chrome.run.depsLabel') }}</span>
-                <textarea v-model="dependencies" class="field-input" rows="3"></textarea>
-              </label>
-            </div>
-
-            <label class="field">
-              <span class="field-label">{{ t('chrome.run.extraLabel') }}</span>
-              <textarea v-model="extraContext" class="field-input code" rows="3" spellcheck="false"></textarea>
-            </label>
-
-            <p v-if="invalid" class="field-error">{{ invalid }}</p>
-          </div>
-
-          <div class="dialog-footer">
-            <button class="btn btn-ghost" @click="emit('close')">{{ t('common.cancel') }}</button>
-            <button class="btn btn-run" @click="publish">
-              <Play :size="14" /> {{ mode === 'publish' ? t('chrome.toolbar.publish') : t('chrome.toolbar.runShort') }}
-            </button>
-          </div>
-        </div>
+      <div class="field-row">
+        <FormRow class="field" stacked as="label" :label="t('chrome.run.goalsLabel')">
+          <textarea v-model="goals" class="field-input" rows="3"></textarea>
+        </FormRow>
+        <FormRow class="field" stacked as="label" :label="t('chrome.run.depsLabel')">
+          <textarea v-model="dependencies" class="field-input" rows="3"></textarea>
+        </FormRow>
       </div>
-    </Transition>
-  </Teleport>
+
+      <FormRow class="field" stacked as="label" :label="t('chrome.run.extraLabel')">
+        <textarea v-model="extraContext" class="field-input code" rows="3" spellcheck="false"></textarea>
+      </FormRow>
+
+      <p v-if="invalid" class="field-error">{{ invalid }}</p>
+    </div>
+
+    <template #footer>
+      <button class="btn btn-ghost" @click="uiStore.closeRunDialog()">{{ t('common.cancel') }}</button>
+      <button class="btn btn-run" @click="publish">
+        <Play :size="14" /> {{ mode === 'publish' ? t('chrome.toolbar.publish') : t('chrome.toolbar.runShort') }}
+      </button>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 60;
-}
-
-.run-dialog {
-  width: 480px;
-  max-width: calc(100vw - 48px);
-  background: var(--bg-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  max-height: calc(100vh - 96px);
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--border);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
-  color: var(--fg-0);
-  flex-shrink: 0;
-}
-
-.dialog-close {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: transparent;
-  border: none;
-  color: var(--fg-1);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-}
-
-.dialog-close:hover {
-  background: var(--bg-3);
-  color: var(--fg-0);
-}
-
 .dialog-body {
   padding: var(--sp-3);
   display: flex;
@@ -197,10 +134,8 @@ function publish() {
   overflow-y: auto;
 }
 
+/* FormRow owns the stacked disposition; the field grid needs equal columns. */
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
   flex: 1;
 }
 
@@ -209,9 +144,7 @@ function publish() {
   gap: var(--sp-3);
 }
 
-.field-label {
-  font-size: var(--text-xs);
-  color: var(--fg-1);
+.field :deep(.form-row-label) {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -248,15 +181,6 @@ function publish() {
   color: var(--err);
 }
 
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -274,15 +198,5 @@ function publish() {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--fg-inv);
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity var(--duration-base) var(--ease-out);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>

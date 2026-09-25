@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import NodeInspector from '../NodeInspector.vue'
 import { i18n } from '@/i18n'
-import type { WorkflowNode, WorkflowEdge } from '@/stores/workflow'
+import type { WorkflowNode, WorkflowEdge } from '@/types/editor'
 
 const node: WorkflowNode = {
   id: 'n1',

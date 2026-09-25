@@ -141,6 +141,10 @@ export const useUiStore = defineStore('ui', () => {
     runDialogOpen.value = true
   }
 
+  function closeRunDialog() {
+    runDialogOpen.value = false
+  }
+
   function toggleConsole() {
     consoleExpanded.value = !consoleExpanded.value
   }
@@ -163,6 +167,7 @@ export const useUiStore = defineStore('ui', () => {
     toggleWorkflows,
     toggleBlueprintRail,
     openRunDialog,
+    closeRunDialog,
     toggleConsole,
   }
 })

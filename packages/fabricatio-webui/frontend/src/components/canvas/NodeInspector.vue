@@ -4,8 +4,8 @@ import { X, FileCode2 } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import type { PortDefinition } from '@/types/api'
 import { categoryColor } from '@/utils/categoryColors'
-import { groupConfigFields, type ArgGroup } from '@/utils/argGroups'
-import type { FabricatioNodeData, WorkflowNode, WorkflowEdge } from '@/stores/workflow'
+import type { WorkflowNode, WorkflowEdge } from '@/types/editor'
+import { useNodePorts } from '@/composables/useNodePorts'
 
 /**
  * Right-side inspector for the selected canvas node — the detailed info
@@ -25,27 +25,16 @@ const emit = defineEmits<{
   'open-source': [nodeType: string]
 }>()
 const { t } = useI18n()
-const d = computed(() => props.node?.data as FabricatioNodeData | undefined)
+const d = computed(() => props.node?.data)
 
-const groups = computed<ArgGroup[]>(() =>
-  d.value ? groupConfigFields(d.value.configFields ?? [], d.value.nodeType) : [],
+const { groups, extraInputPorts, wiredSource } = useNodePorts(
+  computed(() => props.node?.id ?? ''),
+  d,
+  {
+    edges: computed(() => props.edges),
+    titleOf: (id) => props.nodeTitles[id],
+  },
 )
-
-const extraInputPorts = computed<PortDefinition[]>(() =>
-  ((d.value?.inputPorts ?? []) as PortDefinition[]).filter(
-    (p) => !((d.value?.configFields ?? []) as PortDefinition[]).some((f) => f.name === p.name),
-  ),
-)
-
-/** Which upstream node/port feeds a field, if wired. */
-function wiredFrom(fieldName: string): string | null {
-  const e = props.edges.find(
-    (e) => e.target === props.node?.id && (e.targetHandle ?? 'default') === fieldName,
-  )
-  if (!e) return null
-  const port = e.sourceHandle && e.sourceHandle !== 'default' ? `.${e.sourceHandle}` : ''
-  return `${props.nodeTitles[e.source] ?? e.source}${port}`
-}
 
 /** Field value preview: config value > default > em dash. */
 function valuePreview(f: PortDefinition): string {
@@ -103,7 +92,7 @@ const hasCapabilities = computed(() => (d.value?.capabilities?.length ?? 0) > 0)
           </div>
           <p v-if="f.description" class="insp-desc">{{ f.description }}</p>
           <div class="insp-meta">
-            <span v-if="wiredFrom(f.name)" class="insp-wired" :title="t('canvas.wiredFrom', { source: wiredFrom(f.name) })">← {{ wiredFrom(f.name) }}</span>
+            <span v-if="wiredSource(f.name)" class="insp-wired" :title="t('canvas.wiredFrom', { source: wiredSource(f.name) })">← {{ wiredSource(f.name) }}</span>
             <span v-else class="insp-value"><span class="insp-dim">{{ t('canvas.value') }}</span> {{ valuePreview(f) }}</span>
             <span v-if="f.optional" class="insp-opt">{{ t('canvas.optional') }}</span>
           </div>

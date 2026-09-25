@@ -3,8 +3,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiStore } from '@/stores/ui'
 import { useBoardStore } from '@/stores/board'
-import { BLUEPRINT_MIME, type Blueprint } from '@/data/blueprints'
+import { BLUEPRINT_MIME } from '@/data/blueprints'
 import { categoryColorPair } from '@/utils/categoryColors'
+import { groupBy } from '@/utils/groupBy'
 import { LayoutTemplate, ChevronRight, GripVertical } from '@lucide/vue'
 
 const ui = useUiStore()
@@ -12,18 +13,12 @@ const { t } = useI18n()
 const board = useBoardStore()
 
 /** Blueprints grouped by category, preserving the declaration order. */
-const groups = computed(() => {
-  const order: string[] = []
-  const byCat = new Map<string, Blueprint[]>()
-  for (const bp of board.blueprints) {
-    if (!byCat.has(bp.category)) {
-      byCat.set(bp.category, [])
-      order.push(bp.category)
-    }
-    byCat.get(bp.category)!.push(bp)
-  }
-  return order.map((category) => ({ category, items: byCat.get(category)! }))
-})
+const groups = computed(() =>
+  [...groupBy(board.blueprints, (bp) => bp.category)].map(([category, items]) => ({
+    category,
+    items,
+  })),
+)
 
 function onDragStart(ev: DragEvent, id: string) {
   if (!ev.dataTransfer) return

@@ -6,6 +6,7 @@
  */
 
 import type { BlueprintJSON, WorkflowJSON } from '@/types/api'
+import { clone } from '@/utils/clone'
 
 /** dataTransfer MIME type used when dragging a blueprint onto a role. */
 export const BLUEPRINT_MIME = 'application/x-fab-blueprint'
@@ -33,6 +34,6 @@ export function blueprintFromJSON(bp: BlueprintJSON): Blueprint {
     description: bp.description,
     category: bp.category,
     nodeCount: bp.node_count,
-    build: () => JSON.parse(JSON.stringify(bp.workflow)),
+    build: () => clone(bp.workflow),
   }
 }

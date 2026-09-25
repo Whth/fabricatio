@@ -4,10 +4,12 @@ import { useI18n } from 'vue-i18n'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
-import type { Node, NodeMouseEvent } from '@vue-flow/core'
+import type { NodeMouseEvent } from '@vue-flow/core'
 import { useBoardStore } from '@/stores/board'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useHotkeys } from '@/composables/useHotkeys'
+import { nodeTypesObject, type RoleFlowNode, type RoleNodeData } from '@/types/editor'
+import { clampMenuPosition } from '@/utils/menu'
 import RoleNode from './RoleNode.vue'
 import CodegenDialog from '@/components/board/CodegenDialog.vue'
 import BlueprintSidebar from '@/components/board/BlueprintSidebar.vue'
@@ -37,7 +39,7 @@ const hotkeyOffs = [
 onUnmounted(() => hotkeyOffs.forEach((off) => off()))
 
 // The board canvas: one node per role, laid out on a grid.
-const nodes = computed<Node[]>(() =>
+const nodes = computed<RoleFlowNode[]>(() =>
   boardStore.board.roles.map((role, i) => ({
     id: `role-${i}`,
     type: 'role',
@@ -45,6 +47,9 @@ const nodes = computed<Node[]>(() =>
     data: { roleIndex: i, role },
   })),
 )
+
+/** VueFlow node-type map; `nodeTypesObject` absorbs the library's wide prop type. */
+const nodeTypes = nodeTypesObject({ role: markRaw(RoleNode) })
 
 const { onConnect } = useVueFlow({})
 onConnect(() => {
@@ -56,12 +61,11 @@ const addMenuPos = ref<{ x: number; y: number }>({ x: 0, y: 0 })
 const newRoleName = ref('')
 
 function openAddMenu(event: MouseEvent) {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  let x = event.clientX - rect.left
-  let y = event.clientY - rect.top
-  if (x + 220 > rect.width) x = Math.max(0, rect.width - 220)
-  if (y + 90 > rect.height) y = Math.max(0, rect.height - 90)
-  addMenuPos.value = { x, y }
+  // 220×90 is the menu's rendered extent; clamping keeps it inside the board.
+  addMenuPos.value = clampMenuPosition(event.currentTarget as HTMLElement, event, {
+    w: 220,
+    h: 90,
+  })
   addMenuOpen.value = true
   newRoleName.value = ''
 }
@@ -74,8 +78,10 @@ function addRole() {
 
 function onNodeClick(ev: NodeMouseEvent) {
   if (ev.event.detail === 2) {
-    const idx = ev.node.data?.roleIndex as number
-    boardStore.enterWorkflow(idx, 0)
+    // `NodeMouseEvent.node` is the library's wide `GraphNode`; annotating the
+    // local reads the role payload without an assertion at the property.
+    const data: RoleNodeData | undefined = ev.node.data
+    if (data) boardStore.enterWorkflow(data.roleIndex, 0)
   }
 }
 
@@ -88,7 +94,7 @@ function onNodeClick(ev: NodeMouseEvent) {
     <BlueprintSidebar />
     <VueFlow
       :nodes="nodes"
-      :node-types="{ role: markRaw(RoleNode) as any }"
+      :node-types="nodeTypes"
       :default-edge-options="{ type: 'smoothstep', animated: false }"
       :snap-to-grid="false"
       fit-view-on-init
@@ -127,11 +133,7 @@ function onNodeClick(ev: NodeMouseEvent) {
       </div>
     </VueFlow>
 
-    <CodegenDialog
-      v-if="boardStore.codegenRoleIndex !== null"
-      :role-index="boardStore.codegenRoleIndex"
-      @close="boardStore.codegenRoleIndex = null"
-    />
+    <CodegenDialog />
   </div>
 </template>
 

@@ -2,12 +2,15 @@
 
 from pathlib import Path
 from types import UnionType
-from typing import Annotated, Any, Literal, Union, get_args, get_origin
+from typing import Annotated, Literal, Union, get_args, get_origin
 
+from annotated_types import Ge, Gt, Le, Lt, MultipleOf
 from pydantic.fields import FieldInfo
 
+from fabricatio_webui.models.wire import JSONValue, PortSchema, TypeAnnotation
 
-def _union_port_type(args: tuple[Any, ...]) -> str:
+
+def _union_port_type(args: tuple[TypeAnnotation, ...]) -> str:
     """Render a union's port type: a single member unwraps to ``T?``, multi stays wildcard."""
     non_none = [a for a in args if a is not type(None)]
     if len(non_none) == 1:
@@ -19,7 +22,7 @@ def _union_port_type(args: tuple[Any, ...]) -> str:
     return "None"
 
 
-def _plain_port_type(ann: Any) -> str:
+def _plain_port_type(ann: TypeAnnotation) -> str:
     """Render a plain (non-generic) annotation's port type."""
     if isinstance(ann, type):
         if issubclass(ann, Path):
@@ -29,7 +32,7 @@ def _plain_port_type(ann: Any) -> str:
     return str(ann)
 
 
-def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
+def _type_to_port_type(ann: TypeAnnotation) -> str:  # noqa: PLR0911
     """Convert a Python type annotation into a frontend-friendly string."""
     origin = get_origin(ann)
 
@@ -55,7 +58,7 @@ def _type_to_port_type(ann: Any) -> str:  # noqa: PLR0911
     return origin_name
 
 
-def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> dict[str, Any] | None:
+def _widget_for_bare_type(ann: TypeAnnotation, has_default: bool, default: JSONValue) -> PortSchema | None:
     """Widget hint for a bare (non-generic) annotation; ``None`` when unhandled."""
     if not isinstance(ann, type):
         return None
@@ -73,7 +76,7 @@ def _widget_for_bare_type(ann: Any, has_default: bool, default: Any) -> dict[str
     return None
 
 
-def _widget_hint(ann: Any, has_default: bool, default: Any) -> dict[str, Any]:
+def _widget_hint(ann: TypeAnnotation, has_default: bool, default: JSONValue) -> PortSchema:
     """Map a field annotation to a frontend widget hint (see spec §2.3).
 
     Returns ``{"widget": ...}`` plus optional constraints. The port's own
@@ -88,10 +91,7 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> dict[str, Any]:
     if origin in (Union, UnionType) and args:
         non_none = [a for a in args if a is not type(None)]
         if non_none:
-            hint = _widget_hint(non_none[0], has_default, default)
-            if type(None) in args:
-                hint["required"] = False
-            return hint
+            return _widget_hint(non_none[0], has_default, default)
 
     # Annotated[T, Field(...)] -> T; pydantic moves Field() bounds into
     # FieldInfo.metadata as annotated_types objects.
@@ -114,7 +114,7 @@ def _widget_hint(ann: Any, has_default: bool, default: Any) -> dict[str, Any]:
     return _widget_for_bare_type(ann, has_default, default) or {"widget": "json"}
 
 
-def _apply_number_constraints(hint: dict[str, Any], ann: Any) -> None:
+def _apply_number_constraints(hint: PortSchema, ann: TypeAnnotation) -> None:
     """Copy numeric bounds from Annotated metadata into a hint.
 
     Constraints arrive in two shapes: ``Annotated[float, Field(ge=…)]``
@@ -127,46 +127,26 @@ def _apply_number_constraints(hint: dict[str, Any], ann: Any) -> None:
     for meta in getattr(ann, "__metadata__", ()):
         items = getattr(meta, "metadata", ()) if isinstance(meta, FieldInfo) else (meta,)
         for c in items:
-            if hasattr(c, "ge") and "min" not in hint:
+            if isinstance(c, Ge) and "min" not in hint:
                 hint["min"] = c.ge
-            if hasattr(c, "gt") and "min" not in hint:
+            if isinstance(c, Gt) and "min" not in hint:
                 hint["min"] = c.gt
-            if hasattr(c, "le") and "max" not in hint:
+            if isinstance(c, Le) and "max" not in hint:
                 hint["max"] = c.le
-            if hasattr(c, "lt") and "max" not in hint:
+            if isinstance(c, Lt) and "max" not in hint:
                 hint["max"] = c.lt
-            if hasattr(c, "multiple_of") and "step" not in hint:
+            if isinstance(c, MultipleOf) and "step" not in hint:
                 hint["step"] = c.multiple_of
 
 
-def _annotation_to_schema(ann: Any) -> dict[str, Any]:
+def _annotation_to_schema(ann: TypeAnnotation) -> PortSchema:
     """Produce a full port-schema dict from a type annotation."""
-    type_str = _type_to_port_type(ann)
-    schema: dict[str, Any] = {"type": type_str}
+    schema: PortSchema = {"type": _type_to_port_type(ann)}
 
     origin = get_origin(ann)
     if origin is not None:
-        origin_name = getattr(origin, "__name__", str(origin))
         args = get_args(ann)
-
-        has_none = type(None) in (args if args else ())
-        if has_none:
+        if type(None) in args:
             schema["optional"] = True
-
-        # Propagate inner generics
-        if origin_name in ("list", "List") and args:
-            inner = args[0]
-            inner_origin = get_origin(inner)
-            if inner_origin is not None and getattr(inner_origin, "__name__", "") in (
-                "list",
-                "List",
-            ):
-                schema["innerType"] = _type_to_port_type(get_args(inner)[0] if get_args(inner) else Any)
-            else:
-                schema["innerType"] = _type_to_port_type(inner)
-
-        if origin_name in ("dict", "Dict") and args:
-            schema["keyType"] = _type_to_port_type(args[0]) if len(args) > 0 else "str"
-            schema["valueType"] = _type_to_port_type(args[1]) if len(args) > 1 else "Any"
 
     return schema

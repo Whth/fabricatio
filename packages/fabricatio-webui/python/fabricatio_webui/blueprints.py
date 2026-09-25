@@ -9,7 +9,6 @@ from collections.abc import Iterator
 from typing import Any
 
 from fabricatio_core.models.action import Action, WorkFlow
-from pydantic.fields import FieldInfo
 
 from fabricatio_webui.discovery import installed_fabricatio_packages
 from fabricatio_webui.registry import (
@@ -17,6 +16,9 @@ from fabricatio_webui.registry import (
     _consumes_context,
     _execute_params,
     _required_execute_params,
+)
+from fabricatio_webui.registry import (
+    resolve_output_key as _output_key,
 )
 
 #: Workflow sources are discovered dynamically: every installed
@@ -35,14 +37,6 @@ _NODE_Y_START = 40
 def _slugify(text: str) -> str:
     cleaned = "".join(ch if ch.isalnum() else "-" for ch in text.lower())
     return "-".join(part for part in cleaned.split("-") if part)
-
-
-def _output_key(cls: type[Action]) -> str:
-    return (
-        getattr(cls, "output_key", "")
-        or cls.model_fields.get("output_key", FieldInfo(default="")).default
-        or cls.__name__.lower()
-    )
 
 
 def _iter_workflow_modules() -> Iterator[Any]:

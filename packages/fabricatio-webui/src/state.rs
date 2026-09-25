@@ -2,16 +2,39 @@ use crate::types::*;
 use fabricatio_logger::*;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use tokio::sync::mpsc;
 
+/// Lock the store for reading; a poisoned lock means a writer panicked, which
+/// is reported instead of being silently reported as an empty store.
+fn read_lock<'a, T>(lock: &'a RwLock<T>, what: &str) -> Option<RwLockReadGuard<'a, T>> {
+    match lock.read() {
+        Ok(guard) => Some(guard),
+        Err(_) => {
+            warn!("{what}: lock poisoned by a panicking writer");
+            None
+        }
+    }
+}
+
+/// Lock the store for writing; see [`read_lock`] for the failure policy.
+fn write_lock<'a, T>(lock: &'a RwLock<T>, what: &str) -> Option<RwLockWriteGuard<'a, T>> {
+    match lock.write() {
+        Ok(guard) => Some(guard),
+        Err(_) => {
+            warn!("{what}: lock poisoned by a panicking writer");
+            None
+        }
+    }
+}
+
 pub struct AppState {
-    pub node_registry: RwLock<Vec<NodeTypeDefinition>>,
+    node_registry: RwLock<Vec<NodeTypeDefinition>>,
     /// Package-defined blueprints offered by the board sidebar (baked at startup).
-    pub blueprints: RwLock<Vec<BlueprintJson>>,
-    pub ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
-    pub workflows: RwLock<HashMap<String, BoardJson>>,
+    blueprints: RwLock<Vec<BlueprintJson>>,
+    ws_sessions: RwLock<HashMap<String, mpsc::UnboundedSender<WsMessage>>>,
+    workflows: RwLock<HashMap<String, BoardJson>>,
     data_dir: PathBuf,
     /// When false, in-memory CRUD still works but save/delete skip writing workflows.json.
     /// Set once at startup; thereafter read-only.
@@ -43,30 +66,68 @@ impl AppState {
         }
     }
 
-    pub fn save_workflow(&self, id: String, wf: BoardJson) {
-        if let Ok(mut wfs) = self.workflows.write() {
-            wfs.insert(id, wf);
-            if self.persist_workflows.load(Ordering::Relaxed) {
-                Self::persist_to_disk(&self.data_dir, &wfs);
+    /// Install the baked node registry (called once at startup).
+    pub fn set_registry(&self, registry: Vec<NodeTypeDefinition>) -> bool {
+        match write_lock(&self.node_registry, "node registry") {
+            Some(mut reg) => {
+                *reg = registry;
+                true
             }
+            None => false,
         }
     }
 
+    pub fn registry(&self) -> Vec<NodeTypeDefinition> {
+        read_lock(&self.node_registry, "node registry")
+            .map(|r| r.clone())
+            .unwrap_or_default()
+    }
+
+    /// Install the baked blueprint catalog (called once at startup).
+    pub fn set_blueprints(&self, blueprints: Vec<BlueprintJson>) -> bool {
+        match write_lock(&self.blueprints, "blueprints") {
+            Some(mut bp) => {
+                *bp = blueprints;
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub fn blueprints(&self) -> Vec<BlueprintJson> {
+        read_lock(&self.blueprints, "blueprints")
+            .map(|b| b.clone())
+            .unwrap_or_default()
+    }
+
+    /// Insert or replace a board. Returns false when the store is unavailable,
+    /// so callers can report a failed save instead of a phantom success.
+    pub fn save_workflow(&self, id: String, wf: BoardJson) -> bool {
+        let Some(mut wfs) = write_lock(&self.workflows, "workflow store") else {
+            return false;
+        };
+        wfs.insert(id, wf);
+        if self.persist_workflows.load(Ordering::Relaxed) {
+            Self::persist_to_disk(&self.data_dir, &wfs);
+        }
+        true
+    }
+
     pub fn get_workflows(&self) -> Vec<(String, BoardJson)> {
-        self.workflows
-            .read()
+        read_lock(&self.workflows, "workflow store")
             .map(|wfs| wfs.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
             .unwrap_or_default()
     }
 
     pub fn get_workflow(&self, id: &str) -> Option<BoardJson> {
-        self.workflows.read().ok()?.get(id).cloned()
+        read_lock(&self.workflows, "workflow store")?
+            .get(id)
+            .cloned()
     }
 
     pub fn delete_workflow(&self, id: &str) -> bool {
-        let mut wfs = match self.workflows.write() {
-            Ok(g) => g,
-            Err(_) => return false,
+        let Some(mut wfs) = write_lock(&self.workflows, "workflow store") else {
+            return false;
         };
         if wfs.remove(id).is_some() {
             if self.persist_workflows.load(Ordering::Relaxed) {
@@ -149,24 +210,25 @@ impl AppState {
     // ── WebSocket ──────────────────────────────────────────────────────────────
 
     pub fn register_ws_session(&self, id: String, tx: mpsc::UnboundedSender<WsMessage>) {
-        if let Ok(mut sessions) = self.ws_sessions.write() {
+        if let Some(mut sessions) = write_lock(&self.ws_sessions, "ws sessions") {
             sessions.insert(id, tx);
         }
     }
 
     pub fn remove_ws_session(&self, id: &str) {
-        if let Ok(mut sessions) = self.ws_sessions.write() {
+        if let Some(mut sessions) = write_lock(&self.ws_sessions, "ws sessions") {
             sessions.remove(id);
         }
     }
 
     pub fn broadcast(&self, msg: &WsMessage) {
         let msg = msg.clone().with_timestamp();
-        if let Ok(sessions) = self.ws_sessions.read() {
-            for (id, tx) in sessions.iter() {
-                if tx.send(msg.clone()).is_err() {
-                    fabricatio_logger::warn!("WS session {id} send failed");
-                }
+        let Some(sessions) = read_lock(&self.ws_sessions, "ws sessions") else {
+            return;
+        };
+        for (id, tx) in sessions.iter() {
+            if tx.send(msg.clone()).is_err() {
+                fabricatio_logger::warn!("WS session {id} send failed");
             }
         }
     }

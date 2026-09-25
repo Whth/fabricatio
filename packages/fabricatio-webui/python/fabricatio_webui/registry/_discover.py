@@ -33,12 +33,13 @@ def _action_module_names() -> Iterator[str]:
             yield info.name
 
 
-def _concrete_action_subclasses() -> set[type[Action]]:
-    """Recursively collect all concrete (non-abstract) Action subclasses."""
-    concrete: set[type[Action]] = set()
-    seen: set[type[Action]] = set()
+def _action_subclasses() -> Iterator[type[Action]]:
+    """Breadth-first iteration over every Action subclass known to the runtime.
 
-    # Use a deque so we can process breadth-first; Action itself is abstract.
+    The single traversal shared by concrete-class discovery and by the
+    executor's name lookup: deduped, so each class is yielded exactly once.
+    """
+    seen: set[type[Action]] = set()
     queue: deque[type[Action]] = deque(Action.__subclasses__())
 
     while queue:
@@ -46,25 +47,31 @@ def _concrete_action_subclasses() -> set[type[Action]]:
         if cls in seen:
             continue
         seen.add(cls)
-
-        # Concrete = instantiable and runnable: no abstract methods and the
-        # resolved _execute is a real implementation (not the abstract base
-        # stub).  The inherited case matters: generic bases like
-        # StoreDocuments implement _execute once and parameterised subclasses
-        # (StoreArticleEssence) reuse it without declaring their own.
-        is_abstract = getattr(cls, "__abstractmethods__", None)
-        is_abstract_class = bool(is_abstract)
-        resolves_own_execute = cls._execute is not Action.__dict__["_execute"]
-        # Generic aliases (e.g. RetrieveFromPersistent[TypeVar]) are not real
-        # classes; their mangled __name__ gives them away.
-        is_generic_alias = "[" in cls.__name__
-
-        if not is_abstract_class and resolves_own_execute and not is_generic_alias:
-            concrete.add(cls)
-
+        yield cls
         queue.extend(cls.__subclasses__())
 
-    return concrete
+
+def _is_concrete_action(cls: type[Action]) -> bool:
+    """True when *cls* is an instantiable, runnable Action subclass.
+
+    Concrete = instantiable and runnable: no abstract methods and the
+    resolved ``_execute`` is a real implementation (not the abstract base
+    stub).  The inherited case matters: generic bases like
+    ``StoreDocuments`` implement ``_execute`` once and parameterised
+    subclasses (``StoreArticleEssence``) reuse it without declaring their
+    own.  Generic aliases (e.g. ``RetrieveFromPersistent[TypeVar]``) are not
+    real classes; their mangled ``__name__`` gives them away.
+    """
+    if getattr(cls, "__abstractmethods__", None):
+        return False
+    if cls._execute is Action.__dict__["_execute"]:
+        return False
+    return "[" not in cls.__name__
+
+
+def _concrete_action_subclasses() -> set[type[Action]]:
+    """Recursively collect all concrete (non-abstract) Action subclasses."""
+    return {cls for cls in _action_subclasses() if _is_concrete_action(cls)}
 
 
 def _discover_action_modules() -> None:

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useExecutionStore } from '@/stores/execution'
 import { useWorkflowStore } from '@/stores/workflow'
@@ -19,11 +19,19 @@ const expanded = computed({
   },
 })
 
-const nodeTitle = (id: string) => wfStore.nodes.find((n) => n.id === id)?.data.title ?? id
+const nodeTitle = (id: string) => wfStore.nodes.find((n) => n.id === id)?.data?.title ?? id
 
 interface LogLine {
   kind: 'status' | 'node' | 'error' | 'done'
   text: string
+}
+
+/** Log kind -> severity class, typed so a new kind cannot go unstyled. */
+const KIND_CLASS: Record<LogLine['kind'], string> = {
+  status: 'kind-status',
+  node: 'kind-node',
+  error: 'kind-error',
+  done: 'kind-done',
 }
 
 const logLines = computed<LogLine[]>(() => {
@@ -44,6 +52,15 @@ const logLines = computed<LogLine[]>(() => {
     }
   }
   return lines
+})
+
+/** New output pins the view to the newest line while the console is open. */
+const body = ref<HTMLElement | null>(null)
+watch([logLines, expanded], async () => {
+  if (!expanded.value) return
+  await nextTick()
+  const el = body.value
+  if (el) el.scrollTop = el.scrollHeight
 })
 </script>
 
@@ -82,13 +99,13 @@ const logLines = computed<LogLine[]>(() => {
         <Square :size="12" /> {{ t('console.interrupt') }}
       </button>
     </div>
-    <div v-if="expanded" class="console-body">
+    <div v-if="expanded" ref="body" class="console-body">
       <div v-if="logLines.length === 0" class="console-empty">{{ t('console.empty') }}</div>
       <div
         v-for="(line, i) in logLines"
         :key="i"
         class="console-line"
-        :class="`kind-${line.kind}`"
+        :class="KIND_CLASS[line.kind]"
       >
         {{ line.text }}
       </div>

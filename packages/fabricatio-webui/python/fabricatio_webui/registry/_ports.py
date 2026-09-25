@@ -1,10 +1,9 @@
 """Port extraction from Action model fields and MRO capabilities."""
 
-from typing import Any
-
 from fabricatio_core.models.action import Action
 from pydantic.fields import FieldInfo
 
+from fabricatio_webui.models.wire import PortSchema
 from fabricatio_webui.registry._constants import EXCLUDED_FIELDS
 from fabricatio_webui.registry._schema import _annotation_to_schema, _widget_hint
 
@@ -25,9 +24,23 @@ def _mro_field_owner(cls: type[Action], field_name: str) -> str:
     return cls.__name__
 
 
-def _extract_input_ports(cls: type[Action]) -> list[dict[str, Any]]:
+def resolve_output_key(cls: type[Action], *, instance: Action | None = None, fallback: str = "") -> str:
+    """The context key *cls*'s output is stored under.
+
+    ``output_key`` when set (taken from *instance* when one is given, so a
+    per-execution override wins), else the frozen field default, else the
+    lowercased class name.  *fallback* is the last resort for callers that must
+    never produce an empty key.  This is the single resolution chain shared by
+    :mod:`._ports`, :mod:`fabricatio_webui.blueprints`, and
+    :mod:`fabricatio_webui.executor`.
+    """
+    key = instance.output_key if instance is not None else getattr(cls, "output_key", "")
+    return key or cls.model_fields.get("output_key", FieldInfo()).default or cls.__name__.lower() or fallback
+
+
+def _extract_input_ports(cls: type[Action]) -> list[PortSchema]:
     """Extract input ports from *cls* model fields, excluding infrastructure fields."""
-    ports: list[dict[str, Any]] = []
+    ports: list[PortSchema] = []
 
     for field_name, field_info in cls.model_fields.items():
         if field_name in EXCLUDED_FIELDS:
@@ -39,46 +52,38 @@ def _extract_input_ports(cls: type[Action]) -> list[dict[str, Any]]:
         if ann is None:
             ann = str
 
-        schema = _annotation_to_schema(ann)
-        schema["name"] = field_name
-        schema["label"] = field_info.title or field_name.replace("_", " ").title()
+        base = _annotation_to_schema(ann)
 
-        desc = field_info.description
-        if desc:
-            schema["description"] = desc
-
-        # Default value
+        # Default value (JSON-safe scalars only).
         has_default = (
             field_info.default is not None
             and field_info.default is not ...
             and isinstance(field_info.default, (str, int, float, bool, type(None)))
         )
-        if has_default:
-            schema["default"] = field_info.default
 
-        # Always set optional (required by Rust PortDefinition)
-        schema.setdefault("optional", has_default)
-
-        # Widget hint for the inline editor
-        schema.update(_widget_hint(ann, has_default, field_info.default))
-
-        # MRO owner class name — drives arg-grouping in the workflow UI
-        schema["group"] = _mro_field_owner(cls, field_name)
-
-        ports.append(schema)
+        # Compose in the same order the previous setdefault/update sequence
+        # produced: base -> name -> description -> default -> optional -> widget
+        # hints -> group.  ``optional`` is only filled in when the annotation
+        # did not already pin it (Optional[T] sets it upstream).
+        port: PortSchema = {
+            **base,
+            "name": field_name,
+            **({"description": field_info.description} if field_info.description else {}),
+            **({"default": field_info.default} if has_default else {}),
+            **({} if "optional" in base else {"optional": has_default}),
+            **_widget_hint(ann, has_default, field_info.default),
+            "group": _mro_field_owner(cls, field_name),
+        }
+        ports.append(port)
 
     return ports
 
 
-def _extract_output_ports(cls: type[Action]) -> list[dict[str, Any]]:
+def _extract_output_ports(cls: type[Action]) -> list[PortSchema]:
     """Extract output ports from *cls* — one port per output_key."""
-    output_key: str = getattr(cls, "output_key", "") or cls.model_fields.get("output_key", FieldInfo()).default or ""
-    if not output_key:
-        output_key = cls.__name__.lower()
-
     return [
         {
-            "name": output_key,
+            "name": resolve_output_key(cls),
             "type": "Any",
             "optional": False,
             "description": f"Output from {cls.__name__}",

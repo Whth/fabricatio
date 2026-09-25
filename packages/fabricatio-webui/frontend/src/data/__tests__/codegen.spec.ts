@@ -21,6 +21,7 @@ const customAction: ActionDefJSON = {
   fields: [{ name: 'factor', type: 'float', default: 1.5 }],
   capabilities: [],
   output_key: 'custom_out',
+  ctx_override: false,
 }
 
 const role: RoleJSON = {
@@ -32,10 +33,10 @@ const role: RoleJSON = {
       namespace: 'hello::world',
       task_output_key: 'task_output',
       nodes: [
-        { id: 'n1', type: 'TextStats', inputs: {}, config: {} },
-        { id: 'n2', type: 'SummarizeStats', inputs: {}, config: { title: 'Sum' } },
-        { id: 'n3', type: 'MyAction', inputs: {}, config: {} },
-        { id: 'n4', type: 'GhostNode', inputs: {}, config: {} },
+        { id: 'n1', type: 'TextStats', inputs: {}, config: {}, schema_version: 1 },
+        { id: 'n2', type: 'SummarizeStats', inputs: {}, config: { title: 'Sum' }, schema_version: 1 },
+        { id: 'n3', type: 'MyAction', inputs: {}, config: {}, schema_version: 1 },
+        { id: 'n4', type: 'GhostNode', inputs: {}, config: {}, schema_version: 1 },
       ],
       edges: [],
       init_context: {},
@@ -93,7 +94,7 @@ describe('generateRoleModule', () => {
   })
 
   it('guards Role.new when the role has no workflows', () => {
-    const empty = generateRoleModule({ name: 'Empty', workflows: [] }, [], catalog)
+    const empty = generateRoleModule({ name: 'Empty', description: '', workflows: [] }, [], catalog)
     expect(empty).toContain('role = Role.new({')
     expect(empty).toContain('async def main()')
   })
@@ -101,9 +102,9 @@ describe('generateRoleModule', () => {
 
 describe('pyPackageName', () => {
   it('sanitizes role names into PEP 8 package identifiers', () => {
-    expect(pyPackageName({ name: 'My Cool Tool!', workflows: [] })).toBe('my_cool_tool')
-    expect(pyPackageName({ name: '9lives', workflows: [] })).toBe('_9lives')
-    expect(pyPackageName({ name: '   ', workflows: [] })).toBe('fabricatio_tool')
+    expect(pyPackageName({ name: 'My Cool Tool!', description: '', workflows: [] })).toBe('my_cool_tool')
+    expect(pyPackageName({ name: '9lives', description: '', workflows: [] })).toBe('_9lives')
+    expect(pyPackageName({ name: '   ', description: '', workflows: [] })).toBe('fabricatio_tool')
   })
 })
 

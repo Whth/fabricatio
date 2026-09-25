@@ -30,6 +30,6 @@ def start_service(
     r"""Start the web UI service with the given frontend and data directories.
 
     The four ``*_fn`` callables are the Python WorkflowWorker entry points:
-    submit(execution_id, workflow_json, task_input_json), cancel() -> bool,
+    submit(execution_id, task_json), cancel() -> bool,
     queue_snapshot() -> str, history_snapshot() -> str.
     """

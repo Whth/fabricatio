@@ -3,10 +3,10 @@ import type {
   BoardJSON,
   BlueprintJSON,
   ExecutionRequest,
-  ExecutionStatus,
 } from '@/types/api'
 import { useLoadingStore } from '@/stores/loading'
 import { useNotificationsStore } from '@/stores/notifications'
+import { errorMessage } from '@/utils/errors'
 import { i18n } from '@/i18n'
 const tt = i18n.global.t
 
@@ -43,8 +43,7 @@ async function request<T>(
     return res.json() as Promise<T>
   } catch (err) {
     if (!options?.silent) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(tt('shell.requestFailed', { method, path }), message)
+      notifications.error(tt('shell.requestFailed', { method, path }), errorMessage(err))
     }
     throw err
   } finally {
@@ -75,9 +74,6 @@ export const api = {
     }),
   interrupt: () =>
     request<{ ok: boolean }>('POST', '/interrupt', undefined, { loading: tt('shell.interrupting') }),
-  getQueue: () => request<unknown[]>('GET', '/queue', undefined, { silent: true }),
-  getHistory: () =>
-    request<ExecutionStatus[]>('GET', '/history', undefined, { loading: tt('shell.loadingHistory') }),
   getBlueprints: () =>
     request<BlueprintJSON[]>('GET', '/blueprints', undefined, { silent: true }),
 }

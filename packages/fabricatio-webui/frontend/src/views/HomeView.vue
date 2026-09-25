@@ -15,12 +15,10 @@ import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { ChevronRight } from '@lucide/vue'
-import { useUiStore } from '@/stores/ui'
 
 const wfStore = useWorkflowStore()
 const boardStore = useBoardStore()
 const execStore = useExecutionStore()
-const uiStore = useUiStore()
 const { subscribe } = useWebSocket()
 
 onMounted(async () => {
@@ -102,7 +100,7 @@ function backToBoard() {
       <ActionEditor />
       <WorkflowsSidebar />
     </div>
-    <SettingsDialog @close="uiStore.closeSettings()" />
+    <SettingsDialog />
     <ExecutionConsole />
   </div>
   <NotificationToast />

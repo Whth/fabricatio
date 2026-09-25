@@ -1,13 +1,35 @@
 import { ref } from 'vue'
-import type { WSMessage, WSSubmit } from '@/types/api'
+import type { WSMessage } from '@/types/api'
 
 export type MessageHandler = (msg: WSMessage) => void
 
 // ── Module-level singleton state ────────────────────────────────────────────
 let ws: WebSocket | null = null
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 const handlers = new Set<MessageHandler>()
 const connected = ref(false)
+
+/**
+ * Runtime discriminant for every server → client frame (mirrors the
+ * `WSMessage` union). A truncated frame or a future Rust variant the TS union
+ * does not know yet must not reach the handlers, so the boundary is guarded
+ * rather than trusted.
+ */
+const WS_TYPES: Record<WSMessage['type'], true> = {
+  execution_start: true,
+  node_start: true,
+  node_done: true,
+  node_error: true,
+  node_output: true,
+  llm_token: true,
+  execution_done: true,
+  status: true,
+}
+
+function isWSMessage(value: unknown): value is WSMessage {
+  if (typeof value !== 'object' || value === null || !('type' in value)) return false
+  const { type } = value
+  return typeof type === 'string' && type in WS_TYPES
+}
 
 /** Idempotent connect — no-op if already OPEN or CONNECTING. */
 function connect() {
@@ -24,16 +46,22 @@ function connect() {
   ws.onclose = () => {
     connected.value = false
     ws = null
-    reconnectTimer = setTimeout(connect, 2000)
+    setTimeout(connect, 2000)
   }
 
   ws.onmessage = (ev: MessageEvent) => {
+    let payload: unknown
     try {
-      const msg = JSON.parse(ev.data as string) as WSMessage
-      handlers.forEach((h) => h(msg))
+      payload = JSON.parse(ev.data as string)
     } catch {
-      /* ignore malformed messages */
+      console.debug('[ws] dropped malformed frame')
+      return
     }
+    if (!isWSMessage(payload)) {
+      console.debug('[ws] dropped frame with unknown type', payload)
+      return
+    }
+    handlers.forEach((h) => h(payload))
   }
 }
 
@@ -45,26 +73,6 @@ function subscribe(handler: MessageHandler): () => void {
   }
 }
 
-/** Send a WSSubmit message over the active connection. */
-function submit(msg: WSSubmit) {
-  ws?.send(JSON.stringify(msg))
-}
-
-/** Force-close the current connection (reconnect auto-engages after). */
-function disconnect() {
-  if (reconnectTimer !== null) {
-    clearTimeout(reconnectTimer)
-    reconnectTimer = null
-  }
-  ws?.close()
-  ws = null
-}
-
-/** Read-only ref for connection state — can be used in any component. */
-function getConnected() {
-  return connected
-}
-
 export function useWebSocket() {
-  return { connected, connect, subscribe, submit, disconnect, getConnected }
+  return { connected, connect, subscribe }
 }

@@ -8,6 +8,7 @@ from typing import Any
 
 from fabricatio_core.journal import logger
 
+from fabricatio_webui.models.wire import NodeRegistry, NodeRegistryEntry, PortSchema
 from fabricatio_webui.registry._category import _derive_category
 from fabricatio_webui.registry._constants import CONTEXT_PORT_NAME
 from fabricatio_webui.registry._discover import _concrete_action_subclasses, _discover_action_modules
@@ -15,7 +16,7 @@ from fabricatio_webui.registry._execute import _consumes_context, _execute_param
 from fabricatio_webui.registry._ports import _extract_capabilities, _extract_input_ports, _extract_output_ports
 
 
-def build_node_registry() -> dict[str, Any]:
+def build_node_registry() -> NodeRegistry:
     """Build the full node type registry for the frontend.
 
     Returns a dict with:
@@ -27,7 +28,7 @@ def build_node_registry() -> dict[str, Any]:
     # Auto-discover action modules so __subclasses__() finds them.
     _discover_action_modules()
 
-    node_types: list[dict[str, Any]] = []
+    node_types: list[NodeRegistryEntry] = []
     concrete = _concrete_action_subclasses()
     logger.info(f"Building node registry: discovered {len(concrete)} concrete Action subclass(es).")
 
@@ -53,7 +54,7 @@ def build_node_registry() -> dict[str, Any]:
             # the CONTEXT_PORT_NAME display port so blueprint graphs can show
             # the implicit context dataflow between steps.
             seen = {p["name"] for p in model_ports}
-            runtime_ports: list[dict[str, Any]] = []
+            runtime_ports: list[PortSchema] = []
             for param_name in _execute_params(cls):
                 if param_name in seen:
                     continue
@@ -78,7 +79,7 @@ def build_node_registry() -> dict[str, Any]:
                     },
                 )
 
-            entry: dict[str, Any] = {
+            entry: NodeRegistryEntry = {
                 "type": cls.__name__,
                 "title": first_line or cls.__name__,
                 "description": doc,
@@ -114,7 +115,7 @@ def build_node_registry() -> dict[str, Any]:
 
 
 @cache
-def _worker_registry() -> dict[str, Any]:
+def _worker_registry() -> NodeRegistry:
     """Return a cached registry for the execution worker (built once)."""
     return build_node_registry()
 

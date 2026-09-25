@@ -9,6 +9,7 @@ import { useUiStore } from '@/stores/ui'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAppActions } from '@/composables/useAppActions'
 import { categoryColor } from '@/utils/categoryColors'
+import AppModal from '@/components/chrome/AppModal.vue'
 import type { NodeTypeDefinition } from '@/types/api'
 
 const wfStore = useWorkflowStore()
@@ -135,84 +136,69 @@ function onMouseEnter(index: number) {
   activeIndex.value = index
 }
 
-nextTick(() => inputRef.value?.focus())
+// The palette lives for as long as the canvas does; every open starts a fresh
+// search with the caret in the input (Escape while typing is handled by the
+// modal panel, since the hotkey registry skips editable targets).
+watch(
+  () => uiStore.paletteOpen,
+  async (open) => {
+    if (!open) return
+    query.value = ''
+    activeIndex.value = 0
+    await nextTick()
+    inputRef.value?.focus()
+  },
+)
 </script>
 
 <template>
-  <div class="palette-backdrop" @mousedown.self="uiStore.closePalette()">
-    <div class="palette" role="dialog" :aria-label="t('chrome.palette.title')">
-      <div class="palette-input-row">
-        <span class="palette-search-icon">⌕</span>
-        <input
-          ref="inputRef"
-          v-model="query"
-          class="palette-input"
-          :placeholder="t('chrome.palette.placeholder')"
-          spellcheck="false"
-          @keydown.down.prevent="move(1)"
-          @keydown.up.prevent="move(-1)"
-          @keydown.enter.prevent="select(activeIndex)"
-          @keydown.esc="uiStore.closePalette()"
-        />
-        <kbd class="palette-kbd">Esc</kbd>
-      </div>
-      <div class="palette-list">
-        <div v-if="items.length === 0" class="palette-empty">{{ t('chrome.palette.noMatches') }}</div>
-        <template v-else>
-          <div v-if="query.trim() === ''" class="palette-group">{{ t('chrome.palette.actionsGroup') }}</div>
-          <div
-            v-for="(item, i) in items"
-            :key="item.id"
-            class="palette-item"
-            :class="{ active: i === activeIndex }"
-            @mousedown.prevent="select(i)"
-            @mousemove="onMouseEnter(i)"
-          >
-            <component :is="item.icon" v-if="item.kind === 'action'" :size="14" class="item-icon" />
-            <span v-else class="item-dot" :style="{ background: categoryColor(item.category) }"></span>
-            <span class="item-label">{{ item.label }}</span>
-            <span class="item-meta">{{ item.hint }}</span>
-          </div>
-        </template>
-      </div>
+  <AppModal
+    :open="uiStore.paletteOpen"
+    title-key="chrome.palette.title"
+    width="min(560px, calc(100vw - 48px))"
+    align="top"
+    @close="uiStore.closePalette()"
+  >
+    <template #header>
+      <span class="palette-search-icon">⌕</span>
+      <input
+        ref="inputRef"
+        v-model="query"
+        class="palette-input"
+        :placeholder="t('chrome.palette.placeholder')"
+        spellcheck="false"
+        @keydown.down.prevent="move(1)"
+        @keydown.up.prevent="move(-1)"
+        @keydown.enter.prevent="select(activeIndex)"
+      />
+      <kbd class="palette-kbd">Esc</kbd>
+    </template>
 
+    <div class="palette-list">
+      <div v-if="items.length === 0" class="palette-empty">{{ t('chrome.palette.noMatches') }}</div>
+      <template v-else>
+        <div v-if="query.trim() === ''" class="palette-group">{{ t('chrome.palette.actionsGroup') }}</div>
+        <div
+          v-for="(item, i) in items"
+          :key="item.id"
+          class="palette-item"
+          :class="{ active: i === activeIndex }"
+          @mousedown.prevent="select(i)"
+          @mousemove="onMouseEnter(i)"
+        >
+          <component :is="item.icon" v-if="item.kind === 'action'" :size="14" class="item-icon" />
+          <span v-else class="item-dot" :style="{ background: categoryColor(item.category) }"></span>
+          <span class="item-label">{{ item.label }}</span>
+          <span class="item-meta">{{ item.hint }}</span>
+        </div>
+      </template>
     </div>
-  </div>
+  </AppModal>
 </template>
+
 <style scoped>
-.palette-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 500;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding-top: 12vh;
-  background: rgba(10, 12, 16, 0.55);
-  backdrop-filter: blur(2px);
-}
-
-.palette {
-  width: min(560px, calc(100vw - 48px));
-  max-height: 60vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md, 8px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-}
-
-.palette-input-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
+/* The search row is the modal header: the shared header supplies its padding,
+   divider and flex disposition. */
 .palette-search-icon {
   color: var(--fg-2, var(--fg-0));
   font-size: var(--text-lg, 16px);
@@ -227,6 +213,7 @@ nextTick(() => inputRef.value?.focus())
   color: var(--fg-0);
   font-family: var(--font-sans);
   font-size: var(--text-md);
+  font-weight: var(--weight-normal);
 }
 
 .palette-kbd {
@@ -240,11 +227,13 @@ nextTick(() => inputRef.value?.focus())
   opacity: 0.8;
 }
 
+/* Capped so the palette stays a compact floating box, as before. */
 .palette-list {
   overflow-y: auto;
   padding: var(--sp-1);
   flex: 1;
   min-height: 80px;
+  max-height: 55vh;
 }
 
 .palette-group {

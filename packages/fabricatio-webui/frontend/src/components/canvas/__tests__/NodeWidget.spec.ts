@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 import NodeWidget from '../NodeWidget.vue'
 import { i18n } from '@/i18n'
-import type { PortDefinition } from '@/types/api'
+import type { PortDefinition, WidgetKind } from '@/types/api'
 
 function field(partial: Partial<PortDefinition>): PortDefinition {
   return { name: 'f', type: 'str', optional: false, ...partial }
@@ -31,7 +31,10 @@ describe('NodeWidget', () => {
   })
 
   it('falls back to text for unknown widget hints', () => {
-    const w = mount(NodeWidget, { global: { plugins: [i18n] }, props: { field: field({ widget: 'warp-drive' }), modelValue: '' } })
+    // Deliberately outside WidgetKind: a newer registry may emit a hint this
+    // build does not know, and the widget must degrade to text, not break.
+    const unknownHint = 'warp-drive' as WidgetKind
+    const w = mount(NodeWidget, { global: { plugins: [i18n] }, props: { field: field({ widget: unknownHint }), modelValue: '' } })
     expect(w.find('input[type="text"]').exists()).toBe(true)
   })
 })

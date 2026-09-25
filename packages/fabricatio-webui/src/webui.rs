@@ -63,8 +63,15 @@ fn create_router(
 /// Broadcast a serialized WsMessage to every connected WS session.
 pub(crate) fn rust_broadcast(payload_json: String) {
     let Some(state) = STATE.get() else { return };
-    let Ok(msg) = serde_json::from_str::<WsMessage>(&payload_json) else {
-        return;
+    let msg = match serde_json::from_str::<WsMessage>(&payload_json) {
+        Ok(msg) => msg,
+        Err(e) => {
+            // A frame the enum cannot represent is a contract drift between the
+            // Python emitters and this type — never a silent no-op.
+            let preview: String = payload_json.chars().take(200).collect();
+            fabricatio_logger::warn!("Dropped WS frame the enum cannot parse ({e}): {preview}");
+            return;
+        }
     };
     state.broadcast(&msg);
 }
@@ -78,7 +85,7 @@ pub(crate) fn rust_broadcast(payload_json: String) {
 /// Start the web UI service with the given frontend and data directories.
 ///
 /// The four ``*_fn`` callables are the Python WorkflowWorker entry points:
-/// submit(execution_id, workflow_json, task_input_json), cancel() -> bool,
+/// submit(execution_id, task_json), cancel() -> bool,
 /// queue_snapshot() -> str, history_snapshot() -> str.
 fn start_service<'a>(
     py: Python<'a>,
@@ -104,11 +111,10 @@ fn start_service<'a>(
     state
         .persist_workflows
         .store(persist_workflows, Ordering::Relaxed);
-    if let Ok(mut reg) = state.node_registry.write() {
-        *reg = registry;
-    }
-    if let Ok(mut bp) = state.blueprints.write() {
-        *bp = blueprints;
+    if !state.set_registry(registry) || !state.set_blueprints(blueprints) {
+        return Err(pyo3::exceptions::PyRuntimeError::new_err(
+            "node registry / blueprint store is unavailable at startup",
+        ));
     }
 
     let _ = STATE.set(Arc::clone(&state));

@@ -14,7 +14,7 @@ import concurrent.futures
 import json
 import threading
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -25,9 +25,10 @@ from fabricatio_core.journal import logger
 from fabricatio_core.models.action import INPUT_KEY, Action, WorkFlow
 from fabricatio_core.models.role import Role
 from fabricatio_core.models.task import Task
-from pydantic.fields import FieldInfo
 
-from fabricatio_webui.registry import CONTEXT_PORT_NAME
+from fabricatio_webui.events import emit_event
+from fabricatio_webui.models.wire import JSONValue
+from fabricatio_webui.registry import CONTEXT_PORT_NAME, _action_subclasses, resolve_output_key
 
 # Task-scoped storage keys (namespaced away from user keys).
 _OUTPUTS_KEY = "__webui_node_outputs__"
@@ -109,21 +110,7 @@ _NODE_BODY_EXECUTOR = _NodeBodyExecutor()
 
 def _find_action_class(type_name: str) -> type[Action] | None:
     """Locate an Action subclass by name, walking all known subclasses."""
-    queue: deque[type[Action]] = deque(Action.__subclasses__())
-    seen: set[type[Action]] = set()
-
-    while queue:
-        cls = queue.popleft()
-        if cls in seen:
-            continue
-        seen.add(cls)
-
-        if cls.__name__ == type_name:
-            return cls
-
-        queue.extend(cls.__subclasses__())
-
-    return None
+    return next((cls for cls in _action_subclasses() if cls.__name__ == type_name), None)
 
 
 def _topological_order(instances: set[str], raw_edges: list[dict[str, Any]]) -> list[str]:
@@ -160,28 +147,9 @@ def _topological_order(instances: set[str], raw_edges: list[dict[str, Any]]) -> 
     return order
 
 
-def _class_output_key(cls: type[Action]) -> str:
-    """Registry-style output port name for an Action class.
-
-    Mirrors ``registry._extract_output_ports``: ``output_key`` when set,
-    else the class name lowercased.
-    """
-    return (
-        getattr(cls, "output_key", "")
-        or cls.model_fields.get("output_key", FieldInfo()).default
-        or cls.__name__.lower()
-    )
-
-
 def _resolve_output_key(instance: Action, node_id: str) -> str:
     """The context key a node's result is stored under (per-node safe)."""
-    return (
-        instance.output_key
-        or getattr(instance, "output_key", "")
-        or instance.model_fields.get("output_key", FieldInfo()).default
-        or type(instance).__name__.lower()
-        or node_id
-    )
+    return resolve_output_key(type(instance), instance=instance, fallback=node_id)
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +240,7 @@ def _compile_workflow_plan(registry_version: str, plan_key: str) -> _WorkflowPla
 
     default_output_key = ""
     if order:
-        default_output_key = _class_output_key(nodes[order[-1]].action_class)
+        default_output_key = resolve_output_key(nodes[order[-1]].action_class)
 
     init_context = wf.get("init_context", {})
     if not isinstance(init_context, dict):
@@ -437,17 +405,9 @@ def _make_instrumented(
     return _Instrumented
 
 
-async def _emit(execution_id: str | None, event_type: str, payload: dict[str, Any]) -> None:
+async def _emit(execution_id: str | None, event_type: str, payload: Mapping[str, JSONValue]) -> None:
     """Broadcast a WS event through the injected rust_broadcast callable."""
-    if _broadcast is None:
-        return
-    msg: dict[str, Any] = {"type": event_type, **payload}
-    if execution_id is not None:
-        msg["execution_id"] = execution_id
-    try:
-        _broadcast(orjson.dumps(msg).decode())
-    except Exception:  # noqa: BLE001
-        logger.warn(f"Broadcast failed for {event_type}")
+    emit_event(_broadcast, event_type, payload, execution_id=execution_id)
 
 
 # ---------------------------------------------------------------------------
@@ -489,7 +449,7 @@ def _build_workflow(plan: _WorkflowPlan) -> WorkFlow:
         # Empty output_key actions still publish their result under the
         # registry port name (class-lower) so context readers can find it.
         if not instance.output_key:
-            instance.output_key = _class_output_key(node_plan.action_class)
+            instance.output_key = resolve_output_key(node_plan.action_class)
         instances.append(instance)
 
     return _workflow_class(plan.task_output_key)(

@@ -18,38 +18,22 @@ fn call_json(f: &std::sync::OnceLock<pyo3::Py<pyo3::PyAny>>) -> Option<serde_jso
 
 /// GET /api/nodes — return all registered node type definitions.
 pub async fn get_nodes(State(state): State<Arc<AppState>>) -> Json<Vec<NodeTypeDefinition>> {
-    let registry = state
-        .node_registry
-        .read()
-        .map(|r| r.clone())
-        .unwrap_or_default();
-    Json(registry)
+    Json(state.registry())
 }
 
 /// GET /api/blueprints — return the package-defined blueprint catalog.
 pub async fn get_blueprints(State(state): State<Arc<AppState>>) -> Json<Vec<BlueprintJson>> {
-    let blueprints = state
-        .blueprints
-        .read()
-        .map(|b| b.clone())
-        .unwrap_or_default();
-    Json(blueprints)
+    Json(state.blueprints())
 }
 
-/// GET /api/workflows — list saved workflows (with id).
-pub async fn get_workflows(State(state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    let wfs = state.get_workflows();
-    let list: Vec<serde_json::Value> = wfs
+/// GET /api/workflows — list saved workflows (each with its store id).
+pub async fn get_workflows(State(state): State<Arc<AppState>>) -> Json<Vec<SavedBoard>> {
+    let boards = state
+        .get_workflows()
         .into_iter()
-        .map(|(id, wf)| {
-            let mut val = serde_json::to_value(&wf).unwrap_or_default();
-            if let Some(obj) = val.as_object_mut() {
-                obj.insert("id".to_string(), serde_json::Value::String(id));
-            }
-            val
-        })
+        .map(|(id, board)| SavedBoard { id, board })
         .collect();
-    Json(serde_json::Value::Array(list))
+    Json(boards)
 }
 
 /// GET /api/workflows/:id — get a single saved board.
@@ -69,7 +53,7 @@ pub async fn get_workflow(
 pub async fn save_workflow(
     State(state): State<Arc<AppState>>,
     Json(mut wf): Json<BoardJson>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (axum::http::StatusCode, String)> {
     let id = wf
         .name
         .clone()
@@ -94,9 +78,14 @@ pub async fn save_workflow(
         thumbnail,
     });
 
-    state.save_workflow(id.clone(), wf);
+    if !state.save_workflow(id.clone(), wf) {
+        return Err((
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "workflow store is unavailable; nothing was saved".into(),
+        ));
+    }
     rebuild_roles(&state);
-    Json(serde_json::json!({ "id": id }))
+    Ok(Json(serde_json::json!({ "id": id })))
 }
 
 /// DELETE /api/workflows/:id — delete a saved board, then re-dispatch roles.
@@ -123,6 +112,26 @@ fn rebuild_roles(state: &Arc<AppState>) {
     let _ = pyo3::Python::attach(|py| rebuild.call0(py));
 }
 
+/// Forward one submission to the Python worker.
+///
+/// Both transports (REST `POST /api/execute`, WS `submit`) funnel through here:
+/// the worker entry point is `submit(execution_id, task_json)` — exactly two
+/// arguments — and keeping one call site is what stops a transport from
+/// drifting out of sync with it.
+pub(crate) fn submit_task(
+    state: &Arc<AppState>,
+    execution_id: &str,
+    task_json: &str,
+) -> Result<(), String> {
+    let submit = state
+        .submit_fn
+        .get()
+        .ok_or_else(|| "worker not ready".to_string())?;
+    pyo3::Python::attach(|py| submit.call1(py, (execution_id.to_string(), task_json)))
+        .map(|_| ())
+        .map_err(|e| format!("worker rejected submission: {e}"))
+}
+
 /// POST /api/execute — publish a task; dispatched roles serve it by namespace.
 pub async fn submit_execution(
     State(state): State<Arc<AppState>>,
@@ -131,19 +140,8 @@ pub async fn submit_execution(
     let execution_id = Uuid::new_v4().to_string();
     let task_json = serde_json::to_string(&req.task)
         .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let submit = state.submit_fn.get().ok_or_else(|| {
-        (
-            axum::http::StatusCode::SERVICE_UNAVAILABLE,
-            "worker not ready".into(),
-        )
-    })?;
-    let res = pyo3::Python::attach(|py| submit.call1(py, (execution_id.clone(), task_json)));
-    if let Err(e) = res {
-        return Err((
-            axum::http::StatusCode::SERVICE_UNAVAILABLE,
-            format!("worker rejected submission: {e}"),
-        ));
-    }
+    submit_task(&state, &execution_id, &task_json)
+        .map_err(|e| (axum::http::StatusCode::SERVICE_UNAVAILABLE, e))?;
     Ok(Json(serde_json::json!({ "execution_id": execution_id })))
 }
 

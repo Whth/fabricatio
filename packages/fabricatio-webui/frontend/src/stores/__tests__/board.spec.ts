@@ -4,6 +4,21 @@ import { useBoardStore } from '../board'
 import { useWorkflowStore } from '../workflow'
 import type { NodeTypeDefinition } from '@/types/api'
 
+/** A complete registry definition — the wire shape always carries every field. */
+function nodeTypeDef(type: string): NodeTypeDefinition {
+  return {
+    type,
+    title: type,
+    description: '',
+    category: 'general',
+    input_ports: [],
+    output_ports: [],
+    capabilities: [],
+    ctx_override: false,
+    config_fields: [],
+  }
+}
+
 describe('board store role/workflow targeting', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -332,6 +347,7 @@ describe('board store boot', () => {
     localStorage.setItem(
       'workflow:draft',
       JSON.stringify({
+        version: 2,
         nodes: [
           {
             id: 'ReadText_1',
@@ -349,7 +365,7 @@ describe('board store boot', () => {
     )
     const wf = useWorkflowStore()
     // Skip the registry network call by pre-populating nodeTypes.
-    wf.nodeTypes.push({ type: 'ReadText' } as unknown as NodeTypeDefinition)
+    wf.nodeTypes.push(nodeTypeDef('ReadText'))
     expect(wf.nodes).toHaveLength(1) // draft restored into the editor
 
     const store = useBoardStore()
@@ -361,5 +377,50 @@ describe('board store boot', () => {
     // Boot does not force the workflow layer.
     expect(store.layer).toBe('board')
     localStorage.removeItem('workflow:draft')
+  })
+})
+
+describe('workflow store undo/redo', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+  })
+
+  it('redo restores every document field, including the namespace', () => {
+    const wf = useWorkflowStore()
+    wf.workflowName = 'w'
+    wf.workflowNamespace = 'ns-one'
+    wf.taskOutputKey = 'out-one'
+    wf.pushSnapshot()
+    wf.workflowNamespace = 'ns-two'
+    wf.taskOutputKey = 'out-two'
+    wf.pushSnapshot()
+
+    wf.undo()
+    expect(wf.workflowNamespace).toBe('ns-one')
+    expect(wf.taskOutputKey).toBe('out-one')
+
+    // Regression: redo() used to restore only nodes/edges/workflowName, leaving
+    // the namespace and output key stuck on the undone values — stale values
+    // that then flowed into toJSON() and got saved into the board.
+    wf.redo()
+    expect(wf.workflowNamespace).toBe('ns-two')
+    expect(wf.taskOutputKey).toBe('out-two')
+  })
+
+  it('discards the redo tail when a new snapshot branches the history', () => {
+    const wf = useWorkflowStore()
+    wf.workflowNamespace = 'a'
+    wf.pushSnapshot()
+    wf.workflowNamespace = 'b'
+    wf.pushSnapshot()
+
+    wf.undo()
+    expect(wf.workflowNamespace).toBe('a')
+
+    wf.workflowNamespace = 'c'
+    wf.pushSnapshot()
+    wf.redo() // nothing to redo: the 'b' tail was discarded by the branch
+    expect(wf.workflowNamespace).toBe('c')
   })
 })

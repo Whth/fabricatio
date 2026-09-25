@@ -42,29 +42,19 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 Message::Text(text) => {
                     if let Ok(submit) = serde_json::from_str::<WsSubmit>(&text) {
                         let execution_id = Uuid::new_v4().to_string();
-                        let wf_json = match serde_json::to_string(&submit.workflow) {
+                        let task_json = match serde_json::to_string(&submit.task) {
                             Ok(s) => s,
                             Err(e) => {
-                                fabricatio_logger::warn!(
-                                    "WS {sid}: cannot serialize workflow: {e}"
-                                );
+                                fabricatio_logger::warn!("WS {sid}: cannot serialize task: {e}");
                                 continue;
                             }
                         };
-                        let task_json = submit
-                            .task_input
-                            .map(|v| v.to_string())
-                            .unwrap_or_else(|| "null".to_string());
-                        if let Some(submit_fn) = state_clone.submit_fn.get() {
-                            let res = pyo3::Python::attach(|py| {
-                                submit_fn.call1(py, (execution_id.clone(), wf_json, task_json))
-                            });
-                            if let Err(e) = res {
-                                fabricatio_logger::warn!("WS {sid}: submit rejected: {e}");
-                            } else {
-                                fabricatio_logger::info!(
-                                    "WS {sid} queued execution {execution_id}"
-                                );
+                        match crate::api::submit_task(&state_clone, &execution_id, &task_json) {
+                            Ok(()) => {
+                                fabricatio_logger::info!("WS {sid} queued execution {execution_id}")
+                            }
+                            Err(e) => {
+                                fabricatio_logger::warn!("WS {sid}: submit rejected: {e}")
                             }
                         }
                     }

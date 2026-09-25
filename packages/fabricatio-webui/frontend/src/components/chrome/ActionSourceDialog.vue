@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { X, Copy, Check, FileCode } from '@lucide/vue'
+import { Copy, Check, FileCode } from '@lucide/vue'
 import { useI18n } from 'vue-i18n'
 import hljs from 'highlight.js/lib/core'
 import python from 'highlight.js/lib/languages/python'
 import { useWorkflowStore } from '@/stores/workflow'
+import AppModal from '@/components/chrome/AppModal.vue'
 
 hljs.registerLanguage('python', python)
 
+/**
+ * Read-only Python source viewer. Its open flag is view-local (NodeCanvas
+ * owns the selected node), so it arrives as a prop; the always-dark code
+ * surface re-skins AppModal's panel (see the `:global` rules below).
+ */
 const props = defineProps<{
-  nodeType: string
+  open: boolean
+  nodeType?: string
 }>()
 
 const emit = defineEmits<{
@@ -46,83 +53,59 @@ async function copySource() {
     // clipboard unavailable
   }
 }
-
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') emit('close')
-}
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="source-overlay" @click.self="emit('close')" @keydown="onKeydown">
-      <div class="source-panel">
-        <div class="source-header">
-          <div class="source-title-row">
-            <FileCode :size="15" />
-            <span class="source-title">{{ nodeTitle }}</span>
-            <span class="source-type-tag">{{ nodeType }}</span>
-          </div>
-          <div class="header-actions">
-            <button
-              v-if="sourceCode"
-              class="copy-btn"
-              :class="{ copied }"
-              @click="copySource"
-              :title="copied ? t('chrome.source.copied') : t('chrome.source.copySource')"
-            >
-              <Check v-if="copied" :size="14" />
-              <Copy v-else :size="14" />
-              <span>{{ copied ? t('chrome.source.copied') : t('chrome.source.copy') }}</span>
-            </button>
-            <button class="close-btn" @click="emit('close')" :title="t('chrome.source.closeEsc')">
-              <X :size="16" />
-            </button>
-          </div>
-        </div>
+  <AppModal
+    :open="open"
+    width="min(900px, 92vw)"
+    height="min(700px, 85vh)"
+    panel-class="source-panel-dark"
+    @close="emit('close')"
+  >
+    <template #header>
+      <div class="source-title-row">
+        <FileCode :size="15" />
+        <span class="source-title">{{ nodeTitle }}</span>
+        <span class="source-type-tag">{{ nodeType }}</span>
+      </div>
+      <div class="header-actions">
+        <button
+          v-if="sourceCode"
+          class="copy-btn"
+          :class="{ copied }"
+          @click="copySource"
+          :title="copied ? t('chrome.source.copied') : t('chrome.source.copySource')"
+        >
+          <Check v-if="copied" :size="14" />
+          <Copy v-else :size="14" />
+          <span>{{ copied ? t('chrome.source.copied') : t('chrome.source.copy') }}</span>
+        </button>
+      </div>
+    </template>
 
-        <div class="source-body">
-          <pre v-if="sourceCode"><code v-html="highlightedCode"></code></pre>
-          <div v-else class="source-empty">
-            {{ t('chrome.source.noSource') }} <code>{{ nodeType }}</code>.
-          </div>
-        </div>
+    <div class="source-body">
+      <pre v-if="sourceCode"><code v-html="highlightedCode"></code></pre>
+      <div v-else class="source-empty">
+        {{ t('chrome.source.noSource') }} <code>{{ nodeType }}</code>.
       </div>
     </div>
-  </Teleport>
+  </AppModal>
 </template>
 
 <style scoped>
-.source-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(2px);
-}
-
-.source-panel {
+/* This dialog keeps its own always-dark code surface: it re-skins the shared
+   panel and header rather than inheriting the themeable modal skin. */
+:global(.app-modal-panel.source-panel-dark) {
   background: #1e1e2e;
-  border: 1px solid #313244;
+  border-color: #313244;
   border-radius: 10px;
-  width: min(900px, 92vw);
-  height: min(700px, 85vh);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
 }
 
-.source-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid #313244;
+:global(.app-modal-panel.source-panel-dark .app-modal-header) {
   background: #181825;
-  flex-shrink: 0;
+  border-bottom-color: #313244;
 }
 
 .source-title-row {
@@ -150,6 +133,7 @@ function onKeydown(e: KeyboardEvent) {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-left: auto;
 }
 
 .copy-btn {
@@ -173,25 +157,6 @@ function onKeydown(e: KeyboardEvent) {
 .copy-btn.copied {
   background: #2d4a3e;
   color: #a6e3a1;
-}
-
-.close-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: #6c7086;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.15s, color 0.15s;
-}
-
-.close-btn:hover {
-  background: #313244;
-  color: #cdd6f4;
 }
 
 .source-body {

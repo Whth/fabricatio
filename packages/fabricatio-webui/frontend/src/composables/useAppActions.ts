@@ -10,6 +10,8 @@ import { useBoardStore } from '@/stores/board'
 import { useExecutionStore } from '@/stores/execution'
 import { useNotificationsStore } from '@/stores/notifications'
 import { api } from '@/api/client'
+import { errorMessage } from '@/utils/errors'
+import { downloadBlob } from '@/utils/download'
 import { i18n } from '@/i18n'
 import type { BoardJSON, WorkflowMeta } from '@/types/api'
 
@@ -45,8 +47,7 @@ export function useAppActions() {
         i18n.global.t('shell.boardSavedBody', { id: result.id, roles: board.roles.length, workflows: boardStore.workflowCount }),
       )
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.saveFailed'), message)
+      notifications.error(i18n.global.t('shell.saveFailed'), errorMessage(err))
     } finally {
       isSaving.value = false
     }
@@ -82,8 +83,7 @@ export function useAppActions() {
       )
       return true
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.loadFailed'), message)
+      notifications.error(i18n.global.t('shell.loadFailed'), errorMessage(err))
       return false
     }
   }
@@ -94,30 +94,18 @@ export function useAppActions() {
       savedBoards.value = savedBoards.value.filter((w) => w.id !== id)
       notifications.success(i18n.global.t('shell.deleted'))
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.deleteFailed'), message)
+      notifications.error(i18n.global.t('shell.deleteFailed'), errorMessage(err))
     }
-  }
-
-  function downloadJson(name: string, data: unknown) {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   /** Download every saved board as one JSON array file. */
   async function exportAllBoards() {
     try {
       const boards = await api.getWorkflows()
-      downloadJson('fabricatio-boards.json', boards)
+      downloadBlob(JSON.stringify(boards, null, 2), 'fabricatio-boards.json', 'application/json')
       notifications.success(i18n.global.t('shell.exported'), i18n.global.t('shell.exportedBody', { n: boards.length }))
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.exportFailed'), message)
+      notifications.error(i18n.global.t('shell.exportFailed'), errorMessage(err))
     }
   }
 
@@ -125,10 +113,9 @@ export function useAppActions() {
   async function exportBoardById(id: string) {
     try {
       const board = await api.getWorkflow(id)
-      downloadJson(`${id}.json`, board)
+      downloadBlob(JSON.stringify(board, null, 2), `${id}.json`, 'application/json')
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      notifications.error(i18n.global.t('shell.exportFailed'), message)
+      notifications.error(i18n.global.t('shell.exportFailed'), errorMessage(err))
     }
   }
 

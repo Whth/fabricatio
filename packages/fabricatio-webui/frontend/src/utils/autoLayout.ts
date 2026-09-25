@@ -9,6 +9,7 @@
  */
 
 import type { NodeTypeDefinition, WorkflowJSON } from '@/types/api'
+import { extraInputPorts } from '@/utils/argGroups'
 
 export interface LayoutSize {
   width: number
@@ -40,9 +41,7 @@ export function rowCountForNode(
   def: Pick<NodeTypeDefinition, 'config_fields' | 'input_ports' | 'output_ports'>,
 ): number {
   const config = def.config_fields?.length ?? 0
-  const extra = (def.input_ports ?? []).filter(
-    (p) => !(def.config_fields ?? []).some((f) => f.name === p.name),
-  ).length
+  const extra = extraInputPorts(def.input_ports ?? [], def.config_fields ?? []).length
   return Math.max(config + extra, def.output_ports?.length ?? 0)
 }
 

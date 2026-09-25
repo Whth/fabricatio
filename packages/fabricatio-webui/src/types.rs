@@ -13,6 +13,9 @@ pub struct PortDefinition {
     pub name: String,
     #[serde(rename = "type")]
     pub port_type: String,
+    /// Absent in hand-authored payloads (board-editor action fields), so it
+    /// defaults rather than failing the whole document.
+    #[serde(default)]
     pub optional: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
@@ -123,27 +126,17 @@ pub struct WorkflowMeta {
     pub thumbnail: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ActionFieldJson {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub field_type: String,
-    #[serde(default)]
-    pub optional: bool,
-    #[serde(default)]
-    pub default: Option<serde_json::Value>,
-    #[serde(default)]
-    pub widget: Option<String>,
-}
-
 /// A user-defined Action definition; code-gen emits an Action subclass.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionDefJson {
     pub name: String,
     #[serde(default)]
     pub description: String,
+    /// Field schema, shared with the registry's ports: the same
+    /// name/type/optional/default/widget shape, so widget hints and grouping
+    /// behave identically for custom actions and registry actions.
     #[serde(default)]
-    pub fields: Vec<ActionFieldJson>,
+    pub fields: Vec<PortDefinition>,
     #[serde(default)]
     pub capabilities: Vec<String>,
     #[serde(default)]
@@ -306,29 +299,6 @@ pub struct ExecutionRequest {
     pub task: TaskJson,
 }
 
-// Wire protocol types for /api/history; constructed by the Python worker.
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExecutionStatus {
-    pub execution_id: String,
-    pub state: ExecutionState,
-    #[serde(default)]
-    pub current_node: Option<String>,
-    #[serde(default)]
-    pub error: Option<String>,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ExecutionState {
-    Queued,
-    Running,
-    Completed,
-    Failed,
-    Cancelled,
-}
-
 // ── WebSocket Messages ───────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -349,6 +319,10 @@ pub enum WsMessage {
     NodeDone {
         execution_id: String,
         node_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        node_type: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        output_key: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         output: Option<serde_json::Value>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -366,8 +340,11 @@ pub enum WsMessage {
     NodeOutput {
         execution_id: String,
         node_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        node_type: Option<String>,
         output_key: String,
-        data: serde_json::Value,
+        #[serde(default)]
+        output: serde_json::Value,
         #[serde(skip_serializing_if = "Option::is_none")]
         timestamp: Option<String>,
     },
@@ -419,11 +396,21 @@ impl WsMessage {
     }
 }
 
+/// Client → server: one submission. Carries the same `TaskJson` payload as
+/// `POST /api/execute` so both transports share one worker entry point; the
+/// untagged `type` field is ignored on the way in.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WsSubmit {
-    pub workflow: WorkflowJson,
-    #[serde(default)]
-    pub task_input: Option<serde_json::Value>,
+    pub task: TaskJson,
+}
+
+/// One saved board as returned by `GET /api/workflows`: the stored document
+/// plus the id it is keyed under (flattened, matching the editor's contract).
+#[derive(Debug, Clone, Serialize)]
+pub struct SavedBoard {
+    pub id: String,
+    #[serde(flatten)]
+    pub board: BoardJson,
 }
 
 #[cfg(test)]
@@ -563,6 +550,77 @@ mod tests {
         let s = serde_json::to_string(&m).unwrap();
         assert!(!s.contains("cancelled"));
         assert!(s.contains(r#""type":"execution_done""#));
+    }
+
+    #[test]
+    fn action_def_fields_accept_partial_port_payloads() {
+        // The board editor emits action fields carrying only {name, type} plus
+        // whatever else it has; a required `optional` failed the whole document.
+        let raw = r#"{"name":"MyAction","fields":[{"name":"text","type":"str"}]}"#;
+        let def: ActionDefJson = serde_json::from_str(raw).unwrap();
+        assert_eq!(def.fields.len(), 1);
+        assert!(!def.fields[0].optional);
+        let s = serde_json::to_string(&def).unwrap();
+        assert!(
+            s.contains(r#"{"name":"text","type":"str","optional":false}"#),
+            "serialized: {s}"
+        );
+    }
+
+    #[test]
+    fn saved_board_flattens_id_beside_the_document() {
+        let raw = r#"{"version":"1.0","format_version":2,"name":"b","roles":[],"actions":[]}"#;
+        let board: BoardJson = serde_json::from_str(raw).unwrap();
+        let saved = SavedBoard {
+            id: "b".into(),
+            board,
+        };
+        let v = serde_json::to_value(&saved).unwrap();
+        assert_eq!(v["id"], "b");
+        assert_eq!(v["name"], "b");
+        assert_eq!(v["format_version"], 2);
+    }
+
+    #[test]
+    fn ws_submit_carries_the_task_payload_and_ignores_the_frame_tag() {
+        let raw = r#"{"type":"submit","task":{"name":"t","send_to":["a","b"]}}"#;
+        let submit: WsSubmit = serde_json::from_str(raw).unwrap();
+        assert_eq!(submit.task.name, "t");
+        assert_eq!(submit.task.send_to, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn node_lifecycle_frames_keep_the_python_payload_fields() {
+        // Quoted from the executor's instrumentation payload
+        // (python/fabricatio_webui/executor.py, the node_done / node_output emit):
+        // both frames carry the same body, and a field rename on either side
+        // silently kills the output preview downstream.
+        let done = r#"{"type":"node_done","execution_id":"e1","node_id":"ReadText_1","node_type":"ReadText","output_key":"read_text","output":"file body"}"#;
+        let m: WsMessage = serde_json::from_str(done).unwrap();
+        let v = serde_json::to_value(&m).unwrap();
+        assert_eq!(v["node_id"], "ReadText_1");
+        assert_eq!(v["node_type"], "ReadText");
+        assert_eq!(v["output_key"], "read_text");
+        assert_eq!(v["output"], "file body");
+
+        let out = r#"{"type":"node_output","execution_id":"e1","node_id":"ReadText_1","node_type":"ReadText","output_key":"read_text","output":"file body"}"#;
+        let m: WsMessage = serde_json::from_str(out).unwrap();
+        match &m {
+            WsMessage::NodeOutput {
+                output_key, output, ..
+            } => {
+                assert_eq!(output_key, "read_text");
+                assert_eq!(output, "file body");
+            }
+            other => panic!("unexpected variant {other:?}"),
+        }
+    }
+
+    #[test]
+    fn node_done_survives_a_producer_that_omits_the_optional_fields() {
+        let raw = r#"{"type":"node_done","execution_id":"e1","node_id":"n1","output":42}"#;
+        let m: WsMessage = serde_json::from_str(raw).unwrap();
+        assert!(matches!(m, WsMessage::NodeDone { .. }));
     }
 
     #[test]

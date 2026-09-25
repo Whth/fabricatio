@@ -1,23 +1,28 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useNotificationsStore, type Notification } from '@/stores/notifications'
+import {
+  useNotificationsStore,
+  type NotificationType,
+} from '@/stores/notifications'
 import { Info, CircleCheck, TriangleAlert, CircleX, X } from '@lucide/vue'
 const notificationsStore = useNotificationsStore()
 
 const visibleNotifications = computed(() => notificationsStore.notifications.slice(0, 5))
 
-function getIcon(type: Notification['type']) {
-  const icons: Record<Notification['type'], typeof Info> = {
-    info: Info,
-    success: CircleCheck,
-    warning: TriangleAlert,
-    error: CircleX,
-  }
-  return icons[type]
+/** Kind -> icon and kind -> accent class, both typed so a new notification
+ *  kind cannot silently render unstyled. */
+const TYPE_ICONS: Record<NotificationType, typeof Info> = {
+  info: Info,
+  success: CircleCheck,
+  warning: TriangleAlert,
+  error: CircleX,
 }
 
-function getTypeClass(type: Notification['type']): string {
-  return `notification-${type}`
+const TYPE_CLASSES: Record<NotificationType, string> = {
+  info: 'notification-info',
+  success: 'notification-success',
+  warning: 'notification-warning',
+  error: 'notification-error',
 }
 
 function formatTime(timestamp: number): string {
@@ -32,11 +37,11 @@ function formatTime(timestamp: number): string {
       <div
         v-for="notification in visibleNotifications"
         :key="notification.id"
-        :class="['notification', getTypeClass(notification.type)]"
+        :class="['notification', TYPE_CLASSES[notification.type]]"
         @click="notificationsStore.markAsRead(notification.id)"
       >
         <div class="notification-icon">
-          <component :is="getIcon(notification.type)" :size="16" />
+          <component :is="TYPE_ICONS[notification.type]" :size="16" />
         </div>
         <div class="notification-content">
           <div class="notification-header">
