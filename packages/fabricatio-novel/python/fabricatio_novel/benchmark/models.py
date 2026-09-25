@@ -26,7 +26,6 @@ finished table.
 import hashlib
 import json
 import statistics
-from collections import Counter
 from collections.abc import Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass
@@ -38,13 +37,27 @@ from fabricatio_core.rust import word_count
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, computed_field
 
 from fabricatio_novel.benchmark.enums import Gate, Metric, Verdict
+from fabricatio_novel.benchmark.knobs import benchmark_knobs, duplicate_min_chars, long_sentence_chars
 from fabricatio_novel.benchmark.probes import TermProbes
-from fabricatio_novel.benchmark.text import char_gram_stream, cjk_ratio, ngram_overlap, sentences, significant_terms
+from fabricatio_novel.benchmark.text import sentences
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 from fabricatio_novel.models.context.rag import RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
+from fabricatio_novel.rust import (
+    GramTable as ReportedGramTable,
+)
+from fabricatio_novel.rust import (
+    Metric as ReportedMetric,
+)
+from fabricatio_novel.rust import (
+    measure_probes,
+    measure_repetition,
+    measure_script,
+    measure_vocabulary,
+    significant_terms,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,20 +230,21 @@ class DuplicateSentence(BaseModel):
     text: str
 
 
-SHINGLE_SIZE = 12
-"""Character n-gram length for cross-scene repetition; long enough that sharing one means more than shared vocabulary."""
+class MetricValue(BaseModel):
+    """One number a measure reported, named ``<measure>.<metric>``."""
 
-ECHO_SIZE = 8
-"""Character n-gram length for seam echoes; short enough to survive a paraphrase at the seam."""
+    model_config = ConfigDict(frozen=True)
 
-ECHO_WINDOW = 300
-"""Characters taken from each side of a seam when measuring an echo."""
+    name: str
+    """The measure it came from, a dot, and what it counts."""
 
-ECHO_WARN = 0.05
-"""Echo overlap above which the seam is worth a look; clean runs measured under 0.03, seams that restaged the previous scene 0.10-0.14."""
+    value: float
+    """The number."""
 
-DUPLICATE_MIN_CHARS = 10
-"""Shortest whitespace-normalized sentence counted as a verbatim duplicate; shorter fragments match across ordinary narration."""
+    @classmethod
+    def collect(cls, reported: Sequence[ReportedMetric]) -> list[Self]:
+        """The numbers one measure's report carries, in the order it reported them."""
+        return [cls(name=metric.name, value=metric.value) for metric in reported]
 
 
 class RepetitionScore(BaseModel):
@@ -241,11 +255,25 @@ class RepetitionScore(BaseModel):
     shingle_size: int
     max_pair_overlap: float
     mean_pair_overlap: float
+    median_pair_overlap: float = 0.0
+    """Half the scene pairs repeat more than this, half less."""
+    p90_pair_overlap: float = 0.0
+    """The overlap nine pairs in ten stay under."""
+    worst_pair_index: int = 0
+    """The index of the worst pair: ``0`` is `(0, 1)`, and the pairs run on in run order."""
+    loud_pairs: int = 0
+    """How many pairs overlap more than the warning threshold."""
     boundary_echoes: list[BoundaryEcho] = Field(default_factory=list)
     loud_echoes: list[BoundaryEcho] = Field(default_factory=list)
     """The seams whose echo exceeds the warning threshold; filled when scoring, so no report re-filters them."""
     max_boundary_echo: float = 0.0
+    mean_boundary_echo: float = 0.0
+    """The mean echo over every seam."""
+    loud_seams: int = 0
+    """How many seams echo more than the warning threshold."""
     duplicate_sentences: list[DuplicateSentence] = Field(default_factory=list)
+    metrics: list[MetricValue] = Field(default_factory=list, exclude=True)
+    """Every number the repetition measure reported; merged into the scorecard's flat metric list."""
 
     @computed_field
     @property
@@ -259,41 +287,55 @@ class RepetitionScore(BaseModel):
         """The worst cross-scene overlap as a report prints it."""
         return f"{self.max_pair_overlap:.2%}"
 
+    @computed_field
+    @property
+    def median_pair_display(self) -> str:
+        """The middle cross-scene overlap as a report prints it."""
+        return f"{self.median_pair_overlap:.2%}"
+
+    @computed_field
+    @property
+    def p90_pair_display(self) -> str:
+        """The overlap nine scene pairs in ten stay under, as a report prints it."""
+        return f"{self.p90_pair_overlap:.2%}"
+
     @classmethod
     def of(cls, refs: Sequence[SceneRef]) -> Self:
         """Measure how much the prose repeats itself: scene pairs, seams and verbatim sentences."""
+        knobs = benchmark_knobs()
         proses = [ref.scene.content for ref in refs]
-        overlaps = [
-            ngram_overlap(left, right, SHINGLE_SIZE)
-            for index, left in enumerate(proses)
-            for right in proses[index + 1 :]
-        ]
+        measured = measure_repetition(proses, knobs)
         echoes = [
             BoundaryEcho(
                 scene=refs[index].index,
                 next_scene=refs[index + 1].index,
                 title=refs[index].scene.title,
                 next_title=refs[index + 1].scene.title,
-                overlap=ngram_overlap(
-                    refs[index].scene.content[-ECHO_WINDOW:], refs[index + 1].scene.content[:ECHO_WINDOW], ECHO_SIZE
-                ),
+                overlap=echo,
             )
-            for index in range(len(refs) - 1)
+            for index, echo in enumerate(measured.seams)
         ]
         seen: dict[str, list[int]] = {}
         for index, prose in enumerate(proses, start=1):
             for sentence in set(sentences(prose)):
-                if len(sentence) >= DUPLICATE_MIN_CHARS:
+                if len(sentence) >= duplicate_min_chars():
                     seen.setdefault(sentence, []).append(index)
         duplicates = [DuplicateSentence(scenes=scenes, text=text) for text, scenes in seen.items() if len(scenes) > 1]
         return cls(
-            shingle_size=SHINGLE_SIZE,
-            max_pair_overlap=max(overlaps, default=0.0),
-            mean_pair_overlap=sum(overlaps) / len(overlaps) if overlaps else 0.0,
+            shingle_size=knobs.pair_size,
+            max_pair_overlap=measured.max_pair,
+            mean_pair_overlap=measured.mean_pair,
+            median_pair_overlap=measured.median_pair,
+            p90_pair_overlap=measured.p90_pair,
+            worst_pair_index=measured.worst_pair_index,
+            loud_pairs=measured.loud_pairs,
             boundary_echoes=echoes,
-            loud_echoes=[echo for echo in echoes if echo.overlap > ECHO_WARN],
-            max_boundary_echo=max((echo.overlap for echo in echoes), default=0.0),
+            loud_echoes=[echo for echo in echoes if echo.overlap > knobs.echo_warn],
+            max_boundary_echo=measured.max_seam,
+            mean_boundary_echo=measured.mean_seam,
+            loud_seams=measured.loud_seams,
             duplicate_sentences=duplicates,
+            metrics=MetricValue.collect(measured.metrics()),
         )
 
 
@@ -342,7 +384,7 @@ class SentenceScore(BaseModel):
             max_chars=max(lengths, default=0),
             variation=statistics.pstdev(lengths) / mean if mean else 0.0,
             long_ratio=(
-                sum(1 for length in lengths if length >= LONG_SENTENCE_CHARS) / len(lengths) if lengths else 0.0
+                sum(1 for length in lengths if length >= long_sentence_chars()) / len(lengths) if lengths else 0.0
             ),
         )
 
@@ -371,26 +413,46 @@ class SentenceScore(BaseModel):
         return f"{self.long_ratio:.0%}"
 
 
-VOCAB_GRAM_SIZE = 3
-"""Characters per vocabulary n-gram.
+class GramTable(BaseModel):
+    """The n-gram counts of one size and the grams a report names for it."""
 
-Characters, not words: the same stream measures every script, so no metric has
-to know which language the run is in. Three characters are a word in Chinese
-and a word fragment in English, which is why the numbers compare runs of one
-corpus rather than prose in the abstract.
-"""
+    model_config = ConfigDict(frozen=True)
 
-VOCAB_WINDOW_GRAMS = 1000
-"""n-grams per vocabulary window.
+    size: int = 0
+    """How many characters one n-gram of this size spans."""
 
-A run is measured window by window and the windows are averaged, so the number
-does not follow the run's length: without this, a long run would always look
-more repetitive than a short one, because it gave its n-grams more chances to
-meet again.
-"""
+    grams: int = 0
+    """How many n-grams of this size the composed prose holds."""
 
-VOCAB_TOPS = 8
-"""How many repeated n-grams a scorecard names."""
+    distinct: int = 0
+    """How many of those n-grams are distinct."""
+
+    repeated: int = 0
+    """How many distinct n-grams occur more than once."""
+
+    share: float = 0.0
+    """How much of the distinct vocabulary this size repeats at all."""
+
+    top: list[Tally] = Field(default_factory=list)
+    """The most frequent n-grams of this size, ties in code point order; for reading, not for comparing."""
+
+    @classmethod
+    def of(cls, measured: ReportedGramTable) -> Self:
+        """Read one size's table from the measure that reported it."""
+        return cls(
+            size=measured.size,
+            grams=measured.grams,
+            distinct=measured.distinct,
+            repeated=measured.repeated,
+            share=measured.share,
+            top=[Tally(text=gram, count=count) for gram, count in measured.tops],
+        )
+
+    @computed_field
+    @property
+    def share_display(self) -> str:
+        """How much of this size's distinct vocabulary repeats, as a report prints it."""
+        return f"{self.share:.0%}"
 
 
 class VocabularyScore(BaseModel):
@@ -419,29 +481,40 @@ class VocabularyScore(BaseModel):
     recycled_per_1k: float = 0.0
     """The mean number of n-grams per 1000 that repeat inside their own window."""
 
-    top: list[Tally] = Field(default_factory=list)
-    """The most repeated n-grams of the whole run; for reading, not for comparing."""
+    distinct_grams: int = 0
+    """How many of those n-grams are distinct."""
+
+    repeated_grams: int = 0
+    """How many distinct n-grams occur more than once."""
+
+    repeat_share: float = 0.0
+    """How much of the distinct vocabulary the prose repeats at all."""
+
+    windows: int = 0
+    """How many windows the rate was measured over."""
+
+    tables: list[GramTable] = Field(default_factory=list)
+    """One table per n-gram size from 1 to 6, each naming its most frequent grams; for reading, not for comparing."""
+
+    metrics: list[MetricValue] = Field(default_factory=list, exclude=True)
+    """Every number the vocabulary measure reported; merged into the scorecard's flat metric list."""
 
     @classmethod
     def of(cls, text: str) -> Self:
         """Measure the n-gram vocabulary of the composed prose, one window at a time."""
-        grams = char_gram_stream(text, VOCAB_GRAM_SIZE)
-        windows = [
-            grams[start : start + VOCAB_WINDOW_GRAMS]
-            for start in range(0, len(grams) - VOCAB_WINDOW_GRAMS + 1, VOCAB_WINDOW_GRAMS)
-        ]
-        if not windows and grams:
-            # Prose shorter than one window is measured as the single window it fits in.
-            windows = [grams]
-        recycled = [
-            sum(count for count in Counter(window).values() if count > 1) / len(window) * 1000 for window in windows
-        ]
+        knobs = benchmark_knobs()
+        measured = measure_vocabulary(text, knobs)
         return cls(
-            gram_size=VOCAB_GRAM_SIZE,
-            grams=len(grams),
-            window_grams=VOCAB_WINDOW_GRAMS,
-            recycled_per_1k=statistics.fmean(recycled) if recycled else 0.0,
-            top=[Tally(text=gram, count=count) for gram, count in Counter(grams).most_common(VOCAB_TOPS)],
+            gram_size=measured.size,
+            grams=measured.grams,
+            window_grams=knobs.vocab_window,
+            recycled_per_1k=measured.recycled_per_1k,
+            distinct_grams=measured.distinct,
+            repeated_grams=measured.repeated,
+            repeat_share=measured.repeat_share,
+            windows=measured.windows,
+            tables=[GramTable.of(table) for table in measured.tables],
+            metrics=MetricValue.collect(measured.metrics()),
         )
 
     @computed_field
@@ -449,6 +522,12 @@ class VocabularyScore(BaseModel):
     def recycled_display(self) -> str:
         """The recycled n-gram rate as a report prints it."""
         return f"{self.recycled_per_1k:.1f}"
+
+    @computed_field
+    @property
+    def repeat_share_display(self) -> str:
+        """How much of the distinct vocabulary repeats, as a report prints it."""
+        return f"{self.repeat_share:.0%}"
 
 
 class ProseScore(BaseModel):
@@ -505,16 +584,32 @@ class LanguageScore(BaseModel):
     outline_cjk_ratio: float
     prose_cjk_ratio: float
     expected_cjk: bool
+    prose_chars: int = 0
+    """How many characters the composed prose holds, whitespace included."""
+    prose_latin_share: float = 0.0
+    """The share of the prose's non-whitespace characters that is Latin."""
+    prose_digit_share: float = 0.0
+    """The share of the prose's non-whitespace characters that is a digit."""
+    prose_other_share: float = 0.0
+    """The share of the prose's non-whitespace characters that is neither CJK, Latin nor a digit: punctuation and other scripts."""
+    metrics: list[MetricValue] = Field(default_factory=list, exclude=True)
+    """Every number the script measure reported; merged into the scorecard's flat metric list."""
 
     @classmethod
     def of(cls, novel: NovelContext, prose: str) -> Self:
         """Compare the script of the composed prose with the script of the outline it was written from."""
-        outline_ratio = cjk_ratio(novel.outline)
+        outline = measure_script(novel.outline)
+        measured = measure_script(prose)
         return cls(
             declared=novel.language,
-            outline_cjk_ratio=outline_ratio,
-            prose_cjk_ratio=cjk_ratio(prose),
-            expected_cjk=outline_ratio >= 0.5,
+            outline_cjk_ratio=outline.cjk_share,
+            prose_cjk_ratio=measured.cjk_share,
+            expected_cjk=outline.cjk_share >= 0.5,
+            prose_chars=measured.chars,
+            prose_latin_share=measured.latin_share,
+            prose_digit_share=measured.digit_share,
+            prose_other_share=measured.other_share,
+            metrics=MetricValue.collect(measured.metrics()),
         )
 
     @computed_field
@@ -593,6 +688,12 @@ class ProbeScore(BaseModel):
     aliases: dict[str, dict[str, int]] = Field(default_factory=dict)
     """Per alias group, keyed by its joined names: the variants the prose mixes and their counts."""
 
+    alias_groups: int = 0
+    """How many alias groups the prose mixes two or more variants of."""
+
+    metrics: list[MetricValue] = Field(default_factory=list, exclude=True)
+    """Every number the probe measure reported; merged into the scorecard's flat metric list."""
+
     @classmethod
     def of(cls, novel: NovelContext, prose: str, probes: TermProbes | None) -> Self:
         """Measure the supplied term probes; without a probe table every field stays at its default."""
@@ -608,18 +709,26 @@ class ProbeScore(BaseModel):
     @classmethod
     def measured(cls, prose: str, probes: TermProbes, licensed: AbstractSet[str]) -> Self:
         """Count every probe term in the prose; ``licensed`` names the watch hits a plan tree uses itself."""
-        watch = {term: prose.count(term) for term in probes.watch if term in prose}
+        measured = measure_probes(
+            prose,
+            list(probes.watch),
+            list(probes.gated),
+            [list(group) for group in probes.aliases],
+            set(licensed),
+        )
         return cls(
             configured=True,
-            gated={term: prose.count(term) for term in probes.gated if term in prose},
-            watch=watch,
-            watch_per_1k=sum(watch.values()) / len(prose) * 1000 if prose else 0.0,
-            watch_unlicensed={term: count for term, count in watch.items() if term not in licensed},
+            gated=dict(measured.gated),
+            watch=dict(measured.watch),
+            watch_per_1k=measured.watch_per_1k,
+            watch_unlicensed=dict(measured.unlicensed),
             aliases={
                 "|".join(group): counts
-                for group in probes.aliases
-                if len(counts := {term: prose.count(term) for term in group if term in prose}) >= 2
+                for group, counted in zip(probes.aliases, measured.aliases, strict=True)
+                if len(counts := dict(counted)) >= 2
             },
+            alias_groups=measured.mixed_groups,
+            metrics=MetricValue.collect(measured.metrics()),
         )
 
     @staticmethod
@@ -733,6 +842,13 @@ class RunScorecard(BaseModel):
     gates_failed: list[GateFailure]
     warnings: list[str]
 
+    metrics: list[MetricValue] = Field(default_factory=list)
+    """Every number the measures reported for this run, in measure order.
+
+    The sections above carry the readings a report prints; this is the flat list behind them, so a
+    number a measure reports reaches the artifact without a change here.
+    """
+
     @computed_field
     @property
     def minutes_display(self) -> str:
@@ -802,7 +918,7 @@ class RunScorecard(BaseModel):
                 f"{len(repetition.duplicate_sentences)} sentence(s) repeated verbatim across scenes, e.g. scene(s) "
                 f"{example.scenes}: {example.text[:60]}"
             )
-        if repetition.max_pair_overlap > ECHO_WARN:
+        if repetition.max_pair_overlap > benchmark_knobs().echo_warn:
             notes.append(f"cross-scene {repetition.shingle_size}-gram overlap {repetition.max_pair_overlap:.2%}")
         if probes.watch_per_1k > WATCH_WARN_PER_1K:
             notes.append(f"probe watch rate {probes.watch_per_1k:.2f}/1k chars")

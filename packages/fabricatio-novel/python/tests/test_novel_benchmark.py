@@ -26,9 +26,11 @@ from fabricatio_novel.benchmark import (
     score_run,
     sign_test_p,
 )
+from fabricatio_novel.benchmark.knobs import benchmark_knobs
 from fabricatio_novel.benchmark.models import StageArtifact
-from fabricatio_novel.benchmark.text import cjk_ratio, sentences, significant_terms
+from fabricatio_novel.benchmark.text import sentences
 from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
+from fabricatio_novel.rust import measure_script, significant_terms
 
 KEEPER = "The keeper rows out to the rocks."
 """Scene plan used by most fixtures; it names nothing a later scene would invent."""
@@ -160,7 +162,22 @@ def test_vocabulary_repeats_are_measured(tmp_path: Path) -> None:
     )
 
     assert recycled.prose.vocabulary.recycled_per_1k > varied.prose.vocabulary.recycled_per_1k
-    assert max(tally.count for tally in recycled.prose.vocabulary.top) == 20
+    vocabulary = recycled.prose.vocabulary
+    calibrated = next(table for table in vocabulary.tables if table.size == vocabulary.gram_size)
+    assert max(tally.count for tally in calibrated.top) == 20
+
+
+def test_vocabulary_names_the_most_frequent_grams_of_every_size(tmp_path: Path) -> None:
+    """Every n-gram size from one to six names its most frequent grams, up to the configured count."""
+    sentence = "The keeper rows out to the rocks and counts the slow turn of the beam. "
+    card = score_run(benchmark_run(tmp_path, _story(rowing_prose=sentence * 3, bell_prose=sentence * 2)))
+    vocabulary = card.prose.vocabulary
+    named = benchmark_knobs().vocab_tops
+
+    assert [table.size for table in vocabulary.tables] == [1, 2, 3, 4, 5, 6]
+    assert all(table.top for table in vocabulary.tables)
+    assert len(vocabulary.tables[2].top) == named
+    assert vocabulary.tables[2].grams == vocabulary.grams
 
 
 def test_directionless_metrics_report_drift(tmp_path: Path) -> None:
@@ -439,5 +456,5 @@ def test_terms_cover_both_scripts() -> None:
     assert sentences("It cost 9.5 coins\u2026 and then it was gone.") == [
         "It cost 9.5 coins\u2026 and then it was gone."
     ]
-    assert cjk_ratio("\u6d4b\u8bd5") == pytest.approx(1.0)
-    assert cjk_ratio("plain") == 0.0
+    assert measure_script("\u6d4b\u8bd5").cjk_share == pytest.approx(1.0)
+    assert measure_script("plain").cjk_share == 0.0

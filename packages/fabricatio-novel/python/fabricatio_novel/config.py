@@ -12,10 +12,51 @@ from fabricatio_core import CONFIG
 from pydantic import BaseModel, ConfigDict
 
 
+class BenchmarkKnobs(BaseModel):
+    """The sizes a benchmark scorecard reads a run by, under ``[ext.novel.benchmark]``.
+
+    The first seven are read by the Rust measures (``fabricatio_novel.rust.Knobs``), the last two by
+    the Python side of the scorecard. A knob left unset keeps the calibrated value it was measured
+    at, so a run scored without this table is comparable with every run scored before it.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    pair_size: int | None = None
+    """characters per n-gram when scene pairs are shingled; long enough that sharing one means more than shared vocabulary."""
+
+    seam_size: int | None = None
+    """characters per n-gram when a seam is compared; short enough to survive a paraphrase at the seam."""
+
+    seam_window: int | None = None
+    """characters read from each side of a seam when measuring an echo."""
+
+    echo_warn: float | None = None
+    """pair or seam overlap above which the scorecard flags a repetition; clean runs measured under 0.03, seams that restaged the previous scene 0.10-0.14."""
+
+    vocab_size: int | None = None
+    """characters per vocabulary n-gram, at most 6; characters rather than words, so one stream measures every script."""
+
+    vocab_window: int | None = None
+    """n-grams per vocabulary window; windows are averaged so a long run does not score as more repetitive than a short one."""
+
+    vocab_tops: int | None = None
+    """how many of the most frequent n-grams each n-gram size's table names."""
+
+    duplicate_min_chars: int | None = None
+    """shortest whitespace-normalized sentence counted as a verbatim duplicate."""
+
+    long_sentence_chars: int | None = None
+    """sentence length from which a sentence counts as long; about fifteen English words, a run-on in Chinese."""
+
+
 class NovelConfig(BaseModel):
     """Configuration for fabricatio-novel."""
 
     model_config = ConfigDict(frozen=True)
+
+    benchmark: BenchmarkKnobs = BenchmarkKnobs()
+    """the knobs a benchmark scorecard measures a run by; every field unset keeps its calibrated value."""
 
     novel_metadata_requirement_template: str = "built-in/novel_metadata_requirement"
     """template used to extract the novel metadata (title, synopsis, word count) from the outline."""

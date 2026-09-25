@@ -157,12 +157,18 @@ comparable earlier run:
   moment written at the end of one scene and again at the top of the next), verbatim sentence repeats,
   cross-scene 12-gram overlap, sentence lengths (mean, median, max, spread and the share of run-on
   sentences, on the core's Unicode sentence segmentation), vocabulary repeats (how many n-grams repeat
-  inside a fixed-size window, plus the most repeated n-grams), watch-term rate, run duration.
+  inside a fixed-size window, plus the thirty most frequent n-grams of every size from one to six),
+  watch-term rate, run duration.
   Sentences and vocabulary are counted in characters, so every metric reads the same for a Chinese and
   an English run without a per-language rule.
 - **Provenance** — a `plan_fingerprint` over the planning snapshots: two runs sharing it replayed
   planning from the cache, so they compare per scene, with an exact sign test over the scenes that
   changed.
+
+Every number above is measured in Rust — one `Measure` trait per signal, in
+`fabricatio_novel.rust` — and the scorer only sequences those measures: it owns the report and never
+re-measures, so a metric a measure adds reaches the scorecard JSON without a change here. The sizes
+a run is measured at live under `[ext.novel.benchmark]` (see [Configuration](#configuration)).
 
 A metric that moves off zero is never called noise — one gated term is a regression regardless of
 sample size. A metric with no better side (how long the sentences are, how much their lengths vary)
@@ -298,7 +304,45 @@ Every stage wraps one `compose_novel` chain segment and fires the chain's lifecy
 | Symbol | Description |
 |---|---|
 | `NovelBuilder` | Builder for EPUB 3.0 novels: title/description/authors, chapters (auto-XHTML), cover, fonts, CSS, TOC |
-| `text_to_xhtml_paragraphs` | Plain text → `<p>`-wrapped XHTML paragraphs |
+| `split_paragraphs` / `join_paragraphs` / `text_to_xhtml_paragraphs` | Paragraph splitting and XHTML wrapping |
+| `significant_terms` | The distinctive terms of a text: every CJK 3..4-char n-gram and every Latin word of 4+, lowercased |
+| `Metric` | One number a measure reported: `name` (`<measure>.<metric>`) and `value` |
+| `Knobs` | The sizes every measure reads a run at; an argument left out keeps its calibrated value |
+| `measure_repetition(scenes, knobs=None)` | The overlap of every scene pair, the echo at every seam, and the stats over both |
+| `measure_vocabulary(text, knobs=None)` | N-gram slots, distinct/repeated grams, windows measured, recycled slots per 1000, and one gram table per size from 1 to 6 |
+| `measure_probes(prose, watch, gated, aliases, licensed)` | Watch and gated hits, alias groups mixing two names, hits the licence never uses |
+| `measure_script(text)` | Characters by script — CJK, Latin, digits, other — whitespace included |
+| `RepetitionReport` / `VocabularyReport` / `ProbeReport` / `ScriptReport` | What each measure read, number by number, plus `metrics()` |
+| `GramTable` | One size's n-gram counts and the most frequent grams of that size, `min(knobs.vocab_tops, distinct)` of them |
+
+Every measure is one implementation of one trait, so a new measurement is a new type and nothing
+else: it reads any iterator of documents (`Measure<T> where T: AsRef<str>` — scenes, drafts, whole
+manuscripts), returns its own report, and names its numbers `<measure>.<metric>` through `Reported`.
+A report carries the evidence it was read from (the pairs, the seams, the ordered gram counts) *and*
+the flat `metrics()` list the scorecard JSON publishes, so a measure that gains a number reaches the
+artifact without a Python change. The sizes a run is measured at are calibrated once, in
+`Knobs::default()`; `[ext.novel.benchmark]` moves any of them for a run.
+
+```python
+from fabricatio_novel.rust import Knobs, measure_repetition, measure_script, measure_vocabulary
+
+knobs = Knobs(seam_size=4)          # only the named knob moves off its calibrated value
+measured = measure_vocabulary(prose, knobs)
+print(measured.size, measured.distinct, measured.windows, measured.recycled_per_1k)
+for table in measured.tables:       # every size from 1 to 6, 30 grams each by default
+    print(table.size, table.distinct, table.tops[:5])
+
+repeats = measure_repetition([scene.content for scene in scenes])
+print(repeats.max_pair, repeats.median_pair, repeats.p90_pair, repeats.worst_seam_index, repeats.loud_pairs)
+
+print(measure_script(prose).cjk_share)
+```
+
+Vocabulary windows are packed into integers (21 bits per scalar value) and counted by sorting, so
+measuring a 200k-character text costs one pass and a single key vector per size rather than a string
+per window. Only the grams a report names are ranked and unpacked — the tail is selected away rather
+than sorted — so naming thirty grams of each of the six sizes costs about half a millisecond on that
+text.
 
 ## Configuration
 
@@ -346,6 +390,21 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `illustration_seed` | `int \| None` | `None` | scene illustration sampler seed; `None` keeps the bundled ComfyUI template's seed. |
 | `illustration_skip_existing` | `bool` | `True` | skip scenes whose illustration PNG already exists so re-runs fill only the gaps. |
 | `illustration_timeout_per_image` | `float` | `210.0` | per-image render timeout in seconds; the total render timeout scales linearly with the batch size (value x pending renders) since all renders share one ComfyUI queue; `0` falls back to `[ext.comfyui] timeout`. |
+
+`[ext.novel.benchmark]` re-takes every measurement at other sizes than the calibrated ones; every key
+is optional, and a key left unset keeps the value the measures were calibrated with:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `pair_size` | `int \| None` | `12` | characters per shingle when two scenes are compared. |
+| `seam_size` | `int \| None` | `8` | characters per shingle when a scene seam is compared. |
+| `seam_window` | `int \| None` | `300` | characters read from each side of a seam. |
+| `echo_warn` | `float \| None` | `0.05` | overlap from which a pair or a seam is reported as a repetition. |
+| `vocab_size` | `int \| None` | `3` | characters per vocabulary n-gram (1..=6). |
+| `vocab_window` | `int \| None` | `1000` | n-grams per vocabulary window; windows are averaged, so the rate does not follow the run's length. |
+| `vocab_tops` | `int \| None` | `30` | how many of the most frequent n-grams each size's table names. |
+| `duplicate_min_chars` | `int \| None` | `10` | shortest sentence counted as a verbatim duplicate. |
+| `long_sentence_chars` | `int \| None` | `80` | length from which a sentence counts as long. |
 
 Access at runtime: `from fabricatio_novel.config import novel_config`.
 

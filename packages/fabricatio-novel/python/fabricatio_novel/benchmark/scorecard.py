@@ -108,4 +108,10 @@ def score_run(run_dir: Path, probes: TermProbes | None = None) -> RunScorecard:
         probes=probe_score,
         gates_failed=GateFailure.collect(language, integrity, probe_score),
         warnings=RunScorecard.warnings_of(scenes, repetition, probe_score),
+        metrics=[
+            *repetition.metrics,
+            *prose_score.vocabulary.metrics,
+            *language.metrics,
+            *probe_score.metrics,
+        ],
     )

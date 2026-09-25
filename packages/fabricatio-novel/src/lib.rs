@@ -5,13 +5,17 @@ use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 use regex::Regex;
 
+mod benchmark;
 mod novel;
+mod text;
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[cfg(not(feature = "stubgen"))]
 #[pymodule]
 fn rust(python: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    text::register(python, m)?;
+    benchmark::register(python, m)?;
     novel::register(python, m)?;
     m.add_function(wrap_pyfunction!(split_paragraphs, m)?)?;
     m.add_function(wrap_pyfunction!(join_paragraphs, m)?)?;

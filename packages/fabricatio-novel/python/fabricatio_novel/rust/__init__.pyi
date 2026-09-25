@@ -6,11 +6,117 @@ import pathlib
 import typing
 
 __all__ = [
+    "GramTable",
+    "Knobs",
+    "Metric",
     "NovelBuilder",
+    "ProbeReport",
+    "RepetitionReport",
+    "ScriptReport",
+    "VocabularyReport",
     "join_paragraphs",
+    "measure_probes",
+    "measure_repetition",
+    "measure_script",
+    "measure_vocabulary",
+    "significant_terms",
     "split_paragraphs",
     "text_to_xhtml_paragraphs",
 ]
+
+@typing.final
+class GramTable:
+    r"""The n-gram counts of one size and the grams a report names for it."""
+    @property
+    def size(self) -> builtins.int:
+        r"""How many characters one n-gram of this table spans."""
+    @property
+    def grams(self) -> builtins.int:
+        r"""How many n-grams of this size the prose holds."""
+    @property
+    def distinct(self) -> builtins.int:
+        r"""How many of those n-grams are distinct."""
+    @property
+    def repeated(self) -> builtins.int:
+        r"""How many distinct n-grams occur more than once."""
+    @property
+    def share(self) -> builtins.float:
+        r"""How much of the distinct vocabulary this size repeats at all."""
+    @property
+    def tops(self) -> builtins.list[tuple[builtins.str, builtins.int]]:
+        r"""The most frequent n-grams of this size, most frequent first, ties in code point order."""
+
+@typing.final
+class Knobs:
+    r"""Every size and threshold the measures read a run by.
+
+    A measure is built with one of these, so a run can be scored at other sizes than the calibrated
+    ones without touching this crate. An argument left `None` at construction keeps its calibrated
+    value, which is what the Python side passes while the package configuration leaves a knob
+    unset.
+    """
+    @property
+    def pair_size(self) -> builtins.int:
+        r"""How many characters one n-gram spans when scene pairs are shingled.
+
+        Long enough that sharing one means more than shared vocabulary.
+        """
+    @property
+    def seam_size(self) -> builtins.int:
+        r"""How many characters one n-gram spans when a seam is compared.
+
+        Short enough to survive a paraphrase at the seam.
+        """
+    @property
+    def seam_window(self) -> builtins.int:
+        r"""How many characters are read from each side of a seam."""
+    @property
+    def echo_warn(self) -> builtins.float:
+        r"""The overlap from which a pair or a seam is reported as a repetition.
+
+        Clean runs measured under `0.03`; seams that restaged the previous scene, `0.10`-`0.14`.
+        """
+    @property
+    def vocab_size(self) -> builtins.int:
+        r"""How many characters one vocabulary n-gram spans.
+
+        Characters, not words: one stream measures every script, so no metric has to know which
+        language the run is in. Three characters are a word in Chinese and a word fragment in
+        English, which is why the numbers compare runs of one corpus rather than prose in the
+        abstract.
+        """
+    @property
+    def vocab_window(self) -> builtins.int:
+        r"""How many n-grams make up one vocabulary window.
+
+        A run is measured window by window and the windows are averaged, so the number does not
+        follow the run's length: measured over a whole manuscript, a long run would always look
+        more repetitive than a short one, because it gave its n-grams more chances to meet again.
+        """
+    @property
+    def vocab_tops(self) -> builtins.int:
+        r"""How many of the most frequent n-grams each size's table names."""
+    def __new__(
+        cls,
+        pair_size: builtins.int | None = None,
+        seam_size: builtins.int | None = None,
+        seam_window: builtins.int | None = None,
+        echo_warn: builtins.float | None = None,
+        vocab_size: builtins.int | None = None,
+        vocab_window: builtins.int | None = None,
+        vocab_tops: builtins.int | None = None,
+    ) -> Knobs:
+        r"""The knobs to measure a run by; an argument left out keeps its calibrated value."""
+
+@typing.final
+class Metric:
+    r"""One number a measure reported, named the way a report prints it: `<measure>.<metric>`."""
+    @property
+    def name(self) -> builtins.str:
+        r"""The metric's name: the measure it came from, a dot, and the number it counts."""
+    @property
+    def value(self) -> builtins.float:
+        r"""The number."""
 
 @typing.final
 class NovelBuilder:
@@ -22,14 +128,14 @@ class NovelBuilder:
     def set_title(self, title: builtins.str) -> NovelBuilder: ...
     def set_description(self, description: builtins.str) -> NovelBuilder:
         r"""Sets the novel description."""
+    def set_language(self, language: builtins.str) -> NovelBuilder:
+        r"""Sets the EPUB language (BCP-47 code)."""
     def add_author(self, author: builtins.str) -> NovelBuilder:
         r"""Adds an author to the novel metadata."""
     def add_chapter(self, title: builtins.str, content: builtins.str) -> NovelBuilder:
         r"""Adds a chapter with given title and content."""
     def add_cover_image(
-        self,
-        path: builtins.str | os.PathLike | pathlib.Path,
-        source: builtins.str | os.PathLike | pathlib.Path,
+        self, path: builtins.str | os.PathLike | pathlib.Path, source: builtins.str | os.PathLike | pathlib.Path
     ) -> NovelBuilder:
         r"""Adds a cover image from the given file path."""
     def add_metadata(self, key: builtins.str, value: builtins.str) -> NovelBuilder:
@@ -37,9 +143,7 @@ class NovelBuilder:
     def add_css(self, css: builtins.str) -> NovelBuilder:
         r"""Adds CSS styles to the novel."""
     def add_resource(
-        self,
-        path: builtins.str | os.PathLike | pathlib.Path,
-        source: builtins.str | os.PathLike | pathlib.Path,
+        self, path: builtins.str | os.PathLike | pathlib.Path, source: builtins.str | os.PathLike | pathlib.Path
     ) -> NovelBuilder:
         r"""Adds a resource file to the novel."""
     def add_font(self, font_family: builtins.str, source: builtins.str | os.PathLike | pathlib.Path) -> NovelBuilder:
@@ -49,11 +153,248 @@ class NovelBuilder:
     def export(self, path: builtins.str | os.PathLike | pathlib.Path) -> NovelBuilder:
         r"""Exports the built novel to the specified file path."""
 
-def split_paragraphs(source: builtins.str) -> list[builtins.str]:
-    r"""Split source text into a list of non-empty paragraph strings."""
+@typing.final
+class ProbeReport:
+    r"""The evidence a probe reading leaves behind: what every term of the table measured."""
+    @property
+    def chars(self) -> builtins.int:
+        r"""How many characters the prose holds, whitespace included."""
+    @property
+    def watch(self) -> builtins.list[tuple[builtins.str, builtins.int]]:
+        r"""The watch terms the prose uses, in table order, with their counts."""
+    @property
+    def gated(self) -> builtins.list[tuple[builtins.str, builtins.int]]:
+        r"""The gated terms the prose uses, in table order, with their counts."""
+    @property
+    def aliases(self) -> builtins.list[builtins.list[tuple[builtins.str, builtins.int]]]:
+        r"""Per alias group, in table order, the variants the prose uses, with their counts."""
+    @property
+    def mixed_groups(self) -> builtins.int:
+        r"""How many alias groups the prose uses two or more variants of.
 
-def join_paragraphs(paras: list[builtins.str]) -> builtins.str:
+        Those are the mixes a reader notices; one variant of a group is the name the run settled on.
+        """
+    @property
+    def unlicensed(self) -> builtins.list[tuple[builtins.str, builtins.int]]:
+        r"""The watch terms the licensed vocabulary leaves out, with their counts."""
+    @property
+    def watch_per_1k(self) -> builtins.float:
+        r"""How many of the prose's 1000 characters the watch terms make up."""
+    def metrics(self) -> builtins.list[Metric]:
+        r"""Every number this reading reported, named `probes.<metric>`."""
+
+@typing.final
+class RepetitionReport:
+    r"""The evidence a repetition reading leaves behind: what every scene pair and every seam measured."""
+    @property
+    def pairs(self) -> builtins.list[builtins.float]:
+        r"""The overlap of every scene pair: `(0, 1)` first, `(n-2, n-1)` last."""
+    @property
+    def seams(self) -> builtins.list[builtins.float]:
+        r"""The echo of every seam, in reading order.
+
+        Each reading is a scene's closing stretch against its successor's opening.
+        """
+    @property
+    def worst_pair_index(self) -> builtins.int:
+        r"""The index of the worst pair, `(0, 1)` being `0`; `0` for a run without pairs."""
+    @property
+    def max_pair(self) -> builtins.float:
+        r"""The worst pair overlap, `0.0` for a run without pairs."""
+    @property
+    def mean_pair(self) -> builtins.float:
+        r"""The mean pair overlap."""
+    @property
+    def median_pair(self) -> builtins.float:
+        r"""The middle pair overlap: the middle reading, or the mean of the two middle ones."""
+    @property
+    def p90_pair(self) -> builtins.float:
+        r"""The pair overlap nine pairs in ten stay under."""
+    @property
+    def loud_pairs(self) -> builtins.int:
+        r"""How many pairs repeat more than the knobs' warning overlap."""
+    @property
+    def worst_seam_index(self) -> builtins.int:
+        r"""The index of the worst seam; `0` for a run without seams."""
+    @property
+    def max_seam(self) -> builtins.float:
+        r"""The worst seam echo, `0.0` for a run without seams."""
+    @property
+    def mean_seam(self) -> builtins.float:
+        r"""The mean seam echo."""
+    @property
+    def loud_seams(self) -> builtins.int:
+        r"""How many seams echo more than the knobs' warning overlap."""
+    def metrics(self) -> builtins.list[Metric]:
+        r"""Every number this reading reported, named `repetition.<metric>`."""
+
+@typing.final
+class ScriptReport:
+    r"""The evidence a script reading leaves behind: how the prose's characters divide by script."""
+    @property
+    def chars(self) -> builtins.int:
+        r"""How many characters the corpus holds, whitespace included."""
+    @property
+    def non_space(self) -> builtins.int:
+        r"""How many of them are not whitespace; every share below is over these."""
+    @property
+    def cjk(self) -> builtins.int:
+        r"""How many are CJK."""
+    @property
+    def latin(self) -> builtins.int:
+        r"""How many are ASCII letters."""
+    @property
+    def digits(self) -> builtins.int:
+        r"""How many are ASCII digits."""
+    @property
+    def other(self) -> builtins.int:
+        r"""How many are anything else: punctuation, other scripts, symbols."""
+    @property
+    def cjk_share(self) -> builtins.float:
+        r"""The share of the non-whitespace characters that is CJK."""
+    @property
+    def latin_share(self) -> builtins.float:
+        r"""The share of the non-whitespace characters that is Latin."""
+    @property
+    def digit_share(self) -> builtins.float:
+        r"""The share of the non-whitespace characters that is a digit."""
+    @property
+    def other_share(self) -> builtins.float:
+        r"""The share of the non-whitespace characters that is anything else."""
+    def metrics(self) -> builtins.list[Metric]:
+        r"""Every number this reading reported, named `script.<metric>`."""
+
+@typing.final
+class VocabularyReport:
+    r"""The evidence a vocabulary reading leaves behind: the repeated n-grams and the window rates.
+
+    The corpus is read as one stream — windows are cut across everything the measure was handed —
+    so the rate describes the prose and not how it was divided into scenes.
+    """
+    @property
+    def size(self) -> builtins.int:
+        r"""How many characters one n-gram spans."""
+    @property
+    def grams(self) -> builtins.int:
+        r"""How many n-grams the prose holds."""
+    @property
+    def distinct(self) -> builtins.int:
+        r"""How many of those n-grams are distinct."""
+    @property
+    def repeated(self) -> builtins.int:
+        r"""How many distinct n-grams occur more than once."""
+    @property
+    def windows(self) -> builtins.int:
+        r"""How many windows the rate was measured over; `0` when the prose holds no n-gram."""
+    @property
+    def recycled_per_1k(self) -> builtins.float:
+        r"""The mean number of n-grams per 1000 that repeat inside their own window."""
+    @property
+    def repeat_share(self) -> builtins.float:
+        r"""How much of the distinct vocabulary the prose repeats at all."""
+    @property
+    def tables(self) -> builtins.list[GramTable]:
+        r"""One table per n-gram size from 1 to 6, each naming its own most frequent grams.
+
+        Every size is read, not only the calibrated one the counts and the rate describe: a
+        character, a pair and a phrase repeat on different scales, and which one a run recycles is
+        what the tables answer.
+        """
+    def metrics(self) -> builtins.list[Metric]:
+        r"""Every number this reading reported, named `vocabulary.<metric>`."""
+
+def join_paragraphs(paras: typing.Sequence[builtins.str]) -> builtins.str:
     r"""Wrap each paragraph in `<p>` tags and join with newlines."""
+
+def measure_probes(
+    text: builtins.str,
+    watch: typing.Sequence[builtins.str],
+    gated: typing.Sequence[builtins.str],
+    aliases: typing.Sequence[typing.Sequence[builtins.str]],
+    licensed: builtins.set[builtins.str],
+) -> ProbeReport:
+    r"""Counts what a run's prose makes of a probe table.
+
+    Every term of the table is counted over the prose: the watch terms, the gated ones, and the
+    variants of every alias group. The terms a plan text uses itself are handed in as `licensed`, so
+    the report tells the run's own vocabulary from the table's.
+
+    Args:
+        text: The prose to read.
+        watch: The terms whose presence is reported, in table order.
+        gated: The terms whose presence fails the run, in table order.
+        aliases: The variant groups, each in table order.
+        licensed: The vocabulary the plan text uses itself.
+
+    Returns:
+        The counts of every term the prose uses, and the numbers summarising them.
+    """
+
+def measure_repetition(scenes: typing.Sequence[builtins.str], knobs: Knobs | None = None) -> RepetitionReport:
+    r"""Measures how much a run's scenes repeat each other.
+
+    Every pair of scenes is shingled, every seam is compared against its successor, and the readings
+    are summarised: the scorecard's repetition section is built from this one call.
+
+    Args:
+        scenes: The scenes' prose, in run order.
+        knobs: The sizes to read the run at; the calibrated ones when omitted.
+
+    Returns:
+        The pair overlaps, the seam echoes, and the numbers summarising them.
+
+    Raises:
+        ValueError: A size or window below 1 in `knobs`, or a vocabulary size above 6.
+    """
+
+def measure_script(text: builtins.str) -> ScriptReport:
+    r"""Measures which script a run is written in.
+
+    Every character is counted once, whitespace included, so the shares of the CJK, Latin and digit
+    characters are over the non-whitespace text and a Chinese run can be told from an English one.
+
+    Args:
+        text: The text to read.
+
+    Returns:
+        The counts and shares of each script.
+    """
+
+def measure_vocabulary(text: builtins.str, knobs: Knobs | None = None) -> VocabularyReport:
+    r"""Measures how much of a run's short vocabulary repeats.
+
+    Whitespace is dropped, the prose is cut into character n-grams and every window of the run is
+    measured on its own, so a long run does not score as more repetitive than a short one. Unlike a
+    word count this needs no word boundaries and no stopword list, which is what lets the same rule
+    read a Chinese and an English run.
+
+    Args:
+        text: The prose to measure.
+        knobs: The sizes to read the run at; the calibrated ones when omitted.
+
+    Returns:
+        The n-gram counts and window rate of the calibrated size, and one table per size from 1 to
+        6, each naming its most frequent grams.
+
+    Raises:
+        ValueError: A `vocab_size` outside `1..=6`, or a size or window below 1 in `knobs`.
+    """
+
+def significant_terms(text: builtins.str) -> builtins.set[builtins.str]:
+    r"""The distinctive terms of the text: every CJK 3..4-char n-gram and Latin words of 4+ chars, lowercased.
+
+    The set is built straight into its Python form: the terms are inserted as they are cut, so no
+    copy of the text's vocabulary is hashed twice and no term is allocated twice.
+
+    Args:
+        text: The text to read the terms of.
+
+    Returns:
+        The set of terms.
+    """
+
+def split_paragraphs(source: builtins.str) -> builtins.list[builtins.str]:
+    r"""Split source text into a list of non-empty paragraph strings."""
 
 def text_to_xhtml_paragraphs(source: builtins.str) -> builtins.str:
     r"""Convenience: split source into paragraphs then wrap in `<p>` tags."""
