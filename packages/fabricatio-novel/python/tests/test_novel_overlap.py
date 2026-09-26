@@ -2,9 +2,8 @@
 
 import asyncio
 
-from _support import prefix_log
-from fabricatio_mock import MockScript, Value, make_test_role
-from fabricatio_novel.capabilities.novel import NovelCompose
+from _support import prefix_log, unguarded_role
+from fabricatio_mock import MockScript, Value
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -67,7 +66,7 @@ def test_noop_without_previous_prose() -> None:
 
 def test_compose_scenes_phase_strips_and_propagates_stripped_prose() -> None:
     """Assert the stripped content is what the log records for later scenes to see."""
-    role = make_test_role(NovelCompose, name="writer")
+    role = unguarded_role(name="writer")
     ctx = _two_scene_ctx()
     story_ctx = ctx.child_contexts[0].child_contexts[0]
     story_ctx.set_prefix_log(prefix_log("Chapter One.", title="Ch1"))

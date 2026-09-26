@@ -76,6 +76,15 @@ class NovelConfig(BaseModel):
     scene_overlap_max_ratio: float = 0.6
     """maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped."""
 
+    scene_refusal_ratio_floor: float = 0.8
+    """word count satisfaction below which a scene's reply is a refusal without asking a judge; refusals measured 0.15-0.78 of the budget where composed scenes ran 1.03-2.11."""
+
+    scene_refusal_ratio_accept: float = 1.5
+    """word count satisfaction at or above which a scene's reply is prose without asking a judge."""
+
+    scene_refusal_max_retries: int = 3
+    """how many times a scene is asked again when its reply reads as a refusal before the run fails."""
+
     bench_scorecard_template: str = "built-in/bench_scorecard"
     """template used to render one run's benchmark scorecard."""
 

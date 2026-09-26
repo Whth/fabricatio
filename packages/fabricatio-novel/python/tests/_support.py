@@ -4,14 +4,52 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING, cast
 
 from fabricatio_character.models.character import CharacterCard
+from fabricatio_core import Role
+from fabricatio_mock import make_test_role
+from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext, RagChapterContext
 from fabricatio_novel.models.context.log import ContextEntry, ContextLog, EntryKind
 from fabricatio_novel.models.context.novel import NovelContext, RagNovelContext
 from fabricatio_novel.models.context.rag import RagRetrieval, RagStoryContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
+
+if TYPE_CHECKING:
+    from fabricatio_novel.models.refusal import SceneRefusalScopedConfig
+
+
+def unguarded[RoleT: Role](role: RoleT) -> RoleT:
+    """Let a role's scenes pass the refusal guard whatever comes back.
+
+    The guard reads a reply against its scene's word budget, so a fixture that scripts a
+    two-word scene to exercise prefixes, hooks or assembly reads as a refusal there and
+    gets asked again. Collapsing both ratio thresholds to zero keeps every reply; the
+    guard's own behaviour is covered by ``test_novel_refusal``.
+
+    Args:
+        role: A role carrying ``SceneCompose`` and its refusal settings.
+
+    Returns:
+        RoleT: The same role, for chaining into the call under test.
+    """
+    knobs = cast("SceneRefusalScopedConfig", role)
+    knobs.refusal_ratio_floor = 0.0
+    knobs.refusal_ratio_accept = 0.0
+    return role
+
+
+def unguarded_role(*capabilities: type[object], name: str = "novel_role") -> Role:
+    """Build a novel role whose scenes the refusal guard keeps whatever comes back.
+
+    Args:
+        *capabilities: Extra mixins to compose on top of ``NovelCompose``, e.g. a RAG
+            capability a test monkeypatches methods on.
+        name: Name given to the role instance.
+    """
+    return unguarded(make_test_role(NovelCompose, *capabilities, name=name))
 
 
 def card(name: str = "Hero", look: str = "tall") -> CharacterCard:
@@ -38,6 +76,22 @@ def prefix_log(body: str, *, title: str = "S1") -> ContextLog:
 
 BENCH_OUTLINE = "A lighthouse keeper chases a storm that never lands."
 """Outline of the synthetic staged run the benchmark tests score."""
+
+
+SCENE_PROSE = (
+    "He left before the bells, and the pass took him the way water takes a stone. "
+    "The road narrowed under the pines until the last of the town fell out of sight behind him, "
+    "and for a while there was only the sound of his own steps and the wind moving through the branches. "
+    "Snow had come down in the night and held the shape of every rut and stone, so that walking was a "
+    "matter of guessing where the ground had been. He counted the switchbacks because counting kept the "
+    "cold at arm's length. At the third turn the valley opened, and the river showed itself far below, "
+    "grey and slow between its banks. He stopped long enough to fix the ford in his mind, then went on, "
+    "because stopping was the one thing the winter could not forgive. By the time the light failed he had "
+    "put the whole of the lower road behind him and found the shelter he had been told about, a stone wall "
+    "against a rock face with a fire pit someone had kept swept. He ate what he had, laid his coat over his "
+    "legs, and slept the way travellers do, in pieces, waking to the sound of the river every hour."
+)
+"""A scene's worth of prose: over the budgets the mocked plans hand a scene, so the refusal guard reads it as prose."""
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,8 +1,8 @@
 """Test module for the setting bible: models, composition, and consumption."""
 
-from fabricatio_mock import MockScript, Value, make_test_role
+from _support import unguarded_role
+from fabricatio_mock import MockScript, Value
 from fabricatio_novel.capabilities.bible import BibleCompose
-from fabricatio_novel.capabilities.novel import NovelCompose
 from fabricatio_novel.models.context.chapter import ChapterContext
 from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
@@ -81,7 +81,7 @@ class TestComposeSettingBible:
 
     async def test_compose_full_bible(self) -> None:
         """Assert both sections are proposed and assembled into the bible."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         roster = ["Hero — protagonist, brave, wants to find his father.", "Mentor — supporting, wise."]
         background = [
             "Qi is the vital energy of the world.",
@@ -100,14 +100,14 @@ class TestComposeSettingBible:
 
     async def test_compose_fails_when_characters_fail(self) -> None:
         """Assert creation aborts when the characters proposal is invalid."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         with MockScript.from_values(Value.from_text("not a generic block", name="invalid characters response")):
             bible = await role.compose_setting_bible("The hero.", language="English")
         assert bible is None
 
     async def test_compose_fails_when_background_fails(self) -> None:
         """Assert creation aborts when the background proposal is invalid."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         with MockScript.from_values(
             Value.from_json(["Hero."], name="bible characters"),
             Value.from_json("not-an-array", name="invalid background response"),
@@ -149,7 +149,7 @@ class TestBibleConsumption:
 
     async def test_seeded_bible_renders_inside_novel_so_far(self) -> None:
         """Assert the bible renders within the leading novel-so-far block, not a dedicated section."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         scene = self._scene_with_seeded_prefix()
         requirement = await role.prepare_scene_requirement(scene)
         assert requirement.startswith("--- Start of Novel so far ---")
@@ -160,7 +160,7 @@ class TestBibleConsumption:
 
     async def test_unseeded_scene_omits_the_bible(self) -> None:
         """Assert a scene without a seeded prefix renders no bible block."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(scene)
         assert "## Setting Bible" not in requirement
@@ -172,7 +172,7 @@ class TestBibleThreading:
 
     async def test_compose_novel_seeds_bible_into_every_scene_prefix(self) -> None:
         """Assert a composed run leaves the seeded bible entry in every scene's prefix log."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.set_series_bible(bible)
@@ -228,7 +228,7 @@ class TestBibleThreading:
 
     async def test_compose_novel_keeps_preset_bible(self) -> None:
         """Assert a pre-set bible survives generation; plans never carry one."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.set_series_bible(bible)
@@ -282,7 +282,7 @@ class TestBibleThreading:
 
     async def test_compose_novel_seeds_prefilled_tree_exactly_once(self) -> None:
         """Assert repeated composition walks over a prefilled tree never duplicate the seed."""
-        role = make_test_role(NovelCompose, BibleCompose, name="bible_role")
+        role = unguarded_role(BibleCompose, name="bible_role")
         bible = SeriesBible(background_settings=["Qi is vital."])
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.set_series_bible(bible)

@@ -1176,6 +1176,23 @@ scene's prefix and the tail of the previously composed prose that gets stripped
 the generated scene or more, the content is kept untouched with a warning
 instead of reduced to a stump.
 
+Refusal-guard knobs for the scene write: a model that declines answers with a few
+hundred characters of policy prose instead of the scene, which the scene's own word
+budget gives away. ``scene_refusal_ratio_floor`` (float, default ``0.8``) is the word
+count satisfaction below which a reply is a refusal without asking a judge — measured
+on a refused run, every refusal came back at 0.15–0.78 of its budget while every
+composed scene ran 1.03–2.11; ``scene_refusal_ratio_accept`` (float, default ``1.5``)
+is the satisfaction at or above which a reply is prose without asking a judge, leaving
+only the band between the two to ``ajudge`` on the ``SMOL`` tier, which asks whether the
+requested scene is present rather than whether the answer reads as a refusal — a
+refusal-shaped question reads explicit prose as one — and whose unparseable verdict
+counts as a refusal; ``scene_refusal_max_retries`` (int, default ``3``) is how
+many times a refused scene is asked again — the retries bypass the cache read while
+still storing their answer, so the refusal cached for that prompt is replaced rather
+than replayed — before the run fails with ``SceneRefusedError``. A Role may override
+all three per instance through the ``SceneRefusalScopedConfig.refusal_ratio_floor``,
+``refusal_ratio_accept`` and ``refusal_max_retries`` fields.
+
 Illustration knobs for the ``wri`` post-process pass: ``illustration_constraint``
 (string, empty by default) is a global style/content constraint merged into every
 scene's illustration prompt proposal; a Role may override it per instance through the

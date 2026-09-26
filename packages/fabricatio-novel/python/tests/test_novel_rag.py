@@ -4,7 +4,7 @@ from itertools import pairwise
 from pathlib import Path
 
 import pytest
-from _support import card, prefix_log
+from _support import SCENE_PROSE, card, prefix_log, unguarded_role
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core import Role
 from fabricatio_core.rust import CONFIG, SMOL, TASK
@@ -73,7 +73,7 @@ class TestRAGChapterCompose:
         the whole of scene k's composed content; only the newly written scene
         and the scene instruction may differ.
         """
-        role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
+        role = unguarded_role(RAGChapterCompose, name="rag_role")
         story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval())
         # the bible reaches stories as a seeded prefix entry, never as a held model
         seed = ContextEntry(
@@ -593,7 +593,9 @@ class TestRAGChapterCompose:
     async def test_rag_settings_survive_story_composition(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert retrieval settings set on the story survive composition and scenes stay RAG-free."""
         role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
-        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7))
+        story = RagStoryContext(
+            title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7), expected_word_count=100
+        )
 
         async def fake_fetch(
             query: object,
@@ -619,7 +621,7 @@ class TestRAGChapterCompose:
                 ],
                 name="scene plans",
             ),
-            Value.from_generic("He left.", name="scene prose"),
+            Value.from_generic(SCENE_PROSE, name="scene prose"),
         ):
             result = await role.compose_story(story)
 
@@ -736,7 +738,9 @@ class TestRAGChapterCompose:
     ) -> None:
         """Assert a fully written story stops rendering its retrieved docs while keeping the raw texts."""
         role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
-        story = RagStoryContext(title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7))
+        story = RagStoryContext(
+            title="St1", description="The departure.", rag=RagRetrieval(query="guide", limit=7), expected_word_count=100
+        )
         doc = WritingStyleDocument.with_text_chunk("Dark gothic prose.")
 
         async def fake_fetch(
@@ -763,7 +767,7 @@ class TestRAGChapterCompose:
                 ],
                 name="scene plans",
             ),
-            Value.from_text("He left.", name="scene prose"),
+            Value.from_text(SCENE_PROSE, name="scene prose"),
         ):
             result = await role.compose_story(story)
 

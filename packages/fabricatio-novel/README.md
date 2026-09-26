@@ -259,7 +259,7 @@ history stays intact.
 
 | Class | Description |
 |---|---|
-| `SceneCompose` | Scene requirement rendering + prose generation |
+| `SceneCompose` | Scene requirement rendering, prose generation, and the refusal guard: a reply that comes back far short of the scene's word budget, or that a judge calls a refusal, is asked again and then fails the run |
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N−1 boundary cards), and the run's skills — `fetch_skills` resolves names through the fabricatio-skill library (which logs and skips an unknown one), `apply_skills` binds the names that resolved to the root, whose prompts render their bodies as one leading section |
@@ -288,6 +288,8 @@ history stays intact.
 The structured stages (`02`–`07`: metadata, setting bible, roster spans, and the three plan levels) fall back to the `PLAN` agent variant: a run whose context names no routing group proposes and plans through the `[agent] plan` slot, while the scene write (`08`) and assembly (`09`) keep their `TASK` default. An explicit `--send-to` still governs every stage alike. Leave `--send-to` unset to plan on the plan model and keep the prose on the `TASK` model.
 
 The RAG query refinement is no stage of its own: decomposing a level's text into search heads is mechanical, so it rides the `SMOL` agent variant — `arefined_query`'s own default — and neither `--send-to` nor a level's fallback moves it off the `[agent] smol` slot. A decomposition that never arrives — the reply parses into no list — is asked again, up to `rag_decompose_attempts` times, each retry bypassing the cache read so a stored failure is refreshed rather than replayed, and a level still unanswered after that searches its raw text; an empty answer is the model's own verdict, so that level retrieves nothing at all, while a lone head is discarded for the raw text.
+
+The scene write is guarded against refusals. A model that declines answers with a few hundred characters of policy prose in place of the scene, which the scene's own word budget already gives away: measured on a refused run, every refusal came back at 0.15–0.78 of its budget, while every composed scene ran 1.03–2.11. A reply under `scene_refusal_ratio_floor` is a refusal and nothing is asked, one at or above `scene_refusal_ratio_accept` is prose and nothing is asked, and only the band between them goes to `ajudge` on the `SMOL` tier, asking whether the requested scene is present rather than whether the answer reads as a refusal — a refusal-shaped question reads explicit prose as one — while a verdict that comes back unparseable counts as a refusal, because a reply nobody could vouch for is not one to write down. Every refusal is asked again, up to `scene_refusal_max_retries` times, with the cache read bypassed but the answer still stored, so the refusal sitting in the cache for that prompt is replaced rather than replayed. A scene refused on its last attempt raises `SceneRefusedError` and the run stops: a refusal is not prose, and written down it would reach the chapter, the prefix every later scene reads, and the EPUB with nothing downstream to flag it. `refusal_ratio_floor`, `refusal_ratio_accept` and `refusal_max_retries` on a role override the `[ext.novel]` defaults for that role's scenes.
 
 Every stage wraps one `compose_novel` chain segment and fires the chain's lifecycle hooks at their chain positions, so a hook override on a stage customizes the staged run exactly like it customizes the programmatic chain; the scene-level hooks fire inside `compose_scenes_phase`, exactly as they do in the chain.
 
@@ -365,6 +367,9 @@ novel_metadata_requirement_template = "built-in/novel_metadata_requirement"
 | `render_chapter_xhtml_template` | `str` | `"built-in/render_chapter_xhtml"` | template used to render a chapter as a full XHTML document. |
 | `scene_overlap_min_chars` | `int` | `40` | minimum whitespace-normalized overlap between a new scene's prefix and the previous prose that gets stripped; shorter echoes are kept. |
 | `scene_overlap_max_ratio` | `float` | `0.6` | maximum fraction of a generated scene the overlap may cover before the content is kept untouched with a warning instead of stripped. |
+| `scene_refusal_ratio_floor` | `float` | `0.8` | word count satisfaction below which a scene's reply is a refusal without asking a judge; refusals measured 0.15–0.78 of the budget where composed scenes ran 1.03–2.11. |
+| `scene_refusal_ratio_accept` | `float` | `1.5` | word count satisfaction at or above which a scene's reply is prose without asking a judge. |
+| `scene_refusal_max_retries` | `int` | `3` | how many times a scene is asked again when its reply reads as a refusal before the run fails. |
 | `bench_scorecard_template` | `str` | `"built-in/bench_scorecard"` | template used to render one run's benchmark scorecard. |
 | `bench_comparison_template` | `str` | `"built-in/bench_comparison"` | template used to render two runs' benchmark comparison. |
 | `setting_bible_characters_template` | `str` | `"built-in/setting_bible_characters"` | template used to propose the bible's character roster as a list of plain strings, one character per item. |

@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from _support import card
+from _support import SCENE_PROSE, card
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.rust import CONFIG, PLAN, TASK
 from fabricatio_mock import DUMMY_LLM_GROUP, MockScript, Value, make_test_role
@@ -186,7 +186,11 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         make_test_role(name="writer").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel").update_init_context(
-            novel_outline="The hero seeks his father across the winter mountains.",
+            # A per-run token in the outline keeps this run's planning and scene prompts
+            # off the shared completion cache, so they pop the seeded Values in
+            # declaration order instead of replaying whatever an earlier run left warm
+            # under identical bytes.
+            novel_outline=f"The hero seeks his father across the winter mountains. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
         )
@@ -232,7 +236,7 @@ class TestNovelWorkflow:
             Value.from_json(chapter_plans_json, name="chapter plans"),
             Value.from_json(story_plans_json, name="story plans"),
             Value.from_json(scene_plans_json, name="scene plans"),
-            Value.from_generic("He left.", name="scene prose"),
+            Value.from_generic(SCENE_PROSE, name="scene prose"),
         ):
             epub = await task.delegate(namespace)
 
@@ -286,7 +290,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         make_test_role(name="writer_txt").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel texts").update_init_context(
-            novel_outline="The lighthouse keeper's daughter charts the reef at low tide.",
+            novel_outline=f"The lighthouse keeper's daughter charts the reef at low tide. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
             export_format=ExportFormat.TXT,
@@ -333,7 +337,7 @@ class TestNovelWorkflow:
             Value.from_json(chapter_plans_json, name="chapter plans"),
             Value.from_json(story_plans_json, name="story plans"),
             Value.from_json(scene_plans_json, name="scene plans"),
-            Value.from_generic("He left.", name="scene prose"),
+            Value.from_generic(SCENE_PROSE, name="scene prose"),
         ):
             artifact = await task.delegate(namespace)
 
@@ -361,7 +365,7 @@ class TestNovelWorkflow:
         persist_dir = tmp_path / "persist"
         make_test_role(name="writer_hook").subscribe(Event.quick_instantiate(namespace), DebugNovelWorkflow).dispatch()
         task = Task(name="wf novel hook").update_init_context(
-            novel_outline="The clockmaker's apprentice winds the great gear at dawn.",
+            novel_outline=f"The clockmaker's apprentice winds the great gear at dawn. [run:{uuid4().hex[:8]}]",
             novel_language="English",
             persist_dir=persist_dir,
             export_format=ExportFormat.TXT,
@@ -408,7 +412,7 @@ class TestNovelWorkflow:
             Value.from_json(chapter_plans_json, name="chapter plans"),
             Value.from_json(story_plans_json, name="story plans"),
             Value.from_json(scene_plans_json, name="scene plans"),
-            Value.from_generic("He left.", name="scene prose"),
+            Value.from_generic(SCENE_PROSE, name="scene prose"),
         ):
             artifact = await task.delegate(namespace)
 
@@ -558,7 +562,7 @@ class TestNovelWorkflow:
             Value.from_json(chapter_plans_json, name="chapter plans"),
             Value.from_json(story_plans_json, name="story plans"),
             Value.from_json(scene_plans_json, name="scene plans"),
-            Value.from_generic("He left.", name="scene prose"),
+            Value.from_generic(SCENE_PROSE, name="scene prose"),
             Value.from_model(illustration, name="illustration proposal"),
         ):
             epub = await task.delegate(namespace)

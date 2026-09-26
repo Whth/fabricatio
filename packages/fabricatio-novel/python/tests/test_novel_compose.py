@@ -3,7 +3,7 @@
 from typing import Unpack
 
 import pytest
-from _support import card, prefix_log
+from _support import card, prefix_log, unguarded, unguarded_role
 from fabricatio_character.models.character import CharacterSpan
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import TASK
@@ -14,6 +14,7 @@ from fabricatio_novel.models.context.novel import NovelContext
 from fabricatio_novel.models.context.scene import SceneContext
 from fabricatio_novel.models.context.story import StoryContext
 from fabricatio_novel.models.plan import NovelPlan, ScenePlan
+from fabricatio_novel.models.refusal import SceneRefusedError
 from fabricatio_novel.models.series_book import SeriesBible
 
 
@@ -22,7 +23,7 @@ class TestCharacterSpans:
 
     async def test_compose_novel_stitches_chapter_boundaries_to_roster_ends(self) -> None:
         """Assert N chapters need N-1 boundary cards; chapter 1 starts at the novel start and the last ends at the novel end."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         bible = SeriesBible(characters=["Hero — brave protagonist."])
         ctx.set_series_bible(bible)
@@ -112,7 +113,7 @@ class TestCharacterSpans:
 
     async def test_draft_chapter_spans_single_chapter_inherits_roster(self) -> None:
         """Assert a single chapter gets the roster spans directly without an LLM call."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero..", language="English")
         span = CharacterSpan(start=card(), end=card())
         ctx.set_charactor_spans([span])
@@ -122,7 +123,7 @@ class TestCharacterSpans:
 
     async def test_draft_story_spans_single_story_inherits_chapter_span(self) -> None:
         """Assert a single story gets the chapter's spans directly without an LLM call."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         chapter = ChapterContext(title="Ch1", description="The start.")
         span = CharacterSpan(start=card(), end=card())
         chapter.set_charactor_spans([span])
@@ -132,7 +133,7 @@ class TestCharacterSpans:
 
     async def test_scene_requirement_shows_character_span(self) -> None:
         """Assert the scene prompt renders the broadcast span's start and end."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         start = card()
         end = card().model_copy(update={"look": "scarred"})
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
@@ -163,7 +164,7 @@ class TestNovelCompose:
 
     async def test_compose_scene_writes_content_back_to_context(self) -> None:
         """Assert compose_scene writes the generated scene content back to the context."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="Departure", description="The hero leaves home.", expected_word_count=50)
         with MockScript.from_values(Value.from_text("He walked out.", name="scene prose")):
             scene = await role.compose_scene(ctx)
@@ -174,7 +175,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_broadcasts_story_span_to_scenes(self) -> None:
         """Assert every scene inherits the story's spans when prepare_scene_write runs."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         story = StoryContext(title="St1", description="The departure.")
         span = CharacterSpan(start=card(), end=card())
         story.set_charactor_spans([span])
@@ -189,7 +190,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_end_to_end(self) -> None:
         """Assert a full composition fills content and prefixes across a prefilled tree."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
@@ -229,7 +230,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_logs_progress_per_level(self, capfd: pytest.CaptureFixture[str]) -> None:
         """Assert composition emits per-level progress and completion log lines."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
@@ -267,7 +268,7 @@ class TestNovelCompose:
 
     async def test_compose_novel_returns_none_when_metadata_fails(self) -> None:
         """Assert compose_novel returns None when metadata generation fails."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero..", language="English")
         with MockScript.from_values(
             Value.from_text("not valid json", name="invalid metadata response"),
@@ -279,7 +280,7 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_leads_with_novel_so_far(self) -> None:
         """Assert the novel-so-far block leads the prompt and the stage instructions follow it."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_prefix_log(prefix_log("He walked into the dark.", title="S2"))
 
@@ -295,7 +296,7 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_renders_writing_styles(self) -> None:
         """Assert the accumulated style entries render together inside the styles section."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_writing_styles(["Terse action lines, present tense, close third person."])
         ctx.set_plan(
@@ -313,14 +314,14 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "### Writing styles" not in requirement
 
     async def test_prepare_scene_requirement_renders_writing_constraint(self) -> None:
         """Assert the scene's accumulated writing constraint guides the prose requirement."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.writing_constraints = ["First person view throughout."]
         requirement = await role.prepare_scene_requirement(ctx)
@@ -330,14 +331,14 @@ class TestNovelCompose:
 
     async def test_prepare_scene_requirement_skips_writing_constraint_when_empty(self) -> None:
         """Assert an unset writing constraint renders no constraint section."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "### Writing Constrains:" not in requirement
 
     async def test_scene_requirement_renders_cast(self) -> None:
         """Assert the scene's cast renders as an on-stage roster in the prose requirement."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         ctx.set_cast(["Hero", "Villain"])
         requirement = await role.prepare_scene_requirement(ctx)
@@ -346,14 +347,14 @@ class TestNovelCompose:
 
     async def test_scene_requirement_omits_cast_when_empty(self) -> None:
         """Assert an empty cast renders no cast section."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "## Cast" not in requirement
 
     async def test_plan_scenes_renders_story_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scene planning sees the story's cast as context."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         story = StoryContext(title="St1", description="The departure.")
         story.set_cast(["Hero", "Villain"])
         captured: list[str] = []
@@ -370,7 +371,7 @@ class TestNovelCompose:
 
     async def test_plan_stories_renders_chapter_cast(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert story planning sees the chapter's cast as context."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         chapter = ChapterContext(title="Ch1", description="The start.")
         chapter.set_cast(["Hero"])
         captured: list[str] = []
@@ -387,7 +388,7 @@ class TestNovelCompose:
 
     async def test_plan_scenes_pins_the_units_to_the_story(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Assert scene planning scopes the batch to the story and states the scope requirements."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         story = StoryContext(title="St1", description="The road.", expected_word_count=100)
         captured: list[str] = []
 
@@ -402,15 +403,22 @@ class TestNovelCompose:
         assert "Title: St1" in captured[0]
         assert "Description: The road." in captured[0]
 
-    async def test_compose_scene_raises_when_the_generation_is_empty(self) -> None:
-        """Assert a blank generation fails loudly instead of composing an empty scene."""
+    async def test_compose_scene_retries_a_blank_generation_then_fails(self) -> None:
+        """Assert a blank generation is retried like a refusal and then fails loudly instead of composing an empty scene."""
         role = make_test_role(NovelCompose, name="novel_role")
         ctx = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
         with (
-            MockScript.from_values(Value.from_text("", name="empty scene")),
-            pytest.raises(ValueError, match="produced no prose"),
+            MockScript.from_values(
+                Value.from_text("", name="empty scene"),
+                Value.from_text("", name="empty scene"),
+                Value.from_text("", name="empty scene"),
+                Value.from_text("", name="empty scene"),
+            ),
+            pytest.raises(SceneRefusedError, match="read as a refusal on every one of its 4 attempt"),
         ):
             await role.compose_scene(ctx)
+
+        assert not ctx.content
 
 
 class TestPrefixAccumulation:
@@ -445,7 +453,7 @@ class TestPrefixAccumulation:
 
     async def test_chapter_opener_prompt_announces_the_unwritten_chapter(self) -> None:
         """Assert a chapter's first scene prompts for the chapter opening while later scenes do not."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         chapter_2 = list(self._two_chapter_novel().iter_prefixed_contexts())[1]
         opener, later = [scene for _index, _story, scene in chapter_2.iter_scenes()]
 
@@ -460,7 +468,7 @@ class TestPrefixAccumulation:
 
     async def test_compose_story_injects_prefix_across_scenes(self) -> None:
         """Assert later scenes accumulate earlier scene content into scenes_so_far."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         story = StoryContext(title="St1", description="The departure.")
         scene_1 = self._scene_ctx("S1", "Leaving home.")
         scene_2 = self._scene_ctx("S2", "A stranger appears.")
@@ -476,7 +484,7 @@ class TestPrefixAccumulation:
 
     async def test_compose_chapter_injects_prefix_across_stories(self) -> None:
         """Assert stories inherit the chapter header plus prior story blocks as prefixed_content."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         chapter = ChapterContext(title="Ch1", description="The start.")
         story_a = StoryContext(title="StA", description="A.")
         story_a.add_context(self._scene_ctx("S1", "Leaving home."))
@@ -499,7 +507,7 @@ class TestPrefixAccumulation:
 
     async def test_compose_novel_injects_prefix_across_chapters_and_stories(self) -> None:
         """Assert chapter and story prefixed_content chain across the whole composed novel."""
-        role = make_test_role(NovelCompose, name="novel_role")
+        role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.title = "The Search"
         ctx.description = "A hero searching."
@@ -590,7 +598,7 @@ class TestComposeHookOrdering:
 
     async def test_after_compose_hooks_land_in_assembled_outputs(self) -> None:
         """Assert after-compose context mutations reach the assembled tree; assembly used to run first."""
-        role = make_test_role(_HookMutating, name="hook_role")
+        role = unguarded(make_test_role(_HookMutating, name="hook_role"))
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         chapter_ctx = ChapterContext(title="Ch1", description="The hero sets out.")
         story_ctx = StoryContext(title="St1", description="The departure.")
