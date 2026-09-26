@@ -8,6 +8,7 @@ import typer
 from fabricatio_core import Event, Role, Task
 from fabricatio_core.models.action import WorkFlow
 
+from fabricatio_novel.actions.stage import StageAction, StageName
 from fabricatio_novel.benchmark import (
     TermProbes,
     compare,
@@ -18,7 +19,9 @@ from fabricatio_novel.benchmark import (
 )
 from fabricatio_novel.cli import app
 from fabricatio_novel.commands._helpers import _resolve_outline, _split_skills
+from fabricatio_novel.models.context.novel import RagNovelContext
 from fabricatio_novel.models.novel import ExportFormat
+from fabricatio_novel.resume import ResumeError, ResumePoint
 from fabricatio_novel.workflows.illustration import RagIllustrationDebugNovelWorkflow
 from fabricatio_novel.workflows.novel import DebugNovelWorkflow
 from fabricatio_novel.workflows.rag import RagDebugNovelWorkflow
@@ -95,6 +98,66 @@ def _send_to_entry(send_to: str | None) -> dict[str, str]:
     return {} if send_to is None else {"send_to": send_to}
 
 
+def _prepare_run(
+    workflow: WorkFlow,
+    persist_dir: Path,
+    flat: bool,
+    resume: Path | None,
+    stage: StageName | None,
+    *,
+    rag: bool,
+) -> tuple[Path, ResumePoint | None]:
+    """Resolve the run this invocation drives: its directory and, when resuming, the point it continues from.
+
+    A fresh invocation writes into a stamped (or flat) directory; ``--resume`` names a previous run
+    instead, whose persisted state becomes the run's starting point while the stages up to it leave
+    themselves out. Every way a resume can fail exits here, before a single LLM call: a missing run
+    directory, ``--stage`` without ``--resume``, a stage the run holds no state before, and a run of
+    the other family, which would silently drop the retrieval it was written with.
+    """
+    if resume is None:
+        if stage is not None:
+            typer.secho("❌ --stage needs --resume.", fg=typer.colors.RED, bold=True)
+            raise typer.Exit(1)
+        return (persist_dir if flat else _stamped_run_dir(persist_dir)), None
+    run_dir = resume if resume.is_dir() else persist_dir / resume
+    if not run_dir.is_dir():
+        typer.secho(f"❌ Run directory '{resume}' does not exist.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    try:
+        point = ResumePoint.of(workflow, run_dir, stage)
+    except ResumeError as exc:
+        typer.secho(f"❌ {exc}", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1) from exc
+    if isinstance(point.context, RagNovelContext) is not rag:
+        family, hint = ("plain", "fanvl w") if rag else ("RAG", "fanvl wr or fanvl wri")
+        typer.secho(f"❌ '{run_dir}' holds a {family} run; resume it with {hint}.", fg=typer.colors.RED, bold=True)
+        raise typer.Exit(1)
+    typer.secho(f"↻ Resuming '{run_dir}' at stage {point.stage}.", fg=typer.colors.CYAN)
+    return run_dir, point
+
+
+def _resume_seed(point: ResumePoint | None) -> dict[str, object]:
+    """Return the init-context entries a resumed run continues from: the state it holds and the stages it leaves out."""
+    return {} if point is None else {"novel_ctx": point.context, StageAction.held_key: point.done}
+
+
+def _resume_retrieval(point: ResumePoint | None, rag_query: str | None, retrieve_limit: int) -> tuple[str, int]:
+    """Resolve the retrieval settings a RAG run searches with.
+
+    The story-planning stage seals its stories with the settings the run's context carries, so a
+    resumed run that fell back to the option defaults would retrieve with a different query than
+    the run it continues; the persisted root holds the settings that run sealed with, and an
+    option the user stated explicitly still wins.
+    """
+    if point is None or not isinstance(point.context, RagNovelContext):
+        return rag_query or "", retrieve_limit or 15
+    return (
+        rag_query if rag_query is not None else point.context.rag.query,
+        retrieve_limit or point.context.rag.limit,
+    )
+
+
 @app.command(name="w")
 def write_novel(  # noqa: PLR0913 - flat signature required by typer option derivation
     *,
@@ -122,6 +185,19 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         False,
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    resume: Path | None = typer.Option(
+        None,
+        "--resume",
+        help=(
+            "Continue a previous run instead of starting a new one: its directory, or a run name resolved "
+            "under --persist-dir. The run restarts at the stage --stage names, or at the stage after the newest one it persisted."
+        ),
+    ),
+    stage: StageName | None = typer.Option(
+        None,
+        "--stage",
+        help="Stage to restart at; the stages before it are left out and it runs from the state the run persisted last.",
     ),
     skills: list[str] = typer.Option(
         [],
@@ -168,9 +244,9 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     if bible is not None and not bible.is_file():
         typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
+    run_dir, point = _prepare_run(DebugNovelWorkflow, persist_dir, flat, resume, stage, rag=False)
     task = Task(name="write novel").update_init_context(
-        novel_outline=_resolve_outline(outline, outline_file),
+        novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
         writing_constraint=constraint or "",
         bible_path=bible,
@@ -180,6 +256,7 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         font=font,
         cover=cover,
         skills=_split_skills(skills),
+        **_resume_seed(point),
         **_send_to_entry(send_to),
     )
     artifact = _run_workflow(task, DebugNovelWorkflow, "write")
@@ -216,6 +293,19 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         False,
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    resume: Path | None = typer.Option(
+        None,
+        "--resume",
+        help=(
+            "Continue a previous run instead of starting a new one: its directory, or a run name resolved "
+            "under --persist-dir. The run restarts at the stage --stage names, or at the stage after the newest one it persisted."
+        ),
+    ),
+    stage: StageName | None = typer.Option(
+        None,
+        "--stage",
+        help="Stage to restart at; the stages before it are left out and it runs from the state the run persisted last.",
     ),
     skills: list[str] = typer.Option(
         [],
@@ -277,20 +367,22 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     if bible is not None and not bible.is_file():
         typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
+    run_dir, point = _prepare_run(RagDebugNovelWorkflow, persist_dir, flat, resume, stage, rag=True)
+    rag_query, retrieve_limit = _resume_retrieval(point, rag_query, retrieve_limit)
     task = Task(name="write novel with rag").update_init_context(
-        novel_outline=_resolve_outline(outline, outline_file),
+        novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
         writing_constraint=constraint or "",
         bible_path=bible,
-        rag_query=rag_query or "",
-        rag_limit=retrieve_limit or 15,
+        rag_query=rag_query,
+        rag_limit=retrieve_limit,
         persist_dir=run_dir,
         output_path=output,
         export_format=export_format,
         font=font,
         cover=cover,
         skills=_split_skills(skills),
+        **_resume_seed(point),
         **_send_to_entry(send_to),
     )
     artifact = _run_workflow(task, RagDebugNovelWorkflow, "write_rag")
@@ -327,6 +419,19 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         False,
         "--flat",
         help="Write directly into --persist-dir instead of a timestamped run subdirectory.",
+    ),
+    resume: Path | None = typer.Option(
+        None,
+        "--resume",
+        help=(
+            "Continue a previous run instead of starting a new one: its directory, or a run name resolved "
+            "under --persist-dir. The run restarts at the stage --stage names, or at the stage after the newest one it persisted."
+        ),
+    ),
+    stage: StageName | None = typer.Option(
+        None,
+        "--stage",
+        help="Stage to restart at; the stages before it are left out and it runs from the state the run persisted last.",
     ),
     skills: list[str] = typer.Option(
         [],
@@ -403,20 +508,22 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
     if bible is not None and not bible.is_file():
         typer.secho(f"❌ Bible file '{bible}' does not exist.", fg=typer.colors.RED, bold=True)
         raise typer.Exit(1)
-    run_dir = persist_dir if flat else _stamped_run_dir(persist_dir)
+    run_dir, point = _prepare_run(RagIllustrationDebugNovelWorkflow, persist_dir, flat, resume, stage, rag=True)
+    rag_query, retrieve_limit = _resume_retrieval(point, rag_query, retrieve_limit)
     task = Task(name="write novel with rag and illustration").update_init_context(
-        novel_outline=_resolve_outline(outline, outline_file),
+        novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
         writing_constraint=constraint or "",
         bible_path=bible,
-        rag_query=rag_query or "",
-        rag_limit=retrieve_limit or 15,
+        rag_query=rag_query,
+        rag_limit=retrieve_limit,
         persist_dir=run_dir,
         output_path=output,
         export_format=export_format,
         font=font,
         cover=cover,
         skills=_split_skills(skills),
+        **_resume_seed(point),
         **_send_to_entry(send_to),
         illustration_choose_loras=True if choose_loras else None,
         illustration_judge=True if judge else None,

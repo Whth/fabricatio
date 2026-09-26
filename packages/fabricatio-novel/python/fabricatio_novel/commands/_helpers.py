@@ -15,8 +15,14 @@ def _split_skills(names: list[str]) -> list[str]:
     return list(dict.fromkeys(name.strip() for spec in names for name in spec.split(",") if name.strip()))
 
 
-def _resolve_outline(outline: str | None, outline_file: Path | None) -> str:
-    """Resolve the outline from a positional argument or ``--outline-file``, exiting on failure."""
+def _resolve_outline(outline: str | None, outline_file: Path | None, *, resumed: bool = False) -> str:
+    """Resolve the outline from a positional argument or ``--outline-file``, exiting on failure.
+
+    A resumed run carries its outline inside the snapshot it continues from, so the outline may
+    be absent there; one that is given is still read and checked exactly like a fresh run's.
+    """
+    if resumed and outline is None and outline_file is None:
+        return ""
     if outline_file is not None:
         text = outline_file.read_text(encoding="utf-8").strip()
         if not text:

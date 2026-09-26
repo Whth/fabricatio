@@ -60,6 +60,22 @@ whole-tree JSON snapshot after every stage so any wrong result is traceable:
        → 07_scene_plans → 08_scenes → 09_novel → export
 ```
 
+Those snapshots are also the run's **resume points**. `--resume <run>` reloads the newest
+snapshot the run holds as the starting state and restarts at the stage that follows it — the
+newest stage itself when the run reached the end of the pipeline, so a finished novel can be
+exported again or drawn. `--stage <name>`, e.g. `08_scenes`, restarts at that stage instead,
+continuing from the newest snapshot taken before it; the named stage runs again, so it is also
+the fix for a run that died inside it. In both cases the run drives the same workflow with every
+stage up to the restart point leaving itself out, so a run stopped mid-novel finishes instead of
+starting over and nothing already written is paid for twice. A stage the run holds no state
+before fails the resume before any LLM call rather than quietly running the novel again, and a
+run is only ever resumed by a command of its own family: `w` for a plain run, `wr`/`wri` for a
+sealed one. Everything the snapshot carries comes back with it — the outline, the resolved
+skills, the retrieval settings and the seals — while routing (`--send-to`) and the export
+options are per invocation and are stated again as usual.
+The two sealed commands interchange, so `wri --resume <wr run> --stage 09_novel` draws the
+illustrations of a novel that was written without them.
+
 An optional RAG variant (`RagDebugNovelWorkflow`) retrieves `WritingStyleDocument`
 entries from LanceDB at two levels. The **novel** level searches the outline in the
 init stage's before-hook and renders the documents into the metadata and
@@ -439,6 +455,13 @@ fanvl w  -o "..." -s terse-action -s no-adverbs   # repeatable, or comma-separat
 # Export as plain text instead of (or besides) EPUB: chapters/01.txt, 02.txt, …
 fanvl w -o "..." --format both
 fanvl w -o "..." --format txt
+
+# Resume a run that stopped mid-novel without re-running what is on disk
+fanvl wr --resume novels/20260101-101010                    # restarts at the stage after the newest snapshot
+fanvl wr --resume novels/20260101-101010 --stage 08_scenes  # restarts at the prose stage, running it again
+
+# Draw the illustrations of a novel that was written without them
+fanvl wri --resume novels/20260101-101010 --stage 09_novel --judge
 
 # Create / update / show the setting bible
 fanvl bible create -o "In a world where dreams are currency..." --out settings/bible.json

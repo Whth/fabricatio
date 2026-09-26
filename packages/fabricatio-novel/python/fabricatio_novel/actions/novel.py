@@ -14,7 +14,7 @@ from fabricatio_core.models.action import OUTPUT_KEY, Action
 from fabricatio_core.rust import PLAN, TASK
 from fabricatio_core.utils import ok
 
-from fabricatio_novel.actions.stage import StageAction
+from fabricatio_novel.actions.stage import StageAction, StageName
 from fabricatio_novel.capabilities.bible import BibleCompose
 from fabricatio_novel.capabilities.chapter import ChapterCompose
 from fabricatio_novel.capabilities.novel import NovelCompose
@@ -43,7 +43,7 @@ class InitNovelContext(StageAction, NovelCompose):
     """Build the novel context from the task init context, fire ``before_compose_novel_context``, persist."""
 
     output_key: str = "novel_ctx"
-    stage: ClassVar[str] = "01_init"
+    stage: ClassVar[StageName] = "01_init"
 
     async def init_novel_context(
         self,
@@ -83,6 +83,8 @@ class InitNovelContext(StageAction, NovelCompose):
         send_to: str | None = TASK,
         **cxt: Any,
     ) -> NovelContext:
+        if self.held(cxt):
+            return ok(cxt.get("novel_ctx"), "a resumed run continues from the state it carries in `novel_ctx`")
         ctx = await self.init_novel_context(
             ok(novel_outline, "`novel_outline` is required in the task init context"),
             language=novel_language,
@@ -104,9 +106,11 @@ class ProposeNovelMetadataStage(StageAction, NovelCompose):
     """
 
     output_key: str = "metadata_ok"
-    stage: ClassVar[str] = "02_metadata"
+    stage: ClassVar[StageName] = "02_metadata"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         planned = await self.propose_novel_metadata(novel_ctx, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return planned
@@ -121,9 +125,11 @@ class ProposeSettingBibleStage(StageAction, BibleCompose):
     """
 
     output_key: str = "bible_ok"
-    stage: ClassVar[str] = "03_bible"
+    stage: ClassVar[StageName] = "03_bible"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         bible = novel_ctx.series_bible
         if bible is not None and not bible.is_empty():
             logger.debug("Setting bible already present; skipping proposal")
@@ -154,9 +160,11 @@ class PrepareCharacterSpanStage(StageAction, NovelCompose):
     """
 
     output_key: str = "characters_ok"
-    stage: ClassVar[str] = "04_characters"
+    stage: ClassVar[StageName] = "04_characters"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         await self.prepare_character_span(novel_ctx, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return True
@@ -171,9 +179,11 @@ class PlanChaptersStage(StageAction, NovelCompose):
     """
 
     output_key: str = "chapter_plan_ok"
-    stage: ClassVar[str] = "05_chapter_plans"
+    stage: ClassVar[StageName] = "05_chapter_plans"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         planned = await self.plan_chapters_phase(novel_ctx, send_to=send_to)
         await self.snapshot(novel_ctx, cxt)
         return planned
@@ -188,9 +198,11 @@ class PlanStoriesStage(StageAction, ChapterCompose):
     """
 
     output_key: str = "story_plan_ok"
-    stage: ClassVar[str] = "06_story_plans"
+    stage: ClassVar[StageName] = "06_story_plans"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         for chapter in novel_ctx.iter_prefixed_contexts():
             chapter_ctx = await self.before_compose_chapter_context(chapter, send_to=send_to)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
@@ -209,9 +221,11 @@ class PlanScenesStage(StageAction, StoryCompose):
     """
 
     output_key: str = "scene_plan_ok"
-    stage: ClassVar[str] = "07_scene_plans"
+    stage: ClassVar[StageName] = "07_scene_plans"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         for chapter in novel_ctx.iter_prefixed_contexts():
             for story in chapter.iter_prefixed_contexts():
                 story_ctx = await self.before_compose_story_context(story, send_to=send_to)
@@ -234,9 +248,11 @@ class ComposeScenesStage(StageAction, ChapterCompose):
     """
 
     output_key: str = "scenes_ok"
-    stage: ClassVar[str] = "08_scenes"
+    stage: ClassVar[StageName] = "08_scenes"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = TASK, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         for chapter in novel_ctx.iter_prefixed_contexts():
             for story in chapter.iter_prefixed_contexts():
                 await self.prepare_scene_write(story, send_to=send_to)
@@ -269,7 +285,7 @@ class AssembleNovelStage(StageAction, NovelCompose):
     """Fire ``after_compose_novel_context``, then materialize the composed context tree as a Novel."""
 
     output_key: str = "novel"
-    stage: ClassVar[str] = "09_novel"
+    stage: ClassVar[StageName] = "09_novel"
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = TASK, **cxt: Any) -> Novel:
         ctx = await self.after_compose_novel_context(novel_ctx, send_to=send_to)

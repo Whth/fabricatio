@@ -68,6 +68,8 @@ class RagPlanStoriesStage(PlanStoriesStage, RAGChapterCompose):
     ctx_override: ClassVar[bool] = True
 
     async def _execute(self, novel_ctx: NovelContext, *_: Any, send_to: str | None = PLAN, **cxt: Any) -> bool:
+        if self.held(cxt):
+            return True
         for index, chapter in enumerate(novel_ctx.child_contexts):
             chapter_ctx = await self.before_compose_chapter_context(chapter, send_to=send_to)
             if not await self.plan_stories_phase(chapter_ctx, send_to=send_to):
