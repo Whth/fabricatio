@@ -263,7 +263,7 @@ history stays intact.
 | `StoryCompose` | Scene planning, scene write preparation, serial scene composition |
 | `ChapterCompose` | Story planning, `draft_story_spans` (S-1 boundary cards), story composition |
 | `NovelCompose` | Metadata, `prepare_character_span` (roster), chapter planning, `draft_chapter_spans` (N−1 boundary cards), and the run's skills — `fetch_skills` resolves names through the fabricatio-skill library (which logs and skips an unknown one), `apply_skills` binds the names that resolved to the root, whose prompts render their bodies as one leading section |
-| `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit` settings plus the decomposed multi-head search, whose refinement prompt leads with the run's skills section |
+| `RAGStyleFetch` | Writing-style retrieval shared by the RAG-bound levels: the `rag_query`/`rag_limit`/`rag_decompose_attempts` settings plus the decomposed multi-head search, whose refinement prompt leads with the run's skills section |
 | `RAGNovelCompose` | Seals the root with the retrieval settings in `before_compose_novel_context`, searches the outline, and renders the documents into the metadata and chapter-planning prompts |
 | `RAGChapterCompose` | Retrieves style docs once per story, extends scene prompts, and stops rendering them into later prefix walks once the story's scenes are written |
 | `BibleCompose` | Composes the setting bible from the outline once; immutable for the run |
@@ -287,7 +287,7 @@ history stays intact.
 
 The structured stages (`02`–`07`: metadata, setting bible, roster spans, and the three plan levels) fall back to the `PLAN` agent variant: a run whose context names no routing group proposes and plans through the `[agent] plan` slot, while the scene write (`08`) and assembly (`09`) keep their `TASK` default. An explicit `--send-to` still governs every stage alike. Leave `--send-to` unset to plan on the plan model and keep the prose on the `TASK` model.
 
-The RAG query refinement is no stage of its own: decomposing a level's text into search heads is mechanical, so it rides the `SMOL` agent variant — `arefined_query`'s own default — and neither `--send-to` nor a level's fallback moves it off the `[agent] smol` slot.
+The RAG query refinement is no stage of its own: decomposing a level's text into search heads is mechanical, so it rides the `SMOL` agent variant — `arefined_query`'s own default — and neither `--send-to` nor a level's fallback moves it off the `[agent] smol` slot. A decomposition that never arrives — the reply parses into no list — is asked again, up to `rag_decompose_attempts` times, each retry bypassing the cache read so a stored failure is refreshed rather than replayed, and a level still unanswered after that searches its raw text; an empty answer is the model's own verdict, so that level retrieves nothing at all, while a lone head is discarded for the raw text.
 
 Every stage wraps one `compose_novel` chain segment and fires the chain's lifecycle hooks at their chain positions, so a hook override on a stage customizes the staged run exactly like it customizes the programmatic chain; the scene-level hooks fire inside `compose_scenes_phase`, exactly as they do in the chain.
 

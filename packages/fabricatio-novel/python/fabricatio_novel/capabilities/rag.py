@@ -7,7 +7,7 @@ from fabricatio_core import logger
 from fabricatio_core.decorators import logging_exec_time
 from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.rust import SMOL, TASK
-from fabricatio_core.utils import cfg, wrap_in_block
+from fabricatio_core.utils import cfg, override_kwargs, wrap_in_block
 
 cfg(["lancedb"])
 
@@ -37,6 +37,9 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
     rag_limit: int = 15
     """Reference documents kept per retrieval level."""
 
+    rag_decompose_attempts: int = 3
+    """How many times a level's decomposition is asked before a missing answer falls back to the raw query."""
+
     async def _fetch_style_docs(
         self,
         source: str,
@@ -62,11 +65,18 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
         wants the refinement elsewhere passes the group it wants; the pipeline's own
         levels leave the default be, so the run's ``send_to`` never reaches it.
 
-        An answer with fewer than two heads is not a decomposition, so it is
-        discarded for the raw question: the model either restated the input or
-        declined the request, and searching such a lone head would hand the whole
-        document budget to one phrasing. A refusal needs no detection of its own —
-        it arrives as exactly that one-head answer.
+        What the decomposition answers decides the search. An answer that never
+        arrives — :meth:`arefined_query` returning ``None`` because no reply parsed
+        into a list — is asked again, up to ``rag_decompose_attempts`` times, and
+        every retry bypasses the cache read, so the deployment is re-asked instead of
+        replaying the answer that just failed; a level still unanswered after the
+        last attempt searches the raw question. An empty answer is an answer: the
+        model named no heads, so the level retrieves nothing, and asking again would
+        be arguing with the model. A lone head is not a decomposition — the model
+        either restated the input or declined the request — and searching it would
+        hand the whole document budget to one phrasing, so the raw question stands in
+        for it; a refusal needs no detection of its own, arriving as exactly that
+        lone-head answer.
 
         ``label`` names the level in the logs (``the novel``, ``story 'St1'``),
         since the search text alone does not say which prompt it feeds.
@@ -74,9 +84,23 @@ class RAGStyleFetch(LancedbRAG[WritingStyleDocument, LancedbAddRAGConfig, Writin
         question = "\n".join(part for part in (source, rag.query) if part)
         if not question:
             return []
-        queries = await self.arefined_query(question, send_to=send_to, **kwargs) or []
-        if len(queries) <= 1:
-            logger.warn(f"Query decomposition of {label} gave {len(queries)} head(s); searching the raw query")
+        attempts = max(self.rag_decompose_attempts, 1)
+        queries: list[str] | None = None
+        for lap in range(attempts):
+            queries = await self.arefined_query(question, send_to=send_to, **kwargs)
+            if queries is not None or lap + 1 == attempts:
+                break
+            logger.warn(f"Query decomposition of {label} gave no answer; asking again ({lap + 2}/{attempts})")
+            # re-ask the deployment instead of replaying the answer that just failed
+            kwargs = override_kwargs(kwargs, no_cache=True)
+        if queries is None:
+            logger.warn(f"Query decomposition of {label} gave no answer; searching the raw query")
+            queries = [question]
+        elif not queries:
+            logger.info(f"Query decomposition of {label} named no heads; retrieving nothing")
+            return []
+        elif len(queries) == 1:
+            logger.warn(f"Query decomposition of {label} gave 1 head; searching the raw query")
             queries = [question]
         config = WritingStyleFetchConfig(limit=rag.limit)
         docs = await self.afetch_document(queries[: config.limit], config)

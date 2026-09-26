@@ -391,10 +391,12 @@ class TestRAGChapterCompose:
         assert docs == [doc]
 
     async def test_fetch_style_docs_falls_back_to_raw_query(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert an empty decomposition still searches the raw story query instead of starving the prompt."""
+        """Assert a decomposition that never answers is asked to the level's attempt count, then the raw query is searched."""
         role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
+        role.rag_decompose_attempts = 2
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
+        captured_refine: list[dict[str, object]] = []
 
         async def fake_fetch(
             query: object,
@@ -403,21 +405,55 @@ class TestRAGChapterCompose:
             captured_queries.append(query)
             return []
 
-        async def fake_refine(question: object, **kwargs: object) -> list[str]:
-            return []
+        async def fake_refine(question: object, **kwargs: object) -> list[str] | None:
+            captured_refine.append(dict(kwargs))
+            return None
 
         monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
         monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
 
         await role._fetch_style_docs(ctx.description, ctx.rag, "story 'Battle'")
 
+        assert len(captured_refine) == 2
+        assert "no_cache" not in captured_refine[0]  # the first answer is read from the cache when it is there
+        assert captured_refine[1].get("no_cache") is True  # the retry re-asks instead of replaying the empty answer
         assert captured_queries == [["The hero fights."]]
 
-    async def test_fetch_style_docs_discards_a_lone_head(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Assert a one-head answer — here a refusal — is discarded for the raw question, not searched."""
+    async def test_fetch_style_docs_retrieves_nothing_for_an_empty_answer(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert an empty decomposition is an answer: nothing is retrieved and nothing is asked again."""
+        role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
+        fetched: list[object] = []
+        captured_refine: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            fetched.append(query)
+            return []
+
+        async def fake_refine(question: object, **kwargs: object) -> list[str] | None:
+            captured_refine.append(question)
+            return []
+
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
+
+        docs = await role._fetch_style_docs(ctx.description, ctx.rag, "story 'Battle'")
+
+        assert captured_refine == ["The hero fights."]  # an empty answer is final: it is not asked again
+        assert fetched == []  # and it retrieves nothing, the raw question included
+        assert docs == []
+
+    async def test_fetch_style_docs_searches_the_retried_decomposition(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert the heads of a later attempt are what is searched."""
         role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
         ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
         captured_queries: list[object] = []
+        captured_refine: list[dict[str, object]] = []
 
         async def fake_fetch(
             query: object,
@@ -426,7 +462,35 @@ class TestRAGChapterCompose:
             captured_queries.append(query)
             return []
 
-        async def fake_refine(question: object, **kwargs: object) -> list[str]:
+        async def fake_refine(question: object, **kwargs: object) -> list[str] | None:
+            captured_refine.append(dict(kwargs))
+            return None if len(captured_refine) == 1 else ["a duel at dusk", "a quiet standoff"]
+
+        monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
+        monkeypatch.setattr(type(role), "arefined_query", staticmethod(fake_refine))
+
+        await role._fetch_style_docs(ctx.description, ctx.rag, "story 'Battle'")
+
+        assert len(captured_refine) == 2
+        assert captured_refine[1].get("no_cache") is True
+        assert captured_queries == [["a duel at dusk", "a quiet standoff"]]
+
+    async def test_fetch_style_docs_discards_a_lone_head(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Assert a one-head answer — here a refusal — is discarded for the raw question, not searched."""
+        role = make_test_role(NovelCompose, RAGChapterCompose, name="rag_role")
+        ctx = RagStoryContext(title="Battle", description="The hero fights.", rag=RagRetrieval())
+        captured_queries: list[object] = []
+        captured_refine: list[object] = []
+
+        async def fake_fetch(
+            query: object,
+            config: WritingStyleFetchConfig | None = None,
+        ) -> list[WritingStyleDocument]:
+            captured_queries.append(query)
+            return []
+
+        async def fake_refine(question: object, **kwargs: object) -> list[str] | None:
+            captured_refine.append(question)
             return ["Sorry, I cannot help generate or optimize queries of this nature."]
 
         monkeypatch.setattr(type(role), "afetch_document", staticmethod(fake_fetch))
@@ -434,6 +498,7 @@ class TestRAGChapterCompose:
 
         await role._fetch_style_docs(ctx.description, ctx.rag, "story 'Battle'")
 
+        assert captured_refine == ["The hero fights."]  # a lone head is an answer: it is not asked again
         assert captured_queries == [["The hero fights."]]
 
     async def test_refinement_rides_the_smol_slot(self, monkeypatch: pytest.MonkeyPatch) -> None:
