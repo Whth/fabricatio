@@ -164,7 +164,8 @@ class TestBibleConsumption:
         scene = SceneContext(title="S1", description="Leaving home.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(scene)
         assert "## Setting Bible" not in requirement
-        assert requirement.startswith("# Scene Writing")
+        assert requirement.startswith("--- Start of Novel so far ---")
+        assert "# Scene Writing" in requirement
 
 
 class TestBibleThreading:

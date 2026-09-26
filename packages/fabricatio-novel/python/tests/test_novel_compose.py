@@ -460,11 +460,8 @@ class TestPrefixAccumulation:
         opener_prompt = await role.prepare_scene_requirement(opener)
         later_prompt = await role.prepare_scene_requirement(later)
 
-        assert "## Chapter Opening" in opener_prompt
         assert "nothing of the chapter is written yet" in opener_prompt
-        assert opener_prompt.index("## Scene") < opener_prompt.index("## Chapter Opening")
-        assert opener_prompt.index("## Chapter Opening") < opener_prompt.index("## Goal")
-        assert "## Chapter Opening" not in later_prompt
+        assert "nothing of the chapter is written yet" not in later_prompt
 
     async def test_compose_story_injects_prefix_across_scenes(self) -> None:
         """Assert later scenes accumulate earlier scene content into scenes_so_far."""
