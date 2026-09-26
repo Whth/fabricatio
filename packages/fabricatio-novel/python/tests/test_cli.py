@@ -53,21 +53,6 @@ def test_stamped_run_dir_uniquifies_same_second_runs(tmp_path: Path) -> None:
     assert run_dir == target / "20260818-153045-2"
 
 
-def test_wri_help_advertises_choose_loras() -> None:
-    """`fanvl wri --help` advertises the opt-in --choose-loras flag."""
-    result = CliRunner().invoke(app, ["wri", "--help"])
-    assert result.exit_code == 0
-    assert "--choose-loras" in result.output
-
-
-def test_wri_help_advertises_judge_flags() -> None:
-    """`fanvl wri --help` advertises the opt-in --judge and --judge-tries flags."""
-    result = CliRunner().invoke(app, ["wri", "--help"])
-    assert result.exit_code == 0
-    assert "--judge" in result.output
-    assert "--judge-tries" in result.output
-
-
 def test_bench_score_prints_a_scorecard(tmp_path: Path) -> None:
     """`fanvl bench score <run>` prints the scorecard of a staged run."""
     result = CliRunner().invoke(app, ["bench", "score", str(_staged_run(tmp_path))])
@@ -120,8 +105,8 @@ def test_split_skills_flattens_comma_specs_and_dedupes() -> None:
     assert _split_skills(["b, a", "c", "b", " "]) == ["b", "a", "c"]
 
 
-def _write_task(argv: list[str], tmp_path: Path) -> Task:
-    """Invoke `fanvl w` with the workflow dispatch stubbed out and return the task it built."""
+def _write_task(argv: list[str], tmp_path: Path, command: str = "w") -> Task:
+    """Invoke `fanvl <command>` with the workflow dispatch stubbed out and return the task it built."""
     captured: list[Task] = []
 
     def capture(task: Task, workflow: WorkFlow, namespace: str) -> Path:
@@ -132,7 +117,7 @@ def _write_task(argv: list[str], tmp_path: Path) -> Task:
         patch("fabricatio_novel.commands.writing._run_workflow", capture),
         patch("fabricatio_novel.commands.writing._report_generation"),
     ):
-        result = CliRunner().invoke(app, ["w", *argv])
+        result = CliRunner().invoke(app, [command, *argv])
     assert result.exit_code == 0, result.output
     return captured[0]
 
@@ -147,3 +132,41 @@ def test_write_command_forwards_an_explicit_send_to(tmp_path: Path) -> None:
     """`fanvl w --send-to` names the run's routing group in the init context."""
     task = _write_task(["A lighthouse keeper's daughter charts the reef at low tide.", "--send-to", "glm"], tmp_path)
     assert task.extra_init_context["send_to"] == "glm"
+
+
+def test_write_command_forwards_the_illustration_flags(tmp_path: Path) -> None:
+    """`fanvl wri --choose-loras --judge --judge-tries 5` carries all three illustration knobs into the init context."""
+    task = _write_task(
+        [
+            "A lighthouse keeper's daughter charts the reef at low tide.",
+            "--choose-loras",
+            "--judge",
+            "--judge-tries",
+            "5",
+        ],
+        tmp_path,
+        command="wri",
+    )
+    context = task.extra_init_context
+    assert context["illustration_choose_loras"] is True
+    assert context["illustration_judge"] is True
+    assert context["illustration_judge_max_tries"] == 5
+
+
+def test_write_command_defers_the_illustration_knobs_when_unset(tmp_path: Path) -> None:
+    """`fanvl wri` without the illustration flags leaves each knob None, so the [ext.novel] defaults stand."""
+    task = _write_task(["A lighthouse keeper's daughter charts the reef at low tide."], tmp_path, command="wri")
+    context = task.extra_init_context
+    assert context["illustration_choose_loras"] is None
+    assert context["illustration_judge"] is None
+    assert context["illustration_judge_max_tries"] is None
+
+
+def test_write_command_reads_a_zero_judge_tries_as_the_config_default(tmp_path: Path) -> None:
+    """`--judge-tries 0` means 'config default', so the init context carries None rather than a zero budget."""
+    task = _write_task(
+        ["A lighthouse keeper's daughter charts the reef at low tide.", "--judge-tries", "0"],
+        tmp_path,
+        command="wri",
+    )
+    assert task.extra_init_context["illustration_judge_max_tries"] is None
