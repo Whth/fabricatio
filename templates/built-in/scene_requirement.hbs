@@ -3,7 +3,7 @@
 {{/if}}
 {{ block novel_so_far "Novel so far" }}
 
-Your prose will be appended directly to `Novel so far`.
+Your prose will be appended directly to `Novel so far` without any postprocess, so you shall note let the head of the response to contain the tail of the `Novel so far` which introduce duplicated content.
 
 # Scene Writing
 
@@ -51,6 +51,7 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - When the Description ends in a state or mood, end the prose inside it: your closing paragraph must add no event of its own. Re-read that last paragraph before answering and drop anything that reaches beyond the Description.
 - Keep every character consistent with their established traits, speech patterns, and motivations, and honor the story's start and end states.
 - Output ONLY the scene prose as plain paragraphs — no headings, no title, no explanations.
+{{#unless chapter_opening}}- Your response' head shall not copy the trialing lines of the `Novel so far`.{{/unless}}
 
 Respond entirely in "{{ language }}".
 
