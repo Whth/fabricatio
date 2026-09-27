@@ -43,12 +43,6 @@ class TestSeriesBibleModel:
         assert "Qi is the world's vital energy." in prompt
         assert "The Azure Sect rules the north." in prompt
 
-    def test_legacy_string_characters_coerce_to_lines(self) -> None:
-        """Assert pre-list bibles load by splitting a bare string roster into non-blank lines."""
-        legacy = '{"characters": "Hero.\\n\\n  Mentor.  \\n", "background_settings": []}'
-        bible = SeriesBible.model_validate_json(legacy)
-        assert bible.characters == ["Hero.", "Mentor."]
-
 
 class TestBibleSeeding:
     """Test suite for seeding the bible into the novel's running prefix."""

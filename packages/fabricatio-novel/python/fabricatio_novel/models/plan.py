@@ -39,13 +39,13 @@ class ScenePlan(WeightedPlan):
     from this description, so give concrete, stageable details — not a theme or a summary."""
 
     writing_styles: list[str]
-    """1-2 directive entries stating the writing technique for this scene's prose: narrative
+    """4-32 directive entries stating the writing technique for this scene's prose: narrative
     voice and point of view, sentence rhythm, tone and atmosphere, dialogue handling, and
     description density. The model writes the prose directly from these, so name concrete,
     applicable techniques — not a genre label or a theme."""
 
     writing_constraints: list[str]
-    """1-2 entries stating the hard writing constraints that bind this scene's prose: whose
+    """4-16 entries stating the hard writing constraints that bind this scene's prose: whose
     head it stays in (no head-hopping), where this beat may start or end, and scene-specific
     dialogue or sensory restrictions. Keep this scene inside its own Description: never order
     events that belong to another scene. The story's constraints are shown above as the rules
@@ -65,12 +65,12 @@ class StoryPlan(WeightedPlan):
     written here are exactly what the scenes must stage."""
 
     writing_styles: list[str]
-    """1-2 directive entries stating the writing style its scenes should share: a consistent
+    """2-16 directive entries stating the writing style its scenes should share: a consistent
     voice, tone, and technique across the story's scenes. Empty list when the chapter's
     style already suffices."""
 
     writing_constraints: list[str]
-    """1-2 entries stating the hard writing constraints binding this story as a whole: its own
+    """2-12 entries stating the hard writing constraints binding this story as a whole: its own
     point of view or tense, how its scenes progress, and prohibitions spanning its scenes.
     Never an event order spanning other stories — the ordered story list already fixes the
     chapter's sequencing. The chapter's constraints are shown above as the rules in force;
@@ -89,12 +89,12 @@ class ChapterPlan(WeightedPlan):
     chapter's stories, so the events written here are exactly what the stories must stage."""
 
     writing_styles: list[str]
-    """1-2 directive entries stating the writing style its stories should follow: the
+    """2-12 directive entries stating the writing style its stories should follow: the
     chapter's narrative voice, tone, and pacing. Empty list when the novel's style
     already suffices."""
 
     writing_constraints: list[str]
-    """2-3 entries stating the hard writing constraints binding this chapter: its own point of
+    """2-8 entries stating the hard writing constraints binding this chapter: its own point of
     view or tense and prohibitions spanning its stories. Never an event order spanning the
     whole chapter — the ordered story list you propose is what sequences it, so an order
     written here would be re-planned inside whichever story reads it. The novel's constraints
@@ -106,7 +106,7 @@ class NovelPlan(WeightedPlan, WordCount):
     """Plan of the novel itself: metadata only, chapters are planned separately."""
 
     description: str
-    """12-20 sentences condensing the Novel Outline into the novel's complete event chain: walk
+    """12-40 sentences condensing the Novel Outline into the novel's complete event chain: walk
     the outline in order and restate every event it contains — who does what to whom and how
     each one lands — ending with the state the story ends in. Preserve agency exactly: never
     swap who acts and who is acted upon, never merge two outline events into one sentence,
@@ -115,12 +115,12 @@ class NovelPlan(WeightedPlan, WordCount):
     prompt, so its event chain is the fidelity contract every later layer must keep."""
 
     writing_styles: list[str]
-    """6-12 directive entries stating the novel's overall writing style: narrative voice,
+    """6-36 directive entries stating the novel's overall writing style: narrative voice,
     tone, rhythm, and recurring techniques. They seed the style guidance of every chapter,
     story, and scene."""
 
     writing_constraints: list[str]
-    """4-8 entries stating the novel's standing rules: point of view, tense, quality standards
+    """4-24 entries stating the novel's standing rules: point of view, tense, quality standards
     extracted carefully from the outline. They are shown to every chapter planner as the rules
     in force and are never merged into the chapters' own lists."""
 
