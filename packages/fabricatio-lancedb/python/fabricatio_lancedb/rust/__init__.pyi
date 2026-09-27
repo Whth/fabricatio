@@ -137,6 +137,16 @@ class VectorStoreTable:
         share of `limit`, a document surfaced by multiple heads is kept once at
         its best rank, and the result is capped at `limit` overall.
 
+        Every head is searched to the full `limit` depth before the fusion, so no head
+        is starved by a pre-allocated share: with `n = len(embeddings)` heads, each
+        head keeps its own best `limit // n` documents, the first `limit % n` heads
+        keep one document more, and a head holding fewer hits than its share hands the
+        rest to the others. No score is compared across heads — that is what keeps the
+        heads meaningful — so the result comes up short of `limit` only when the heads'
+        candidates together hold fewer distinct documents. The caller keeps
+        `n <= limit`; with more heads than budget, the earliest-listed ones take every
+        slot.
+
         Args:
             embeddings: A list of query embedding vectors.
             limit: The maximum number of documents to return in total.

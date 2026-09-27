@@ -484,9 +484,47 @@ impl VectorStoreTable {
         })
     }
 
-    /// Fuses per-head ranked result lists into one deduplicated list capped at
-    /// `limit`: round-robin interleave gives every head a fair share, and the
-    /// first occurrence of an id (its best rank) wins.
+    /// Fuses per-head ranked result lists into one deduplicated list capped at `limit`.
+    ///
+    /// A head is the raw output of one `search_one` call: its own hits, ordered
+    /// best-first by its own embedding and already cosine-deduplicated within itself
+    /// when a threshold was given, at most `limit` deep. No score reaches this
+    /// function — the position inside a head is the only relevance signal that exists
+    /// at this point, and `SearchedDocument` does not carry one — so the budget can
+    /// only be spent by rank, never by comparing heads against each other. That is the
+    /// point: a global score merge would let the sharpest phrasing take the whole
+    /// budget and leave the other heads unrepresented, which defeats the reason for
+    /// issuing several heads at all.
+    ///
+    /// The interleave is rank-major: rank 0 of every head in the given order, then
+    /// rank 1 of every head, and so on. Heads too shallow for a rank are skipped
+    /// rather than padded, and the walk is lazy — `take` stops it as soon as `limit`
+    /// documents have survived, so deeper ranks are never read.
+    ///
+    /// The deduplication filter keeps the first occurrence of an id, which is that
+    /// document's best `(rank, head)` position. Because filtering only removes items,
+    /// a later item can move earlier in the handed-out order but never later: a
+    /// document two heads agree on costs the later head nothing, it merely makes the
+    /// walk reach the next rank, which can only pull more candidates into the result.
+    /// Only ids are compared; the same content under different ids is the per-head
+    /// cosine deduplication's business, not this function's.
+    ///
+    /// With `n = heads.len()`, the guarantees are:
+    ///
+    /// - the result holds `min(limit, distinct ids across the heads)` documents;
+    /// - every head's top `limit / n` hits (integer division) are included whenever
+    ///   the head has them, and the first `limit % n` heads keep one rank more — the
+    ///   remainder goes by position, so the order of `heads` is significant;
+    /// - the order stays rank-major, so truncating the result again drops the deepest
+    ///   ranks first and keeps per-head diversity.
+    ///
+    /// Inputs are not defended: `limit == 0` yields an empty result and `limit < n`
+    /// lets the earliest heads take everything — keeping `n <= limit` is the caller's
+    /// contract, stated on `search_documents`. `seen` is never iterated, only queried
+    /// through `insert`'s boolean, so equal inputs always fuse into the same order.
+    /// The walk visits `limit` stream positions in the clean case and up to `n * limit`
+    /// when heads repeat each other, and the sole allocation is the output: at most
+    /// `limit` clones.
     fn fuse_heads(heads: Vec<Vec<SearchedDocument>>, limit: usize) -> Vec<SearchedDocument> {
         let longest = heads.iter().map(Vec::len).max().unwrap_or(0);
         let mut seen = HashSet::new();
@@ -628,6 +666,16 @@ impl VectorStoreTable {
     /// rankings are then interleaved round-robin so every query head gets a fair
     /// share of `limit`, a document surfaced by multiple heads is kept once at
     /// its best rank, and the result is capped at `limit` overall.
+    ///
+    /// Every head is searched to the full `limit` depth before the fusion, so no head
+    /// is starved by a pre-allocated share: with `n = len(embeddings)` heads, each
+    /// head keeps its own best `limit // n` documents, the first `limit % n` heads
+    /// keep one document more, and a head holding fewer hits than its share hands the
+    /// rest to the others. No score is compared across heads — that is what keeps the
+    /// heads meaningful — so the result comes up short of `limit` only when the heads'
+    /// candidates together hold fewer distinct documents. The caller keeps
+    /// `n <= limit`; with more heads than budget, the earliest-listed ones take every
+    /// slot.
     ///
     /// Args:
     ///     embeddings: A list of query embedding vectors.
