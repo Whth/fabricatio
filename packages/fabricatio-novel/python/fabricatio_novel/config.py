@@ -7,10 +7,9 @@ slice machinery was removed entirely; only the flat CharacterSpan design
 remains.
 """
 
-from pydantic import BaseModel, ConfigDict
-
 from fabricatio_comfyui.models import LoraEntry, Prop
 from fabricatio_core import CONFIG
+from pydantic import BaseModel, ConfigDict
 
 
 class BenchmarkKnobs(BaseModel):
