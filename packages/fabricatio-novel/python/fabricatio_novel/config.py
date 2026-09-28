@@ -7,9 +7,10 @@ slice machinery was removed entirely; only the flat CharacterSpan design
 remains.
 """
 
+from pydantic import BaseModel, ConfigDict
+
 from fabricatio_comfyui.models import LoraEntry, Prop
 from fabricatio_core import CONFIG
-from pydantic import BaseModel, ConfigDict
 
 
 class BenchmarkKnobs(BaseModel):
@@ -79,7 +80,7 @@ class NovelConfig(BaseModel):
     scene_refusal_ratio_floor: float = 0.8
     """word count satisfaction below which a scene's reply is a refusal without asking a judge; refusals measured 0.15-0.78 of the budget where composed scenes ran 1.03-2.11."""
 
-    scene_refusal_ratio_accept: float = 1.5
+    scene_refusal_ratio_accept: float = 1.2
     """word count satisfaction at or above which a scene's reply is prose without asking a judge."""
 
     scene_refusal_max_retries: int = 3
