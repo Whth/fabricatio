@@ -1,4 +1,12 @@
-"""Demonstrates a complete article writing pipeline with multiple Typer CLI commands (write, completion, finish, consult, suma, rcsuma). Each command maps to a different workflow entry point — from full generation to chapter summaries to Milvus-based consultation."""
+"""Demonstrates the staged article pipeline through Typer CLI commands (write, outline, rag-write, suma, rcsuma).
+
+``write`` runs the full staged pipeline from a briefing — proposal, plan tree, subsection
+prose — and dumps the article's typst source; ``outline`` stops after the planning stages
+and dumps the structure alone; ``rag-write`` writes every subsection against the
+article-essence corpus in LanceDB, with the retrieval knobs set on the RAG stage; ``suma``
+and ``rcsuma`` post-process an existing article document, which must carry the configured
+``ARTICLE_WRAPPER`` markers.
+"""
 
 import asyncio
 from pathlib import Path
@@ -6,20 +14,21 @@ from pathlib import Path
 import typer
 from fabricatio import Event, Task, WorkFlow, logger
 from fabricatio import Role as RoleBase
-from fabricatio.actions import (
-    DumpFinalizedOutput,
-    ExtractOutlineFromRaw,
-    GenerateArticleProposal,
-    GenerateInitialOutline,
-    PersistentAll,
-    RenderedDump,
-    WriteArticleContentRAG,
-    WriteChapterSummary,
-    WriteResearchContentSummary,
-)
-from fabricatio.models import ArticleOutline
+from fabricatio.actions import WriteChapterSummary, WriteResearchContentSummary
+from fabricatio.workflows import ArticleWorkflow, OutlineArticleWorkflow
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.utils import ok
+from fabricatio_typst.actions.article import (
+    AssembleArticleStage,
+    DumpArticleStage,
+    InitArticleContext,
+    PlanArticleChaptersStage,
+    PlanSectionsStage,
+    PlanSubsectionsStage,
+    ProposeArticlePlanStage,
+    ProposeArticleProposalStage,
+)
+from fabricatio_typst.actions.rag import RagComposeSubsectionsStage
 from typer import Typer
 
 
@@ -29,63 +38,36 @@ class Role(RoleBase, UseLLM):
 
 Role.new(
     {
-        Event.quick_instantiate(ns := "article").collapse(): WorkFlow(
-            name="Generate Article",
-            description="Generate an article. dump the outline to the given path. in typst format.",
+        Event.quick_instantiate(ns := "write-article").collapse(): ArticleWorkflow,
+        Event.quick_instantiate(ns_outline := "outline-article").collapse(): OutlineArticleWorkflow,
+        Event.quick_instantiate(ns_rag := "rag-article").collapse(): WorkFlow(
+            name="Write Article with References",
+            description="Write an article from a briefing against the retrieved reference corpus.",
             steps=(
-                GenerateArticleProposal,
-                GenerateInitialOutline(output_key="article_outline"),
-                PersistentAll,
-                (
-                    a := WriteArticleContentRAG(
-                        output_key="to_dump",
-                        ref_limit=18,
-                        threshold=0.58,
-                        result_per_query=2,
-                        extractor_model={"send_to": "qwen-max"},
-                        query_model={"send_to": "qwen-turbo"},
-                    )
-                ),
-                PersistentAll,
-                DumpFinalizedOutput(dump_path="median.typ"),
-                RenderedDump(template_name="article").to_task_output(),
-            ),
-        ),
-        Event.quick_instantiate(ns2 := "complete").collapse(): WorkFlow(
-            name="Generate Article",
-            description="Generate an article with given raw article outline. dump the outline to the given path. in typst format.",
-            steps=(
-                ExtractOutlineFromRaw(output_key="article_outline"),
-                PersistentAll,
-                a,
-                PersistentAll,
-                DumpFinalizedOutput(dump_path="median.typ"),
-                RenderedDump(template_name="article").to_task_output(),
-            ),
-        ),
-        Event.quick_instantiate(ns3 := "finish").collapse(): WorkFlow(
-            name="Finish Article",
-            description="Finish an article with given article outline. dump the outline to the given path. in typst format.",
-            steps=(
-                a,
-                PersistentAll,
-                DumpFinalizedOutput(dump_path="median.typ"),
-                RenderedDump(template_name="article").to_task_output(),
+                InitArticleContext,
+                ProposeArticleProposalStage,
+                ProposeArticlePlanStage,
+                PlanArticleChaptersStage,
+                PlanSectionsStage,
+                PlanSubsectionsStage,
+                RagComposeSubsectionsStage(ref_limit=18, result_per_query=2),
+                AssembleArticleStage,
+                DumpArticleStage,
             ),
         ),
         Event.quick_instantiate(ns5 := "chap-suma").collapse(): WorkFlow(
             name="Chapter Summary",
-            description="Generate chapter summary based on given article outline. dump the outline to the given path. in typst format.",
+            description="Write a summary section into every chapter of an existing article document.",
             steps=(WriteChapterSummary().to_task_output(),),
         ),
         Event.quick_instantiate(ns6 := "resc-suma").collapse(): WorkFlow(
             name="Research Content Summary",
-            description="Generate research content summary based on given article outline. dump the outline to the given path. in typst format.",
+            description="Write a research content summary section into an existing article document.",
             steps=(WriteResearchContentSummary().to_task_output(),),
         ),
     },
     name="Undergraduate Researcher",
-    description="Write an outline for an article in typst format.",
+    description="Write an article in typst format from a briefing.",
     llm_send_to="openai/qwen-plus",
     llm_stream=True,
     llm_max_completion_tokens=8191,
@@ -95,104 +77,139 @@ app = Typer()
 
 
 @app.command()
-def finish(
-    article_outline_path: Path = typer.Argument(help="Path to the article outline raw file."),
-    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-    persist_dir: Path = typer.Option(
-        Path("persistent"),
-        "-p",
-        "--persist-dir",
-        help="Directory to persist the output.",
-    ),
-    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-) -> None:
-    """Finish an article based on a given article outline."""
-    path = ok(
-        asyncio.run(
-            Task(name="write an article")
-            .update_init_context(
-                article_outline=ArticleOutline.from_persistent(article_outline_path),
-                dump_path=dump_path,
-                persist_dir=persist_dir,
-                collection_name=collection_name,
-            )
-            .delegate(ns3),
-        ),
-        "Failed to generate an article ",
-    )
-    logger.info(f"The outline is saved in:\n{path}")
-
-
-@app.command()
-def completion(
-    article_outline_raw_path: Path = typer.Option(
-        Path("article_outline_raw.txt"),
-        "-a",
-        "--article-outline-raw",
-        help="Path to the article outline raw file.",
-    ),
-    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
-    persist_dir: Path = typer.Option(
-        Path("persistent"),
-        "-p",
-        "--persist-dir",
-        help="Directory to persist the output.",
-    ),
-    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
-) -> None:
-    """Write an article based on a raw article outline."""
-    path = ok(
-        asyncio.run(
-            Task(name="write an article")
-            .update_init_context(
-                article_outline_raw_path=article_outline_raw_path,
-                dump_path=dump_path,
-                persist_dir=persist_dir,
-                collection_name=collection_name,
-            )
-            .delegate(ns2),
-        ),
-        "Failed to generate an article ",
-    )
-    logger.info(f"The outline is saved in:\n{path}")
-
-
-@app.command()
 def write(
-    article_briefing: Path = typer.Option(
+    article_briefing_path: Path = typer.Option(
         Path("article_briefing.txt"),
         "-a",
         "--article-briefing",
         help="Path to the article briefing file.",
     ),
-    dump_path: Path = typer.Option(Path("out.typ"), "-d", "--dump-path", help="Path to dump the final output."),
+    output_path: Path = typer.Option(
+        Path("article.typ"),
+        "-o",
+        "--output-path",
+        help="Path to dump the article's typst source.",
+    ),
     persist_dir: Path = typer.Option(
         Path("persistent"),
         "-p",
         "--persist-dir",
-        help="Directory to persist the output.",
+        help="Directory to persist the run's stage snapshots.",
     ),
-    collection_name: str = typer.Option("article_chunks", "-c", "--collection-name", help="Name of the collection."),
+    language: str | None = typer.Option(
+        None,
+        "-l",
+        "--language",
+        help="Language of the article; detected from the briefing when unset.",
+    ),
+    constraint: str = typer.Option("", "-c", "--constraint", help="The author's writing constraint intent."),
 ) -> None:
-    """Write an article based on a briefing.
-
-    This function generates an article outline and content based on the provided briefing.
-    The outline and content are then dumped to the specified path and persisted in the given directory.
-    """
+    """Write an article from a briefing through the full staged pipeline."""
     path = ok(
         asyncio.run(
             Task(name="write an article")
             .update_init_context(
-                article_briefing=article_briefing.read_text(),
-                dump_path=dump_path,
+                article_briefing_path=article_briefing_path,
+                article_output_path=output_path,
                 persist_dir=persist_dir,
-                collection_name=collection_name,
+                article_language=language,
+                writing_constraint=constraint,
             )
             .delegate(ns),
         ),
-        "Failed to generate an article ",
+        "Failed to generate an article",
+    )
+    logger.info(f"The article is saved in:\n{path}")
+
+
+@app.command()
+def outline(
+    article_briefing_path: Path = typer.Option(
+        Path("article_briefing.txt"),
+        "-a",
+        "--article-briefing",
+        help="Path to the article briefing file.",
+    ),
+    output_path: Path = typer.Option(
+        Path("outline.typ"),
+        "-o",
+        "--output-path",
+        help="Path to dump the outline.",
+    ),
+    persist_dir: Path = typer.Option(
+        Path("persistent"),
+        "-p",
+        "--persist-dir",
+        help="Directory to persist the run's stage snapshots.",
+    ),
+    language: str | None = typer.Option(
+        None,
+        "-l",
+        "--language",
+        help="Language of the outline; detected from the briefing when unset.",
+    ),
+) -> None:
+    """Plan an article from a briefing and dump its outline, without writing the prose."""
+    path = ok(
+        asyncio.run(
+            Task(name="write an article outline")
+            .update_init_context(
+                article_briefing_path=article_briefing_path,
+                article_output_path=output_path,
+                persist_dir=persist_dir,
+                article_language=language,
+            )
+            .delegate(ns_outline),
+        ),
+        "Failed to generate an article outline",
     )
     logger.info(f"The outline is saved in:\n{path}")
+
+
+@app.command()
+def rag_write(
+    article_briefing_path: Path = typer.Option(
+        Path("article_briefing.txt"),
+        "-a",
+        "--article-briefing",
+        help="Path to the article briefing file.",
+    ),
+    output_path: Path = typer.Option(
+        Path("article.typ"),
+        "-o",
+        "--output-path",
+        help="Path to dump the article's typst source.",
+    ),
+    persist_dir: Path = typer.Option(
+        Path("persistent"),
+        "-p",
+        "--persist-dir",
+        help="Directory to persist the run's stage snapshots.",
+    ),
+    language: str | None = typer.Option(
+        None,
+        "-l",
+        "--language",
+        help="Language of the article; detected from the briefing when unset.",
+    ),
+    constraint: str = typer.Option("", "-c", "--constraint", help="The author's writing constraint intent."),
+) -> None:
+    """Write an article from a briefing, citing the references retrieved for every subsection."""
+    path = ok(
+        asyncio.run(
+            Task(name="write an article with references")
+            .update_init_context(
+                article_briefing_path=article_briefing_path,
+                article_output_path=output_path,
+                persist_dir=persist_dir,
+                article_language=language,
+                writing_constraint=constraint,
+            )
+            .delegate(ns_rag),
+        ),
+        "Failed to generate an article",
+    )
+    logger.info(f"The article is saved in:\n{path}")
 
 
 @app.command()

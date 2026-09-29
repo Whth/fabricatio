@@ -218,6 +218,7 @@ class ArticleBase[T: ChapterBase](FinalizedDumpAble, AsPrompt, FromTypstCode, To
     """Base class for article outlines."""
 
     description: str = Field(alias="elaboration")
+    """The abstract of the article: its problem, method and claimed contribution."""
 
     chapters: list[T]
     """Chapters of the article. Contains at least one chapter. You can also add more as needed."""

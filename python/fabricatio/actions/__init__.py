@@ -10,35 +10,63 @@ from fabricatio_core.rust import is_installed
 
 if is_installed("fabricatio_typst"):
     from fabricatio_typst.actions.article import (
+        AssembleArticleStage,
+        CompileArticle,
+        CompileTypstDocument,
+        ComposeSubsectionsStage,
+        DumpArticleStage,
+        DumpOutlineStage,
         ExtractArticleEssence,
         ExtractOutlineFromRaw,
         FixArticleEssence,
-        GenerateArticle,
-        GenerateArticleProposal,
-        GenerateInitialOutline,
+        FixIntrospectedErrors,
+        InitArticleContext,
+        LoadArticle,
+        PlanArticleChaptersStage,
+        PlanSectionsStage,
+        PlanSubsectionsStage,
+        ProposeArticlePlanStage,
+        ProposeArticleProposalStage,
         WriteChapterSummary,
         WriteResearchContentSummary,
     )
 
     __all__ += [
+        "AssembleArticleStage",
+        "CompileArticle",
+        "CompileTypstDocument",
+        "ComposeSubsectionsStage",
+        "DumpArticleStage",
+        "DumpOutlineStage",
         "ExtractArticleEssence",
         "ExtractOutlineFromRaw",
         "FixArticleEssence",
-        "GenerateArticle",
-        "GenerateArticleProposal",
-        "GenerateInitialOutline",
+        "FixIntrospectedErrors",
+        "InitArticleContext",
+        "LoadArticle",
+        "PlanArticleChaptersStage",
+        "PlanSectionsStage",
+        "PlanSubsectionsStage",
+        "ProposeArticlePlanStage",
+        "ProposeArticleProposalStage",
         "WriteChapterSummary",
         "WriteResearchContentSummary",
     ]
 
     if is_installed("fabricatio_lancedb"):
-        from fabricatio_typst.actions.article_rag import (
+        from fabricatio_typst.actions.rag import (
             ChunkArticle,
+            RagComposeSubsectionsStage,
+            StoreArticleEssence,
             TweakArticleLancedbRAG,
-            WriteArticleContentRAG,
         )
 
-        __all__ += ["ChunkArticle", "TweakArticleLancedbRAG", "WriteArticleContentRAG"]
+        __all__ += [
+            "ChunkArticle",
+            "RagComposeSubsectionsStage",
+            "StoreArticleEssence",
+            "TweakArticleLancedbRAG",
+        ]
 if is_installed("fabricatio_rag"):
     from fabricatio_milvus.actions.rag import InjectToDB
 

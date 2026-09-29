@@ -23,6 +23,8 @@ dependencies = [
     "fabricatio-core",
     "fabricatio-tool",
     "fabricatio-capabilities",
+    "fabricatio-context",
+    "fabricatio-skill",
     "typst>=0.15.0",
 ]
 

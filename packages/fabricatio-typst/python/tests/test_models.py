@@ -12,6 +12,7 @@ from fabricatio_typst.models.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio_typst.models.article_proposal import ArticleProposal
+from fabricatio_typst.models.plan import ArticlePlan, ChapterPlan, SectionPlan, SubsectionPlan, WeightedPlan
 
 
 class TestArticleSubsectionOutline:
@@ -103,3 +104,27 @@ class TestArticleProposal:
         result = proposal.display()
         assert isinstance(result, str)
         assert len(result) > 0
+
+
+PLAN_LEVELS = [SubsectionPlan, SectionPlan, ChapterPlan, ArticlePlan]
+
+
+class TestPlanPromptSurface:
+    """The plan models are LLM output schemas: aliases and per-field guidance are prompt-visible contract."""
+
+    @pytest.mark.parametrize("plan_cls", PLAN_LEVELS)
+    def test_level_keeps_the_llm_facing_aliases(self, plan_cls: type[WeightedPlan]) -> None:
+        """Re-declaring an inherited field drops the parent's alias unless ``Field`` repeats it.
+
+        The planner is asked for ``heading``/``elaboration``, so a level that re-declares
+        those fields without their alias would silently re-key the JSON schema it is given.
+        """
+        assert plan_cls.model_fields["title"].alias == "heading"
+        assert plan_cls.model_fields["description"].alias == "elaboration"
+
+    @pytest.mark.parametrize("plan_cls", PLAN_LEVELS)
+    def test_level_renders_guidance_for_every_field(self, plan_cls: type[WeightedPlan]) -> None:
+        """Every field the planner sees carries a description, taken from its attribute docstring."""
+        properties = plan_cls.model_json_schema()["properties"]
+
+        assert all(spec.get("description") for spec in properties.values())

@@ -27,12 +27,11 @@ type RefKey = tuple[str, str | None, str | None]
 class ArticleMetaData(SketchedAble, Described, WordCount, Titled, Language):
     """Metadata for an article component."""
 
-    description: str = Field(
-        alias="elaboration",
-        description=Described.model_fields["description"].description,
-    )
+    description: str = Field(alias="elaboration")
+    """The description of this article element: what it covers, at its own scale."""
 
-    title: str = Field(alias="heading", description=Titled.model_fields["title"].description)
+    title: str = Field(alias="heading")
+    """The heading of this article element: professional and concise, with no prefixed heading number."""
 
     aims: list[str]
     """List of writing aims of the research component in academic style."""

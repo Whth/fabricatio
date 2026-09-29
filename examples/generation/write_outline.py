@@ -1,10 +1,10 @@
-"""Demonstrates the WriteOutlineCorrectedWorkFlow — a pre-built workflow that reads an article briefing, generates a structured outline proposal, and writes it as a typst file. Shows how to use high-level workflow abstractions instead of composing Actions manually."""
+"""Demonstrates the OutlineArticleWorkflow — a pre-built staged workflow that reads an article briefing, plans the article's structure and writes the outline as a typst file. Shows how to use high-level workflow abstractions instead of composing Actions manually."""
 
 import asyncio
 
 from fabricatio import Event, Task, logger
 from fabricatio import Role as RoleBase
-from fabricatio.workflows import WriteOutlineCorrectedWorkFlow
+from fabricatio.workflows import OutlineArticleWorkflow
 from fabricatio_capabilities.capabilities.task import ProposeTask
 from fabricatio_core.utils import ok
 
@@ -14,11 +14,11 @@ class Role(RoleBase, ProposeTask):
 
 
 async def main() -> None:
-    """Run the outline generation pipeline: create a Role with the corrected-outline workflow, propose a task to read article_briefing.txt and write the outline to out.typ, then execute."""
+    """Run the outline pipeline: create a Role with the outline workflow, propose a task to read article_briefing.txt and write the outline to out.typ, then execute."""
     role = Role.with_bio(
         name="Undergraduate Researcher",
         description="Write an outline for an article in typst format.",
-    ).subscribe(Event.quick_instantiate(ns := "article"), WriteOutlineCorrectedWorkFlow)
+    ).subscribe(Event.quick_instantiate(ns := "outline-article"), OutlineArticleWorkflow)
 
     proposed_task = await role.propose(
         Task,

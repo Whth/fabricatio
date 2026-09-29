@@ -26,8 +26,8 @@ if is_installed("fabricatio_typst"):
         "ArticleProposal",
     ]
 
-    if is_installed("fabricatio_typst"):
-        from fabricatio_typst.models.aricle_rag import ArticleChunk
+    if is_installed("fabricatio_lancedb"):
+        from fabricatio_typst.models.article_rag import ArticleChunk
 
         __all__ += ["ArticleChunk"]
 

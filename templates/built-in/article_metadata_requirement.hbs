@@ -1,0 +1,23 @@
+{{#if skills}}{{skills}}
+
+{{/if}}
+{{block briefing "Briefing"}}
+{{block proposal "Proposal"}}
+
+{{#if constraint}}
+## Writing Constraint Intent
+The author's intent: {{ls constraint}}
+Express it as the article's Writing Constraint: concrete, enforceable rules (point of view, tense, register, terminology, prohibitions) that every chapter, section, and subsection MUST honor.
+{{/if}}
+
+# Article Metadata Extraction
+
+## Goal
+Propose the article's own plan from the briefing and proposal above: a concise title, a description of the whole article, the writing styles its prose must carry, the binding writing constraints, and the expected total word count.
+
+{{#if skills}}
+## Requirements
+- The Skill Documents at the top are the grounding truth of this plan: follow them as authoritative instructions, not as background reading.
+{{/if}}
+
+Respond entirely in "{{ language }}".

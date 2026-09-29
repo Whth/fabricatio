@@ -25,8 +25,15 @@ class TypstConfig:
     extract_essence_template: str = "built-in/extract_essence"
     """The name of the extract essence template which will be used to extract the essence of a text."""
 
-    generate_outline_template: str = "built-in/generate_outline"
-    """The name of the generate outline template which will be used to generate an outline."""
+    # Composition Templates
+    article_metadata_requirement_template: str = "built-in/article_metadata_requirement"
+    """The name of the template used to propose the article's own plan: title, description, writing styles and constraints."""
+
+    article_plan_requirement_template: str = "built-in/article_plan_requirement"
+    """The name of the template used to plan the children of one article node: its chapters, sections or subsections."""
+
+    subsection_requirement_template: str = "built-in/subsection_requirement"
+    """The name of the template used to write the prose of one subsection."""
 
 
 typst_config = CONFIG.load("typst", TypstConfig)

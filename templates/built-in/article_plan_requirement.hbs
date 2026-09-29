@@ -1,0 +1,42 @@
+{{#if skills}}{{skills}}
+
+{{/if}}
+{{block briefing "Briefing"}}
+{{block proposal "Proposal"}}
+
+# {{ planning_title }}
+
+## Goal
+
+{{ goal }}
+
+## {{ parent_title }}
+
+Title: {{ title }}
+Description: {{ description }}
+Expected word count: {{ expected_word_count }}
+{{#if writing_styles}}
+### Writing styles References&Instructions:
+
+{{ls writing_styles}}{{/if}}
+{{#if writing_constraints}}
+### Writing Constrains:
+{{ls writing_constraints}}{{/if}}
+
+## Requirements
+
+{{#if skills}}
+- The Skill Documents at the top are the grounding truth of this plan: follow them as authoritative instructions, not as background reading.
+{{/if}}
+{{#if writing_styles}}
+- The Writing styles References&Instructions above tell you how this unit's prose must read: follow the diction, rhythm, and imagery they show when you plan its beats, so the plan carries those choices forward rather than a neutral default.
+{{/if}}
+{{#if writing_constraints}}
+- The Writing Constrains above are binding, not advisory: every unit you plan must respect them — never propose an argument, a beat, or guidance that breaks one.
+{{/if}}
+- Plan only the unit(s) the Goal asks for: every unit you propose must stay inside the {{ parent_title }}'s Title and Description above and must not stage material that belongs to another unit.
+- A unit carries only its own share of the {{ parent_title }}: never re-plan or summarise the whole article inside one unit, and let the units you propose together cover the Description exactly once.
+- The writing constraints you attach to a unit bind that unit alone. Never write content order spanning other units, and never repeat a rule already in force above.
+- This article is written as prose: never plan a unit whose whole content is a figure, a table, or a listing — such results belong in the unit's text.
+
+Respond entirely in "{{ language }}".

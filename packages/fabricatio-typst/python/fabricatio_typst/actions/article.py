@@ -1,6 +1,11 @@
-"""Actions for transmitting tasks to targets."""
+"""Actions for the staged article pipeline plus the standalone article utilities.
 
-from asyncio import gather
+The pipeline stages at the top mirror the ``compose_article`` chain one segment at a
+time; the actions below them are the run's side utilities — extracting and repairing the
+reference corpus, loading or summarizing an article the run already holds, and compiling
+a typst source to its deliverable format.
+"""
+
 from collections.abc import Callable
 from pathlib import Path
 from typing import ClassVar, TypedDict, Unpack
@@ -9,24 +14,302 @@ from fabricatio_capabilities.capabilities.extract import Extract
 from fabricatio_core.capabilities.propose import Propose
 from fabricatio_core.capabilities.usages import UseLLM
 from fabricatio_core.journal import logger
-from fabricatio_core.models.action import Action
-from fabricatio_core.models.kwargs_types import ValidateKwargs
+from fabricatio_core.models.action import OUTPUT_KEY, Action
+from fabricatio_core.models.kwargs_types import LLMKwargs
 from fabricatio_core.models.task import Task
-from fabricatio_core.rust import TEMPLATE_MANAGER, detect_language, word_count
+from fabricatio_core.rust import PLAN, TASK, TEMPLATE_MANAGER, detect_language, word_count
 from fabricatio_core.utils import ok
-from fabricatio_improve.capabilities.correct import Correct
 from fabricatio_rule.capabilities.censor import Censor
 from fabricatio_rule.models.rule import RuleSet
 from fabricatio_tool.fs import dump_text
 from more_itertools import filter_map
 from pydantic import Field
 
+from fabricatio_typst.actions.stage import StageAction, StageName
+from fabricatio_typst.capabilities.article import ArticleCompose
 from fabricatio_typst.config import typst_config
 from fabricatio_typst.models.article_essence import ArticleEssence
 from fabricatio_typst.models.article_main import Article, ArticleChapter, ArticleSubsection
 from fabricatio_typst.models.article_outline import ArticleOutline
-from fabricatio_typst.models.article_proposal import ArticleProposal
+from fabricatio_typst.models.context.article import ArticleContext
 from fabricatio_typst.rust import BibManager
+
+__all__ = [
+    "AssembleArticleStage",
+    "CompileArticle",
+    "CompileKwargs",
+    "CompileTypstDocument",
+    "ComposeSubsectionsStage",
+    "DumpArticleStage",
+    "DumpOutlineStage",
+    "ExtractArticleEssence",
+    "ExtractOutlineFromRaw",
+    "FixArticleEssence",
+    "FixIntrospectedErrors",
+    "InitArticleContext",
+    "LoadArticle",
+    "PlanArticleChaptersStage",
+    "PlanSectionsStage",
+    "PlanSubsectionsStage",
+    "ProposeArticlePlanStage",
+    "ProposeArticleProposalStage",
+    "WriteChapterSummary",
+    "WriteResearchContentSummary",
+    "compile_typst_source",
+]
+
+
+class InitArticleContext(StageAction, ArticleCompose):
+    """Build the article context from the task init context, fire ``before_compose_article_context``, persist."""
+
+    output_key: str = "article_ctx"
+    stage: ClassVar[StageName] = "01_init"
+    send_to_slot: ClassVar[str | None] = TASK
+
+    async def init_article_context(
+        self,
+        briefing: str,
+        *,
+        language: str | None = None,
+        constraint: str = "",
+        skills: list[str] | None = None,
+        send_to: str | None = TASK,
+        **kwargs: Unpack[LLMKwargs],
+    ) -> ArticleContext:
+        """Build the root from the run's settings and fire the before hook on it.
+
+        The user's skills are resolved by name onto the root before the hook runs, so the
+        hook — and every stage after it — sees a complete root.
+        """
+        ctx = ArticleContext.create(briefing, language=language)
+        if constraint:
+            ctx.set_writing_constraints([constraint])
+        if skills:
+            ctx = self.apply_skills(ctx, skills)
+        return await self.before_compose_article_context(ctx, send_to=send_to, **kwargs)
+
+    async def _execute(
+        self,
+        article_briefing: str | None = None,
+        article_briefing_path: Path | None = None,
+        article_language: str | None = None,
+        writing_constraint: str = "",
+        skills: list[str] | None = None,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> ArticleContext:
+        """Build the run's article context from the briefing the task carries.
+
+        The briefing is the run's source material: it arrives as text or as a path to a
+        file holding it, and a missing briefing is a task error rather than an empty run.
+        """
+        briefing = article_briefing or ok(
+            article_briefing_path,
+            "`article_briefing` or `article_briefing_path` is required in the task init context",
+        ).read_text(encoding="utf-8")
+        ctx = await self.init_article_context(
+            briefing,
+            language=article_language,
+            constraint=writing_constraint,
+            skills=skills,
+            send_to=self.routed(send_to),
+            **cxt,
+        )
+        await self.snapshot(ctx, persist_dir)
+        return ctx
+
+
+class ProposeArticleProposalStage(StageAction, ArticleCompose):
+    """Propose the research proposal from the briefing and record it on the context."""
+
+    output_key: str = "proposal_ok"
+    stage: ClassVar[StageName] = "02_proposal"
+    send_to_slot: ClassVar[str | None] = PLAN
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.propose_article_proposal, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class ProposeArticlePlanStage(StageAction, ArticleCompose):
+    """Propose the article's own plan and adopt it onto the context."""
+
+    output_key: str = "plan_ok"
+    stage: ClassVar[StageName] = "03_article"
+    send_to_slot: ClassVar[str | None] = PLAN
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.propose_article_plan, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class PlanArticleChaptersStage(StageAction, ArticleCompose):
+    """Plan the article's chapters and materialize their contexts."""
+
+    output_key: str = "chapter_plans_ok"
+    stage: ClassVar[StageName] = "04_chapter_plans"
+    send_to_slot: ClassVar[str | None] = PLAN
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.plan_chapters_phase, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class PlanSectionsStage(StageAction, ArticleCompose):
+    """Plan every chapter's sections and materialize them as child contexts."""
+
+    output_key: str = "section_plans_ok"
+    stage: ClassVar[StageName] = "05_section_plans"
+    send_to_slot: ClassVar[str | None] = PLAN
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.plan_chapter_sections_phase, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class PlanSubsectionsStage(StageAction, ArticleCompose):
+    """Plan every section's subsections and materialize them as child contexts."""
+
+    output_key: str = "subsection_plans_ok"
+    stage: ClassVar[StageName] = "06_subsection_plans"
+    send_to_slot: ClassVar[str | None] = PLAN
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.plan_section_subsections_phase, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class ComposeSubsectionsStage(StageAction, ArticleCompose):
+    """Write every subsection of the article serially in prefix order, closing each unit out after its parts."""
+
+    output_key: str = "content_ok"
+    stage: ClassVar[StageName] = "07_content"
+    send_to_slot: ClassVar[str | None] = TASK
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> bool:
+        return await self.run_phase(
+            article_ctx, self.compose_chapters_phase, send_to=send_to, persist_dir=persist_dir, **cxt
+        )
+
+
+class AssembleArticleStage(StageAction, ArticleCompose):
+    """Fire ``after_compose_article_context``, then materialize the composed context tree as an Article."""
+
+    output_key: str = "article"
+    stage: ClassVar[StageName] = "08_article"
+    send_to_slot: ClassVar[str | None] = TASK
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        send_to: str | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> Article:
+        return await self.run_phase(article_ctx, self.finish_article, send_to=send_to, persist_dir=persist_dir, **cxt)
+
+
+class DumpArticleStage(Action, ArticleCompose):
+    """Fire ``post_process_article``, then dump the article's typst source to the run's output path.
+
+    The task's ``article_output_path`` names the file; a run that names none dumps
+    ``article.typ`` under the run's ``persist_dir``, so a persisted run always ends with
+    its deliverable beside its snapshots.
+    """
+
+    output_key: str = OUTPUT_KEY
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        article: Article,
+        article_output_path: str | Path | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> Path:
+        article = await self.post_process_article(article_ctx, article, **cxt)
+        out = (
+            Path(article_output_path)
+            if article_output_path
+            else Path(ok(persist_dir, "`article_output_path` nor `persist_dir` is set in the task init context"))
+            / "article.typ"
+        )
+        out.parent.mkdir(parents=True, exist_ok=True)
+        article.finalized_dump_to(out)
+        logger.info(f"Article '{article.title}' dumped to {out.as_posix()}")
+        return out
+
+
+class DumpOutlineStage(Action, ArticleCompose):
+    """Materialize the planned outline from the context tree and dump it to the run's output path.
+
+    The outline is the pipeline's structure-only deliverable: the same tree every prose
+    write is grounded on, rendered in typst format for a run that stops before composing.
+    """
+
+    output_key: str = OUTPUT_KEY
+
+    async def _execute(
+        self,
+        article_ctx: ArticleContext,
+        article_output_path: str | Path | None = None,
+        persist_dir: str | Path | None = None,
+        **cxt,
+    ) -> Path:
+        outline = ArticleOutline.from_context(article_ctx)
+        article_ctx.artifacts.update_outline(outline)
+        out = (
+            Path(article_output_path)
+            if article_output_path
+            else Path(ok(persist_dir, "`article_output_path` nor `persist_dir` is set in the task init context"))
+            / "outline.typ"
+        )
+        out.parent.mkdir(parents=True, exist_ok=True)
+        outline.finalized_dump_to(out)
+        logger.info(f"Article outline '{outline.title}' dumped to {out.as_posix()}")
+        return out
 
 
 class ExtractArticleEssence(Action, Propose):
@@ -98,74 +381,6 @@ class FixArticleEssence(Action):
         return out
 
 
-class GenerateArticleProposal(Action, Propose):
-    """Generate an outline for the article based on the extracted essence."""
-
-    output_key: str = "article_proposal"
-    """The key of the output data."""
-
-    async def _execute(
-        self,
-        task_input: Task | None = None,
-        article_briefing: str | None = None,
-        article_briefing_path: str | None = None,
-        **_,
-    ) -> ArticleProposal | None:
-        if article_briefing is None and article_briefing_path is None and task_input is None:
-            logger.error("Task not approved, since all inputs are None.")
-            return None
-
-        briefing = article_briefing or Path(
-            ok(
-                article_briefing_path
-                or await self.awhich_pathstr(
-                    f"{ok(task_input).briefing}\nExtract the path of file which contains the article briefing.",
-                ),
-                "Could not find the path of file to read.",
-            ),
-        ).read_text(encoding="utf-8")
-
-        logger.info("Start generating the proposal.")
-        proposal = ok(
-            await self.propose(
-                ArticleProposal,
-                f"{briefing}\n\nWrite the value string using `{detect_language(briefing)}` as written language.",
-            ),
-            "Could not generate the proposal.",
-        )
-        proposal.artifacts.update_briefing(briefing)
-        return proposal
-
-
-class GenerateInitialOutline(Action, Extract, Correct):
-    """Generate the initial article outline based on the article proposal."""
-
-    output_key: str = "initial_article_outline"
-    """The key of the output data."""
-
-    extract_kwargs: ValidateKwargs[ArticleOutline | None] = Field(default_factory=ValidateKwargs)
-    """The kwargs to extract the outline."""
-
-    async def _execute(
-        self,
-        article_proposal: ArticleProposal,
-        **_,
-    ) -> ArticleOutline | None:
-        raw_outline = await self.aask(
-            TEMPLATE_MANAGER.render_template(
-                typst_config.generate_outline_template,
-                {"proposal": article_proposal.as_prompt(), "language": article_proposal.language},
-            ),
-        )
-
-        outline = ok(
-            await self.extract(ArticleOutline, raw_outline, **self.extract_kwargs),
-            "Could not generate the initial outline.",
-        )
-        outline.artifacts.update_proposal(article_proposal)
-        return outline
-
-
 class ExtractOutlineFromRaw(Action, Extract):
     """Extract the outline from the raw outline."""
 
@@ -219,36 +434,6 @@ class FixIntrospectedErrors(Action, Censor):
             counter += 1
 
         return article_outline
-
-
-class GenerateArticle(Action, Censor):
-    """Generate the article based on the outline."""
-
-    output_key: str = "article"
-    """The key of the output data."""
-    ruleset: RuleSet | None = None
-
-    async def _execute(
-        self,
-        article_outline: ArticleOutline,
-        article_gen_ruleset: RuleSet | None = None,
-        **_,
-    ) -> Article | None:
-        article: Article = Article.from_outline(ok(article_outline, "Article outline not specified."))
-
-        await gather(
-            *[
-                self.censor_obj_inplace(
-                    subsec,
-                    ruleset=ok(article_gen_ruleset or self.ruleset, "No ruleset provided"),
-                    reference=f"{article_outline.as_prompt()}\n# Error Need to be fixed\n{err}\nYou should use `{subsec.language}` to write the new `Subsection`.",
-                )
-                for _, _, subsec in article.iter_subsections()
-                if (err := subsec.introspect()) and logger.warn(f"Found Introspection Error:\n{err}") is None
-            ],
-        )
-
-        return article
 
 
 class LoadArticle(Action):
@@ -356,7 +541,6 @@ class WriteResearchContentSummary(Action, UseLLM):
 
     output_key: str = "summarized_article"
     """The key under which the summarized article will be stored in the output."""
-
     summary_title: str = "Research Content"
     """The title to be used for the generated research content summary section."""
 

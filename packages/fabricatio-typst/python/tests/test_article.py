@@ -169,28 +169,6 @@ class TestArticle:
         assert outline.chapters[0].sections[0].title == "Sec"
         assert outline.chapters[0].sections[0].subsections[0].title == "Sub"
 
-    def test_from_outline_creates_article(self) -> None:
-        """from_outline creates an Article with matching structure."""
-        sub = ArticleSubsectionOutline(heading="Sub", expected_word_count=10, elaboration="", aims=[])
-        sec = ArticleSectionOutline(heading="Sec", subsections=[sub], elaboration="", aims=[], expected_word_count=10)
-        chap = ArticleChapterOutline(heading="Chap", sections=[sec], elaboration="", aims=[], expected_word_count=10)
-        outline = ArticleOutline(heading="Test", expected_word_count=100, elaboration="", aims=[], chapters=[chap])
-
-        article = Article.from_outline(outline)
-        assert article.title == "Test"
-        assert len(article.chapters) == 1
-        assert article.chapters[0].title == "Chap"
-        assert article.chapters[0].sections[0].title == "Sec"
-
-    def test_artifacts_propagate_through_from_outline(self) -> None:
-        """Artifacts survive from_outline round-trip."""
-        outline = ArticleOutline(heading="T", expected_word_count=10, elaboration="", aims=[], chapters=[])
-        outline.artifacts.update_briefing("test briefing")
-
-        article = Article.from_outline(outline)
-        assert article.artifacts.briefing == "test briefing"
-        assert article.artifacts is outline.artifacts  # same object
-
     def test_artifacts_propagate_through_extract_outline(self) -> None:
         """Artifacts survive extract_outline round-trip."""
         article = Article(heading="T", expected_word_count=10, elaboration="", aims=[], chapters=[])

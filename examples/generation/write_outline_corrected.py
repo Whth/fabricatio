@@ -1,11 +1,20 @@
-"""Demonstrates the WriteOutlineCorrectedWorkFlow with LLM parameter customization. Shows how to tune temperature and top_p per workflow step for better outline quality — higher temperature for creative proposal generation, lower for structured output."""
+"""Demonstrates the staged outline pipeline with LLM parameter customization. Shows how to tune temperature and top_p per workflow step for better outline quality — higher temperature for creative planning, lower for structured output."""
 
 import asyncio
 
 from fabricatio import Event, WorkFlow, logger
 from fabricatio import Role as RoleBase
-from fabricatio.actions import DumpFinalizedOutput, GenerateArticleProposal, GenerateInitialOutline
+from fabricatio.actions import (
+    DumpOutlineStage,
+    InitArticleContext,
+    PlanArticleChaptersStage,
+    PlanSectionsStage,
+    PlanSubsectionsStage,
+    ProposeArticlePlanStage,
+    ProposeArticleProposalStage,
+)
 from fabricatio_capabilities.capabilities.task import ProposeTask
+from fabricatio_core.utils import ok
 
 
 class Role(RoleBase, ProposeTask):
@@ -13,16 +22,20 @@ class Role(RoleBase, ProposeTask):
 
 
 async def main() -> None:
-    """Run the corrected outline pipeline with tuned LLM parameters: high temperature (1.15) for creative proposals, top_p filtering (0.8) for diverse output."""
+    """Run the staged outline pipeline with tuned LLM parameters: high temperature (1.3) for the creative planning stages, tighter sampling (0.5) for the structured plans."""
     role = Role.new(
         {
-            Event.quick_instantiate(ns := "article"): WorkFlow(
-                name="Generate Article Outline",
-                description="Generate an outline for an article. dump the outline to the given path. in typst format.",
+            Event.quick_instantiate(ns := "outline-article").collapse(): WorkFlow(
+                name="Write Article Outline",
+                description="Plan an article from a briefing and dump its outline in typst format.",
                 steps=(
-                    GenerateArticleProposal(llm_send_to="deepseek/deepseek-reasoner", llm_temperature=1.3),
-                    GenerateInitialOutline(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
-                    DumpFinalizedOutput(output_key="task_output"),
+                    InitArticleContext,
+                    ProposeArticleProposalStage(llm_send_to="deepseek/deepseek-reasoner", llm_temperature=1.3),
+                    ProposeArticlePlanStage(llm_send_to="deepseek/deepseek-reasoner", llm_temperature=1.3),
+                    PlanArticleChaptersStage(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
+                    PlanSectionsStage(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
+                    PlanSubsectionsStage(llm_send_to="deepseek/deepseek-chat", llm_temperature=1.4, llm_top_p=0.5),
+                    DumpOutlineStage,
                 ),
             ),
         },
@@ -35,7 +48,7 @@ async def main() -> None:
     proposed_task = await role.propose_task(
         "You need to read the `./article_briefing.txt` file and write an outline for the article in typst format. The outline should be saved in the `./out.typ` file.",
     )
-    path = await proposed_task.delegate(ns)
+    path = await ok(proposed_task).delegate(ns)
     logger.info(f"The outline is saved in:\n{path}")
 
 

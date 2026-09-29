@@ -1,5 +1,6 @@
 """ArticleBase and ArticleSubsection classes for managing hierarchical document components."""
 
+import re
 from collections.abc import Generator
 from typing import ClassVar, Self, override
 
@@ -23,6 +24,10 @@ from fabricatio_typst.models.article_outline import (
     ArticleSubsectionOutline,
 )
 from fabricatio_typst.models.artifacts import ArticleArtifacts
+from fabricatio_typst.models.context.article import ArticleContext
+from fabricatio_typst.models.context.chapter import ChapterContext
+from fabricatio_typst.models.context.section import SectionContext
+from fabricatio_typst.models.context.subsection import SubsectionContext
 from fabricatio_typst.rust import (
     convert_all_tex_math,
     fix_misplaced_labels,
@@ -32,16 +37,19 @@ from fabricatio_typst.rust import (
 PARAGRAPH_SEP = typst_config.paragraph_sep
 
 
+def split_paragraphs(prose: str) -> list[str]:
+    """Split composed prose into its paragraphs: blank-line separated, trimmed, empty blocks dropped."""
+    return [block.strip() for block in re.split(r"\n\s*\n", prose) if block.strip()]
+
+
 class Paragraph(SketchedAble, WordCount, Described):
     """Structured academic paragraph blueprint for controlled content generation."""
 
     expected_word_count: NonNegativeInt = 0
     """The expected word count of this paragraph, 0 means not specified"""
 
-    description: str = Field(
-        alias="elaboration",
-        description=Described.model_fields["description"].description,
-    )
+    description: str = Field(alias="elaboration")
+    """What this paragraph says: its claim and the evidence it presents."""
 
     aims: list[str]
     """Specific communicative objectives for this paragraph's content."""
@@ -72,6 +80,17 @@ class ArticleSubsection(SubSectionBase):
 
     _max_word_count_deviation: float = 0.3
     """Maximum allowed deviation from the expected word count, as a percentage."""
+
+    @classmethod
+    def from_context(cls, ctx: SubsectionContext) -> "ArticleSubsection":
+        """Materialize a subsection from its composed context, splitting the prose into paragraphs."""
+        return cls(
+            heading=ctx.title,
+            elaboration=ctx.description,
+            aims=list(ctx.plan.aims) if ctx.plan is not None else [],
+            expected_word_count=ctx.expected_word_count,
+            paragraphs=[Paragraph.from_content(block) for block in split_paragraphs(ctx.content)],
+        )
 
     @property
     def exact_word_count(self) -> int:
@@ -129,11 +148,33 @@ class ArticleSection(SectionBase[ArticleSubsection]):
 
     child_type: ClassVar[type[SubSectionBase]] = ArticleSubsection
 
+    @classmethod
+    def from_context(cls, ctx: SectionContext) -> "ArticleSection":
+        """Materialize a section from its composed context, materializing each subsection recursively."""
+        return cls(
+            heading=ctx.title,
+            elaboration=ctx.description,
+            aims=list(ctx.plan.aims) if ctx.plan is not None else [],
+            expected_word_count=ctx.expected_word_count,
+            subsections=[ArticleSubsection.from_context(sc) for sc in ctx.child_contexts],
+        )
+
 
 class ArticleChapter(ChapterBase[ArticleSection]):
     """Thematic progression implementing research function."""
 
     child_type: ClassVar[type[SectionBase]] = ArticleSection
+
+    @classmethod
+    def from_context(cls, ctx: ChapterContext) -> "ArticleChapter":
+        """Materialize a chapter from its composed context, materializing each section recursively."""
+        return cls(
+            heading=ctx.title,
+            elaboration=ctx.description,
+            aims=list(ctx.plan.aims) if ctx.plan is not None else [],
+            expected_word_count=ctx.expected_word_count,
+            sections=[ArticleSection.from_context(sc) for sc in ctx.child_contexts],
+        )
 
 
 class Article(
@@ -150,6 +191,18 @@ class Article(
     """Shared pipeline artifacts (briefing, proposal, outline)."""
 
     child_type: ClassVar[type[ChapterBase]] = ArticleChapter
+
+    @classmethod
+    def from_context(cls, ctx: ArticleContext) -> "Article":
+        """Materialize the composed context tree as the article, materializing each chapter recursively."""
+        return cls(
+            heading=ctx.title,
+            elaboration=ctx.description,
+            aims=list(ctx.plan.aims) if ctx.plan is not None else [],
+            expected_word_count=ctx.expected_word_count,
+            chapters=[ArticleChapter.from_context(c) for c in ctx.child_contexts],
+            artifacts=ctx.artifacts,
+        )
 
     def _as_prompt_inner(self) -> dict[str, str]:
         out: dict[str, str] = {"Original Article": self.display()}
@@ -181,79 +234,31 @@ class Article(
 
     def extract_outline(self) -> ArticleOutline:
         """Extract outline from article."""
-        # Create an empty list to hold chapter outlines
         chapters = []
-
-        # Iterate through each chapter in the article
         for chapter in self.chapters:
-            # Create an empty list to hold section outlines
             sections = []
-
-            # Iterate through each section in the chapter
             for section in chapter.sections:
-                # Create an empty list to hold subsection outlines
                 subsections = [
                     ArticleSubsectionOutline(**subsection.model_dump(exclude={"paragraphs"}, by_alias=True))
                     for subsection in section.subsections
                 ]
-
-                # Create a section outline and add it to the list
                 sections.append(
                     ArticleSectionOutline(
                         **section.model_dump(exclude={"subsections"}, by_alias=True),
                         subsections=subsections,
                     ),
                 )
-
-            # Create a chapter outline and add it to the list
             chapters.append(
                 ArticleChapterOutline(
                     **chapter.model_dump(exclude={"sections"}, by_alias=True),
                     sections=sections,
                 ),
             )
-
         return ArticleOutline(
             **self.model_dump(exclude={"chapters", "artifacts"}, by_alias=True),
             chapters=chapters,
             artifacts=self.artifacts,
         )
-
-    @classmethod
-    def from_outline(cls, outline: ArticleOutline) -> "Article":
-        """Generates an article from the given outline.
-
-        Args:
-            outline (ArticleOutline): The outline to generate the article from.
-
-        Returns:
-            Article: The generated article.
-        """
-        article = Article(
-            **outline.model_dump(exclude={"chapters", "artifacts"}, by_alias=True),
-            chapters=[],
-            artifacts=outline.artifacts,
-        )
-
-        for chapter in outline.chapters:
-            article_chapter = ArticleChapter(
-                sections=[],
-                **chapter.model_dump(exclude={"sections"}, by_alias=True),
-            )
-            for section in chapter.sections:
-                article_section = ArticleSection(
-                    subsections=[],
-                    **section.model_dump(exclude={"subsections"}, by_alias=True),
-                )
-                for subsection in section.subsections:
-                    article_subsection = ArticleSubsection(
-                        paragraphs=[],
-                        **subsection.model_dump(by_alias=True),
-                    )
-                    article_section.subsections.append(article_subsection)
-                article_chapter.sections.append(article_section)
-            article.chapters.append(article_chapter)
-        return article
 
     @classmethod
     def from_mixed_source(cls, article_outline: ArticleOutline, typst_code: str) -> Self:

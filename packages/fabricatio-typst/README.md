@@ -32,10 +32,10 @@ Two layers compose this package:
 - Typst comment manipulation and YAML front-matter handling
 - Markdown section extraction
 
-**Python layer** — agent-based academic content generation:
-- Extract paper essences and generate structured research proposals
-- Build hierarchical article outlines and generate full content
-- RAG-backed article writing with citation-aware iterative retrieval
+**Python layer** — staged, typed academic content generation:
+- Extract paper essences and propose structured research proposals
+- Plan an article level by level — article, chapters, sections, subsections — then write every subsection against the running text
+- RAG-backed composition that retrieves each subsection's own references and cites them inline
 - Store and query article chunks in LanceDB
 - Compile `.typ` documents to PDF, PNG, or SVG via the `typst` compiler
 
@@ -140,6 +140,15 @@ Hierarchical article representation from proposal through completed paper:
 | `CitationManager` | Deduplicated, iteratively expanded citation set for RAG |
 | `ChunkKwargs` | TypedDict for chunking parameters |
 
+The staged pipeline plans through one flat plan model per level and writes into a typed
+context tree; the outline ladder above is the artifact that tree assembles into:
+
+| Model | Description |
+|---|---|
+| `WeightedPlan` | One unit's plan: heading, elaboration, aims, weight, and its writing styles and constraints |
+| `ArticlePlan` / `ChapterPlan` / `SectionPlan` / `SubsectionPlan` | Per-level plans, each carrying its own expected-count band for the planner model |
+| `ArticleContext` / `ChapterContext` / `SectionContext` / `SubsectionContext` | The typed context tree the pipeline plans and writes into; a leaf holds the composed prose |
+
 ## Actions
 
 Each action is a Fabricatio `Action` — an async callable unit in the agent workflow. Available actions:
@@ -152,14 +161,32 @@ Each action is a Fabricatio `Action` — an async callable unit in the agent wor
 | `FixArticleEssence` | Fix extracted essences using BibTeX reference data |
 | `ExtractOutlineFromRaw` | Parse an outline from raw text |
 
-### Generation
+### Staged Composition
+
+Every stage runs one segment of the `compose_article` chain and then persists a
+whole-tree snapshot under `<persist_dir>/stage_<name>`, so a wrong result can be traced
+back to the stage that produced it.
+
+| Stage | Description |
+|---|---|
+| `InitArticleContext` | Build the root context from the briefing, resolve the run's skills, fire the before hook |
+| `ProposeArticleProposalStage` | Propose the research proposal from the briefing |
+| `ProposeArticlePlanStage` | Propose the article's own plan: title, description, styles, constraints, word count |
+| `PlanArticleChaptersStage` | Plan the chapters and allocate the article's word count across them |
+| `PlanSectionsStage` | Plan every chapter's sections |
+| `PlanSubsectionsStage` | Plan every section's subsections |
+| `ComposeSubsectionsStage` | Write every subsection in prefix order |
+| `AssembleArticleStage` | Assemble the context tree into an `Article` and record its outline |
+| `DumpArticleStage` | Dump the article's typst source to `article_output_path` |
+| `DumpOutlineStage` | Dump the planned outline alone: the structure-only deliverable |
+
+The actions below are the run's side utilities:
 
 | Action | Description |
 |---|---|
-| `GenerateArticleProposal` | Generate a research proposal from a briefing |
-| `GenerateInitialOutline` | Build an outline from a proposal |
-| `GenerateArticle` | Generate full article content from an outline |
 | `LoadArticle` | Load a complete article from outline + Typst code |
+| `ExtractOutlineFromRaw` | Parse an outline from raw text |
+| `FixIntrospectedErrors` | Repair the errors an outline's own checks report, against a ruleset |
 | `WriteChapterSummary` | Write summaries for each chapter |
 | `WriteResearchContentSummary` | Write a research content summary |
 
@@ -167,7 +194,7 @@ Each action is a Fabricatio `Action` — an async callable unit in the agent wor
 
 | Action | Description |
 |---|---|
-| `WriteArticleContentRAG` | Write article content with citation-aware RAG |
+| `RagComposeSubsectionsStage` | The content stage with citation-aware RAG: every subsection retrieves its own references |
 | `TweakArticleLancedbRAG` | Refine article content using LanceDB RAG |
 | `ChunkArticle` | Split an article into storeable chunks |
 | `StoreArticleEssence` | Store article essences into LanceDB |
@@ -201,47 +228,57 @@ result = await CompileArticle().act({
 
 `CitationLancedbRAG` — citation-aware iterative search that expands queries over multiple rounds and deduplicates by bibtex key.
 
+`CitationSubsectionCompose` — the composition leaf that mixes that search into a
+subsection's write: retrieval is seeded with the running text and the subsection's own
+plan, the model writes `[[n]]` markers, and the manager rewrites them into typst `@cite`
+notation paragraph by paragraph.
+
 ## Workflows
 
 Pre-composed action pipelines:
 
 | Workflow | Steps |
 |---|---|
-| `WriteOutlineCorrectedWorkFlow` | `GenerateArticleProposal` → `GenerateInitialOutline` → dump output |
+| `ArticleWorkflow` | The nine stages above: a briefing in, `article.typ` out |
+| `OutlineArticleWorkflow` | The planning stages, then `DumpOutlineStage` |
+| `RagArticleWorkflow` | `ArticleWorkflow` with `RagComposeSubsectionsStage` as the content stage |
 | `CompileArticleWorkflow` | Compile a `.typ` article to PDF |
 | `StoreArticle` | `ExtractArticleEssence` → `StoreArticleEssence` |
 
-Usage:
+The task init context carries the run's inputs: `article_briefing` or
+`article_briefing_path`, `article_language` (detected from the briefing when unset),
+`writing_constraint`, `skills`, `persist_dir` (the stage snapshots) and
+`article_output_path` (the dumped deliverable). Driving the stages directly keeps the
+same inputs and writes into the same context:
+
 ```python
-from fabricatio_typst.actions.article import GenerateArticleProposal, GenerateInitialOutline
-from fabricatio_typst.models.article_proposal import ArticleProposal
-from fabricatio_typst.models.article_outline import ArticleOutline
+from pathlib import Path
 
-async def generate_outline():
-    result = await GenerateArticleProposal().act({
-        "article_briefing": "Quantum error correction in near-term devices",
-    })
-    proposal: ArticleProposal = result["article_proposal"]
-    print(f"Proposal: {proposal.title}")
+from fabricatio_typst.workflows.article import ArticleWorkflow
 
-    result = await GenerateInitialOutline().act({
-        "article_proposal": proposal,
-    })
-    outline: ArticleOutline = result["initial_article_outline"]
-    print(f"Outline chapters: {len(outline.chapters)}")
+cxt = {
+    "article_briefing_path": Path("article_briefing.txt"),
+    "article_output_path": Path("article.typ"),
+    "persist_dir": Path("persistent"),
+}
+for stage in ArticleWorkflow.iter_actions():
+    cxt = await stage.act(cxt)
+
+print(cxt["task_output"])  # Path("article.typ")
 ```
 
 ## Dependencies
 
 - `fabricatio-core` — agent framework and core models
 - `fabricatio-tool` — filesystem utilities
-- `fabricatio-capabilities` — capability mixins (Extract, Censor, etc.)
+- `fabricatio-capabilities` — capability mixins (Extract, WordCount, FinalizedDumpAble, etc.)
+- `fabricatio-context` — the typed context log the pipeline's trees narrow
+- `fabricatio-skill` — skill documents the planning and writing prompts render
 - `typst` — Typst compiler Python bindings (for compilation actions)
 
-Optional for article generation workflows:
+Optional for the staged pipeline:
 
-- `fabricatio-actions` — output dumping actions
-- `fabricatio-improve`, `fabricatio-rule` — content improvement and validation
+- `fabricatio-improve`, `fabricatio-rule` — the ruleset-driven repair pass (`CensoredSubsectionRepair`)
 
 Optional for RAG features:
 
@@ -282,7 +319,9 @@ chap_summary_template = "built-in/chap_summary"
 | `paragraph_sep` | `str` | `"// - - -"` | The separator used to separate paragraphs. |
 | `article_wrapper` | `str` | `"// =-=-=-=-=-=-=-=-=-="` | The wrapper used to wrap an article. |
 | `extract_essence_template` | `str` | `"built-in/extract_essence"` | The name of the extract essence template which will be used to extract the essence of a text. |
-| `generate_outline_template` | `str` | `"built-in/generate_outline"` | The name of the generate outline template which will be used to generate an outline. |
+| `article_metadata_requirement_template` | `str` | `"built-in/article_metadata_requirement"` | The name of the template used to propose the article's own plan. |
+| `article_plan_requirement_template` | `str` | `"built-in/article_plan_requirement"` | The name of the template used to plan the children of one article node. |
+| `subsection_requirement_template` | `str` | `"built-in/subsection_requirement"` | The name of the template used to write the prose of one subsection. |
 
 Access at runtime: `from fabricatio_typst.config import typst_config`.
 

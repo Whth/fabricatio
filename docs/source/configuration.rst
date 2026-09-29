@@ -1508,10 +1508,18 @@ fabricatio-typst
      - string
      - ``built-in/extract_essence``
      - Extract the essence of a text.
-   * - ``generate_outline_template``
+   * - ``article_metadata_requirement_template``
      - string
-     - ``built-in/generate_outline``
-     - Generate an outline.
+     - ``built-in/article_metadata_requirement``
+     - Propose the article's own plan.
+   * - ``article_plan_requirement_template``
+     - string
+     - ``built-in/article_plan_requirement``
+     - Plan the children of one article node.
+   * - ``subsection_requirement_template``
+     - string
+     - ``built-in/subsection_requirement``
+     - Write the prose of one subsection.
 
 fabricatio-webui
 ^^^^^^^^^^^^^^^^

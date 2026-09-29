@@ -12,6 +12,27 @@ from fabricatio_typst.models.article_outline import (
 )
 from fabricatio_typst.models.article_proposal import ArticleProposal
 from fabricatio_typst.models.artifacts import ArticleArtifacts
+from fabricatio_typst.models.context import (
+    ArticleContext,
+    ChapterContext,
+    ContextBase,
+    ContextEntry,
+    ContextLog,
+    EntryKind,
+    ParentContextBase,
+    SectionContext,
+    SubsectionContext,
+)
+from fabricatio_typst.models.plan import (
+    ArticlePlan,
+    ChapterPlan,
+    ChapterPlans,
+    SectionPlan,
+    SectionPlans,
+    SubsectionPlan,
+    SubsectionPlans,
+    WeightedPlan,
+)
 
 # Resolve forward references after all classes are defined.
 ArticleArtifacts.model_rebuild()
@@ -24,11 +45,28 @@ __all__ = [
     "ArticleArtifacts",
     "ArticleChapter",
     "ArticleChapterOutline",
+    "ArticleContext",
     "ArticleOutline",
+    "ArticlePlan",
     "ArticleProposal",
     "ArticleSection",
     "ArticleSectionOutline",
     "ArticleSubsection",
     "ArticleSubsectionOutline",
+    "ChapterContext",
+    "ChapterPlan",
+    "ChapterPlans",
+    "ContextBase",
+    "ContextEntry",
+    "ContextLog",
+    "EntryKind",
     "Paragraph",
+    "ParentContextBase",
+    "SectionContext",
+    "SectionPlan",
+    "SectionPlans",
+    "SubsectionContext",
+    "SubsectionPlan",
+    "SubsectionPlans",
+    "WeightedPlan",
 ]

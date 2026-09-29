@@ -262,22 +262,22 @@ class TestBlueprintGraphConnectivity:
 
     @staticmethod
     def test_typst_outline_has_param_wired_edges() -> None:
-        """The Typst outline blueprint wires runtime parameter edges."""
+        """The Typst outline blueprint wires its planning stages through the context parameter."""
         result = build_blueprints()
         bp = next(
-            (b for b in result["blueprints"] if b["id"] == "typst-generate-article-outline"),
+            (b for b in result["blueprints"] if b["id"] == "typst-write-article-outline"),
             None,
         )
         assert bp is not None
         edges = bp["workflow"]["edges"]
-        assert len(edges) == 2
-        # GenerateArticleProposal → GenerateInitialOutline: proposal is a
+        assert len(edges) == 6
+        # InitArticleContext → ProposeArticleProposalStage: the article context is a
         # runtime _execute parameter, not a model field.
-        assert edges[0]["source_handle"] == "article_proposal"
-        assert edges[0]["target_handle"] == "article_proposal"
-        # GenerateInitialOutline → DumpFinalizedOutput: the outline lands on
-        # the single required runtime parameter (to_dump).
-        assert edges[1]["target_handle"] == "to_dump"
+        assert edges[0]["source_handle"] == "article_ctx"
+        assert edges[0]["target_handle"] == "article_ctx"
+        # Every later stage reports its own result and consumes the same context
+        # parameter, so the outline lands on DumpOutlineStage's output path.
+        assert [edge["target_handle"] for edge in edges] == ["article_ctx"] * 6
 
 
 class TestBlueprintsCompileToExecutablePlans:
