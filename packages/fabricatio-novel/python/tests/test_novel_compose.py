@@ -311,6 +311,9 @@ class TestNovelCompose:
         assert "### Writing styles" in requirement
         assert "Terse action lines, present tense, close third person." in requirement
         assert requirement.index("## Scene") < requirement.index("### Writing styles")
+        # no skills in this chain: the writer is asked for the named words, not sent to a missing document
+        assert "selections: use the named words" in requirement
+        assert "Skill Documents" not in requirement
 
     async def test_prepare_scene_requirement_skips_writing_style_when_empty(self) -> None:
         """Assert an unset writing style renders no style section."""
@@ -335,6 +338,21 @@ class TestNovelCompose:
         ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
         requirement = await role.prepare_scene_requirement(ctx)
         assert "### Writing Constrains:" not in requirement
+
+    async def test_prepare_scene_requirement_renders_accumulated_constraints(self) -> None:
+        """Assert the whole chain in force renders in order, with the precedence stated."""
+        role = unguarded_role()
+        ctx = SceneContext(title="S2", description="A stranger appears.", expected_word_count=50)
+        ctx.set_writing_constraints(["Keep first person during the road journey.", "This scene alone: no dialogue."])
+        requirement = await role.prepare_scene_requirement(ctx)
+        assert "### Writing Constrains:" in requirement
+        assert "Keep first person during the road journey." in requirement
+        assert "This scene alone: no dialogue." in requirement
+        assert requirement.index("Keep first person during the road journey.") < requirement.index(
+            "This scene alone: no dialogue."
+        )
+        assert requirement.index("### Writing Constrains:") > requirement.index("## Scene")
+        assert "where two contradict, the later one wins" in requirement
 
     async def test_scene_requirement_renders_cast(self) -> None:
         """Assert the scene's cast renders as an on-stage roster in the prose requirement."""

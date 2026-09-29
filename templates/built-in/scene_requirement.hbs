@@ -3,7 +3,7 @@
 {{/if}}
 {{ block novel_so_far "Novel so far" }}
 
-Your prose will be appended directly to `Novel so far` without any postprocess, so you shall note let the head of the response to contain the tail of the `Novel so far` which introduce duplicated content.
+Your prose is appended directly to `Novel so far`; only a head that re-emits the text above is stripped before assembly. Do not let the head of your response repeat the tail of the `Novel so far`: the scene must open with new prose, not with duplicated content.
 
 # Scene Writing
 
@@ -18,7 +18,10 @@ Description: {{ description }}
 {{#if writing_constraints}}
 ### Writing Constrains:
 
-{{ls writing_constraints}}{{/if}}
+{{ls writing_constraints}}
+
+Every constraint in force, from the novel down to this scene.
+{{/if}}
 {{#if characters}}
 ### Characters' state arc
 
@@ -40,10 +43,14 @@ Write a single scene of the novel in full prose, as a seamless continuation of t
 - The Skill Documents at the top are the grounding truth of this scene: follow them as authoritative instructions, not as background reading.
 {{/if}}
 {{#if writing_styles}}
-- The Writing styles References&Instructions above tell you how this scene must read: follow the diction, rhythm, metaphor, and imagery they show rather than writing in a neutral default voice.
+{{#if skills}}
+- The Writing styles above are this scene's selections from the Skill Documents: use the named words and copy the example structures they quote rather than falling back on your own habitual diction.
+{{else}}
+- The Writing styles above are this scene's selections: use the named words and follow the example structures they quote rather than falling back on your own habitual diction.
+{{/if}}
 {{/if}}
 {{#if writing_constraints}}
-- The Writing Constrains above are binding, not advisory: each one must hold across the whole scene — a scene that breaks one is a failed scene, however well written.
+- The Writing Constrains above are binding, not advisory: each one must hold across the whole scene — a scene that breaks one is a failed scene, however well written; where two contradict, the later one wins.
 {{/if}}
 - Write exactly the scene defined by its Title and Description above; the Description is the entire extent of this scene — stay inside it and do not advance other plotlines or skip ahead in time.
 - Stop the prose at the Description's last beat. Later scenes continue the story from exactly there, so never write past that point: nobody arrives, returns, leaves, wakes or falls asleep, no journey or errand ends, no time or place shifts, and nothing is packed away, tidied or cleared up.

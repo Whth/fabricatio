@@ -287,7 +287,7 @@ class NovelCompose[CTX: NovelContext](
                     .set_plan(chapter_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *chapter_plan.writing_styles])
-                    .set_writing_constraints(chapter_plan.writing_constraints)
+                    .set_writing_constraints([*ctx.writing_constraints, *chapter_plan.writing_constraints])
                     .with_skills_from(ctx),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} chapter(s)")

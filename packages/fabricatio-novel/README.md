@@ -121,10 +121,10 @@ Templates live in `templates/built-in/` and are selectable through the
 Each level materializes its plan via `create(outline).update_from(plan).set_plan(plan)`,
 with word counts assigned out-of-band via `expect_` (the root takes the novel plan's
 count, children take their allocated share). `update_from` adopts only the plan's scalar
-fields (title, description, cast); the style channel is stacked explicitly by the composing
-capability through `set_writing_styles` (the root from the novel plan, every child from its
-parent's chain), and the constraint channel through `set_writing_constraints` (each level
-from its own plan alone). Each level then passes state down:
+fields (title, description, cast); the style and constraint channels are stacked explicitly by
+the composing capability — `set_writing_styles` and `set_writing_constraints` each receive the
+parent's list followed by the child plan's own — so both accumulate down the chain, the root
+seeded from the novel plan. Each level then passes state down:
 
 - **Running manuscript** — an append-only `ContextLog`; every walk seeds each child with
   exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)
@@ -136,10 +136,12 @@ from its own plan alone). Each level then passes state down:
   proposals, the roster-span proposal, the boundary-card proposals, every plan prompt, every scene
   write prompt and every RAG query refinement
 - **Word budget** — each level splits its `expected_word_count` among children by plan weight
-- **Writing style** — accumulated verbatim down the chain (style stacking)
-- **Writing constraint** — scoped, never merged: each level carries its own entries, its planner
-  sees the level above as the rules in force, and a scene's prose prompt renders only the
-  scene's own list
+- **Writing style** — accumulated verbatim down the chain (style stacking); entries select the
+  diction the prose must use — from the run's skill documents when the run carries them — rather
+  than inventing amounts
+- **Writing constraint** — accumulated verbatim down the chain (constraint stacking): the
+  ancestors' entries first, the level's own last, and the whole list reaches that level's planner
+  and every scene's prose prompt; where two contradict, the later (deeper) entry wins
 - **Unit partition** — a level's children are proposed as one batch per parent, so the batch
   itself is the partition: the `## Requirements` block in the plan prompt keeps every unit
   inside the parent's description and makes the units cover it exactly once

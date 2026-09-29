@@ -172,7 +172,7 @@ class ChapterCompose[CTX: ChapterContext, S: StoryContext](StoryCompose[S], ABC)
                     .set_plan(story_plan)
                     .expect_(count)
                     .set_writing_styles([*ctx.writing_styles, *story_plan.writing_styles])
-                    .set_writing_constraints(story_plan.writing_constraints)
+                    .set_writing_constraints([*ctx.writing_constraints, *story_plan.writing_constraints])
                     .with_skills_from(ctx),
                 )
             logger.info(f"Planned {len(ctx.child_contexts)} story(s) for chapter '{ctx.title}'")

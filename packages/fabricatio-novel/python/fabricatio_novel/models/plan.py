@@ -39,18 +39,20 @@ class ScenePlan(WeightedPlan):
     from this description, so give concrete, stageable details — not a theme or a summary."""
 
     writing_styles: list[str]
-    """4-32 directive entries stating the writing technique for this scene's prose: narrative
-    voice and point of view, sentence rhythm, tone and atmosphere, dialogue handling, and
-    description density. The model writes the prose directly from these, so name concrete,
-    applicable techniques — not a genre label or a theme."""
+    """4-32 directive entries selecting the diction this scene's prose must use. When the prompt
+    carries the run's skill documents, draw them from there: name the register (which word tier
+    the narration runs in), the exact words to use, and the example structures the documents give
+    for this beat — citing their calibrated band where an amount matters; otherwise name the
+    register and the exact words directly. Say which spent devices to avoid, and never invent
+    amounts."""
 
     writing_constraints: list[str]
-    """4-16 entries stating the hard writing constraints that bind this scene's prose: whose
-    head it stays in (no head-hopping), where this beat may start or end, and scene-specific
-    dialogue or sensory restrictions. Keep this scene inside its own Description: never order
-    events that belong to another scene. The story's constraints are shown above as the rules
-    in force — carry forward the ones that must still bind this scene, since this list alone
-    reaches the prose prompt."""
+    """4-16 entries stating the hard writing constraints this scene adds to the rules already in
+    force: whose head it stays in (no head-hopping), where this beat may start or end,
+    scene-specific dialogue or sensory limits, and any countable limit the scene must hold. The
+    rules in force above reach the prose prompt with the scene — never restate them; an entry
+    here is appended after them, so it wins where it contradicts one. Keep this scene inside its
+    own Description: never order events that belong to another scene."""
 
 
 class StoryPlan(WeightedPlan):
@@ -65,16 +67,16 @@ class StoryPlan(WeightedPlan):
     written here are exactly what the scenes must stage."""
 
     writing_styles: list[str]
-    """2-16 directive entries stating the writing style its scenes should share: a consistent
-    voice, tone, and technique across the story's scenes. Empty list when the chapter's
-    style already suffices."""
+    """2-16 directive entries selecting the diction its scenes share: the register and the exact
+    words — drawn from the run's skill documents and their example structures when the prompt
+    carries them. Empty list when the chapter's style already suffices."""
 
     writing_constraints: list[str]
     """2-12 entries stating the hard writing constraints binding this story as a whole: its own
-    point of view or tense, how its scenes progress, and prohibitions spanning its scenes.
-    Never an event order spanning other stories — the ordered story list already fixes the
-    chapter's sequencing. The chapter's constraints are shown above as the rules in force;
-    carry forward the ones that must still bind this story."""
+    point of view or tense, how its scenes progress, and prohibitions spanning its scenes. The
+    rules in force above reach the prose prompt with every scene — never restate them; an entry
+    here is appended after them, so it wins where it contradicts one. Never an event order
+    spanning other stories — the ordered story list already fixes the chapter's sequencing."""
 
 
 class ChapterPlan(WeightedPlan):
@@ -89,17 +91,17 @@ class ChapterPlan(WeightedPlan):
     chapter's stories, so the events written here are exactly what the stories must stage."""
 
     writing_styles: list[str]
-    """2-12 directive entries stating the writing style its stories should follow: the
-    chapter's narrative voice, tone, and pacing. Empty list when the novel's style
-    already suffices."""
+    """2-12 directive entries selecting the diction its stories follow: the register and the exact
+    words — drawn from the run's skill documents and their example structures when the prompt
+    carries them. Empty list when the novel's style already suffices."""
 
     writing_constraints: list[str]
     """2-8 entries stating the hard writing constraints binding this chapter: its own point of
-    view or tense and prohibitions spanning its stories. Never an event order spanning the
-    whole chapter — the ordered story list you propose is what sequences it, so an order
-    written here would be re-planned inside whichever story reads it. The novel's constraints
-    are shown above as the rules in force; carry forward the ones that must still bind this
-    chapter."""
+    view or tense and prohibitions spanning its stories. The rules in force above reach the prose
+    prompt with every scene — never restate them; an entry here is appended after them, so it
+    wins where it contradicts one. Never an event order spanning the whole chapter — the ordered
+    story list you propose is what sequences it, so an order written here would be re-planned
+    inside whichever story reads it."""
 
 
 class NovelPlan(WeightedPlan, WordCount):
@@ -115,14 +117,18 @@ class NovelPlan(WeightedPlan, WordCount):
     prompt, so its event chain is the fidelity contract every later layer must keep."""
 
     writing_styles: list[str]
-    """6-36 directive entries stating the novel's overall writing style: narrative voice,
-    tone, rhythm, and recurring techniques. They seed the style guidance of every chapter,
-    story, and scene."""
+    """6-36 directive entries selecting the novel's standing diction: which register tier the
+    narration runs in, which channel (narration or dialogue) takes which words, and which
+    devices the novel will not spend. They seed every chapter, story and scene; when the prompt
+    carries the run's skill documents, draw them from their sections, exact words and example
+    structures, citing their calibrated bands — otherwise state the diction and technique
+    directly. Never invent amounts."""
 
     writing_constraints: list[str]
     """4-24 entries stating the novel's standing rules: point of view, tense, quality standards
-    extracted carefully from the outline. They are shown to every chapter planner as the rules
-    in force and are never merged into the chapters' own lists."""
+    extracted carefully from the outline. They accumulate into the constraints in force at every
+    lower level and reach every prose prompt; a deeper level's entry comes later, so it wins
+    where it contradicts one here."""
 
 
 class ScenePlans(JSONList[ScenePlan]):

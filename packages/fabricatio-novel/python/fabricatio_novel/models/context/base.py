@@ -78,12 +78,15 @@ class ContextBase[P: WeightedPlan](
     writing_styles: list[str] = Field(default_factory=list)
     """Writing style directives accumulated down the tree: inherited guidance first, this
     element's own plan entry last; RAG reference texts join the same list when enabled.
+    Entries select diction — the words and example structures a plan drew from the run's
+    skill documents where the run carries them — rather than inventing amounts.
     Never filled by ``update_from`` — the composing capability seeds it explicitly."""
 
     writing_constraints: list[str] = Field(default_factory=list)
-    """The hard writing constraints binding this element alone. The parent's entries are never
-    merged in — they are shown to this element's planner as the rules in force, and the prose
-    prompt of a scene renders only the scene's own list. Empty when no constraint applies.
+    """The hard writing constraints in force on this element: the ancestors' own lists first,
+    this element's own plan entry last; where two contradict, the later (deeper) entry wins.
+    The whole list reaches this element's planner prompt as the rules its units must respect,
+    and a scene's prose prompt renders it in full.
     Never filled by ``update_from`` — the composing capability seeds it explicitly."""
 
     cast: list[str] = Field(default_factory=list)
@@ -195,7 +198,7 @@ class ContextBase[P: WeightedPlan](
         return self
 
     def set_writing_constraints(self, writing_constraints: list[str]) -> Self:
-        """Replace this element's own writing constraints, the ones binding it alone, and return self."""
+        """Replace the writing constraints in force on this element and return self."""
         self.writing_constraints = writing_constraints
         return self
 

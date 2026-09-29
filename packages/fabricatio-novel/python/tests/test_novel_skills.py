@@ -222,6 +222,35 @@ class TestSkillPrompts:
 
         assert "--- Start of Novel Skills ---" not in requirement
         assert requirement.startswith("--- Start of Novel Outline ---")
+        # without skills the authoring bullet falls back to plain diction demands, never a missing document
+        assert "Skill Documents" not in requirement
+        assert "name the register and, where they matter, the exact words" in requirement
+
+    async def test_plan_requirement_carries_the_skills_contract_and_the_constraints(self) -> None:
+        """Assert the planner prompt draws styles from the skills and shows the constraints in force."""
+        requirement = TEMPLATE_MANAGER.render_template(
+            novel_config.plan_requirement_template,
+            {
+                "outline": OUTLINE,
+                "planning_title": "Chapter Planning",
+                "goal": "Plan the chapters of the novel from its `Novel Outline`",
+                "parent_title": "Novel",
+                "title": "",
+                "description": "",
+                "expected_word_count": 0,
+                "writing_styles": [],
+                "writing_constraints": ["First person view throughout."],
+                "skills": SKILL_BODY,
+                "language": "English",
+                "characters": [],
+            },
+        )
+
+        assert "### Writing Constrains:" in requirement
+        assert "First person view throughout." in requirement
+        assert requirement.index("--- End of Novel Outline ---") < requirement.index("### Writing Constrains:")
+        assert "draw them from the Skill Documents" in requirement
+        assert "never restate a rule already in force above" in requirement
 
     async def test_scene_write_prompt_leads_with_the_skills(self, tmp_path: Path) -> None:
         """Assert the skills head the scene write prompt, ahead of the manuscript block."""
@@ -237,7 +266,11 @@ class TestSkillPrompts:
             .with_skills_from(story)
             .set_content("The hero folded the map and left.")
         )
-        second = SceneContext(title="Sc2", description="The road.", expected_word_count=50).with_skills_from(story)
+        second = (
+            SceneContext(title="Sc2", description="The road.", expected_word_count=50)
+            .with_skills_from(story)
+            .set_writing_styles(["Terse action lines, present tense."])
+        )
         story.add_context(second)
         chapter.add_context(story)
         novel.add_context(chapter)
@@ -254,6 +287,8 @@ class TestSkillPrompts:
         ]
         assert requirement.startswith(novel.skill_section())
         assert requirement.index(SKILL_BODY) < requirement.index("The hero folded the map and left.")
+        # a scene carrying styles sends the writer to the skills for its named words
+        assert "selections from the Skill Documents" in requirement
 
     async def test_story_retrieval_refinement_leads_with_the_same_section(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path

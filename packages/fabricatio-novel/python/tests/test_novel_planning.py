@@ -77,7 +77,7 @@ class TestNovelPlan:
         assert ctx.child_contexts[0].child_contexts[0].child_contexts[0].language == "English"
 
     async def test_compose_novel_allocates_writing_constraint_down_tree(self) -> None:
-        """Assert every level carries its own constraints and reaches the scene requirement that way."""
+        """Assert every level stacks the constraints in force and the whole chain reaches the prose requirement."""
         role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
         ctx.set_writing_constraints(["I hope the novel is first person view."])
@@ -133,15 +133,27 @@ class TestNovelPlan:
         # the novel plan's styles seed the root channel and reach every scene
         assert ctx.writing_styles == meta.writing_styles
         assert scene_ctx.writing_styles == meta.writing_styles
-        # each level carries its own constraints, never the parent's chain
-        assert chapter_ctx.writing_constraints == ["Keep first person during the road journey."]
-        assert story_ctx.writing_constraints == []
-        assert scene_ctx.writing_constraints == ["Stay in the protagonist's head; no head-hopping."]
-        # the scene's prose requirement shows the scene's own entries and no ancestor's
+        # constraints stack like styles: the ancestors' entries first, the level's own last
+        assert chapter_ctx.writing_constraints == [
+            *meta.writing_constraints,
+            "Keep first person during the road journey.",
+        ]
+        assert story_ctx.writing_constraints == [
+            *meta.writing_constraints,
+            "Keep first person during the road journey.",
+        ]
+        assert scene_ctx.writing_constraints == [
+            *meta.writing_constraints,
+            "Keep first person during the road journey.",
+            "Stay in the protagonist's head; no head-hopping.",
+        ]
+        # the prose requirement renders the whole chain, ancestors first, and states the precedence
         requirement = await role.prepare_scene_requirement(scene_ctx)
         assert "### Writing Constrains:" in requirement
+        assert "Keep first person during the road journey." in requirement
         assert "no head-hopping" in requirement
-        assert "Keep first person during the road journey." not in requirement
+        assert requirement.index("Keep first person during the road journey.") < requirement.index("no head-hopping")
+        assert "where two contradict, the later one wins" in requirement
 
     async def test_propose_novel_metadata_keeps_intent_when_plan_constraint_empty(self) -> None:
         """Assert the author's stated constraint survives a plan that allocates none."""
