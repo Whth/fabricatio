@@ -137,9 +137,9 @@ class NovelCompose[CTX: NovelContext](
         """Propose the novel metadata from the outline and adopt it onto the context.
 
         The plan's scalar fields are adopted through ``update_from``; the style and
-        constraint channels are seeded here explicitly, replacing any preset only when
-        the plan proposes entries of its own, so an empty plan leaves the caller's
-        intent intact.
+        constraint channels are then seeded from the plan's own lists — the root is the
+        top of the tree and has nothing above it to inherit, so its channels are exactly
+        the plan's entries, which every level below then stacks its own onto.
 
         Returns:
             bool: True when the plan was proposed and adopted; False on failure.
@@ -159,11 +159,13 @@ class NovelCompose[CTX: NovelContext](
         if plan is None:
             logger.error("Novel metadata proposal failed; aborting novel generation")
             return False
-        ctx.set_plan(plan).update_from(plan).expect_(plan.expected_word_count)
-        if plan.writing_styles:
-            ctx.set_writing_styles(plan.writing_styles)
-        if plan.writing_constraints:
-            ctx.set_writing_constraints(plan.writing_constraints)
+        (
+            ctx.set_plan(plan)
+            .update_from(plan)
+            .expect_(plan.expected_word_count)
+            .set_writing_styles(plan.writing_styles)
+            .set_writing_constraints(plan.writing_constraints)
+        )
         logger.info(f"Novel plan proposed: '{plan.title}' ({plan.expected_word_count} words)")
         return True
 

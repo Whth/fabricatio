@@ -84,7 +84,7 @@ class ContextBase[P: WeightedPlan](
 
     writing_constraints: list[str] = Field(default_factory=list)
     """The hard writing constraints in force on this element: the ancestors' own lists first,
-    this element's own plan entry last; where two contradict, the later (deeper) entry wins.
+    this element's own plan entry last; where two contradict, the later entry wins.
     The whole list reaches this element's planner prompt as the rules its units must respect,
     and a scene's prose prompt renders it in full.
     Never filled by ``update_from`` — the composing capability seeds it explicitly."""

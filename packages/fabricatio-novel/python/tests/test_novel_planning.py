@@ -80,7 +80,6 @@ class TestNovelPlan:
         """Assert every level stacks the constraints in force and the whole chain reaches the prose requirement."""
         role = unguarded_role()
         ctx = NovelContext.create("The hero seeks his father..", language="English")
-        ctx.set_writing_constraints(["I hope the novel is first person view."])
         meta = NovelPlan(
             title="The Search",
             description="A hero searching for his father.",
@@ -128,22 +127,19 @@ class TestNovelPlan:
         chapter_ctx = ctx.child_contexts[0]
         story_ctx = chapter_ctx.child_contexts[0]
         scene_ctx = story_ctx.child_contexts[0]
-        # the generated global constraint replaces the author's raw intent
+        # the plan's global constraints seed the root channel and reach every scene
         assert ctx.writing_constraints == meta.writing_constraints
         # the novel plan's styles seed the root channel and reach every scene
         assert ctx.writing_styles == meta.writing_styles
         assert scene_ctx.writing_styles == meta.writing_styles
-        # constraints stack like styles: the ancestors' entries first, the level's own last
+        # constraints stack: every level appends its own plan's entries to the list it inherited
         assert chapter_ctx.writing_constraints == [
-            *meta.writing_constraints,
+            *ctx.writing_constraints,
             "Keep first person during the road journey.",
         ]
-        assert story_ctx.writing_constraints == [
-            *meta.writing_constraints,
-            "Keep first person during the road journey.",
-        ]
+        assert story_ctx.writing_constraints == [*ctx.writing_constraints, "Keep first person during the road journey."]
         assert scene_ctx.writing_constraints == [
-            *meta.writing_constraints,
+            *ctx.writing_constraints,
             "Keep first person during the road journey.",
             "Stay in the protagonist's head; no head-hopping.",
         ]
@@ -154,22 +150,6 @@ class TestNovelPlan:
         assert "no head-hopping" in requirement
         assert requirement.index("Keep first person during the road journey.") < requirement.index("no head-hopping")
         assert "where two contradict, the later one wins" in requirement
-
-    async def test_propose_novel_metadata_keeps_intent_when_plan_constraint_empty(self) -> None:
-        """Assert the author's stated constraint survives a plan that allocates none."""
-        role = unguarded_role()
-        ctx = NovelContext.create("The hero..", language="English")
-        ctx.set_writing_constraints(["I hope the novel is first person view."])
-        meta = NovelPlan(
-            title="The Search",
-            description="A hero searching.",
-            expected_word_count=100,
-            writing_styles=[],
-            writing_constraints=[],
-        )
-        with MockScript.from_values(Value.from_model(meta, name="novel metadata")):
-            assert await role.propose_novel_metadata(ctx) is True
-        assert ctx.writing_constraints == ["I hope the novel is first person view."]
 
     async def test_compose_novel_returns_none_when_plan_fails(self) -> None:
         """Assert compose_novel returns None when chapter plan generation fails."""

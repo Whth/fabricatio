@@ -50,7 +50,6 @@ class InitNovelContext(StageAction, NovelCompose):
         outline: str,
         *,
         language: str | None = None,
-        constraint: str = "",
         bible_path: Path | None = None,
         skills: list[str] | None = None,
         send_to: str | None = TASK,
@@ -63,8 +62,6 @@ class InitNovelContext(StageAction, NovelCompose):
         itself and fetches the references the planning prompts render.
         """
         ctx = NovelContext.create(outline, language=language)
-        if constraint:
-            ctx.set_writing_constraints([constraint])
         if bible_path is not None:
             ctx.set_series_bible(SeriesBible.model_validate_json(bible_path.read_text(encoding="utf-8")))
         if skills:
@@ -77,7 +74,6 @@ class InitNovelContext(StageAction, NovelCompose):
         *_: Any,
         novel_outline: str,
         novel_language: str | None = None,
-        writing_constraint: str = "",
         bible_path: Path | None = None,
         skills: list[str] | None = None,
         send_to: str | None = TASK,
@@ -88,7 +84,6 @@ class InitNovelContext(StageAction, NovelCompose):
         ctx = await self.init_novel_context(
             ok(novel_outline, "`novel_outline` is required in the task init context"),
             language=novel_language,
-            constraint=writing_constraint,
             bible_path=bible_path,
             skills=skills,
             send_to=send_to,

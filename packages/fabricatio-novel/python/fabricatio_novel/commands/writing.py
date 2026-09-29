@@ -233,12 +233,6 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
         help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
     ),
     bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
-    constraint: str | None = typer.Option(
-        None,
-        "--constraint",
-        "-c",
-        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
-    ),
 ) -> None:
     """Generate a novel from an outline."""
     if bible is not None and not bible.is_file():
@@ -248,7 +242,6 @@ def write_novel(  # noqa: PLR0913 - flat signature required by typer option deri
     task = Task(name="write novel").update_init_context(
         novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
-        writing_constraint=constraint or "",
         bible_path=bible,
         persist_dir=run_dir,
         output_path=output,
@@ -356,12 +349,6 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
         help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
     ),
     bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
-    constraint: str | None = typer.Option(
-        None,
-        "--constraint",
-        "-c",
-        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
-    ),
 ) -> None:
     """Generate a novel with writing style RAG from an outline."""
     if bible is not None and not bible.is_file():
@@ -372,7 +359,6 @@ def write_novel_with_rag(  # noqa: PLR0913 - flat signature required by typer op
     task = Task(name="write novel with rag").update_init_context(
         novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
-        writing_constraint=constraint or "",
         bible_path=bible,
         rag_query=rag_query,
         rag_limit=retrieve_limit,
@@ -482,12 +468,6 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
         help="Export format: 'epub' only, 'txt' (one plain-text file per chapter, zero-padded index names), or 'both'.",
     ),
     bible: Path | None = typer.Option(None, "--bible", "-b", help="Setting bible JSON to constrain scene generation."),
-    constraint: str | None = typer.Option(
-        None,
-        "--constraint",
-        "-c",
-        help="Global writing constraint to honor throughout the novel (e.g. 'first person view').",
-    ),
     choose_loras: bool = typer.Option(
         False,
         "--choose-loras",
@@ -513,7 +493,6 @@ def write_novel_with_rag_and_illustration(  # noqa: PLR0913 - flat signature req
     task = Task(name="write novel with rag and illustration").update_init_context(
         novel_outline=_resolve_outline(outline, outline_file, resumed=point is not None),
         novel_language=language,
-        writing_constraint=constraint or "",
         bible_path=bible,
         rag_query=rag_query,
         rag_limit=retrieve_limit,

@@ -123,8 +123,8 @@ with word counts assigned out-of-band via `expect_` (the root takes the novel pl
 count, children take their allocated share). `update_from` adopts only the plan's scalar
 fields (title, description, cast); the style and constraint channels are stacked explicitly by
 the composing capability — `set_writing_styles` and `set_writing_constraints` each receive the
-parent's list followed by the child plan's own — so both accumulate down the chain, the root
-seeded from the novel plan. Each level then passes state down:
+parent's list followed by the child plan's own — so both accumulate down the chain, the novel's
+own channels being seeded from the novel plan. Each level then passes state down:
 
 - **Running manuscript** — an append-only `ContextLog`; every walk seeds each child with
   exactly the bytes that precede it in the final book (`iter_prefixed_contexts`)
@@ -291,7 +291,7 @@ history stays intact.
 
 | Action | Stage |
 |---|---|
-| `InitNovelContext` / `RagInitNovelContext` | `01_init` — build context from outline/language/constraint/bible, then fire `before_compose_novel_context` (the RAG variant's hook seals the root and searches the outline) |
+| `InitNovelContext` / `RagInitNovelContext` | `01_init` — build context from outline/language/bible, then fire `before_compose_novel_context` (the RAG variant's hook seals the root and searches the outline) |
 | `ProposeNovelMetadataStage` | `02_metadata` — `propose_novel_metadata` |
 | `ProposeSettingBibleStage` | `03_bible` — `compose_setting_bible`, then seed the bible prefix; skipped when a bible is already present |
 | `PrepareCharacterSpanStage` | `04_characters` — `prepare_character_span` (roster) |
@@ -447,8 +447,8 @@ fanvl wri -o "In a world where dreams are currency..." -rq "Hemingway terse pros
 fanvl wri -o "..." --choose-loras  # per-scene LLM-chosen LoRAs from the [ext.comfyui] catalog
 fanvl wri -o "..." --judge --judge-tries 5  # vision-judge each illustration; retry with a revised prompt up to N total attempts
 
-# Constrain generation with a setting bible + global writing constraint
-fanvl w -o "..." -b settings/bible.json -c "first person view throughout"
+# Constrain generation with a setting bible
+fanvl w -o "..." -b settings/bible.json
 
 # Write with the user's own skills from the fabricatio-skill library
 fanvl w  -o "..." -s terse-action -s no-adverbs   # repeatable, or comma-separated: -s terse-action,no-adverbs
