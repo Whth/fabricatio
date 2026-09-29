@@ -10,7 +10,12 @@ from fabricatio_novel.models.scene import Scene
 
 
 class Story(StoryPlan, WordCount):
-    """A composed story: its plan fields and the scenes it contains."""
+    """A composed story: its plan fields and the scenes it contains.
+
+    Both writing channels mirror the story context's own lists — the entries in force
+    at this level, the same lists its prompts rendered — rather than the plan's
+    contributions alone.
+    """
 
     scenes: list[Scene]
 
@@ -26,7 +31,7 @@ class Story(StoryPlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_styles=list(ctx.writing_styles),
             writing_constraints=list(ctx.writing_constraints),
             scenes=[Scene.from_context(sc) for sc in ctx.child_contexts],
         )

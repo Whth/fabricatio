@@ -13,7 +13,12 @@ from fabricatio_novel.rust import NovelBuilder, text_to_xhtml_paragraphs
 
 
 class Scene(ScenePlan, WordCount):
-    """A composed scene: its plan fields and the written content."""
+    """A composed scene: its plan fields and the written content.
+
+    Both writing channels mirror the scene context's own lists — the entries in force
+    at this level, the same lists its prompts rendered — rather than the plan's
+    contributions alone.
+    """
 
     content: str
 
@@ -45,7 +50,7 @@ class Scene(ScenePlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_styles=list(ctx.writing_styles),
             writing_constraints=list(ctx.writing_constraints),
             content=ctx.content,
         )

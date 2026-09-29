@@ -60,7 +60,12 @@ class IllustrationScopedConfig(ScopedConfig):
 
 
 class IllustratedScene(Scene):
-    """A composed scene carrying its rendered illustration."""
+    """A composed scene carrying its rendered illustration.
+
+    Both writing channels mirror the scene context's own lists — the entries in force
+    at this level, the same lists its prompts rendered — rather than the plan's
+    contributions alone.
+    """
 
     illustration_prompt: str = ""
     """The image-generation prompt proposed for this scene; empty until illustrated."""
@@ -81,7 +86,7 @@ class IllustratedScene(Scene):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_styles=list(ctx.writing_styles),
             writing_constraints=list(ctx.writing_constraints),
             content=ctx.content,
             illustration_prompt=illustration_prompt,

@@ -24,7 +24,12 @@ class ExportFormat(StrEnum):
 
 
 class Novel(PersistentAble, NovelPlan):
-    """A composed novel: its plan fields and the chapters it contains."""
+    """A composed novel: its plan fields and the chapters it contains.
+
+    Both writing channels mirror the novel context's own lists — the entries in force
+    at this level, the same lists its prompts rendered — rather than the plan's
+    contributions alone.
+    """
 
     chapter: list[Chapter]
 

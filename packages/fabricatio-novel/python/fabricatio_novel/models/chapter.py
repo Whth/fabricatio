@@ -14,7 +14,12 @@ from fabricatio_novel.rust import NovelBuilder
 
 
 class Chapter(ChapterPlan, WordCount):
-    """A composed chapter: its plan fields and the stories it contains."""
+    """A composed chapter: its plan fields and the stories it contains.
+
+    Both writing channels mirror the chapter context's own lists — the entries in force
+    at this level, the same lists its prompts rendered — rather than the plan's
+    contributions alone.
+    """
 
     story: list[Story]
 
@@ -34,7 +39,7 @@ class Chapter(ChapterPlan, WordCount):
             title=ctx.title,
             description=ctx.description,
             expected_word_count=ctx.expected_word_count,
-            writing_styles=list(ctx.plan.writing_styles) if ctx.plan is not None else [],
+            writing_styles=list(ctx.writing_styles),
             writing_constraints=list(ctx.writing_constraints),
             story=[Story.from_context(sc) for sc in ctx.child_contexts],
         )
