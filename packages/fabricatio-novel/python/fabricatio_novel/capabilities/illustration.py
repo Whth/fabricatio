@@ -8,7 +8,7 @@ from typing import Unpack
 
 from fabricatio_core import logger
 from fabricatio_core.models.kwargs_types import LLMKwargs
-from fabricatio_core.rust import TASK
+from fabricatio_core.rust import SMOL
 from fabricatio_core.utils import cfg, first_available
 
 cfg(["comfyui"])
@@ -65,7 +65,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Visu
         novel_ctx: NovelContext,
         *,
         persist_dir: str | Path,
-        send_to: str | None = TASK,
+        send_to: str | None = SMOL,
         illustration_constraint: str | None = None,
         illustration_choose_loras: bool | None = None,
         illustration_judge: bool | None = None,
@@ -82,7 +82,9 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Visu
         Args:
             novel_ctx: The composed novel context whose scenes get illustrated.
             persist_dir: Run directory receiving the ``images/`` output subdirectory.
-            send_to: Routing group for the illustration-prompt proposals.
+            send_to: Routing group for the illustration-prompt proposals; the ``SMOL`` variant slot
+                by default, since drafting prompts is mechanical work that need not ride the run's
+                writing group.
             illustration_constraint: Global constraint (style etc.) merged into every
                 proposal requirement; wins over the scoped
                 :attr:`~fabricatio_novel.models.illustration.IllustrationScopedConfig.illustration_constraint`
@@ -357,7 +359,9 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Visu
             ctx: The composed novel context whose scenes get illustrated.
             novel: The assembled novel to attach rendered scenes onto.
             persist_dir: Run directory receiving the ``images/`` output subdirectory.
-            send_to: Routing group for the illustration-prompt proposals.
+            send_to: Routing group for the illustration-prompt proposals; the ``SMOL`` variant slot
+                by default, since drafting prompts is mechanical work that need not ride the run's
+                writing group.
             illustration_constraint: Global constraint (style etc.) forwarded to the
                 phase; ``None`` falls back to the scoped config and the global default.
             illustration_choose_loras: Opt-in per-scene catalog LoRA selection forwarded to the
@@ -372,7 +376,7 @@ class IllustrateScenes(IllustrationScopedConfig, NovelCompose, ChooseLoras, Visu
         illustrations = await self.illustrate_novel_phase(
             ctx,
             persist_dir=persist_dir,
-            send_to=send_to or TASK,
+            send_to=send_to or SMOL,
             illustration_constraint=illustration_constraint,
             illustration_choose_loras=illustration_choose_loras,
             illustration_judge=illustration_judge,

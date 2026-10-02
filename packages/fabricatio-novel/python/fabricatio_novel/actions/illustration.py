@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any
 
-from fabricatio_core.rust import TASK
+from fabricatio_core.rust import SMOL
 
 from fabricatio_novel.actions.novel import DumpNovelStage
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
@@ -32,7 +32,7 @@ class IllustrateNovelStage(DumpNovelStage, IllustrateScenes):
         output_path: str | None = None,
         font: str | Path | None = None,
         cover: str | Path | None = None,
-        send_to: str | None = TASK,
+        send_to: str | None = SMOL,
         illustration_choose_loras: bool | None = None,
         illustration_judge: bool | None = None,
         illustration_judge_max_tries: int | None = None,

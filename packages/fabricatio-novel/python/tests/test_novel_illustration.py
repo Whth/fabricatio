@@ -8,6 +8,8 @@ import pytest
 from fabricatio_comfyui.models import LoraCatalog, LoraEntry, LoraPick, LoraSelection, LoraSpec
 from fabricatio_comfyui.models.resolution import Prop
 from fabricatio_comfyui.models.specs import SketchSpec
+from fabricatio_core import Role
+from fabricatio_core.rust import CONFIG, SMOL, TASK
 from fabricatio_judge.models.judgement import ImageVerdict
 from fabricatio_mock import MockScript, Value, make_test_role
 from fabricatio_novel.capabilities.illustration import IllustrateScenes
@@ -125,6 +127,17 @@ def install_distinct_renderer(monkeypatch: pytest.MonkeyPatch) -> tuple[list[str
     return prompts, pngs
 
 
+class _IllustrationProbeRole(Role, IllustrateScenes):
+    """Illustration role whose proposals keep the framework's own variant routing.
+
+    ``make_test_role`` composes an ``LLMTestRole``, which pins every completion to the
+    dummy group and so cannot tell one variant slot from another; a routing test needs
+    the plain resolution ladder instead. ``llm_no_cache``/``llm_no_store`` are set per
+    instance, as the workflow tests do, so no probe group can leave a canned completion
+    behind in the shared completion cache.
+    """
+
+
 class TestIllustrateNovelPhase:
     """Test suite for the post-process illustration phase."""
 
@@ -155,6 +168,43 @@ class TestIllustrateNovelPhase:
         assert illustrations[(1, 2)][1] == str((tmp_path / "images" / "scene_01_02.png").resolve())
         assert (tmp_path / "images" / "scene_01_01.png").is_file()
         assert (tmp_path / "images" / "scene_01_02.png").is_file()
+
+    async def test_illustrate_novel_phase_defaults_to_the_smol_slot(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Assert an unrouted illustration proposal rides the ``SMOL`` variant, not the run's ``TASK`` group.
+
+        The writing stages default to ``TASK``, so a proposal answered from the ``TASK`` probe
+        would mean illustration followed the writing tier; each slot holds a distinguishable
+        sketch, and the render prompt keeps the answering sketch's head.
+        """
+        ctx = build_novel_ctx("S1")
+        install_fake_renderer(monkeypatch, [tmp_path / "unused.png"])
+        role = _IllustrationProbeRole(name="illustration_probe", llm_no_cache=True, llm_no_store=True)
+        smol_probe = "illustration_smol_probe"
+        task_probe = "illustration_task_probe"
+        previous = {SMOL: CONFIG.resolve_llm_variant(SMOL), TASK: CONFIG.resolve_llm_variant(TASK)}
+        CONFIG.configure_llm_variant(SMOL, smol_probe)
+        CONFIG.configure_llm_variant(TASK, task_probe)
+        try:
+            with (
+                MockScript.from_values(
+                    Value.from_model(SketchSpec(prompt="the smol sketch"), name="smol sketch"),
+                    group=smol_probe,
+                ),
+                MockScript.from_values(
+                    Value.from_model(SketchSpec(prompt="the task sketch"), name="task sketch"),
+                    group=task_probe,
+                ),
+            ):
+                illustrations = await role.illustrate_novel_phase(ctx, persist_dir=tmp_path)
+        finally:
+            CONFIG.configure_llm_variant(SMOL, previous[SMOL])
+            CONFIG.configure_llm_variant(TASK, previous[TASK])
+
+        prompts = [prompt for prompt, _ in illustrations.values()]
+        assert len(prompts) == 1
+        assert prompts[0].startswith("the smol sketch")
 
     async def test_illustrate_novel_phase_skips_existing_png(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
