@@ -20,7 +20,7 @@ strum = { version = "0.28.0", features = ["derive"] }
 lancedb = { version = "0.37.1", default-features = false }
 pythonize = "0.29.0"
 uuid = { version = "1.28.0", features = ["v7"] }
-cached = "2.0.2"
+cached = "4.0.2"
 serde_json = { version = "1.0.154", default-features = false }
 # Must match the arrow version lancedb vendors internally (re-exported via lancedb::arrow) — bump together.
 arrow-array = { version = "58.3.0", default-features = false }

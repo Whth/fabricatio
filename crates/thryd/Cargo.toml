@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 async-openai = { version = "0.41.3", features = ["completions", "embedding-types", "response-types"] }
 async-trait = "0.1.92"
-cached = { version = "2.0.2", features = ["proc_macro"] }
+cached = { version = "4.0.2", features = ["proc_macro"] }
 eventsource-stream = "0.2.3"
 futures = "0.3.34"
 http = "1.5.0"
