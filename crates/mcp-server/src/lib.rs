@@ -16,7 +16,7 @@ use futures::future::BoxFuture;
 use handler::FabricatioService;
 use rmcp::ServiceExt;
 use rmcp::handler::server::tool::ToolRoute;
-use rmcp::model::{CallToolResult, JsonObject, ServerInfo};
+use rmcp::model::{CallToolResult, JsonObject, ServerConfig};
 use rmcp::transport::streamable_http_server::session::local::LocalSessionManager;
 use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService};
 use std::sync::Arc;
@@ -43,7 +43,7 @@ pub type ToolHandler = Arc<
 
 /// Shared state behind a [`ToolServer`], visible to every served connection.
 pub struct ServerInner {
-    info: ServerInfo,
+    info: ServerConfig,
     router: RwLock<rmcp::handler::server::tool::ToolRouter<FabricatioService>>,
     tasks: Mutex<Vec<JoinHandle<()>>>,
     url: RwLock<Option<String>>,
@@ -65,7 +65,7 @@ impl ToolServer {
         version: impl Into<String>,
         instructions: Option<String>,
     ) -> Self {
-        let mut info = ServerInfo::default();
+        let mut info = ServerConfig::default();
         info.server_info.name = name.into();
         info.server_info.version = version.into();
         info.instructions = instructions;

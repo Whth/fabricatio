@@ -16,7 +16,7 @@ mcp-manager = { workspace = true }
 mcp-server = { workspace = true }
 signify = { workspace = true }
 tokio = { version = "1.53.2", features = ["rt-multi-thread"] }
-rmcp = { version = "3.1.4", features = ["transport-streamable-http-client-reqwest", "client"] }
+rmcp = { version = "3.5.1", features = ["transport-streamable-http-client-reqwest", "client"] }
 fabricatio-logger = { workspace = true }
 
 ignore = { version = "0.4.33" }

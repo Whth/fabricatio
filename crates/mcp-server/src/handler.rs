@@ -5,7 +5,7 @@ use rmcp::{
     handler::server::tool::ToolCallContext,
     model::{
         CallToolRequestParams, CallToolResponse, InitializeRequestParams, InitializeResult,
-        ListToolsResult, PaginatedRequestParams, ProtocolVersion, ServerInfo,
+        ListToolsResult, PaginatedRequestParams, ProtocolVersion, ServerConfig,
     },
     service::{RequestContext, RoleServer},
 };
@@ -98,7 +98,7 @@ impl ServerHandler for FabricatioService {
             .cloned()
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         self.server.info.clone()
     }
 }
