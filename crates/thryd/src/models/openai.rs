@@ -402,6 +402,7 @@ impl CompletionModel for OpenaiModel {
                             url: img.uri.clone(),
                             detail: None,
                         },
+                        prompt_cache_breakpoint: None,
                     }
                     .into(),
                 );
@@ -409,6 +410,7 @@ impl CompletionModel for OpenaiModel {
             parts.push(
                 ChatCompletionRequestMessageContentPartText {
                     text: request.message,
+                    prompt_cache_breakpoint: None,
                 }
                 .into(),
             );

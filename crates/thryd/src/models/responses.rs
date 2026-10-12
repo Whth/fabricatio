@@ -124,6 +124,7 @@ fn build_input(request: &CompletionRequest) -> InputParam {
         .collect();
     parts.push(InputContent::InputText(InputTextContent {
         text: request.message.clone(),
+        prompt_cache_breakpoint: None,
     }));
     InputParam::Items(vec![InputItem::EasyMessage(EasyInputMessage {
         role: Role::User,
