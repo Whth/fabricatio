@@ -17,7 +17,8 @@ error-mapping = { workspace = true, features = [
 ] }
 pyo3-stub-gen = "0.23.1"
 strum = { version = "0.28.0", features = ["derive"] }
-lancedb = { version = "0.37.1", default-features = false }
+# 0.40.0 only compiles with `remote`: job.rs references the feature-gated Error::Http variant.
+lancedb = { version = "0.40.0", default-features = false, features = ["remote"] }
 pythonize = "0.29.0"
 uuid = { version = "1.28.0", features = ["v7"] }
 cached = "4.0.2"

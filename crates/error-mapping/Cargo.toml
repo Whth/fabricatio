@@ -19,7 +19,7 @@ http = { version = "1.5.0", default-features = false, optional = true }
 cfg-if = "1.0.5"
 tantivy = { version = "0.26.2", default-features = false, optional = true }
 mcp-manager = { path = "../mcp-manager", default-features = false, optional = true }
-lancedb = { version = "0.37.1", default-features = false, optional = true }
+lancedb = { version = "0.40.0", default-features = false, optional = true, features = ["remote"] }
 strum = { version = "0.28.0", default-features = false, optional = true }
 thryd = { path = "../thryd", default-features = false, optional = true }
 jevlin = { path = "../jevlin", default-features = false, optional = true }
