@@ -1181,7 +1181,7 @@ hundred characters of policy prose instead of the scene, which the scene's own w
 budget gives away. ``scene_refusal_ratio_floor`` (float, default ``0.8``) is the word
 count satisfaction below which a reply is a refusal without asking a judge — measured
 on a refused run, every refusal came back at 0.15–0.78 of its budget while every
-composed scene ran 1.03–2.11; ``scene_refusal_ratio_accept`` (float, default ``1.5``)
+composed scene ran 1.03–2.11; ``scene_refusal_ratio_accept`` (float, default ``1.2``)
 is the satisfaction at or above which a reply is prose without asking a judge, leaving
 only the band between the two to ``ajudge`` on the ``SMOL`` tier, which asks whether the
 requested scene is present rather than whether the answer reads as a refusal — a

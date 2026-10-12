@@ -12,11 +12,11 @@ from fabricatio_novel.models.refusal import SceneRefusedError
 REFUSAL = "I am sorry, but I cannot write this scene."
 """Eleven words against a forty-word budget: 0.28 of the budget, well under the 0.8 floor."""
 
-MIDDLE = " ".join(["the rain fell hard"] * 13)
-"""Fifty-two words against a forty-word budget: 1.30, inside the judged band."""
+MIDDLE = " ".join(["the rain fell hard"] * 10)
+"""Forty words against a forty-word budget: 1.00 of the budget, inside the judged band."""
 
 PROSE = " ".join(["the rain fell hard"] * 20)
-"""Eighty words against a forty-word budget: 2.0, over the 1.5 accept ratio."""
+"""Eighty words against a forty-word budget: 2.0, over the 1.2 accept ratio."""
 
 
 def scene_ctx() -> SceneContext:
