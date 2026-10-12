@@ -16,21 +16,21 @@ futures = "0.3.34"
 http = "1.5.0"
 moka = { version = "0.12.16", features = ["sync"] }
 once_cell = "1.21.4"
-reqwest = { version = "0.13.4", features = ["json", "rustls", "stream"] }
+reqwest = { version = "0.13.5", features = ["json", "rustls", "stream"] }
 secrecy = "0.10.3"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+serde_json = "1.0.154"
 strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
-thiserror = "2.0.20"
-tiktoken-rs = "0.12.0"
-tokio = "1.53.1"
+thiserror = "2.0.21"
+tiktoken-rs = "0.12.1"
+tokio = "1.53.2"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 
 
-pyo3 = { version = "0.29.2", optional = true }
-pyo3-stub-gen = { version = "0.23.0", optional = true }
+pyo3 = { version = "0.29.3", optional = true }
+pyo3-stub-gen = { version = "0.23.1", optional = true }
 jevlin = { version = "0.2.0", path = "../jevlin", default-features = false, optional = true }
 heed = "0.22.1"
 postcard = { version = "1.1.3", features = ["use-std"] }
@@ -49,4 +49,4 @@ jev = ["dep:jevlin"]
 
 [dev-dependencies]
 tempfile = "3"
-tokio = { version = "1.53.1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }
+tokio = { version = "1.53.2", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }

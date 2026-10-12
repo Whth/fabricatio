@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = "0.8.4"
+axum = "0.8.9"
 futures = "0.3.34"
 rmcp = { version = "3.1.4", features = ["server", "transport-io", "transport-streamable-http-server"] }
-serde_json = "1.0.151"
-thiserror = "2.0.20"
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "sync", "io-util", "io-std"] }
-tracing = "0.1.41"
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "net", "sync", "io-util", "io-std"] }
+tracing = "0.1.44"
 
 [dev-dependencies]
 rmcp = { version = "3.1.4", features = ["client", "transport-streamable-http-client-reqwest", "transport-io"] }
-tokio = { version = "1.53.1", features = ["test-util"] }
+tokio = { version = "1.53.2", features = ["test-util"] }

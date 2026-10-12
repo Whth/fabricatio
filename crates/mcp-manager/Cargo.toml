@@ -7,13 +7,13 @@ edition = "2024"
 futures = "0.3.34"
 rmcp = { version = "3.1.4", features = ["client", "reqwest", "transport-child-process", "transport-io", "transport-streamable-http-client-reqwest"] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-tokio = { version = "1.53.1", features = ["process", "rt-multi-thread", "sync"] }
-which = "8.0.5"
+serde_json = "1.0.154"
+tokio = { version = "1.53.2", features = ["process", "rt-multi-thread", "sync"] }
+which = "8.0.6"
 
-thiserror = "2.0.20"
+thiserror = "2.0.21"
 
 [dev-dependencies]
-tokio = { version = "1.53.1", features = ["test-util"] }
+tokio = { version = "1.53.2", features = ["test-util"] }
 
 

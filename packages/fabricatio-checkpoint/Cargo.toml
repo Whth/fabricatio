@@ -12,11 +12,11 @@ fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 git2 = { version = "0.21.0", features = ["vendored-libgit2"], default-features = false }
 moka = { version = "0.12.16", features = ["sync"] }
 
-pyo3 = { version = "0.29.2" }
+pyo3 = { version = "0.29.3" }
 error-mapping = { path = "../../crates/error-mapping", features = ["git2"] }
 utils = { path = "../../crates/utils" }
 rayon = "1.12.0"
-pyo3-stub-gen = "0.23.0"
+pyo3-stub-gen = "0.23.1"
 
 
 
