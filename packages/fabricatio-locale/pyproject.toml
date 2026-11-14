@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-locale"
-version = "0.1.9"
+version = "0.1.10"
 description = "Gettext .po localization for Fabricatio: read, translate, and write po files with LLM translation."
 readme = "README.md"
 authors = [
