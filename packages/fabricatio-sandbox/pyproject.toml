@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-sandbox"
-version = "0.1.5"
+version = "0.1.6"
 description = "Sandboxed file and command execution for Fabricatio: in-memory virtual filesystem with captured process output."
 readme = "README.md"
 license = "MIT"
