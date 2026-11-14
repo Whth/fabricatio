@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-memory"
-version = "0.3.7"
+version = "0.3.8"
 description = "Persistent, searchable long-term memory for Fabricatio agents, backed by a Rust Tantivy full-text index."
 readme = "README.md"
 authors = [
