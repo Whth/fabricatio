@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-agent"
-version = "0.3.3"
+version = "0.3.4"
 description = "General-purpose composable agent for Fabricatio: thinking, memory, judgment, task dispatch, and team collaboration in one class."
 readme = "README.md"
 license = "MIT"
