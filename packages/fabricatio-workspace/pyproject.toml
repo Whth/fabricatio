@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-workspace"
-version = "0.1.5"
+version = "0.1.6"
 description = "Git worktree management for Fabricatio, backed by Rust via PyO3."
 readme = "README.md"
 license = "MIT"
