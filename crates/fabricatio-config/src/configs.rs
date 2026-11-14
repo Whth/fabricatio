@@ -387,7 +387,7 @@ impl Default for EmitterConfig {
 /// Configuration structure containing all system components.
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 pub struct Config {
     /// Embedding configuration parameters.
     #[pyo3(get)]

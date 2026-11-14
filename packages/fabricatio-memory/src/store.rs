@@ -31,7 +31,7 @@ use tantivy::{Index, IndexReader, IndexWriter, Order, ReloadPolicy, Score, Searc
 /// The implementation uses a Tantivy index with fields for content, tags, importance, timestamps,
 /// and access counts. It includes PyO3 bindings to allow Python usage.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 pub struct MemoryStore {
     index: Arc<Index>,
     /// tantivy allows only one writer at a time

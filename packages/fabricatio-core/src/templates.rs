@@ -19,7 +19,7 @@ use walkdir::WalkDir;
 /// Python bindings for the TemplateManager struct.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
 #[derive(Clone)]
-#[pyclass(skip_from_py_object)]
+#[pyclass]
 pub struct TemplateManager {
     #[pyo3(get)]
     templates_stores: Vec<PathBuf>,

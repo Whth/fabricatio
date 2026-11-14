@@ -6,11 +6,11 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.29.3", features = ["extension-module"] }
+pyo3 = { version = "0.30.1", features = ["extension-module"] }
 
 reqwest = { version = "0.13.5", features = ["rustls", "json", "query"] }
 tar = "0.4.46"
-flate2 = "1.1.10"
+flate2 = "1.1.11"
 clap = { version = "4.6.7", features = ["derive", "env"] }
 colored = "3.1.1"
 chrono = "0.4.45"
@@ -20,14 +20,14 @@ thiserror = "2.0.21"
 serde = { version = "1.0.229", features = ["derive"] }
 url = { version = "2", features = ["serde"] }
 
-tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros"] }
 human-units = { version = "0.6.0", features = ["iec-units"] }
 walkdir = "2.5.0"
 fabricatio-constants = { path = "crates/fabricatio-constants" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "std", "tls12"] }
 
 [build-dependencies]
-pyo3-build-config = "0.29.3"
+pyo3-build-config = "0.30.1"
 
 
 [workspace]

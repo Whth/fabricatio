@@ -8,9 +8,9 @@ license-file.workspace = true
 repository.workspace = true
 
 [dependencies]
-async-openai = { version = "0.42.2", features = ["completions", "embedding-types", "response-types"] }
+async-openai = { version = "0.43.0", features = ["completions", "embedding-types", "response-types"] }
 async-trait = "0.1.92"
-cached = { version = "4.0.2", features = ["proc_macro"] }
+cached = { version = "4.1.1", features = ["proc_macro"] }
 eventsource-stream = "0.2.3"
 futures = "0.3.34"
 http = "1.5.0"
@@ -24,14 +24,15 @@ strum = { version = "0.28.0", features = ["derive"] }
 strum_macros = "0.28.0"
 thiserror = "2.0.21"
 tiktoken-rs = "0.12.1"
-tokio = "1.53.2"
+tokio = "1.54.1"
 tracing = "0.1.44"
 url = { version = "2.5.8", features = ["serde"] }
 
 
-pyo3 = { version = "0.29.3", optional = true }
-pyo3-stub-gen = { version = "0.23.1", optional = true }
+pyo3 = { version = "0.30.1", optional = true }
+pyo3-stub-gen = { version = "0.23.2", optional = true }
 jevlin = { version = "0.2.1", path = "../jevlin", default-features = false, optional = true }
+# 0.23's lifetime-bound `Database` cannot be owned next to its `Env` (self-referential wrapper).
 heed = "0.22.1"
 postcard = { version = "1.1.3", features = ["use-std"] }
 blake3 = "1.8.7"
@@ -49,4 +50,4 @@ jev = ["dep:jevlin"]
 
 [dev-dependencies]
 tempfile = "3"
-tokio = { version = "1.53.2", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "rt-multi-thread", "time"] }

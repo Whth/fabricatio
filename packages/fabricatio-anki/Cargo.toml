@@ -8,14 +8,14 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
 
-pyo3 = { version = "0.29.3", features = ["extension-module"] }
+pyo3 = { version = "0.30.1", features = ["extension-module"] }
 deck_loader = { path = "../../crates/deck_loader" }
-pythonize = "0.29.0"
+pythonize = "0.30.0"
 regex = "1.13.1"
 fabricatio-logger = { path = "../../crates/fabricatio-logger" }
 
 serde_yaml2 = "0.1.3"
-pyo3-stub-gen = { version = "0.23.1", optional = true }
+pyo3-stub-gen = { version = "0.23.2", optional = true }
 
 [features]
 default = ["pyo3/extension-module"]

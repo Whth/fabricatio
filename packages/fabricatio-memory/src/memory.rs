@@ -14,7 +14,7 @@ use uuid::Uuid;
 /// Represents a memory object with content, importance, tags, and access statistics
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(get_all, skip_from_py_object)]
+#[pyclass(get_all)]
 pub struct Memory {
     /// Unique identifier for the memory
     pub uuid: String,

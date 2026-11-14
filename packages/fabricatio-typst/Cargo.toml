@@ -7,8 +7,8 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 biblatex = "0.12.0"
 nucleo-matcher = "0.3.1"
-pyo3 = { version = "0.29.3" }
-pythonize = "0.29.0"
+pyo3 = { version = "0.30.1" }
+pythonize = "0.30.0"
 rayon = "1.12.0"
 regex = "1.13.1"
 tex2typst-rs = "0.4.1"
@@ -20,10 +20,10 @@ tex-convertor = { path = "../../crates/tex-convertor" }
 serde_yaml2 = "0.1.3"
 
 error-mapping = { path = "../../crates/error-mapping", features = ["biblatex", "regex"] }
-pyo3-stub-gen = { version = "0.23.1", optional = true }
+pyo3-stub-gen = { version = "0.23.2", optional = true }
 
 [build-dependencies]
-pyo3-build-config = "0.29.3"
+pyo3-build-config = "0.30.1"
 
 [features]
 default = ["pyo3/extension-module"]

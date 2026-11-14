@@ -69,7 +69,7 @@ pub struct StoreDocument {
 /// its unique identifier, content, timestamp of creation/modification, and any
 /// associated metadata stored as JSON string.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(get_all, skip_from_py_object)]
+#[pyclass(get_all)]
 #[derive(Clone, Debug)]
 pub struct SearchedDocument {
     /// Unique identifier for the document, typically generated as a UUID string.

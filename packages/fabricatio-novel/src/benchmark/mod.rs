@@ -27,7 +27,7 @@ pub(crate) use knobs::Knobs;
 
 /// One number a measure reported, named the way a report prints it: `<measure>.<metric>`.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(frozen, skip_from_py_object)]
+#[pyclass(frozen)]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Metric {
     /// The metric's name: the measure it came from, a dot, and the number it counts.

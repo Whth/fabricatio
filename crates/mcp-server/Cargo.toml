@@ -6,12 +6,12 @@ edition = "2024"
 [dependencies]
 axum = "0.8.9"
 futures = "0.3.34"
-rmcp = { version = "3.5.1", features = ["server", "transport-io", "transport-streamable-http-server"] }
+rmcp = { version = "3.10.0", features = ["server", "transport-io", "transport-streamable-http-server"] }
 serde_json = "1.0.154"
 thiserror = "2.0.21"
-tokio = { version = "1.53.2", features = ["rt-multi-thread", "macros", "net", "sync", "io-util", "io-std"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "net", "sync", "io-util", "io-std"] }
 tracing = "0.1.44"
 
 [dev-dependencies]
-rmcp = { version = "3.5.1", features = ["client", "transport-streamable-http-client-reqwest", "transport-io"] }
-tokio = { version = "1.53.2", features = ["test-util"] }
+rmcp = { version = "3.10.0", features = ["client", "transport-streamable-http-client-reqwest", "transport-io"] }
+tokio = { version = "1.54.1", features = ["test-util"] }

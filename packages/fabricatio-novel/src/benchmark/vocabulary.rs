@@ -11,7 +11,7 @@ use crate::text::ngram::{MAX_N, NGramRecycling, NGramTally};
 
 /// The n-gram counts of one size and the grams a report names for it.
 #[cfg_attr(feature = "stubgen", gen_stub_pyclass)]
-#[pyclass(frozen, get_all, skip_from_py_object)]
+#[pyclass(frozen, get_all)]
 #[derive(Clone)]
 pub struct GramTable {
     /// How many characters one n-gram of this table spans.
