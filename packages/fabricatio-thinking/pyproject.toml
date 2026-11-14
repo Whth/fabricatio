@@ -1,6 +1,6 @@
 [project]
 name = "fabricatio-thinking"
-version = "0.2.4"
+version = "0.2.5"
 description = "Sequential chain-of-thought reasoning for Fabricatio agents, backed by a Rust thought-version control system."
 readme = "README.md"
 license = "MIT"
